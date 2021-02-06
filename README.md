@@ -48,6 +48,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.2.2 (2021-02-06)
+
+* (bropat) Exported missing P2P interface: StreamMetadata
+
 ### 0.2.1 (2021-02-06)
 
 * (bropat) Added typescript declaration files
