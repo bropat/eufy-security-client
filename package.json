@@ -1,0 +1,58 @@
+{
+  "name": "eufy-security-client",
+  "version": "0.2.0",
+  "description": "Client to comunicate with Eufy-Security devices",
+  "author": {
+    "name": "bropat",
+    "email": "patrick.broetto@gmail.com"
+  },
+  "homepage": "https://github.com/bropat/eufy-security-client",
+  "main": "build/index.js",
+  "scripts": {
+    "build:ts": "tsc -p tsconfig.build.json && npm run copy-proto-build",
+    "copy-proto-build": "npx copyfiles -u 1 \"src/**/*.proto\" build",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run build:ts",
+    "watch:ts": "tsc -p tsconfig.build.json --watch",
+    "watch": "npm run watch:ts",
+    "lint": "eslint --ext .ts src"
+  },
+  "license": "MIT",
+  "keywords": [
+    "eufy",
+    "eufycam",
+    "cam",
+    "cameras",
+    "security",
+    "eufy-security"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bropat/eufy-security-client"
+  },
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "protobuf-typescript": "^6.8.8",
+    "@types/qs": "^6.9.5",
+    "node-rsa": "^1.1.1",
+    "crypto-js": "^4.0.0",
+    "@types/node-rsa": "^1.0.0",
+    "@types/crypto-js": "^4.0.1",
+    "ts-log": "^2.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.25",
+    "@typescript-eslint/eslint-plugin": "^4.14.2",
+    "@typescript-eslint/parser": "^4.14.2",
+    "eslint": "^7.19.0",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.1.3"
+  },
+  "bugs": {
+    "url": "https://github.com/bropat/eufy-security-client/issues"
+  },
+  "readmeFilename": "README.md"
+}

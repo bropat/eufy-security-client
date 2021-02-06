@@ -1,0 +1,29 @@
+.git
+node_modules/
+img/
+.vs*/
+*.code-workspace
+gulpfile.js
+.devcontainer
+.github
+
+# CI test files
+test/
+travis/
+.travis.yml
+appveyor.yml
+.travis.yaml
+appveyor.yaml
+
+# TypeScript sources and project configuration
+src/
+tsconfig.json
+tsconfig.*.json
+
+# ESLint configuration
+.eslintrc.json
+.eslintrc.js
+
+# npm package files
+*.tgz
+package-lock.json
