@@ -48,6 +48,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.2.1 (2021-02-06)
+
+* (bropat) Added typescript declaration files
+
 ### 0.2.0 (2021-02-06)
 
 * (bropat) initial release
