@@ -1,5 +1,5 @@
 import { createSocket, Socket, RemoteInfo } from "dgram";
-import { EventEmitter } from "events";
+import { TypedEmitter } from "tiny-typed-emitter";
 import NodeRSA from "node-rsa";
 import { Readable } from "stream";
 import { dummyLogger, Logger } from "ts-log";
@@ -8,9 +8,9 @@ import { Address, CmdCameraInfoResponse, CommandResult } from "./models";
 import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey } from "./utils";
 import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec } from "./types";
 import { AlarmMode } from "../http/types";
-import { LookupAdresses, P2PDataMessage, P2PInterface, P2PDataMessageAudio, P2PDataMessageBuilder, P2PMessageState, P2PDataMessageVideo, P2PMessage, P2PDataHeader, P2PDataMessageState } from "./interfaces";
+import { LookupAdresses, P2PDataMessage, P2PDataMessageAudio, P2PDataMessageBuilder, P2PMessageState, P2PDataMessageVideo, P2PMessage, P2PDataHeader, P2PDataMessageState, P2PClientProtocolEvents } from "./interfaces";
 
-export class P2PClientProtocol extends EventEmitter implements P2PInterface {
+export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private readonly MAX_RETRIES = 5;
     private readonly MAX_COMMAND_RESULT_WAIT = 20 * 1000;
@@ -478,9 +478,9 @@ export class P2PClientProtocol extends EventEmitter implements P2PInterface {
                 const header: P2PDataHeader = {commandId: 0, bytesToRead: 0, channel: 0, signCode: 0, type: 0};
                 header.commandId = data.slice(4, 6).readUIntLE(0, 2);
                 header.bytesToRead = data.slice(6, 8).readUIntLE(0, 2);
-                header.channel = data.slice(12, 13).readInt8();
+                header.channel = data.slice(12, 13).readUInt8();
                 header.signCode = data.slice(13, 14).readInt8();
-                header.type = data.slice(14, 15).readInt8();
+                header.type = data.slice(14, 15).readUInt8();
 
                 this.currentMessageBuilder[message.type].header = header;
 
@@ -707,7 +707,7 @@ export class P2PClientProtocol extends EventEmitter implements P2PInterface {
                 this.emit("camera_info", JSON.parse(message.data.toString()) as CmdCameraInfoResponse);
                 break;
             case CommandType.CMD_CONVERT_MP4_OK:
-                const totalBytes = message.data.slice(1).readInt32LE();
+                const totalBytes = message.data.slice(1).readUInt32LE();
                 this.log.debug(`P2PClientProtocol.handleDataControl(): CMD_CONVERT_MP4_OK channel: ${message.channel} totalBytes: ${totalBytes}`);
                 this.downloadTotalBytes = totalBytes;
                 this.initializeStream(P2PDataType.BINARY);
@@ -716,7 +716,7 @@ export class P2PClientProtocol extends EventEmitter implements P2PInterface {
             case CommandType.CMD_WIFI_CONFIG:
                 const rssi = message.data.readInt32LE();
                 this.log.debug(`P2PClientProtocol.handleDataControl(): CMD_WIFI_CONFIG channel: ${message.channel} rssi: ${rssi}`);
-                //TODO: emit event for CMD_WIFI_CONFIG
+                this.emit("wifi_rssi", message.channel, rssi);
                 break;
             case CommandType.CMD_DOWNLOAD_FINISH:
                 this.log.debug(`P2PClientProtocol.handleDataControl(): CMD_DOWNLOAD_FINISH channel: ${message.channel}`);
@@ -804,11 +804,11 @@ export class P2PClientProtocol extends EventEmitter implements P2PInterface {
         if (audioSteam)
             audioSteam.destroy();
 
-        this.currentMessageState[datatype].videoSteam = new Readable({
+        this.currentMessageState[datatype].videoSteam = new Readable({ autoDestroy: true,
             // eslint-disable-next-line @typescript-eslint/no-empty-function
             read() {}
         });
-        this.currentMessageState[datatype].audioSteam = new Readable({
+        this.currentMessageState[datatype].audioSteam = new Readable({ autoDestroy: true,
             // eslint-disable-next-line @typescript-eslint/no-empty-function
             read() {}
         });
@@ -833,9 +833,9 @@ export class P2PClientProtocol extends EventEmitter implements P2PInterface {
         this.log.trace("P2PClientProtocol.emitStreamStartEvent():");
         this.currentMessageState[datatype].streamNotStarted = false;
         if (datatype === P2PDataType.VIDEO) {
-            this.emit("start_livestream", this.currentMessageState[datatype].streamChannel, this.currentMessageState[datatype].streamMetadata, this.currentMessageState[datatype].videoSteam, this.currentMessageState[datatype].audioSteam);
+            this.emit("start_livestream", this.currentMessageState[datatype].streamChannel, this.currentMessageState[datatype].streamMetadata, this.currentMessageState[datatype].videoSteam!, this.currentMessageState[datatype].audioSteam!);
         } else if (datatype === P2PDataType.BINARY) {
-            this.emit("start_download", this.currentMessageState[datatype].streamChannel, this.currentMessageState[datatype].streamMetadata, this.currentMessageState[datatype].videoSteam, this.currentMessageState[datatype].audioSteam);
+            this.emit("start_download", this.currentMessageState[datatype].streamChannel, this.currentMessageState[datatype].streamMetadata, this.currentMessageState[datatype].videoSteam!, this.currentMessageState[datatype].audioSteam!);
         }
     }
 

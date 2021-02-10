@@ -50,7 +50,9 @@ export enum DoorbellPushEvent {
     BACKGROUND_ACTIVE = 3100,
     MOTION_DETECTION = 3101,
     FACE_DETECTION = 3102,
-    PRESS_DOORBELL = 3103
+    PRESS_DOORBELL = 3103,
+    OFFLINE = 3106,
+    ONLINE = 3107
 }
 
 export enum IndoorPushEvent {

@@ -5,7 +5,7 @@ import { AlarmMode } from "../http/types";
 import { Address, CmdCameraInfoResponse, CommandResult } from "./models";
 import { AudioCodec, CommandType, P2PDataType, VideoCodec } from "./types";
 
-export interface P2PInterfaceEvents {
+export interface P2PClientProtocolEvents {
     "alarm_mode": (mode: AlarmMode) => void;
     "camera_info": (camera_info: CmdCameraInfoResponse) => void;
     "connected": (address: Address) => void;
@@ -15,18 +15,7 @@ export interface P2PInterfaceEvents {
     "finish_download": (channel: number) => void;
     "start_livestream": (channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => void;
     "stop_livestream": (channel: number) => void;
-}
-
-export declare interface P2PInterface {
-
-    on<U extends keyof P2PInterfaceEvents>(
-        event: U, listener: P2PInterfaceEvents[U]
-    ): this;
-
-    emit<U extends keyof P2PInterfaceEvents>(
-        event: U, ...args: Parameters<P2PInterfaceEvents[U]>
-    ): boolean;
-
+    "wifi_rssi": (channel: number, rssi: number) => void;
 }
 
 export interface P2PMessageState {

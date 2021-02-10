@@ -1,20 +1,21 @@
-import { EventEmitter } from "events";
+import { TypedEmitter } from "tiny-typed-emitter";
 import { Readable } from "stream";
-import { dummyLogger, Logger } from "ts-log";
+import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
 import { AlarmMode, DeviceType, GuardMode, ParamType } from "./types";
 import { DskKeyResponse, HubResponse, ResultResponse } from "./models"
-import { Parameter } from "./parameter";
-import { ParameterArray } from "./interfaces";
+import { ParameterHelper } from "./parameter";
+import { ParameterValue, ParameterArray, StationEvents } from "./interfaces";
 import { isGreaterMinVersion } from "./utils";
-import { P2PInterface, StreamMetadata } from "./../p2p/interfaces";
+import { StreamMetadata } from "./../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
 import { CommandType, ErrorCode, VideoCodec, WatermarkSetting } from "../p2p/types";
 import { Address, CmdCameraInfoResponse, CommandResult } from "../p2p/models";
 import { Device } from "./device";
+import { convertTimestampMs } from "../push/utils";
 
-export class Station extends EventEmitter implements P2PInterface {
+export class Station extends TypedEmitter<StationEvents> {
 
     private api: HTTPApi;
     private hub: HubResponse;
@@ -56,13 +57,21 @@ export class Station extends EventEmitter implements P2PInterface {
         return "station";
     }
 
+    private _updateParameter(param_type: number, param_value: ParameterValue): void {
+        const tmp_param_value = ParameterHelper.readValue(param_type, param_value.value);
+        if (((this.parameters[param_type] && this.parameters[param_type].value != tmp_param_value && this.parameters[param_type].modified < param_value.modified) || !this.parameters[param_type]) && param_type != 1147) {
+            this.parameters[param_type] = {
+                value: tmp_param_value,
+                modified: param_value.modified
+            };
+            this.emit("parameter", this, param_type, this.parameters[param_type].value, this.parameters[param_type].modified);
+        }
+    }
+
     public update(hub: HubResponse):void {
         this.hub = hub;
         this.hub.params.forEach(param => {
-            if (this.parameters[param.param_type] != param.param_value) {
-                this.parameters[param.param_type] = Parameter.readValue(param.param_type, param.param_value);
-                this.emit("parameter",this, param.param_type, param.param_value);
-            }
+            this._updateParameter(param.param_type, { value: param.param_value, modified: convertTimestampMs(param.update_time) });
         });
     }
 
@@ -108,12 +117,12 @@ export class Station extends EventEmitter implements P2PInterface {
 
     private loadParameters(): void {
         this.hub.params.forEach(param => {
-            this.parameters[param.param_type] = Parameter.readValue(param.param_type, param.param_value);
+            this._updateParameter(param.param_type, { value: param.param_value, modified: convertTimestampMs(param.update_time) });
         });
         this.log.debug(`Station.loadParameters(): station_sn: ${this.getSerial()} parameters: ${JSON.stringify(this.parameters)}`);
     }
 
-    public getParameter(param_type: number): string {
+    public getParameter(param_type: number): ParameterValue {
         return this.parameters[param_type];
     }
 
@@ -190,6 +199,7 @@ export class Station extends EventEmitter implements P2PInterface {
         this.p2p_session.on("finish_download", (channel: number) => this.onFinishDownload(channel));
         this.p2p_session.on("start_livestream", (channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => this.onStartLivestream(channel, metadata, videoStream, audioStream));
         this.p2p_session.on("stop_livestream", (channel: number) => this.onStopLivestream(channel));
+        this.p2p_session.on("wifi_rssi", (channel: number, rssi: number) => this.onWifiRssiChanged(channel, rssi));
 
         this.p2p_session.connect();
     }
@@ -212,6 +222,11 @@ export class Station extends EventEmitter implements P2PInterface {
     private onStartLivestream(channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable): void {
         this.log.trace(`Station.onStartLivestream(): station: ${this.getSerial()} channel: ${channel}`);
         this.emit("start_livestream", this, channel, metadata, videoStream, audioStream);
+    }
+
+    private onWifiRssiChanged(channel: number, rssi: number): void {
+        this.log.trace(`Station.onWifiRssiChanged(): station: ${this.getSerial()} channel: ${channel}`);
+        this.emit("parameter", this, CommandType.CMD_WIFI_CONFIG, rssi.toString(), +new Date);
     }
 
     public async setGuardMode(mode: GuardMode): Promise<void> {
@@ -278,13 +293,47 @@ export class Station extends EventEmitter implements P2PInterface {
 
     private onAlarmMode(mode: AlarmMode): void {
         this.log.info(`Alarm mode for station ${this.getSerial()} changed to: ${AlarmMode[mode]}`);
-        this.parameters[ParamType.SCHEDULE_MODE] = mode.toString();
-        this.emit("parameter", this, ParamType.SCHEDULE_MODE, mode.toString());
+        this.parameters[ParamType.SCHEDULE_MODE] = {
+            value: mode.toString(),
+            modified: +new Date
+        }
+        this.emit("parameter", this, ParamType.SCHEDULE_MODE, this.parameters[ParamType.SCHEDULE_MODE].value, this.parameters[ParamType.SCHEDULE_MODE].modified);
+        // Trigger refresh Guard Mode
+        this.getCameraInfo();
+    }
+
+    private _getDeviceSerial(channel: number): string {
+        for (const device of this.hub.devices) {
+            if (device.device_channel === channel)
+                return device.device_sn;
+        }
+        return "";
     }
 
     private onCameraInfo(camera_info: CmdCameraInfoResponse): void {
-        //TODO: Finish implementation
         this.log.debug(`Station.onCameraInfo(): station: ${this.getSerial()} camera_info: ${JSON.stringify(camera_info)}`);
+        const devices: { [index: string]: ParameterArray; } = {};
+        const timestamp = +new Date;
+        camera_info.params.forEach(param => {
+            if (param.dev_type === Station.CHANNEL) {
+                this._updateParameter(param.param_type, { value: param.param_value, modified: timestamp });
+            } else {
+                const device_sn = this._getDeviceSerial(param.dev_type);
+                if (device_sn !== "") {
+                    if (!devices[device_sn]) {
+                        devices[device_sn] = {};
+                    }
+
+                    devices[device_sn][param.param_type] = {
+                        value: ParameterHelper.readValue(param.param_type, param.param_value),
+                        modified: timestamp
+                    };
+                }
+            }
+        });
+        Object.keys(devices).forEach(device => {
+            this.emit("device_parameter", device, devices[device]);
+        });
     }
 
     private onCommandResponse(cmd_result: CommandResult): void {
@@ -441,14 +490,19 @@ export class Station extends EventEmitter implements P2PInterface {
         }
     }
 
-    public async startDownload(path: string, private_key: string): Promise<void> {
+    public async startDownload(path: string, cipher_id: number): Promise<void> {
         if (!this.p2p_session || !this.p2p_session.isConnected()) {
             this.log.warn(`Station.startDownload(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
             return;
         }
-        this.log.debug(`Station.startDownload(): P2P connection to station ${this.getSerial()} present, download video path: ${path}.`);
-        this.p2p_session.setDownloadRSAPrivateKeyPem(private_key);
-        await this.p2p_session.sendCommandWithString(CommandType.CMD_DOWNLOAD_VIDEO, path, this.hub.member.admin_user_id, 255);
+        const cipher = await this.api.getCipher(cipher_id, this.hub.member.admin_user_id);
+        if (cipher) {
+            this.log.debug(`Station.startDownload(): P2P connection to station ${this.getSerial()} present, download video path: ${path}.`);
+            this.p2p_session.setDownloadRSAPrivateKeyPem(cipher.private_key);
+            await this.p2p_session.sendCommandWithString(CommandType.CMD_DOWNLOAD_VIDEO, path, this.hub.member.admin_user_id, Station.CHANNEL);
+        } else {
+            this.log.warn(`Cancelled download of video "${path}" from Station ${this.getSerial()}, because RSA certificate couldn't be loaded.`);
+        }
     }
 
     public async cancelDownload(device: Device): Promise<void> {
@@ -457,7 +511,6 @@ export class Station extends EventEmitter implements P2PInterface {
             return;
         }
         this.log.debug(`Station.cancelDownload(): P2P connection to station ${this.getSerial()} present, cancel download for channel: ${device.getChannel()}.`);
-        //TODO: Verify if CMD_DOWNLOAD_CANCEL is correct!
         await this.p2p_session.sendCommandWithInt(CommandType.CMD_DOWNLOAD_CANCEL, device.getChannel(), this.hub.member.admin_user_id, device.getChannel());
     }
 
@@ -469,7 +522,7 @@ export class Station extends EventEmitter implements P2PInterface {
         this.log.debug(`Station.startLivestream(): P2P connection to station ${this.getSerial()} present, start livestream for channel: ${device.getChannel()}.`);
         const rsa_key = this.p2p_session.getRSAPrivateKey();
 
-        if (device.getDeviceType() === DeviceType.DOORBELL) {
+        if (device.isDoorbell() || device.isFloodLight() || device.isSoloCameras() || device.isIndoorCamera()) {
             this.log.debug(`Station.startLivestream(): Using CMD_DOORBELL_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
             await this.p2p_session.sendCommandWithStringPayload(CommandType.CMD_DOORBELL_SET_PAYLOAD, JSON.stringify({
                 "commandType": 1000,

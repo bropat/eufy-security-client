@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { EventEmitter } from "events";
 import path from "path";
 import { dummyLogger, Logger } from "ts-log";
 import { BufferReader, load, Root } from "protobuf-typescript";
+import { TypedEmitter } from "tiny-typed-emitter";
 
 import { MessageTag, ProcessingState } from "./models";
+import { PushClientParserEvents } from "./interfaces";
 
-export class PushClientParser extends EventEmitter {
+export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
 
     private static proto: Root | null = null;
     private state: ProcessingState = ProcessingState.MCS_VERSION_TAG_AND_SIZE;

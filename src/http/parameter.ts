@@ -1,6 +1,6 @@
 import { ParamType } from "./types";
 
-export class Parameter {
+export class ParameterHelper {
 
     public static readValue(type: number, value: string): string {
         if (value) {

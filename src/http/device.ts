@@ -1,14 +1,16 @@
-import { EventEmitter } from "events";
-import { dummyLogger, Logger } from "ts-log";
+import { TypedEmitter } from "tiny-typed-emitter";
+import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
 import { DeviceType, ParamType } from "./types";
 import { FullDeviceResponse, ResultResponse, StreamResponse } from "./models"
-import { Parameter } from "./parameter";
-import { IParameter, ParameterArray } from "./interfaces";
+import { ParameterHelper } from "./parameter";
+import { DeviceEvents, ParameterValue, ParameterArray } from "./interfaces";
 import { CommandType } from "../p2p/types";
+import { getAbsoluteFilePath } from "./utils";
+import { convertTimestampMs } from "../push/utils";
 
-export abstract class Device extends EventEmitter {
+export abstract class Device extends TypedEmitter<DeviceEvents> {
 
     protected api: HTTPApi;
     protected device: FullDeviceResponse;
@@ -26,12 +28,12 @@ export abstract class Device extends EventEmitter {
 
     private loadParameters(): void {
         this.device.params.forEach(param => {
-            this.parameters[param.param_type] = Parameter.readValue(param.param_type, param.param_value);
+            this._updateParameter(param.param_type, { value: param.param_value, modified: convertTimestampMs(param.update_time) });
         });
         this.log.debug(`Device.loadParameters(): device_sn: ${this.getSerial()} parameters: ${JSON.stringify(this.parameters)}`);
     }
 
-    public getParameter(param_type: number): string {
+    public getParameter(param_type: number): ParameterValue {
         return this.parameters[param_type];
     }
 
@@ -39,13 +41,28 @@ export abstract class Device extends EventEmitter {
         return this.parameters;
     }
 
+    private _updateParameter(param_type: number, param_value: ParameterValue): void {
+        const tmp_param_value = ParameterHelper.readValue(param_type, param_value.value);
+        if ((this.parameters[param_type] && this.parameters[param_type].value != tmp_param_value && this.parameters[param_type].modified < param_value.modified) || !this.parameters[param_type]) {
+            this.parameters[param_type] = {
+                value: tmp_param_value,
+                modified: param_value.modified
+            };
+            this.emit("parameter", this, param_type, this.parameters[param_type].value, this.parameters[param_type].modified);
+        }
+    }
+
+    public updateParameters(params: ParameterArray):void {
+        Object.keys(params).forEach(paramtype => {
+            const param_type = Number.parseInt(paramtype);
+            this._updateParameter(param_type, params[param_type]);
+        });
+    }
+
     public update(device: FullDeviceResponse):void {
         this.device = device;
         this.device.params.forEach(param => {
-            if (this.parameters[param.param_type] != param.param_value) {
-                this.parameters[param.param_type] = Parameter.readValue(param.param_type, param.param_value);
-                this.emit("parameter", this, param.param_type, param.param_value);
-            }
+            this._updateParameter(param.param_type, { value: param.param_value, modified: convertTimestampMs(param.update_time) });
         });
     }
 
@@ -332,7 +349,7 @@ export abstract class Device extends EventEmitter {
         return this.device.station_sn;
     }
 
-    public async setParameters(params: IParameter[]): Promise<boolean> {
+    public async setParameters(params: { param_type: number; param_value: any; }[]): Promise<boolean> {
         return this.api.setParameters(this.device.station_sn, this.device.device_sn, params);
     }
 
@@ -356,14 +373,11 @@ export abstract class Device extends EventEmitter {
     public abstract getStateChannel(): string;
 
     public getWifiRssi(): number {
-        return Number.parseInt(this.getParameter(CommandType.CMD_GET_WIFI_RSSI));
+        return Number.parseInt(this.getParameter(CommandType.CMD_GET_WIFI_RSSI) ? this.getParameter(CommandType.CMD_GET_WIFI_RSSI).value : "0");
     }
 
     public getStoragePath(filename: string): string {
-        if (this.isFloodLight()) {
-            return `/mnt/data/Camera${String(this.device.device_channel).padStart(2,"0")}/${filename}.dat`;
-        }
-        return `/media/mmcblk0p1/Camera${String(this.device.device_channel).padStart(2,"0")}/${filename}.dat`;
+        return getAbsoluteFilePath(this.device.device_type, this.device.device_channel, filename);
     }
 
 }
@@ -378,6 +392,10 @@ export class Camera extends Device {
 
     public getLastCameraImageURL(): string {
         return this.device.cover_path;
+    }
+
+    public getLastCameraImageTimestamp(): number {
+        return this.device.cover_time ? convertTimestampMs(this.device.cover_time) : 0;
     }
 
     public getMACAddress(): string {
@@ -457,7 +475,7 @@ export class Camera extends Device {
     }
 
     public getState(): number {
-        return Number.parseInt(this.getParameter(CommandType.CMD_GET_DEV_STATUS));
+        return Number.parseInt(this.getParameter(CommandType.CMD_GET_DEV_STATUS) ? this.getParameter(CommandType.CMD_GET_DEV_STATUS).value : "0");
     }
 
     public isStreaming(): boolean {
@@ -487,11 +505,11 @@ export class Camera extends Device {
     }
 
     public getBatteryValue(): number {
-        return Number.parseInt(this.getParameter(CommandType.CMD_GET_BATTERY));
+        return Number.parseInt(this.getParameter(CommandType.CMD_GET_BATTERY) ? this.getParameter(CommandType.CMD_GET_BATTERY).value : "0");
     }
 
     public getBatteryTemperature(): number {
-        return Number.parseInt(this.getParameter(CommandType.CMD_GET_BATTERY_TEMP));
+        return Number.parseInt(this.getParameter(CommandType.CMD_GET_BATTERY_TEMP) ? this.getParameter(CommandType.CMD_GET_BATTERY_TEMP).value : "0");
     }
 
 }
@@ -511,7 +529,7 @@ export class Sensor extends Device {
     }
 
     public getState(): number {
-        return Number.parseInt(this.getParameter(CommandType.CMD_GET_DEV_STATUS));
+        return Number.parseInt(this.getParameter(CommandType.CMD_GET_DEV_STATUS) ? this.getParameter(CommandType.CMD_GET_DEV_STATUS).value : "0");
     }
 
 }
@@ -519,17 +537,17 @@ export class Sensor extends Device {
 export class EntrySensor extends Sensor {
 
     public isSensorOpen(): boolean {
-        if (this.getParameter(CommandType.CMD_ENTRY_SENSOR_STATUS) === "1")
+        if (this.getParameter(CommandType.CMD_ENTRY_SENSOR_STATUS) && this.getParameter(CommandType.CMD_ENTRY_SENSOR_STATUS).value === "1")
             return true;
         return false;
     }
 
     public getSensorChangeTime(): string {
-        return this.getParameter(CommandType.CMD_ENTRY_SENSOR_CHANGE_TIME);
+        return this.getParameter(CommandType.CMD_ENTRY_SENSOR_CHANGE_TIME) ? this.getParameter(CommandType.CMD_ENTRY_SENSOR_CHANGE_TIME).value : "";
     }
 
     public isBatteryLow(): boolean {
-        if (this.getParameter(CommandType.CMD_ENTRY_SENSOR_BAT_STATE) === "1")
+        if (this.getParameter(CommandType.CMD_ENTRY_SENSOR_BAT_STATE) && this.getParameter(CommandType.CMD_ENTRY_SENSOR_BAT_STATE).value === "1")
             return true;
         return false;
     }
@@ -561,11 +579,11 @@ export class MotionSensor extends Sensor {
 
     public getMotionSensorPIREvent(): number {
         //TODO: Implement P2P Control Event over active station connection
-        return Number.parseInt(this.getParameter(CommandType.CMD_MOTION_SENSOR_PIR_EVT));
+        return Number.parseInt(this.getParameter(CommandType.CMD_MOTION_SENSOR_PIR_EVT) ? this.getParameter(CommandType.CMD_MOTION_SENSOR_PIR_EVT).value : "0");
     }
 
     public isBatteryLow(): boolean {
-        if (this.getParameter(CommandType.CMD_MOTION_SENSOR_BAT_STATE) === "1")
+        if (this.getParameter(CommandType.CMD_MOTION_SENSOR_BAT_STATE) && this.getParameter(CommandType.CMD_MOTION_SENSOR_BAT_STATE).value === "1")
             return true;
         return false;
     }
@@ -596,11 +614,11 @@ export class Keypad extends Device {
     }
 
     public getState(): number {
-        return Number.parseInt(this.getParameter(CommandType.CMD_GET_DEV_STATUS));
+        return Number.parseInt(this.getParameter(CommandType.CMD_GET_DEV_STATUS) ? this.getParameter(CommandType.CMD_GET_DEV_STATUS).value : "0");
     }
 
     public isBatteryLow(): boolean {
-        if (this.getParameter(CommandType.CMD_KEYPAD_BATTERY_CAP_STATE) === "1")
+        if (this.getParameter(CommandType.CMD_KEYPAD_BATTERY_CAP_STATE) && this.getParameter(CommandType.CMD_KEYPAD_BATTERY_CAP_STATE).value === "1")
             return true;
         return false;
     }

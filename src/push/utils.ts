@@ -74,3 +74,10 @@ export const sleep = async (ms: number): Promise<void> => {
         setTimeout(resolve, ms);
     });
 };
+
+export function convertTimestampMs(timestamp: number): number {
+    if (timestamp.toString().length === 10) {
+        return timestamp * 1000;
+    }
+    return timestamp;
+}

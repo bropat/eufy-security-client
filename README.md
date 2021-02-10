@@ -33,9 +33,15 @@ One client instance will show all devices from one Eufy Cloud account and allows
 
 * WIP
 
+## Documentation
+
+* WIP
+
 ## Known working devices
 
+* Homebase 1 (T8001)
 * HomeBase 2 (T8010)
+* Eufy 1 Camera (T8111)
 * eufyCam 2 (T8114)
 * eufyCam2C (T8113)
 * Eufy Battery Doorbell (T8210)
@@ -47,6 +53,19 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 Please use GitHub issues for this.
 
 ## Changelog
+
+### 0.3.0 (2021-02-11)
+
+* (bropat) Added new P2P feature: Download video
+* (bropat) Implemented refreshing of device and station parameters via P2P
+* (bropat) Migrated to TypedEmitter (tiny-typed-emitter)
+* (bropat) Implemented new managed push notification class: PushNotificationService
+* (bropat) Removed old push notification class: PushRegisterService
+* (bropat) Renamed previous PushMessage interface to RawPushMessage
+* (bropat) Introduced new PushMessage interface that normalizes all push notification types into one
+* (bropat) Fixed issue where readable streams were not correctly destroyed when terminating p2p video streams
+* (bropat) Fixed P2P start livestream command for Floodlight / Indoor / Solo cameras
+* (bropat) Implemented refresh of GUARD_MODE on change of SCHEDULE_MODE over p2p (instantly)
 
 ### 0.2.2 (2021-02-06)
 

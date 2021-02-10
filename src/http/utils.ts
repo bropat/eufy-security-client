@@ -1,3 +1,5 @@
+import { DeviceType } from "./types";
+
 export const isGreaterMinVersion = function(minimal_version: string, current_version: string): boolean {
     if (minimal_version === undefined)
         minimal_version = "";
@@ -39,4 +41,11 @@ export const getTimezoneGMTString = function(): string {
     const tzo = -new Date().getTimezoneOffset();
     const dif = tzo >= 0 ? "+" : "-";
     return `GMT${dif}${pad(tzo / 60)}:${pad(tzo % 60)}`
+}
+
+export const getAbsoluteFilePath = function(device_type:number, channel: number, filename: string): string {
+    if (device_type === DeviceType.FLOODLIGHT) {
+        return `/mnt/data/Camera${String(channel).padStart(2,"0")}/${filename}.dat`;
+    }
+    return `/media/mmcblk0p1/Camera${String(channel).padStart(2,"0")}/${filename}.dat`;
 }

@@ -1,14 +1,15 @@
-import { EventEmitter } from "events";
 import Long from "long";
 import path from "path";
 import { load, Root } from "protobuf-typescript";
 import * as tls from "tls";
-
-import { Message, MessageTag, PushMessage } from "./models";
-import { PushClientParser } from "./parser";
+import { TypedEmitter } from "tiny-typed-emitter";
 import { dummyLogger, Logger } from "ts-log";
 
-export class PushClient extends EventEmitter {
+import { Message, MessageTag, RawPushMessage } from "./models";
+import { PushClientParser } from "./parser";
+import { PushClientEvents } from "./interfaces";
+
+export class PushClient extends TypedEmitter<PushClientEvents> {
 
     private readonly HOST = "mtalk.google.com";
     private readonly PORT = 5228;
@@ -27,7 +28,6 @@ export class PushClient extends EventEmitter {
     private persistentIds: Array<string> = [];
 
     private static proto: Root | null = null;
-    private callback: ((msg: PushMessage) => void) | null = null;
 
     private pushClientParser: PushClientParser;
     private auth: {
@@ -37,17 +37,17 @@ export class PushClient extends EventEmitter {
 
     private log: Logger;
 
-    private constructor(log: Logger = dummyLogger, pushClientParser: PushClientParser, auth: { androidId: string; securityToken: string; }) {
+    private constructor(pushClientParser: PushClientParser, auth: { androidId: string; securityToken: string; }, log: Logger = dummyLogger) {
         super();
         this.log = log;
         this.pushClientParser = pushClientParser;
         this.auth = auth;
     }
 
-    public static async init(log: Logger = dummyLogger, auth: { androidId: string; securityToken: string }): Promise<PushClient> {
+    public static async init(auth: { androidId: string; securityToken: string }, log: Logger = dummyLogger): Promise<PushClient> {
         this.proto = await load(path.join(__dirname, "./proto/mcs.proto"));
         const pushClientParser = await PushClientParser.init(log);
-        return new PushClient(log, pushClientParser, auth);
+        return new PushClient(pushClientParser, auth, log);
     }
 
     private initialize(): void {
@@ -76,10 +76,9 @@ export class PushClient extends EventEmitter {
         this.persistentIds = ids;
     }
 
-    public connect(callback?: (msg: PushMessage) => void): void {
+    public connect(): void {
         this.initialize();
 
-        if (callback) this.callback = callback;
         this.pushClientParser.on("message", (message) => this.handleParsedMessage(message));
 
         this.client = tls.connect(this.PORT, this.HOST, {
@@ -95,10 +94,6 @@ export class PushClient extends EventEmitter {
         this.client.on("data", (newData: any) => this.onSocketData(newData));
 
         this.client.write(this.buildLoginRequest());
-    }
-
-    public updateCallback(callback: (msg: any) => void): void {
-        this.callback = callback;
     }
 
     private buildLoginRequest(): Buffer {
@@ -178,7 +173,7 @@ export class PushClient extends EventEmitter {
     }
 
     private onSocketConnect(): void {
-        this.emit("connect");
+        //
     }
 
     private onSocketClose(): void {
@@ -189,7 +184,7 @@ export class PushClient extends EventEmitter {
 
         this.scheduleReconnect();
 
-        this.emit("disconnect");
+        this.emit("close");
     }
 
     private onSocketError(error: any): void {
@@ -201,10 +196,10 @@ export class PushClient extends EventEmitter {
         switch (message.tag) {
             case MessageTag.DataMessageStanza:
                 this.log.debug(`PushClient.handleParsedMessage(): DataMessageStanza: message: ${JSON.stringify(message)}`);
-                if (message.object && message.object.persistentId) this.persistentIds.push(message.object.persistentId);
-                if (!!this.callback) {
-                    this.callback(this.convertPayloadMessage(message));
-                }
+                if (message.object && message.object.persistentId)
+                    this.persistentIds.push(message.object.persistentId);
+
+                this.emit("message", this.convertPayloadMessage(message));
                 break;
             case MessageTag.HeartbeatPing:
                 this.handleHeartbeatPing(message);
@@ -219,6 +214,8 @@ export class PushClient extends EventEmitter {
                 this.log.debug("PushClient.handleParsedMessage(): Login response: GCM -> logged in -> waiting for push messages!");
                 this.loggedIn = true;
                 this.persistentIds = [];
+
+                this.emit("connect");
 
                 this.heartbeatTimeout = setTimeout(() => {
                     this.scheduleHeartbeat(this);
@@ -254,7 +251,7 @@ export class PushClient extends EventEmitter {
         this.log.debug(`PushClient.handleHeartbeatAck(): message: ${JSON.stringify(message)}`);
     }
 
-    private convertPayloadMessage(message: Message): PushMessage {
+    private convertPayloadMessage(message: Message): RawPushMessage {
         const { appData, ...otherData } = message.object;
         const messageData: Record<string, any> = {};
         appData.forEach((kv: { key: string; value: any }) => {
@@ -339,6 +336,10 @@ export class PushClient extends EventEmitter {
             this.reconnectTimeout = setTimeout(() => {
                 this.connect();
             }, delay);
+    }
+
+    public close(): void {
+        this.initialize();
     }
 
 }

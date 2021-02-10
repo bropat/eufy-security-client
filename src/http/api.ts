@@ -1,14 +1,14 @@
 import axios, { AxiosResponse, Method } from "axios";
-import { EventEmitter } from "events";
+import { TypedEmitter } from "tiny-typed-emitter";
 import { dummyLogger, Logger } from "ts-log";
 
 import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher } from "./models"
-import { HTTPApiInterface, Ciphers, FullDevices, Hubs, IParameter } from "./interfaces";
+import { HTTPApiEvents, Ciphers, FullDevices, Hubs } from "./interfaces";
 import { ResponseErrorCode, VerfyCodeTypes } from "./types";
-import { Parameter } from "./parameter";
+import { ParameterHelper } from "./parameter";
 import { getTimezoneGMTString } from "./utils";
 
-export class HTTPApi extends EventEmitter implements HTTPApiInterface {
+export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     private api_base = "https://mysecurity.eufylife.com/api/v1";
 
@@ -410,10 +410,10 @@ export class HTTPApi extends EventEmitter implements HTTPApiInterface {
         return false;
     }
 
-    public async setParameters(station_sn: string, device_sn: string, params: IParameter[]): Promise<boolean> {
+    public async setParameters(station_sn: string, device_sn: string, params: { param_type: number; param_value: any; }[]): Promise<boolean> {
         const tmp_params: any[] = []
         params.forEach(param => {
-            tmp_params.push({ param_type: param.param_type, param_value: Parameter.writeValue(param.param_type, param.param_value) });
+            tmp_params.push({ param_type: param.param_type, param_value: ParameterHelper.writeValue(param.param_type, param.param_value) });
         });
 
         try {
