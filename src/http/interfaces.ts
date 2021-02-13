@@ -46,6 +46,8 @@ export interface HTTPApiEvents {
 }
 
 export interface StationEvents {
+    "connect": (station: Station) => void;
+    "close": (station: Station) => void;
     "device_parameter": (device_sn: string, params: ParameterArray) => void;
     "parameter": (station: Station, type: number, value: string, modified: number) => void;
     "p2p_command": (station: Station, result: CommandResult) => void;

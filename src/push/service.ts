@@ -303,66 +303,66 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 const push_data = message.payload.payload as CusPushData;
 
                 normalized_message.name = push_data.name ? push_data.name : "";
-                normalized_message.event_time = message.payload.event_time ? convertTimestampMs(message.payload.event_time) : message.payload.event_time;
+                normalized_message.event_time = message.payload.event_time !== undefined ? convertTimestampMs(message.payload.event_time) : message.payload.event_time;
                 normalized_message.station_sn = message.payload.station_sn;
                 normalized_message.device_sn =  message.payload.device_sn;
                 normalized_message.title = message.payload.title;
                 normalized_message.content = message.payload.content;
-                normalized_message.push_time = message.payload.push_time ? convertTimestampMs(message.payload.push_time) : message.payload.push_time;
-                normalized_message.channel = push_data.channel ? push_data.channel : 0;
-                normalized_message.cipher = push_data.cipher ? push_data.cipher : 0;
-                normalized_message.event_session = push_data.session_id ? push_data.session_id : "";
-                normalized_message.event_type = push_data.event_type ? push_data.event_type : -1;
-                normalized_message.file_path = push_data.file_path && push_data.file_path !== "" && push_data.channel ? getAbsoluteFilePath(message.payload.type, push_data.channel, push_data.file_path) : "",
-                normalized_message.pic_url = push_data.pic_url ? push_data.pic_url : "";
-                normalized_message.push_count = push_data.push_count ? push_data.push_count : 1;
+                normalized_message.push_time = message.payload.push_time !== undefined ? convertTimestampMs(message.payload.push_time) : message.payload.push_time;
+                normalized_message.channel = push_data.channel !== undefined ? push_data.channel : 0;
+                normalized_message.cipher = push_data.cipher !== undefined ? push_data.cipher : 0;
+                normalized_message.event_session = push_data.session_id !== undefined ? push_data.session_id : "";
+                normalized_message.event_type = push_data.event_type !== undefined ? push_data.event_type : -1;
+                normalized_message.file_path = push_data.file_path !== undefined && push_data.file_path !== "" && push_data.channel ? getAbsoluteFilePath(message.payload.type, push_data.channel, push_data.file_path) : "",
+                normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
+                normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
                 normalized_message.notification_style = push_data.notification_style;
             } else if (message.payload.type === DeviceType.INDOOR_CAMERA || message.payload.type === DeviceType.INDOOR_CAMERA_1080 || message.payload.type === DeviceType.INDOOR_PT_CAMERA || message.payload.type === DeviceType.INDOOR_PT_CAMERA_1080) {
                 const push_data = message.payload.payload as IndoorPushData;
 
                 normalized_message.name = push_data.name ? push_data.name : "";
-                normalized_message.event_time = message.payload.event_time ? convertTimestampMs(message.payload.event_time) : message.payload.event_time;
+                normalized_message.event_time = message.payload.event_time !== undefined ? convertTimestampMs(message.payload.event_time) : message.payload.event_time;
                 normalized_message.station_sn = message.payload.station_sn;
                 normalized_message.device_sn =  message.payload.device_sn;
                 normalized_message.title = message.payload.title;
                 normalized_message.content = message.payload.content;
-                normalized_message.push_time = message.payload.push_time ? convertTimestampMs(message.payload.push_time) : message.payload.push_time;
+                normalized_message.push_time = message.payload.push_time !== undefined ? convertTimestampMs(message.payload.push_time) : message.payload.push_time;
                 normalized_message.channel = push_data.channel;
                 normalized_message.cipher = push_data.cipher;
                 normalized_message.event_session = push_data.session_id;
                 normalized_message.event_type = push_data.event_type;
-                normalized_message.file_path = push_data.file_path && push_data.file_path !== "" && push_data.channel ? getAbsoluteFilePath(message.payload.type, push_data.channel, push_data.file_path) : "",
-                normalized_message.pic_url = push_data.pic_url ? push_data.pic_url : "";
-                normalized_message.push_count = push_data.push_count ? push_data.push_count : 1;
+                normalized_message.file_path = push_data.file_path !== undefined && push_data.file_path !== "" && push_data.channel ? getAbsoluteFilePath(message.payload.type, push_data.channel, push_data.file_path) : "",
+                normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
+                normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
                 normalized_message.notification_style = push_data.notification_style;
                 normalized_message.msg_type = push_data.msg_type;
                 normalized_message.timeout = push_data.timeout;
-                normalized_message.tfcard_status = push_data.tfcard_status ? push_data.tfcard_status : -1;
-                normalized_message.storage_type = push_data.storage_type ? push_data.storage_type : 1;
+                normalized_message.tfcard_status = push_data.tfcard_status !== undefined ? push_data.tfcard_status : -1;
+                normalized_message.storage_type = push_data.storage_type !== undefined ? push_data.storage_type : 1;
                 normalized_message.unique_id = push_data.unique_id;
             } else {
                 const push_data = message.payload.payload as CusPushData;
 
                 normalized_message.name = push_data.device_name && push_data.device_name !== null && push_data.device_name !== "" ? push_data.device_name : push_data.n ? push_data.n : "";
-                normalized_message.event_time = message.payload.event_time ? convertTimestampMs(message.payload.event_time) : message.payload.event_time;
+                normalized_message.event_time = message.payload.event_time !== undefined ? convertTimestampMs(message.payload.event_time) : message.payload.event_time;
                 normalized_message.station_sn = message.payload.station_sn;
                 normalized_message.device_sn = message.payload.device_sn;
                 normalized_message.title = message.payload.title;
                 normalized_message.content = message.payload.content;
-                normalized_message.push_time = message.payload.push_time ? convertTimestampMs(message.payload.push_time) : message.payload.push_time;
+                normalized_message.push_time = message.payload.push_time !== undefined ? convertTimestampMs(message.payload.push_time) : message.payload.push_time;
                 normalized_message.channel = push_data.c;
                 normalized_message.cipher = push_data.k;
                 normalized_message.event_session = push_data.session_id;
                 normalized_message.event_type = push_data.a;
-                normalized_message.file_path = push_data.c && push_data.p && push_data.p !== "" ? getAbsoluteFilePath(message.payload.type, push_data.c, push_data.p) : "";
-                normalized_message.pic_url = push_data.pic_url ? push_data.pic_url : "";
-                normalized_message.push_count = push_data.push_count ? push_data.push_count : 1;
+                normalized_message.file_path = push_data.c !== undefined && push_data.p !== undefined && push_data.p !== "" ? getAbsoluteFilePath(message.payload.type, push_data.c, push_data.p) : "";
+                normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
+                normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
                 normalized_message.notification_style = push_data.notification_style;
-                normalized_message.tfcard_status = push_data.tfcard ? push_data.tfcard : -1;
+                normalized_message.tfcard_status = push_data.tfcard !== undefined ? push_data.tfcard : -1;
                 normalized_message.alarm_delay_type = push_data.alarm_type;
                 normalized_message.alarm_delay = push_data.alarm_delay;
                 normalized_message.alarm_type = push_data.type;
-                normalized_message.sound_alarm = push_data.alarm ? push_data.alarm === 1 ? true : false : undefined;
+                normalized_message.sound_alarm = push_data.alarm !== undefined ? push_data.alarm === 1 ? true : false : undefined;
                 normalized_message.user_name = push_data.user_name;
                 normalized_message.user_type = push_data.user;
                 normalized_message.user_id = push_data.user_id;
@@ -370,16 +370,16 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 normalized_message.station_guard_mode = push_data.arming;
                 normalized_message.station_current_mode = push_data.mode;
                 normalized_message.person_name = push_data.f;
-                normalized_message.sensor_open = push_data.e ? push_data.e === "1" ?  true : false : undefined;
-                normalized_message.device_online = push_data.m ? push_data.m === 1 ?  true : false : undefined;
+                normalized_message.sensor_open = push_data.e !== undefined ? push_data.e === "1" ?  true : false : undefined;
+                normalized_message.device_online = push_data.m !== undefined ? push_data.m === 1 ?  true : false : undefined;
                 normalized_message.fetch_id = push_data.i;
                 normalized_message.sense_id = push_data.j;
-                normalized_message.battery_powered = push_data.batt_powered ? push_data.batt_powered === 1 ? true : false : undefined;
+                normalized_message.battery_powered = push_data.batt_powered !== undefined ? push_data.batt_powered === 1 ? true : false : undefined;
                 try {
-                    normalized_message.battery_low = push_data.bat_low ? Number.parseInt(push_data.bat_low) : undefined;
+                    normalized_message.battery_low = push_data.bat_low !== undefined ? Number.parseInt(push_data.bat_low) : undefined;
                 } catch(error) {
                 }
-                normalized_message.storage_type = push_data.storage_type ? push_data.storage_type : 1;
+                normalized_message.storage_type = push_data.storage_type !== undefined ? push_data.storage_type : 1;
                 normalized_message.unique_id = push_data.unique_id;
                 normalized_message.automation_id = push_data.automation_id;
                 normalized_message.click_action = push_data.click_action;
@@ -389,12 +389,12 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             const push_data = JSON.parse(message.payload.doorbell) as DoorbellPushData;
             normalized_message.name = "Doorbell";
             normalized_message.type = 5;
-            normalized_message.event_time = push_data.create_time ? convertTimestampMs(push_data.create_time) : push_data.create_time;
+            normalized_message.event_time = push_data.create_time !== undefined ? convertTimestampMs(push_data.create_time) : push_data.create_time;
             normalized_message.station_sn = push_data.device_sn;
             normalized_message.device_sn =  push_data.device_sn;
             normalized_message.title = push_data.title;
             normalized_message.content = push_data.content;
-            normalized_message.push_time = push_data.event_time ? convertTimestampMs(push_data.event_time) : push_data.event_time;
+            normalized_message.push_time = push_data.event_time !== undefined ? convertTimestampMs(push_data.event_time) : push_data.event_time;
             normalized_message.channel = push_data.channel;
             normalized_message.cipher = push_data.cipher;
             normalized_message.event_session = push_data.event_session;

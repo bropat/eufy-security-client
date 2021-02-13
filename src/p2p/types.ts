@@ -493,7 +493,20 @@ export enum ControlResponse {
     ALARM_HUB_STOP_BY_HAND = 17
 }
 
-export enum WatermarkSetting {
+// Doorbell, Solo cameras
+export enum WatermarkSetting1 {
+    OFF = 0,
+    ON = 1
+}
+
+// Battery doorbells, eufycam 1/e
+export enum WatermarkSetting2 {
+    OFF = 2,
+    ON = 1
+}
+
+// Floodlight, Indoor cameras, cameras 2x
+export enum WatermarkSetting3 {
     OFF = 0,
     TIMESTAMP = 1,
     TIMESTAMP_AND_LOGO = 2

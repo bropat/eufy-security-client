@@ -12,9 +12,9 @@ import { LookupAdresses, P2PDataMessage, P2PDataMessageAudio, P2PDataMessageBuil
 
 export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
-    private readonly MAX_RETRIES = 5;
+    private readonly MAX_RETRIES = 10;
     private readonly MAX_COMMAND_RESULT_WAIT = 20 * 1000;
-    private readonly MAX_AKNOWLEDGE_TIMEOUT = 3 * 1000;
+    private readonly MAX_AKNOWLEDGE_TIMEOUT = 15 * 1000;
     private readonly MAX_LOOKUP_TIMEOUT = 15 * 1000;
     private readonly MAX_EXPECTED_SEQNO_WAIT = 20 * 1000;
     private readonly HEARTBEAT_INTERVAL = 5 * 1000;
@@ -81,7 +81,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             this.expectedSeqNo[datatype] = 0;
 
             if (datatype === P2PDataType.VIDEO)
-                rsaKey= getNewRSAPrivateKey();
+                rsaKey = getNewRSAPrivateKey();
             else
                 rsaKey = null;
 
@@ -109,8 +109,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             leftoverData: Buffer.from([]),
             queuedData: new Map<number, P2PMessage>(),
             rsaKey: rsaKey,
-            videoSteam: null,
-            audioSteam: null,
+            videoStream: null,
+            audioStream: null,
+            invalidStream: false,
             streaming: false,
             streamNotStarted: true,
             streamChannel: 0,
@@ -138,7 +139,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.connected = false;
         this.lastPong = null;
         this.connectTime = null;
-        this.emit("disconnected");
+        this.emit("close");
     }
 
     public lookup(): void {
@@ -276,11 +277,17 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private _sendCommand(message: P2PMessageState): void {
         this.log.debug(`P2PClientProtocol._sendCommand(): sequence: ${message.sequence} command_type: ${message.command_type} channel: ${message.channel} retries: ${message.retries} message_states.size: ${this.message_states.size}`);
         if (message.retries < this.MAX_RETRIES) {
+            if (message.return_code === ErrorCode.ERROR_FAILED_TO_REQUEST) {
+                this.message_states.delete(message.sequence);
+                message.sequence = this.seqNumber++;
+                message.data.writeUInt16BE(message.sequence, 2);
+                this.message_states.set(message.sequence, message);
+            }
             sendMessage(this.socket, this.addresses[this.current_address], RequestMessageType.DATA, message.data);
             const msg = this.message_states.get(message.sequence);
             if (msg) {
-                msg.retries++;
                 msg.return_code = ErrorCode.ERROR_COMMAND_TIMEOUT;
+                msg.retries++;
                 msg.timeout = setTimeout(() => {
                     this._sendCommand(msg);
                 }, this.MAX_AKNOWLEDGE_TIMEOUT);
@@ -294,8 +301,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 return_code: message.return_code
             } as CommandResult);
             this.message_states.delete(message.sequence);
-            this.log.warn(`P2PClientProtocol._sendCommand(): Connection seems lost. Try to reconnect...`);
-            this._disconnected();
+            if (message.return_code === ErrorCode.ERROR_COMMAND_TIMEOUT) {
+                this.log.warn(`P2PClientProtocol._sendCommand(): Connection seems lost. Try to reconnect...`);
+                this._disconnected();
+            }
         }
     }
 
@@ -348,7 +357,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this.heartbeatTimeout = setTimeout(() => {
                     this.scheduleHeartbeat();
                 }, this.getHeartbeatInterval());
-                this.emit("connected", this.addresses[this.current_address]);
+                this.emit("connect", this.addresses[this.current_address]);
             } else {
                 this.log.debug("P2PClientProtocol.handleMsg(): CAM_ID - Already connected, ignoring...");
             }
@@ -558,6 +567,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         const command_type =  msg_state.nested_command_type !== undefined ? msg_state.nested_command_type : msg_state.command_type;
                         this.log.debug(`P2PClientProtocol.handleData(): Result data for command received - message: ${JSON.stringify(msg_state)} result: ${error_codeStr} (${return_code})`);
                         if (return_code === ErrorCode.ERROR_FAILED_TO_REQUEST) {
+                            msg_state.return_code = return_code;
                             this._sendCommand(msg_state);
                         } else {
                             if (return_code === ErrorCode.ERROR_PPCS_SUCCESSFUL) {
@@ -594,105 +604,113 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
 
     private handleDataBinaryAndVideo(message: P2PDataMessage): void {
-        switch(message.commandId) {
-            case CommandType.CMD_VIDEO_FRAME:
-                const videoMetaData: P2PDataMessageVideo = {
-                    streamType: 0,
-                    videoSeqNo: 0,
-                    videoFPS: 15,
-                    videoWidth: 1920,
-                    videoHeight: 1080,
-                    videoTimestamp: 0,
-                    videoDataLength: 0,
-                    aesKey: ""
-                };
-                const isKeyFrame = message.data.slice(4, 5).readUInt8() === 1 ? true : false;
+        if (!this.currentMessageState[message.data_type].invalidStream) {
+            switch(message.commandId) {
+                case CommandType.CMD_VIDEO_FRAME:
+                    const videoMetaData: P2PDataMessageVideo = {
+                        streamType: 0,
+                        videoSeqNo: 0,
+                        videoFPS: 15,
+                        videoWidth: 1920,
+                        videoHeight: 1080,
+                        videoTimestamp: 0,
+                        videoDataLength: 0,
+                        aesKey: ""
+                    };
+                    const data_length = message.data.readUInt32LE();
+                    const isKeyFrame = message.data.slice(4, 5).readUInt8() === 1 ? true : false;
 
-                videoMetaData.videoDataLength = message.data.slice(0, 4).readUInt32LE();
-                videoMetaData.streamType = message.data.slice(5, 6).readUInt8();
-                videoMetaData.videoSeqNo = message.data.slice(6, 8).readUInt16LE();
-                videoMetaData.videoFPS = message.data.slice(8, 10).readUInt16LE();
-                videoMetaData.videoWidth = message.data.slice(10, 12).readUInt16LE();
-                videoMetaData.videoHeight = message.data.slice(12, 14).readUInt16LE();
-                videoMetaData.videoTimestamp = message.data.slice(14, 20).readUIntLE(0, 6);
+                    videoMetaData.videoDataLength = message.data.slice(0, 4).readUInt32LE();
+                    videoMetaData.streamType = message.data.slice(5, 6).readUInt8();
+                    videoMetaData.videoSeqNo = message.data.slice(6, 8).readUInt16LE();
+                    videoMetaData.videoFPS = message.data.slice(8, 10).readUInt16LE();
+                    videoMetaData.videoWidth = message.data.slice(10, 12).readUInt16LE();
+                    videoMetaData.videoHeight = message.data.slice(12, 14).readUInt16LE();
+                    videoMetaData.videoTimestamp = message.data.slice(14, 20).readUIntLE(0, 6);
 
-                let payloadStart = 22;
-                if (isKeyFrame) {
-                    const key = message.data.slice(22, 150);
-                    const rsaKey = this.currentMessageState[message.data_type].rsaKey;
-                    if (rsaKey) {
-                        try {
-                            videoMetaData.aesKey = rsaKey.decrypt(key).toString("hex");
-                            this.log.trace(`P2PClientProtocol.handleDataBinaryAndVideo(): Decrypted AES key: ${videoMetaData.aesKey}`);
-                        } catch (error) {
-                            this.log.warn(`P2PClientProtocol.handleDataBinaryAndVideo(): AES key couldn't be decrypted! Data packet will be discarded - Error: ${error}`);
-                            break;
+                    let payloadStart = 22;
+                    if (isKeyFrame && message.signCode > 0 && data_length >= 128) {
+                        const key = message.data.slice(22, 150);
+                        const rsaKey = this.currentMessageState[message.data_type].rsaKey;
+                        this.log.trace(`P2PClientProtocol.handleDataBinaryAndVideo(): rsa pkcs8-pem: ${rsaKey?.exportKey("pkcs8-pem")} components: ${JSON.stringify(rsaKey?.exportKey("components"))} key: ${key.toString("hex")}`);
+                        if (rsaKey) {
+                            try {
+                                videoMetaData.aesKey = rsaKey.decrypt(key).toString("hex");
+                                this.log.trace(`P2PClientProtocol.handleDataBinaryAndVideo(): Decrypted AES key: ${videoMetaData.aesKey}`);
+                            } catch (error) {
+                                this.log.warn(`P2PClientProtocol.handleDataBinaryAndVideo(): AES key couldn't be decrypted! Data packet will be discarded - Error: ${error}`);
+                                this.currentMessageState[message.data_type].invalidStream = true;
+                                return;
+                            }
+                        } else {
+                            this.log.warn(`P2PClientProtocol.handleDataBinaryAndVideo(): No AES key!?!?! Packet will be discarded.`);
+                            this.currentMessageState[message.data_type].invalidStream = true;
+                            return;
                         }
+                        payloadStart = 151;
+                    }
+
+                    let video_data: Buffer;
+                    if (videoMetaData.aesKey !== "") {
+                        let unencrypted_data: Buffer = Buffer.from([]);
+                        if (videoMetaData.videoDataLength > 128) {
+                            unencrypted_data = message.data.slice(payloadStart + 128, payloadStart + videoMetaData.videoDataLength - 128);
+                        }
+                        const encrypted_data = message.data.slice(payloadStart, payloadStart + 128);
+                        video_data = Buffer.concat([decryptAESData(videoMetaData.aesKey, encrypted_data), unencrypted_data]);
                     } else {
-                        this.log.warn(`P2PClientProtocol.handleDataBinaryAndVideo(): No AES key!?!?! Packet will be discarded.`);
-                        break;
+                        video_data = message.data.slice(payloadStart, payloadStart + videoMetaData.videoDataLength);
                     }
-                    payloadStart = 151;
-                }
 
-                let video_data: Buffer;
-                if (videoMetaData.aesKey !== "") {
-                    let unencrypted_data: Buffer = Buffer.from([]);
-                    if (videoMetaData.videoDataLength > 128) {
-                        unencrypted_data = message.data.slice(payloadStart + 128, payloadStart + videoMetaData.videoDataLength - 128);
+                    this.log.debug(`P2PClientProtocol.handleDataBinaryAndVideo(): CMD_VIDEO_FRAME: data_size: ${message.data.length} metadata: ${JSON.stringify(videoMetaData)} video_data_size: ${video_data.length}`);
+
+                    if (this.currentMessageState[message.data_type].streamNotStarted) {
+                        this.currentMessageState[message.data_type].streamFirstVideoDataReceived = true;
+                        this.currentMessageState[message.data_type].streamMetadata.videoCodec = videoMetaData.streamType;
+                        this.currentMessageState[message.data_type].streamMetadata.videoFPS = videoMetaData.videoFPS;
+                        this.currentMessageState[message.data_type].streamMetadata.videoHeight = videoMetaData.videoHeight;
+                        this.currentMessageState[message.data_type].streamMetadata.videoWidth = videoMetaData.videoWidth;
+
+                        if (this.currentMessageState[message.data_type].streamFirstAudioDataReceived && this.currentMessageState[message.data_type].streamFirstVideoDataReceived) {
+                            this.emitStreamStartEvent(message.data_type);
+                        }
                     }
-                    const encrypted_data = message.data.slice(payloadStart, payloadStart + 128);
-                    video_data = Buffer.concat([decryptAESData(videoMetaData.aesKey, encrypted_data), unencrypted_data]);
-                } else {
-                    video_data = message.data.slice(payloadStart, payloadStart + videoMetaData.videoDataLength);
-                }
 
-                this.log.debug(`P2PClientProtocol.handleDataBinaryAndVideo(): CMD_VIDEO_FRAME: data_size: ${message.data.length} metadata: ${JSON.stringify(videoMetaData)} video_data_size: ${video_data.length}`);
+                    this.currentMessageState[message.data_type].videoStream?.push(video_data);
+                    break;
+                case CommandType.CMD_AUDIO_FRAME:
+                    const audioMetaData: P2PDataMessageAudio = {
+                        audioType: 0,
+                        audioSeqNo: 0,
+                        audioTimestamp: 0,
+                        audioDataLength: 0
+                    };
 
-                if (this.currentMessageState[message.data_type].streamNotStarted) {
-                    this.currentMessageState[message.data_type].streamFirstVideoDataReceived = true;
-                    this.currentMessageState[message.data_type].streamMetadata.videoCodec = videoMetaData.streamType;
-                    this.currentMessageState[message.data_type].streamMetadata.videoFPS = videoMetaData.videoFPS;
-                    this.currentMessageState[message.data_type].streamMetadata.videoHeight = videoMetaData.videoHeight;
-                    this.currentMessageState[message.data_type].streamMetadata.videoWidth = videoMetaData.videoWidth;
+                    audioMetaData.audioDataLength = message.data.slice(0, 4).readUInt32LE();
+                    audioMetaData.audioType = message.data.slice(5, 6).readUInt8();
+                    audioMetaData.audioSeqNo = message.data.slice(6, 8).readUInt16LE();
+                    audioMetaData.audioTimestamp = message.data.slice(8, 14).readUIntLE(0, 6);
 
-                    if (this.currentMessageState[message.data_type].streamFirstAudioDataReceived && this.currentMessageState[message.data_type].streamFirstVideoDataReceived) {
-                        this.emitStreamStartEvent(message.data_type);
+                    const audio_data = message.data.slice(16);
+                    this.log.debug(`P2PClientProtocol.handleDataBinaryAndVideo(): CMD_AUDIO_FRAME: data_size: ${message.data.length} metadata: ${JSON.stringify(audioMetaData)} audio_data_size: ${audio_data.length}`);
+
+                    if (this.currentMessageState[message.data_type].streamNotStarted) {
+                        this.currentMessageState[message.data_type].streamFirstAudioDataReceived = true;
+                        this.currentMessageState[message.data_type].streamMetadata.audioCodec = audioMetaData.audioType;
+
+                        if (this.currentMessageState[message.data_type].streamFirstAudioDataReceived && this.currentMessageState[message.data_type].streamFirstVideoDataReceived) {
+                            this.emitStreamStartEvent(message.data_type);
+                        }
                     }
-                }
 
-                this.currentMessageState[message.data_type].videoSteam?.push(video_data);
-                break;
-            case CommandType.CMD_AUDIO_FRAME:
-                const audioMetaData: P2PDataMessageAudio = {
-                    audioType: 0,
-                    audioSeqNo: 0,
-                    audioTimestamp: 0,
-                    audioDataLength: 0
-                };
-
-                audioMetaData.audioDataLength = message.data.slice(0, 4).readUInt32LE();
-                audioMetaData.audioType = message.data.slice(5, 6).readUInt8();
-                audioMetaData.audioSeqNo = message.data.slice(6, 8).readUInt16LE();
-                audioMetaData.audioTimestamp = message.data.slice(8, 14).readUIntLE(0, 6);
-
-                const audio_data = message.data.slice(16);
-                this.log.debug(`P2PClientProtocol.handleDataBinaryAndVideo(): CMD_AUDIO_FRAME: data_size: ${message.data.length} metadata: ${JSON.stringify(audioMetaData)} audio_data_size: ${audio_data.length}`);
-
-                if (this.currentMessageState[message.data_type].streamNotStarted) {
-                    this.currentMessageState[message.data_type].streamFirstAudioDataReceived = true;
-                    this.currentMessageState[message.data_type].streamMetadata.audioCodec = audioMetaData.audioType;
-
-                    if (this.currentMessageState[message.data_type].streamFirstAudioDataReceived && this.currentMessageState[message.data_type].streamFirstVideoDataReceived) {
-                        this.emitStreamStartEvent(message.data_type);
-                    }
-                }
-
-                this.currentMessageState[message.data_type].audioSteam?.push(audio_data);
-                break;
-            default:
-                this.log.warn(`P2PClientProtocol.handleDataBinaryAndVideo(): Not implemented - BINARY message with commandId: ${CommandType[message.commandId]} (${message.commandId}) channel: ${message.channel} - data: ${message.data.toString("hex")}`);
-                break;
+                    this.currentMessageState[message.data_type].audioStream?.push(audio_data);
+                    break;
+                default:
+                    this.log.warn(`P2PClientProtocol.handleDataBinaryAndVideo(): Not implemented - message with commandId: ${CommandType[message.commandId]} (${message.commandId}) channel: ${message.channel} - data: ${message.data.toString("hex")}`);
+                    break;
+            }
+        } else {
+            this.log.debug(`P2PClientProtocol.handleDataBinaryAndVideo(): Invalid stream data, dropping complete stream - message with commandId: ${CommandType[message.commandId]} (${message.commandId}) channel: ${message.channel} - data: ${message.data.toString("hex")}`);
         }
     }
 
@@ -796,33 +814,49 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
 
     private initializeStream(datatype: P2PDataType): void {
-        const videoStream = this.currentMessageState[datatype].videoSteam
-        if (videoStream)
-            videoStream.destroy();
+        this.currentMessageState[datatype].videoStream?.destroy();
+        this.currentMessageState[datatype].audioStream?.destroy();
+        this.currentMessageState[datatype].videoStream = null;
+        this.currentMessageState[datatype].audioStream = null;
 
-        const audioSteam = this.currentMessageState[datatype].audioSteam
-        if (audioSteam)
-            audioSteam.destroy();
-
-        this.currentMessageState[datatype].videoSteam = new Readable({ autoDestroy: true,
+        this.currentMessageState[datatype].videoStream = new Readable({ autoDestroy: true,
             // eslint-disable-next-line @typescript-eslint/no-empty-function
-            read() {}
+            read() {}/*,
+
+            destroy(this, error, _callback) {
+                if (error) {
+                    this.emit("error", error);
+                }
+                this.emit("end");
+                this.emit("close");
+            }*/
         });
-        this.currentMessageState[datatype].audioSteam = new Readable({ autoDestroy: true,
+        this.currentMessageState[datatype].audioStream = new Readable({ autoDestroy: true,
             // eslint-disable-next-line @typescript-eslint/no-empty-function
-            read() {}
+            read() {}/*,
+
+            destroy(this, error, _callback) {
+                if (error) {
+                    this.emit("error", error);
+                }
+                this.emit("end");
+                this.emit("close");
+            }*/
         });
 
         this.currentMessageState[datatype].streaming = true;
     }
 
     private endStream(datatype: P2PDataType): void {
-        this.currentMessageState[datatype].videoSteam?.push(null);
-        this.currentMessageState[datatype].audioSteam?.push(null);
-        this.currentMessageState[datatype].videoSteam = null;
-        this.currentMessageState[datatype].audioSteam = null;
+        this.currentMessageState[datatype].videoStream?.push(null);
+        this.currentMessageState[datatype].audioStream?.push(null);
+        this.currentMessageState[datatype].videoStream?.destroy();
+        this.currentMessageState[datatype].audioStream?.destroy();
+        this.currentMessageState[datatype].videoStream = null;
+        this.currentMessageState[datatype].audioStream = null;
 
-        this.emitStreamStopEvent(datatype);
+        if (!this.currentMessageState[datatype].invalidStream)
+            this.emitStreamStopEvent(datatype);
 
         this.currentMessageState[datatype].streaming = false;
         this.initializeMessageBuilder(datatype);
@@ -833,9 +867,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.log.trace("P2PClientProtocol.emitStreamStartEvent():");
         this.currentMessageState[datatype].streamNotStarted = false;
         if (datatype === P2PDataType.VIDEO) {
-            this.emit("start_livestream", this.currentMessageState[datatype].streamChannel, this.currentMessageState[datatype].streamMetadata, this.currentMessageState[datatype].videoSteam!, this.currentMessageState[datatype].audioSteam!);
+            this.emit("start_livestream", this.currentMessageState[datatype].streamChannel, this.currentMessageState[datatype].streamMetadata, this.currentMessageState[datatype].videoStream!, this.currentMessageState[datatype].audioStream!);
         } else if (datatype === P2PDataType.BINARY) {
-            this.emit("start_download", this.currentMessageState[datatype].streamChannel, this.currentMessageState[datatype].streamMetadata, this.currentMessageState[datatype].videoSteam!, this.currentMessageState[datatype].audioSteam!);
+            this.emit("start_download", this.currentMessageState[datatype].streamChannel, this.currentMessageState[datatype].streamMetadata, this.currentMessageState[datatype].videoStream!, this.currentMessageState[datatype].audioStream!);
         }
     }
 

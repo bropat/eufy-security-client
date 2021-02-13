@@ -23,14 +23,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         this.api = api;
         this.device = device;
         this.log = api.getLog();
-        this.loadParameters();
-    }
-
-    private loadParameters(): void {
-        this.device.params.forEach(param => {
-            this._updateParameter(param.param_type, { value: param.param_value, modified: convertTimestampMs(param.update_time) });
-        });
-        this.log.debug(`Device.loadParameters(): device_sn: ${this.getSerial()} parameters: ${JSON.stringify(this.parameters)}`);
+        this.update(this.device);
     }
 
     public getParameter(param_type: number): ParameterValue {
@@ -43,7 +36,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
 
     private _updateParameter(param_type: number, param_value: ParameterValue): void {
         const tmp_param_value = ParameterHelper.readValue(param_type, param_value.value);
-        if ((this.parameters[param_type] && this.parameters[param_type].value != tmp_param_value && this.parameters[param_type].modified < param_value.modified) || !this.parameters[param_type]) {
+        if ((this.parameters[param_type] !== undefined && this.parameters[param_type].value != tmp_param_value && this.parameters[param_type].modified < param_value.modified) || this.parameters[param_type] === undefined) {
             this.parameters[param_type] = {
                 value: tmp_param_value,
                 modified: param_value.modified
@@ -59,8 +52,10 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         });
     }
 
-    public update(device: FullDeviceResponse):void {
+    public update(device: FullDeviceResponse, force = false):void {
         this.device = device;
+        if (force)
+            this.parameters = {};
         this.device.params.forEach(param => {
             this._updateParameter(param.param_type, { value: param.param_value, modified: convertTimestampMs(param.update_time) });
         });
@@ -167,10 +162,6 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
     static isBatteryDoorbell2(type: number): boolean {
         return DeviceType.BATTERY_DOORBELL_2 == type;
     }
-
-    //static isIndoorCameras(type: number): boolean {
-    //    return l.I(this.device_sn);
-    //}
 
     static isSoloCamera(type: number): boolean {
         return DeviceType.SOLO_CAMERA == type;
@@ -378,6 +369,13 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
 
     public getStoragePath(filename: string): string {
         return getAbsoluteFilePath(this.device.device_type, this.device.device_channel, filename);
+    }
+
+    public isEnabled(): boolean {
+        if (this.isIndoorCamera() || this.isSoloCameras() || this.getDeviceType() === DeviceType.DOORBELL) {
+            return this.getParameter(99904) ? (this.getParameter(99904).value === "1" ? true : false) : false;
+        }
+        return this.getParameter(99904) ? (this.getParameter(99904).value === "0" ? true : false) : false;
     }
 
 }

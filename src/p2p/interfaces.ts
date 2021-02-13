@@ -8,8 +8,8 @@ import { AudioCodec, CommandType, P2PDataType, VideoCodec } from "./types";
 export interface P2PClientProtocolEvents {
     "alarm_mode": (mode: AlarmMode) => void;
     "camera_info": (camera_info: CmdCameraInfoResponse) => void;
-    "connected": (address: Address) => void;
-    "disconnected": () => void;
+    "connect": (address: Address) => void;
+    "close": () => void;
     "command": (result: CommandResult) => void;
     "start_download": (channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => void;
     "finish_download": (channel: number) => void;
@@ -69,8 +69,9 @@ export interface P2PDataMessageState {
     leftoverData: Buffer;
     queuedData: Map<number, P2PMessage>;
     rsaKey: NodeRSA | null;
-    videoSteam: Readable | null;
-    audioSteam: Readable | null;
+    videoStream: Readable | null;
+    audioStream: Readable | null;
+    invalidStream: boolean;
     streaming: boolean;
     streamNotStarted: boolean;
     streamChannel: number;

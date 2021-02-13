@@ -54,6 +54,17 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.4.0 (2021-02-13)
+
+* (bropat) Added new P2P feature: Enable/disable device (for camera products)
+* (bropat) Added new P2P feature: Enable/disable auto night vision (for camera products)
+* (bropat) Added new P2P feature: Enable/disable led (for camera 2 products, indoor cameras, floodlight camera and solo cameras)
+* (bropat) Added new P2P feature: Enable/disable anti theft detection (for camera 2 products)
+* (bropat) Added new P2P feature: Change video watermark setting (for camera products)
+* (bropat) Fixed P2P command retry on error 503
+* (bropat) Fixed issue on new PushMessage interface
+* (bropat) Fixed issue with handling unencrypted video data
+
 ### 0.3.0 (2021-02-11)
 
 * (bropat) Added new P2P feature: Download video
