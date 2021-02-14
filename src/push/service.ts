@@ -493,6 +493,9 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             this.pushClient.on("connect", () => {
                 this.emit("connect", token);
             });
+            this.pushClient.on("close", () => {
+                this.emit("close");
+            });
             this.pushClient.on("message", (msg: RawPushMessage) => this.onMessage(msg));
             this.pushClient.connect();
         } else {

@@ -31,7 +31,23 @@ One client instance will show all devices from one Eufy Cloud account and allows
 
 ## Features
 
-* WIP
+* Connects to Eufy cloud (supports 2fa)
+* Connects to station/devices using p2p communication (supported: local and remote connectivity)
+* Supports receiving push notification (unified push messages interface)
+* Basic P2P implementation that supports also commands not already implemented
+* Get info and parameters from stations/devices over https/p2p
+* P2P functionality already implemented:
+  * Station:
+    * Change guard mode
+    * Reboot station
+  * Devices:
+    * Start livestream (p2p or rtmp over cloud)
+    * Stop livestream (p2p or rtmp over cloud)
+    * Enable/disable device
+    * Enable/disable auto night vision (only camera products)
+    * Enable/disable led (only camera 2 products, indoor cameras, floodlight camera and solo cameras)
+    * Enable/disable anti-theft detection (only camera 2 products)
+    * Change video watermark setting (only camera products)
 
 ## Documentation
 
@@ -39,12 +55,26 @@ One client instance will show all devices from one Eufy Cloud account and allows
 
 ## Known working devices
 
-* Homebase 1 (T8001)
+* HomeBase (T8001)
+* HomeBase E (T8002)
 * HomeBase 2 (T8010)
-* Eufy 1 Camera (T8111)
+* eufyCam (T8111)
+* eufyCam E (T8112)
 * eufyCam 2 (T8114)
-* eufyCam2C (T8113)
-* Eufy Battery Doorbell (T8210)
+* eufyCam 2C (T8113)
+* eufyCam 2 Pro (T8140)
+* eufyCam 2C Pro (T8141)
+* Floodlight (T8420)
+* Wired Doorbell 2k (T8200)
+* Wired Doorbell 1080p (T8201)
+* Battery Doorbell 2K (T8210)
+* Battery Doorbell 1080p (T8222)
+* Entry Sensor (T8900)
+* Motion sensor (T8910)
+* Indoor Cam Pan&Tilt 2K (T8410)
+* Indoor Cam 2K (T8400)
+* Indoor Cam Pan&Tilt 1080p (T8411)
+* Indoor Cam 1080p (T8401)
 
 If more devices work (or also not) please report them by opening a GitHub issue.
 
@@ -54,12 +84,17 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.4.1 (2021-02-14)
+
+* (bropat) Fixed small typo
+* (bropat) Uniform debug messages
+
 ### 0.4.0 (2021-02-13)
 
 * (bropat) Added new P2P feature: Enable/disable device (for camera products)
 * (bropat) Added new P2P feature: Enable/disable auto night vision (for camera products)
 * (bropat) Added new P2P feature: Enable/disable led (for camera 2 products, indoor cameras, floodlight camera and solo cameras)
-* (bropat) Added new P2P feature: Enable/disable anti theft detection (for camera 2 products)
+* (bropat) Added new P2P feature: Enable/disable anti-theft detection (for camera 2 products)
 * (bropat) Added new P2P feature: Change video watermark setting (for camera products)
 * (bropat) Fixed P2P command retry on error 503
 * (bropat) Fixed issue on new PushMessage interface

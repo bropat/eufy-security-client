@@ -60,17 +60,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async authenticate(): Promise<string> {
         //Authenticate and get an access token
-        this.log.debug(`HTTPApi.authenticate(): token: ${this.token} token_expiration: ${this.token_expiration}`);
+        this.log.debug(`${this.constructor.name}.authenticate(): token: ${this.token} token_expiration: ${this.token_expiration}`);
         if (!this.token || this.token_expiration && (new Date()).getTime() >= this.token_expiration.getTime()) {
             try {
                 const response = await this.request("post", "passport/login", {
                     email: this.username,
                     password: this.password
                 }, this.headers).catch(error => {
-                    this.log.error(`HTTPApi.authenticate(): error: ${JSON.stringify(error)}`);
+                    this.log.error(`${this.constructor.name}.authenticate(): error: ${JSON.stringify(error)}`);
                     return error;
                 });
-                this.log.debug(`HTTPApi.authenticate(): Response:  ${JSON.stringify(response.data)}`);
+                this.log.debug(`${this.constructor.name}.authenticate(): Response:  ${JSON.stringify(response.data)}`);
 
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
@@ -93,31 +93,31 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             }
                         }
 
-                        this.log.debug(`HTTPApi.authenticate(): token: ${this.token}`);
-                        this.log.debug(`HTTPApi.authenticate(): token_expiration: ${this.token_expiration}`);
+                        this.log.debug(`${this.constructor.name}.authenticate(): token: ${this.token}`);
+                        this.log.debug(`${this.constructor.name}.authenticate(): token_expiration: ${this.token_expiration}`);
                         return "ok";
                     } else if (result.code == ResponseErrorCode.CODE_NEED_VERIFY_CODE) {
-                        this.log.debug(`HTTPApi.authenticate(): Send verification code...`);
+                        this.log.debug(`${this.constructor.name}.authenticate(): Send verification code...`);
                         const dataresult: LoginResultResponse = result.data;
 
                         this.token = dataresult.auth_token
                         this.token_expiration = new Date(dataresult.token_expires_at * 1000);
                         axios.defaults.headers.common["X-Auth-Token"] = this.token;
 
-                        this.log.debug(`HTTPApi.authenticate(): token: ${this.token}`);
-                        this.log.debug(`HTTPApi.authenticate(): token_expiration: ${this.token_expiration}`);
+                        this.log.debug(`${this.constructor.name}.authenticate(): token: ${this.token}`);
+                        this.log.debug(`${this.constructor.name}.authenticate(): token_expiration: ${this.token_expiration}`);
 
                         await this.sendVerifyCode(VerfyCodeTypes.TYPE_EMAIL);
 
                         return "send_verify_code";
                     } else {
-                        this.log.error(`HTTPApi.authenticate(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                        this.log.error(`${this.constructor.name}.authenticate(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
                     }
                 } else {
-                    this.log.error(`HTTPApi.authenticate(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+                    this.log.error(`${this.constructor.name}.authenticate(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
                 }
             } catch (error) {
-                this.log.error(`HTTPApi.authenticate(): error: ${error}`);
+                this.log.error(`${this.constructor.name}.authenticate(): error: ${error}`);
             }
             return "error";
         }
@@ -132,7 +132,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             const response = await this.request("post", "sms/send/verify_code", {
                 message_type: type
             }, this.headers).catch(error => {
-                this.log.error(`HTTPApi.sendVerifyCode(): error: ${JSON.stringify(error)}`);
+                this.log.error(`${this.constructor.name}.sendVerifyCode(): error: ${JSON.stringify(error)}`);
                 return error;
             });
             if (response.status == 200) {
@@ -141,13 +141,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     this.log.info(`Requested verification code for 2FA`);
                     return true;
                 } else {
-                    this.log.error(`HTTPApi.sendVerifyCode(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                    this.log.error(`${this.constructor.name}.sendVerifyCode(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
                 }
             } else {
-                this.log.error(`HTTPApi.sendVerifyCode(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.sendVerifyCode(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
             }
         } catch (error) {
-            this.log.error(`HTTPApi.sendVerifyCode(): error: ${error}`);
+            this.log.error(`${this.constructor.name}.sendVerifyCode(): error: ${error}`);
         }
         return false;
     }
@@ -155,10 +155,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     public async listTrustDevice(): Promise<Array<TrustDevice>> {
         try {
             const response = await this.request("get", "app/trust_device/list", undefined, this.headers).catch(error => {
-                this.log.error(`HTTPApi.listTrustDevice(): error: ${JSON.stringify(error)}`);
+                this.log.error(`${this.constructor.name}.listTrustDevice(): error: ${JSON.stringify(error)}`);
                 return error;
             });
-            this.log.debug(`HTTPApi.listTrustDevice(): Response:  ${JSON.stringify(response.data)}`);
+            this.log.debug(`${this.constructor.name}.listTrustDevice(): Response:  ${JSON.stringify(response.data)}`);
 
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
@@ -167,13 +167,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         return result.data.list;
                     }
                 } else {
-                    this.log.error(`HTTPApi.listTrustDevice(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                    this.log.error(`${this.constructor.name}.listTrustDevice(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
                 }
             } else {
-                this.log.error(`HTTPApi.listTrustDevice(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.listTrustDevice(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
             }
         } catch (error) {
-            this.log.error(`HTTPApi.listTrustDevice(): error: ${error}`);
+            this.log.error(`${this.constructor.name}.listTrustDevice(): error: ${error}`);
         }
         return [];
     }
@@ -184,10 +184,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 verify_code: `${verify_code}`,
                 transaction: `${new Date().getTime()}`
             }, this.headers).catch(error => {
-                this.log.error(`HTTPApi.listTrustDevice(): error: ${JSON.stringify(error)}`);
+                this.log.error(`${this.constructor.name}.listTrustDevice(): error: ${JSON.stringify(error)}`);
                 return error;
             });
-            this.log.debug(`HTTPApi.addTrustDevice(): Response:  ${JSON.stringify(response.data)}`);
+            this.log.debug(`${this.constructor.name}.addTrustDevice(): Response:  ${JSON.stringify(response.data)}`);
 
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
@@ -196,7 +196,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         verify_code: `${verify_code}`,
                         transaction: `${new Date().getTime()}`
                     }, this.headers);
-                    this.log.debug(`HTTPApi.addTrustDevice(): Response2:  ${JSON.stringify(response.data)}`);
+                    this.log.debug(`${this.constructor.name}.addTrustDevice(): Response2:  ${JSON.stringify(response.data)}`);
 
                     if (response2.status == 200) {
                         const result: ResultResponse = response2.data;
@@ -206,27 +206,27 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             trusted_devices.forEach((trusted_device: TrustDevice) => {
                                 if (trusted_device.is_current_device === 1) {
                                     this.token_expiration = this.trusted_token_expiration;
-                                    this.log.debug(`API.addTrustDevice(): This device is trusted. Token expiration extended to: ${this.token_expiration})`);
+                                    this.log.debug(`${this.constructor.name}.addTrustDevice(): This device is trusted. Token expiration extended to: ${this.token_expiration})`);
                                 }
                             });
                             return true;
                         } else {
-                            this.log.error(`HTTPApi.addTrustDevice(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                            this.log.error(`${this.constructor.name}.addTrustDevice(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
                         }
                     } else if (response2.status == 401) {
                         this.invalidateToken();
-                        this.log.error(`HTTPApi.addTrustDevice(): Status return code 401, invalidate token (status: ${response.status} text: ${response.statusText}`);
+                        this.log.error(`${this.constructor.name}.addTrustDevice(): Status return code 401, invalidate token (status: ${response.status} text: ${response.statusText}`);
                     } else {
-                        this.log.error(`HTTPApi.addTrustDevice(): Status return code not 200 (status: ${response2.status} text: ${response2.statusText}`);
+                        this.log.error(`${this.constructor.name}.addTrustDevice(): Status return code not 200 (status: ${response2.status} text: ${response2.statusText}`);
                     }
                 } else {
-                    this.log.error(`HTTPApi.addTrustDevice(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                    this.log.error(`${this.constructor.name}.addTrustDevice(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
                 }
             } else {
-                this.log.error(`HTTPApi.addTrustDevice(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.addTrustDevice(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
             }
         } catch (error) {
-            this.log.error(`HTTPApi.addTrustDevice(): error: ${error}`);
+            this.log.error(`${this.constructor.name}.addTrustDevice(): error: ${error}`);
         }
         return false;
     }
@@ -237,10 +237,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         //Get Stations
         try {
             const response = await this.request("post", "app/get_hub_list").catch(error => {
-                this.log.error(`HTTPApi.updateDeviceInfo(): stations - error: ${JSON.stringify(error)}`);
+                this.log.error(`${this.constructor.name}.updateDeviceInfo(): stations - error: ${JSON.stringify(error)}`);
                 return error;
             });
-            this.log.debug(`HTTPApi.updateDeviceInfo(): stations - Response: ${JSON.stringify(response.data)}`);
+            this.log.debug(`${this.constructor.name}.updateDeviceInfo(): stations - Response: ${JSON.stringify(response.data)}`);
 
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
@@ -248,12 +248,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     const dataresult: Array<HubResponse> = result.data;
                     if (dataresult) {
                         dataresult.forEach(element => {
-                            this.log.debug(`HTTPApi.updateDeviceInfo(): stations - element: ${JSON.stringify(element)}`);
-                            this.log.debug(`HTTPApi.updateDeviceInfo(): stations - device_type: ${element.device_type}`);
-                            //if (element.device_type == 0) {
-                            // Station
+                            this.log.debug(`${this.constructor.name}.updateDeviceInfo(): stations - element: ${JSON.stringify(element)}`);
+                            this.log.debug(`${this.constructor.name}.updateDeviceInfo(): stations - device_type: ${element.device_type}`);
                             this.hubs[element.station_sn] = element;
-                            //}
                         });
                     } else {
                         this.log.info("No stations found.");
@@ -262,21 +259,21 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (Object.keys(this.hubs).length > 0)
                         this.emit("hubs", this.hubs);
                 } else
-                    this.log.error(`HTTPApi.updateDeviceInfo(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                    this.log.error(`${this.constructor.name}.updateDeviceInfo(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
             } else {
-                this.log.error(`HTTPApi.updateDeviceInfo(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.updateDeviceInfo(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
             }
         } catch (error) {
-            this.log.error(`HTTPApi.updateDeviceInfo(): error: ${error}`);
+            this.log.error(`${this.constructor.name}.updateDeviceInfo(): error: ${error}`);
         }
 
         //Get Devices
         try {
             const response = await this.request("post", "app/get_devs_list").catch(error => {
-                this.log.error(`HTTPApi.updateDeviceInfo(): devices - error: ${JSON.stringify(error)}`);
+                this.log.error(`${this.constructor.name}.updateDeviceInfo(): devices - error: ${JSON.stringify(error)}`);
                 return error;
             });
-            this.log.debug(`HTTPApi.updateDeviceInfo(): devices - Response: ${JSON.stringify(response.data)}`);
+            this.log.debug(`${this.constructor.name}.updateDeviceInfo(): devices - Response: ${JSON.stringify(response.data)}`);
 
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
@@ -293,12 +290,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (Object.keys(this.devices).length > 0)
                         this.emit("devices", this.devices);
                 } else
-                    this.log.error(`HTTPApi.updateDeviceInfo(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                    this.log.error(`${this.constructor.name}.updateDeviceInfo(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
             } else {
-                this.log.error(`HTTPApi.updateDeviceInfo(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.updateDeviceInfo(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
             }
         } catch (error) {
-            this.log.error(`HTTPApi.updateDeviceInfo(): error: ${error}`);
+            this.log.error(`${this.constructor.name}.updateDeviceInfo(): error: ${error}`);
         }
     }
 
@@ -309,11 +306,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             //No token get one
             switch (await this.authenticate()) {
                 case "renew":
-                    this.log.debug(`HTTPApi.request(): renew token - method: ${method} endpoint: ${endpoint}`);
+                    this.log.debug(`${this.constructor.name}.request(): renew token - method: ${method} endpoint: ${endpoint}`);
                     await this.authenticate();
                     break;
                 case "error":
-                    this.log.debug(`HTTPApi.request(): token error - method: ${method} endpoint: ${endpoint}`);
+                    this.log.debug(`${this.constructor.name}.request(): token error - method: ${method} endpoint: ${endpoint}`);
                     break;
                 default: break;
             }
@@ -326,7 +323,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 await this.authenticate()
         }
 
-        this.log.debug(`HTTPApi.request(): method: ${method} endpoint: ${endpoint} baseUrl: ${this.api_base} token: ${this.token} data: ${JSON.stringify(data)} headers: ${JSON.stringify(this.headers)}`);
+        this.log.debug(`${this.constructor.name}.request(): method: ${method} endpoint: ${endpoint} baseUrl: ${this.api_base} token: ${this.token} data: ${JSON.stringify(data)} headers: ${JSON.stringify(this.headers)}`);
         const response = await axios({
             method: method,
             url: endpoint,
@@ -340,7 +337,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
         if (response.status == 401) {
             this.invalidateToken();
-            this.log.error(`HTTPApi.request(): Status return code 401, invalidate token (status: ${response.status} text: ${response.statusText}`);
+            this.log.error(`${this.constructor.name}.request(): Status return code 401, invalidate token (status: ${response.status} text: ${response.statusText}`);
             this.emit("not_connected");
         }
 
@@ -354,26 +351,26 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 app_type: "eufySecurity",
                 transaction: `${new Date().getTime()}`
             }, this.headers).catch(error => {
-                this.log.error(`HTTPApi.checkPushToken(): error: ${JSON.stringify(error)}`);
+                this.log.error(`${this.constructor.name}.checkPushToken(): error: ${JSON.stringify(error)}`);
                 return error;
             });
-            this.log.debug(`HTTPApi.checkPushToken(): Response: ${JSON.stringify(response.data)}`);
+            this.log.debug(`${this.constructor.name}.checkPushToken(): Response: ${JSON.stringify(response.data)}`);
 
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
                 if (result.code == 0) {
-                    this.log.debug(`HTTPApi.checkPushToken(): OK`);
+                    this.log.debug(`${this.constructor.name}.checkPushToken(): OK`);
                     return true;
                 } else
-                    this.log.error(`HTTPApi.checkPushToken(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                    this.log.error(`${this.constructor.name}.checkPushToken(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
             } else if (response.status == 401) {
                 this.invalidateToken();
-                this.log.error(`HTTPApi.checkPushToken(): Status return code 401, invalidate token (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.checkPushToken(): Status return code 401, invalidate token (status: ${response.status} text: ${response.statusText}`);
             } else {
-                this.log.error(`HTTPApi.checkPushToken(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.checkPushToken(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
             }
         } catch (error) {
-            this.log.error(`HTTPApi.checkPushToken(): error: ${error}`);
+            this.log.error(`${this.constructor.name}.checkPushToken(): error: ${error}`);
         }
         return false;
     }
@@ -386,26 +383,26 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 token: token,
                 transaction: `${new Date().getTime().toString()}`
             }, this.headers).catch(error => {
-                this.log.error(`HTTPApi.registerPushToken(): error: ${JSON.stringify(error)}`);
+                this.log.error(`${this.constructor.name}.registerPushToken(): error: ${JSON.stringify(error)}`);
                 return error;
             });
-            this.log.debug(`HTTPApi.registerPushToken(): Response: ${JSON.stringify(response.data)}`);
+            this.log.debug(`${this.constructor.name}.registerPushToken(): Response: ${JSON.stringify(response.data)}`);
 
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
                 if (result.code == 0) {
-                    this.log.debug(`HTTPApi.registerPushToken(): OK`);
+                    this.log.debug(`${this.constructor.name}.registerPushToken(): OK`);
                     return true;
                 } else
-                    this.log.error(`HTTPApi.registerPushToken(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                    this.log.error(`${this.constructor.name}.registerPushToken(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
             } else if (response.status == 401) {
                 this.invalidateToken();
-                this.log.error(`HTTPApi.registerPushToken(): Status return code 401, invalidate token (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.registerPushToken(): Status return code 401, invalidate token (status: ${response.status} text: ${response.statusText}`);
             } else {
-                this.log.error(`HTTPApi.registerPushToken(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.registerPushToken(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
             }
         } catch (error) {
-            this.log.error(`HTTPApi.registerPushToken(): error: ${error}`);
+            this.log.error(`${this.constructor.name}.registerPushToken(): error: ${error}`);
         }
         return false;
     }
@@ -422,24 +419,24 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 station_sn: station_sn,
                 params: tmp_params
             }).catch(error => {
-                this.log.error(`HTTPApi.setParameters(): error: ${JSON.stringify(error)}`);
+                this.log.error(`${this.constructor.name}.setParameters(): error: ${JSON.stringify(error)}`);
                 return error;
             });
-            this.log.debug(`HTTPApi.setParameters(): station_sn: ${station_sn} device_sn: ${device_sn} params: ${JSON.stringify(tmp_params)} Response: ${JSON.stringify(response.data)}`);
+            this.log.debug(`${this.constructor.name}.setParameters(): station_sn: ${station_sn} device_sn: ${device_sn} params: ${JSON.stringify(tmp_params)} Response: ${JSON.stringify(response.data)}`);
 
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
                 if (result.code == 0) {
                     const dataresult = result.data;
-                    this.log.debug(`HTTPApi.setParameters(): New Parameters set. response: ${JSON.stringify(dataresult)}`);
+                    this.log.debug(`${this.constructor.name}.setParameters(): New Parameters set. response: ${JSON.stringify(dataresult)}`);
                     return true;
                 } else
-                    this.log.error(`HTTPApi.setParameters(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                    this.log.error(`${this.constructor.name}.setParameters(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
             } else {
-                this.log.error(`HTTPApi.setParameters(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.setParameters(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
             }
         } catch (error) {
-            this.log.error(`HTTPApi.setParameters(): error: ${error}`);
+            this.log.error(`${this.constructor.name}.setParameters(): error: ${error}`);
         }
         return false;
     }
@@ -451,10 +448,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 user_id: user_id,
                 transaction: `${new Date().getTime().toString()}`
             }, this.headers).catch(error => {
-                this.log.error(`HTTPApi.getCiphers(): error: ${JSON.stringify(error)}`);
+                this.log.error(`${this.constructor.name}.getCiphers(): error: ${JSON.stringify(error)}`);
                 return error;
             });
-            this.log.debug(`HTTPApi.getCiphers(): Response:  ${JSON.stringify(response.data)}`);
+            this.log.debug(`${this.constructor.name}.getCiphers(): Response:  ${JSON.stringify(response.data)}`);
 
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
@@ -467,13 +464,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         return ciphers;
                     }
                 } else {
-                    this.log.error(`HTTPApi.getCiphers(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                    this.log.error(`${this.constructor.name}.getCiphers(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
                 }
             } else {
-                this.log.error(`HTTPApi.getCiphers(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.getCiphers(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
             }
         } catch (error) {
-            this.log.error(`HTTPApi.getCiphers(): error: ${error}`);
+            this.log.error(`${this.constructor.name}.getCiphers(): error: ${error}`);
         }
         return {};
     }

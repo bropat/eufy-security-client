@@ -36,7 +36,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
 
     private _updateParameter(param_type: number, param_value: ParameterValue): void {
         const tmp_param_value = ParameterHelper.readValue(param_type, param_value.value);
-        if ((this.parameters[param_type] !== undefined && this.parameters[param_type].value != tmp_param_value && this.parameters[param_type].modified < param_value.modified) || this.parameters[param_type] === undefined) {
+        if ((this.parameters[param_type] !== undefined && (this.parameters[param_type].value != tmp_param_value || this.parameters[param_type].modified < param_value.modified)) || this.parameters[param_type] === undefined) {
             this.parameters[param_type] = {
                 value: tmp_param_value,
                 modified: param_value.modified
@@ -403,7 +403,7 @@ export class Camera extends Device {
     public async startDetection(): Promise<void> {
         // Start camera detection.
         await this.setParameters([{ param_type: ParamType.DETECT_SWITCH, param_value: 1 }]).catch(error => {
-            this.log.error(`Device.startDetection(): error: ${JSON.stringify(error)}`);
+            this.log.error(`${this.constructor.name}.startDetection(): error: ${JSON.stringify(error)}`);
         });
     }
 
@@ -415,10 +415,10 @@ export class Camera extends Device {
                 station_sn: this.device.station_sn,
                 proto: 2
             }).catch(error => {
-                this.log.error(`Camera.startStream(): error: ${JSON.stringify(error)}`);
+                this.log.error(`${this.constructor.name}.startStream(): error: ${JSON.stringify(error)}`);
                 return error;
             });
-            this.log.debug(`Camera.startStream(): Response: ${JSON.stringify(response.data)}`);
+            this.log.debug(`${this.constructor.name}.startStream(): Response: ${JSON.stringify(response.data)}`);
 
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
@@ -428,12 +428,12 @@ export class Camera extends Device {
                     this.log.info(`Livestream of camera ${this.device.device_sn} started.`);
                     return dataresult.url;
                 } else
-                    this.log.error(`Camera.startStream(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                    this.log.error(`${this.constructor.name}.startStream(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
             } else {
-                this.log.error(`Camera.startStream(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.startStream(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
             }
         } catch (error) {
-            this.log.error(`Camera.startStream(): error: ${error}`);
+            this.log.error(`${this.constructor.name}.startStream(): error: ${error}`);
         }
         return "";
     }
@@ -451,10 +451,10 @@ export class Camera extends Device {
                 station_sn: this.device.station_sn,
                 proto: 2
             }).catch(error => {
-                this.log.error(`Camera.stopStream(): error: ${JSON.stringify(error)}`);
+                this.log.error(`${this.constructor.name}.stopStream(): error: ${JSON.stringify(error)}`);
                 return error;
             });
-            this.log.debug(`Camera.stopStream(): Response: ${JSON.stringify(response.data)}`);
+            this.log.debug(`${this.constructor.name}.stopStream(): Response: ${JSON.stringify(response.data)}`);
 
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
@@ -462,13 +462,13 @@ export class Camera extends Device {
                     this.is_streaming = false;
                     this.log.info(`Livestream of camera ${this.device.device_sn} stopped.`);
                 } else {
-                    this.log.error(`Camera.stopStream(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                    this.log.error(`${this.constructor.name}.stopStream(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
                 }
             } else {
-                this.log.error(`Camera.stopStream(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.stopStream(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
             }
         } catch (error) {
-            this.log.error(`Camera.stopStream(): error: ${error}`);
+            this.log.error(`${this.constructor.name}.stopStream(): error: ${error}`);
         }
     }
 

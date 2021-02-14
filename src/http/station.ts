@@ -59,7 +59,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private _updateParameter(param_type: number, param_value: ParameterValue): void {
         const tmp_param_value = ParameterHelper.readValue(param_type, param_value.value);
-        if (((this.parameters[param_type] !== undefined && this.parameters[param_type].value != tmp_param_value && this.parameters[param_type].modified < param_value.modified) || this.parameters[param_type] === undefined) && param_type != 1147) {
+        if (((this.parameters[param_type] !== undefined && (this.parameters[param_type].value != tmp_param_value || this.parameters[param_type].modified < param_value.modified)) || this.parameters[param_type] === undefined) && param_type != 1147) {
             this.parameters[param_type] = {
                 value: tmp_param_value,
                 modified: param_value.modified
@@ -126,10 +126,10 @@ export class Station extends TypedEmitter<StationEvents> {
             const response = await this.api.request("post", "app/equipment/get_dsk_keys", {
                 station_sns: [this.getSerial()]
             }).catch(error => {
-                this.log.error(`Station.getDSKKeys(): error: ${JSON.stringify(error)}`);
+                this.log.error(`${this.constructor.name}.getDSKKeys(): error: ${JSON.stringify(error)}`);
                 return error;
             });
-            this.log.debug(`Station.getDSKKeys(): station: ${this.getSerial()} Response: ${JSON.stringify(response.data)}`);
+            this.log.debug(`${this.constructor.name}.getDSKKeys(): station: ${this.getSerial()} Response: ${JSON.stringify(response.data)}`);
 
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
@@ -139,16 +139,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         if (key.station_sn == this.getSerial()) {
                             this.dsk_key = key.dsk_key;
                             this.dsk_expiration = new Date(key.expiration * 1000);
-                            this.log.debug(`Station.getDSKKeys(): dsk_key: ${this.dsk_key} dsk_expiration: ${this.dsk_expiration}`);
+                            this.log.debug(`${this.constructor.name}.getDSKKeys(): dsk_key: ${this.dsk_key} dsk_expiration: ${this.dsk_expiration}`);
                         }
                     });
                 } else
-                    this.log.error(`Station.getDSKKeys(): station: ${this.getSerial()} Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                    this.log.error(`${this.constructor.name}.getDSKKeys(): station: ${this.getSerial()} Response code not ok (code: ${result.code} msg: ${result.msg})`);
             } else {
-                this.log.error(`Station.getDSKKeys(): station: ${this.getSerial()} Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+                this.log.error(`${this.constructor.name}.getDSKKeys(): station: ${this.getSerial()} Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
             }
         } catch (error) {
-            this.log.error(`Station.getDSKKeys(): station: ${this.getSerial()} error: ${error}`);
+            this.log.error(`${this.constructor.name}.getDSKKeys(): station: ${this.getSerial()} error: ${error}`);
         }
     }
 
@@ -172,11 +172,11 @@ export class Station extends TypedEmitter<StationEvents> {
 
     public async connect(): Promise<void> {
         if (this.dsk_key == "" || (this.dsk_expiration && (new Date()).getTime() >= this.dsk_expiration.getTime())) {
-            this.log.debug(`Station.connect(): station: ${this.getSerial()} DSK keys not present or expired, get/renew it. (dsk_expiration: ${this.dsk_expiration})`);
+            this.log.debug(`${this.constructor.name}.connect(): station: ${this.getSerial()} DSK keys not present or expired, get/renew it. (dsk_expiration: ${this.dsk_expiration})`);
             await this.getDSKKeys();
         }
 
-        this.log.debug(`Station.connect(): station: ${this.getSerial()} p2p_did: ${this.hub.p2p_did} dsk_key: ${this.dsk_key}`);
+        this.log.debug(`${this.constructor.name}.connect(): station: ${this.getSerial()} p2p_did: ${this.hub.p2p_did} dsk_key: ${this.dsk_key}`);
 
         if (this.p2p_session) {
             this.p2p_session.removeAllListeners();
@@ -200,43 +200,42 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     private onFinishDownload(channel: number): void {
-        this.log.trace(`Station.onFinishDownload(): station: ${this.getSerial()} channel: ${channel}`);
+        this.log.trace(`${this.constructor.name}.onFinishDownload(): station: ${this.getSerial()} channel: ${channel}`);
         this.emit("finish_download", this, channel);
     }
 
     private onStartDownload(channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable): void {
-        this.log.trace(`Station.onStartDownload(): station: ${this.getSerial()} channel: ${channel}`);
+        this.log.trace(`${this.constructor.name}.onStartDownload(): station: ${this.getSerial()} channel: ${channel}`);
         this.emit("start_download", this, channel, metadata, videoStream, audioStream);
     }
 
     private onStopLivestream(channel: number): void {
-        this.log.trace(`Station.onStopLivestream(): station: ${this.getSerial()} channel: ${channel}`);
+        this.log.trace(`${this.constructor.name}.onStopLivestream(): station: ${this.getSerial()} channel: ${channel}`);
         this.emit("stop_livestream", this, channel);
     }
 
     private onStartLivestream(channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable): void {
-        this.log.trace(`Station.onStartLivestream(): station: ${this.getSerial()} channel: ${channel}`);
+        this.log.trace(`${this.constructor.name}.onStartLivestream(): station: ${this.getSerial()} channel: ${channel}`);
         this.emit("start_livestream", this, channel, metadata, videoStream, audioStream);
     }
 
     private onWifiRssiChanged(channel: number, rssi: number): void {
-        this.log.trace(`Station.onWifiRssiChanged(): station: ${this.getSerial()} channel: ${channel}`);
+        this.log.trace(`${this.constructor.name}.onWifiRssiChanged(): station: ${this.getSerial()} channel: ${channel}`);
         this.emit("parameter", this, CommandType.CMD_WIFI_CONFIG, rssi.toString(), +new Date);
     }
 
     public async setGuardMode(mode: GuardMode): Promise<void> {
-        this.log.trace("Station.setGuardMode(): ");
         if (mode in GuardMode) {
             if (!this.p2p_session || !this.p2p_session.isConnected()) {
-                this.log.debug(`Station.setGuardMode(): P2P connection to station ${this.getSerial()} not present, establish it.`);
+                this.log.debug(`${this.constructor.name}.setGuardMode(): P2P connection to station ${this.getSerial()} not present, establish it.`);
                 await this.connect();
             }
             if (this.p2p_session) {
                 if (this.p2p_session.isConnected()) {
-                    this.log.debug(`Station.setGuardMode(): P2P connection to station ${this.getSerial()} present, send command mode: ${mode}.`);
+                    this.log.debug(`${this.constructor.name}.setGuardMode(): P2P connection to station ${this.getSerial()} present, send command mode: ${mode}.`);
 
                     if ((isGreaterMinVersion("2.0.7.9", this.getSoftwareVersion()) && !Device.isIntegratedDeviceBySn(this.getSerial())) || Device.isSoloCameraBySn(this.getSerial())) {
-                        this.log.debug(`Station.setGuardMode(): Using CMD_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
+                        this.log.debug(`${this.constructor.name}.setGuardMode(): Using CMD_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
                         await this.p2p_session.sendCommandWithStringPayload(CommandType.CMD_SET_PAYLOAD, JSON.stringify({
                             "account_id": this.hub.member.admin_user_id,
                             "cmd": CommandType.CMD_SET_ARMING,
@@ -247,39 +246,37 @@ export class Station extends TypedEmitter<StationEvents> {
                             }
                         }), Station.CHANNEL);
                     } else {
-                        this.log.debug(`Station.setGuardMode(): Using CMD_SET_ARMING for station ${this.getSerial()}`);
+                        this.log.debug(`${this.constructor.name}.setGuardMode(): Using CMD_SET_ARMING for station ${this.getSerial()}`);
                         await this.p2p_session.sendCommandWithInt(CommandType.CMD_SET_ARMING, mode, this.hub.member.admin_user_id, Station.CHANNEL);
                     }
                 }
             }
         } else {
-            this.log.error(`Station.setGuardMode(): Trying to set unsupported guard mode "${mode}" for station ${this.getSerial()}`);
+            this.log.error(`${this.constructor.name}.setGuardMode(): Trying to set unsupported guard mode "${mode}" for station ${this.getSerial()}`);
         }
     }
 
     public async getCameraInfo(): Promise<void> {
-        this.log.trace("Station.getCameraInfo(): ");
         if (!this.p2p_session || !this.p2p_session.isConnected()) {
-            this.log.debug(`Station.getCameraInfo(): P2P connection to station ${this.getSerial()} not present, establish it.`);
+            this.log.debug(`${this.constructor.name}.getCameraInfo(): P2P connection to station ${this.getSerial()} not present, establish it.`);
             await this.connect();
         }
         if (this.p2p_session) {
             if (this.p2p_session.isConnected()) {
-                this.log.debug(`Station.getCameraInfo(): P2P connection to station ${this.getSerial()} present, get device infos.`);
+                this.log.debug(`${this.constructor.name}.getCameraInfo(): P2P connection to station ${this.getSerial()} present, get device infos.`);
                 await this.p2p_session.sendCommandWithInt(CommandType.CMD_CAMERA_INFO, 255, "", Station.CHANNEL);
             }
         }
     }
 
     public async getStorageInfo(): Promise<void> {
-        this.log.trace("Station.getStorageInfo(): ");
         if (!this.p2p_session || !this.p2p_session.isConnected()) {
-            this.log.debug(`Station.getStorageInfo(): P2P connection to station ${this.getSerial()} not present, establish it.`);
+            this.log.debug(`${this.constructor.name}.getStorageInfo(): P2P connection to station ${this.getSerial()} not present, establish it.`);
             await this.connect();
         }
         if (this.p2p_session) {
             if (this.p2p_session.isConnected()) {
-                this.log.debug(`Station.getStorageInfo(): P2P connection to station ${this.getSerial()} present, get camera info.`);
+                this.log.debug(`${this.constructor.name}.getStorageInfo(): P2P connection to station ${this.getSerial()} present, get camera info.`);
                 //TODO: Verify channel! Should be 255...
                 await this.p2p_session.sendCommandWithIntString(CommandType.CMD_SDINFO_EX, 0, 0, this.hub.member.admin_user_id);
             }
@@ -306,7 +303,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     private onCameraInfo(camera_info: CmdCameraInfoResponse): void {
-        this.log.debug(`Station.onCameraInfo(): station: ${this.getSerial()} camera_info: ${JSON.stringify(camera_info)}`);
+        this.log.debug(`${this.constructor.name}.onCameraInfo(): station: ${this.getSerial()} camera_info: ${JSON.stringify(camera_info)}`);
         const devices: { [index: string]: ParameterArray; } = {};
         const timestamp = +new Date;
         camera_info.params.forEach(param => {
@@ -332,7 +329,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     private onCommandResponse(cmd_result: CommandResult): void {
-        this.log.debug(`Station.onCommandResponse(): station: ${this.getSerial()} command_type: ${cmd_result.command_type} channel: ${cmd_result.channel} return_code: ${ErrorCode[cmd_result.return_code]} (${cmd_result.return_code})`);
+        this.log.debug(`${this.constructor.name}.onCommandResponse(): station: ${this.getSerial()} command_type: ${cmd_result.command_type} channel: ${cmd_result.channel} return_code: ${ErrorCode[cmd_result.return_code]} (${cmd_result.return_code})`);
         this.emit("p2p_command", this, cmd_result);
     }
 
@@ -371,7 +368,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private scheduleReconnect(): void {
         const delay = this.getCurrentDelay();
-        this.log.debug(`Station.scheduleReconnect(): delay: ${delay}`);
+        this.log.debug(`${this.constructor.name}.scheduleReconnect(): delay: ${delay}`);
         if (!this.reconnectTimeout)
             this.reconnectTimeout = setTimeout(async () => {
                 this.reconnectTimeout = undefined;
@@ -381,10 +378,10 @@ export class Station extends TypedEmitter<StationEvents> {
 
     public async rebootHUB(): Promise<void> {
         if (!this.p2p_session || !this.p2p_session.isConnected()) {
-            this.log.warn(`Station.rebootHUB(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+            this.log.warn(`${this.constructor.name}.rebootHUB(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
             return;
         }
-        this.log.debug(`Station.rebootHUB(): P2P connection to station ${this.getSerial()} present, reboot requested.`);
+        this.log.debug(`${this.constructor.name}.rebootHUB(): P2P connection to station ${this.getSerial()} present, reboot requested.`);
         await this.p2p_session.sendCommandWithInt(CommandType.CMD_HUB_REBOOT, 0, this.hub.member.admin_user_id, Station.CHANNEL);
     }
 
@@ -393,18 +390,18 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.getStationSerial() === this.getSerial()) {
             if (device.isCamera2Product() || device.isIndoorCamera() || device.isSoloCameras() || device.isFloodLight()) {
                 if (!this.p2p_session || !this.p2p_session.isConnected()) {
-                    this.log.warn(`Station.setStatusLed(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+                    this.log.warn(`${this.constructor.name}.setStatusLed(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
                     return;
                 }
-                this.log.debug(`Station.setStatusLed(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
+                this.log.debug(`${this.constructor.name}.setStatusLed(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
                 await this.p2p_session.sendCommandWithIntString(CommandType.CMD_DEV_LED_SWITCH, value === true ? 1 : 0, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
                 if (!device.isFloodLight())
                     await this.p2p_session.sendCommandWithIntString(CommandType.CMD_LIVEVIEW_LED_SWITCH, value === true ? 1 : 0, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
             } else {
-                this.log.warn(`Station.setStatusLed(): This functionality is not implemented or support by this device.`);
+                this.log.warn(`${this.constructor.name}.setStatusLed(): This functionality is not implemented or support by this device.`);
             }
         } else {
-            this.log.warn(`Station.setStatusLed(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
+            this.log.warn(`${this.constructor.name}.setStatusLed(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
         }
     }
 
@@ -412,16 +409,16 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.getStationSerial() === this.getSerial()) {
             if (device.isCamera()) {
                 if (!this.p2p_session || !this.p2p_session.isConnected()) {
-                    this.log.warn(`Station.setAutoNightVision(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+                    this.log.warn(`${this.constructor.name}.setAutoNightVision(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
                     return;
                 }
-                this.log.debug(`Station.setAutoNightVision(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
+                this.log.debug(`${this.constructor.name}.setAutoNightVision(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
                 await this.p2p_session.sendCommandWithIntString(CommandType.CMD_IRCUT_SWITCH, value === true ? 1 : 0, device.getChannel(), "", "", device.getChannel());
             } else {
-                this.log.warn(`Station.setAutoNightVision(): This functionality is not implemented or support by this device.`);
+                this.log.warn(`${this.constructor.name}.setAutoNightVision(): This functionality is not implemented or support by this device.`);
             }
         } else {
-            this.log.warn(`Station.setAutoNightVision(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
+            this.log.warn(`${this.constructor.name}.setAutoNightVision(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
         }
     }
 
@@ -429,51 +426,51 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.getStationSerial() === this.getSerial()) {
             if (device.isCamera2Product()) {
                 if (!this.p2p_session || !this.p2p_session.isConnected()) {
-                    this.log.warn(`Station.setAntiTheftDetection(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+                    this.log.warn(`${this.constructor.name}.setAntiTheftDetection(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
                     return;
                 }
-                this.log.debug(`Station.setAntiTheftDetection(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
+                this.log.debug(`${this.constructor.name}.setAntiTheftDetection(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
                 await this.p2p_session.sendCommandWithIntString(CommandType.CMD_EAS_SWITCH, value === true ? 1 : 0, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
             } else {
-                this.log.warn(`Station.setAntiTheftDetection(): This functionality is only enabled for Eufy Camera 2 products.`);
+                this.log.warn(`${this.constructor.name}.setAntiTheftDetection(): This functionality is only enabled for Eufy Camera 2 products.`);
             }
         } else {
-            this.log.warn(`Station.setAntiTheftDetection(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
+            this.log.warn(`${this.constructor.name}.setAntiTheftDetection(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
         }
     }
 
     public async setWatermark(device: Device, value: WatermarkSetting1 | WatermarkSetting2 | WatermarkSetting3): Promise<void> {
         if (device.getStationSerial() === this.getSerial()) {
             if (!this.p2p_session || !this.p2p_session.isConnected()) {
-                this.log.warn(`Station.setWatermark(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+                this.log.warn(`${this.constructor.name}.setWatermark(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
                 return;
             }
             if (device.isCamera2Product() || device.isIndoorCamera() || device.isFloodLight()) {
                 if (!Object.values(WatermarkSetting3).includes(value as WatermarkSetting3)) {
-                    this.log.error(`Station.setWatermark(): The device ${device.getSerial()} accepts only this type of values: `, WatermarkSetting3);
+                    this.log.error(`${this.constructor.name}.setWatermark(): The device ${device.getSerial()} accepts only this type of values: `, WatermarkSetting3);
                     return;
                 }
-                this.log.debug(`Station.setWatermark(): P2P connection to station ${this.getSerial()} present, set value: ${WatermarkSetting3[value]}.`);
+                this.log.debug(`${this.constructor.name}.setWatermark(): P2P connection to station ${this.getSerial()} present, set value: ${WatermarkSetting3[value]}.`);
                 await this.p2p_session.sendCommandWithIntString(CommandType.CMD_SET_DEVS_OSD, value, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
             } else if (device.isSoloCameras() || device.getDeviceType() === DeviceType.DOORBELL) {
                 if (!Object.values(WatermarkSetting1).includes(value as WatermarkSetting1)) {
-                    this.log.error(`Station.setWatermark(): The device ${device.getSerial()} accepts only this type of values: `, WatermarkSetting1);
+                    this.log.error(`${this.constructor.name}.setWatermark(): The device ${device.getSerial()} accepts only this type of values: `, WatermarkSetting1);
                     return;
                 }
-                this.log.debug(`Station.setWatermark(): P2P connection to station ${this.getSerial()} present, set value: ${WatermarkSetting1[value]}.`);
+                this.log.debug(`${this.constructor.name}.setWatermark(): P2P connection to station ${this.getSerial()} present, set value: ${WatermarkSetting1[value]}.`);
                 await this.p2p_session.sendCommandWithIntString(CommandType.CMD_SET_DEVS_OSD, value, 0, this.hub.member.admin_user_id, "", 0);
             } else if (device.isBatteryDoorbell() || device.isBatteryDoorbell2() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E) {
                 if (!Object.values(WatermarkSetting2).includes(value as WatermarkSetting2)) {
-                    this.log.error(`Station.setWatermark(): The device ${device.getSerial()} accepts only this type of values: `, WatermarkSetting2);
+                    this.log.error(`${this.constructor.name}.setWatermark(): The device ${device.getSerial()} accepts only this type of values: `, WatermarkSetting2);
                     return;
                 }
-                this.log.debug(`Station.setWatermark(): P2P connection to station ${this.getSerial()} present, set value: ${WatermarkSetting2[value]}.`);
+                this.log.debug(`${this.constructor.name}.setWatermark(): P2P connection to station ${this.getSerial()} present, set value: ${WatermarkSetting2[value]}.`);
                 await this.p2p_session.sendCommandWithIntString(CommandType.CMD_SET_DEVS_OSD, value, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
             } else {
-                this.log.warn(`Station.setWatermark(): This functionality is only enabled for Eufy Camera 2 or Indoor Camera products.`);
+                this.log.warn(`${this.constructor.name}.setWatermark(): This functionality is only enabled for Eufy Camera 2 or Indoor Camera products.`);
             }
         } else {
-            this.log.warn(`Station.setWatermark(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
+            this.log.warn(`${this.constructor.name}.setWatermark(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
         }
     }
 
@@ -481,7 +478,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.getStationSerial() === this.getSerial()) {
             if (device.isCamera()) {
                 if (!this.p2p_session || !this.p2p_session.isConnected()) {
-                    this.log.warn(`Station.enableDevice(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+                    this.log.warn(`${this.constructor.name}.enableDevice(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
                     return;
                 }
 
@@ -489,24 +486,24 @@ export class Station extends TypedEmitter<StationEvents> {
                 if (device.isIndoorCamera() || device.isSoloCameras() || device.getDeviceType() === DeviceType.DOORBELL)
                     param_value = value === true ? 1 : 0;
 
-                this.log.debug(`Station.enableDevice(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
+                this.log.debug(`${this.constructor.name}.enableDevice(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
                 await this.p2p_session.sendCommandWithIntString(CommandType.CMD_DEVS_SWITCH, param_value, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
             } else {
-                this.log.warn(`Station.enableDevice(): This functionality is only enabled for Eufy Camera products.`);
+                this.log.warn(`${this.constructor.name}.enableDevice(): This functionality is only enabled for Eufy Camera products.`);
             }
         } else {
-            this.log.warn(`Station.enableDevice(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
+            this.log.warn(`${this.constructor.name}.enableDevice(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
         }
     }
 
     public async startDownload(path: string, cipher_id: number): Promise<void> {
         if (!this.p2p_session || !this.p2p_session.isConnected()) {
-            this.log.warn(`Station.startDownload(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+            this.log.warn(`${this.constructor.name}.startDownload(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
             return;
         }
         const cipher = await this.api.getCipher(cipher_id, this.hub.member.admin_user_id);
         if (cipher) {
-            this.log.debug(`Station.startDownload(): P2P connection to station ${this.getSerial()} present, download video path: ${path}.`);
+            this.log.debug(`${this.constructor.name}.startDownload(): P2P connection to station ${this.getSerial()} present, download video path: ${path}.`);
             this.p2p_session.setDownloadRSAPrivateKeyPem(cipher.private_key);
             await this.p2p_session.sendCommandWithString(CommandType.CMD_DOWNLOAD_VIDEO, path, this.hub.member.admin_user_id, Station.CHANNEL);
         } else {
@@ -517,27 +514,27 @@ export class Station extends TypedEmitter<StationEvents> {
     public async cancelDownload(device: Device): Promise<void> {
         if (device.getStationSerial() === this.getSerial()) {
             if (!this.p2p_session || !this.p2p_session.isConnected()) {
-                this.log.warn(`Station.cancelDownload(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+                this.log.warn(`${this.constructor.name}.cancelDownload(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
                 return;
             }
-            this.log.debug(`Station.cancelDownload(): P2P connection to station ${this.getSerial()} present, cancel download for channel: ${device.getChannel()}.`);
+            this.log.debug(`${this.constructor.name}.cancelDownload(): P2P connection to station ${this.getSerial()} present, cancel download for channel: ${device.getChannel()}.`);
             await this.p2p_session.sendCommandWithInt(CommandType.CMD_DOWNLOAD_CANCEL, device.getChannel(), this.hub.member.admin_user_id, device.getChannel());
         } else {
-            this.log.warn(`Station.cancelDownload(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
+            this.log.warn(`${this.constructor.name}.cancelDownload(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
         }
     }
 
     public async startLivestream(device: Device): Promise<void> {
         if (device.getStationSerial() === this.getSerial()) {
             if (!this.p2p_session || !this.p2p_session.isConnected()) {
-                this.log.warn(`Station.startLivestream(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+                this.log.warn(`${this.constructor.name}.startLivestream(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
                 return;
             }
-            this.log.debug(`Station.startLivestream(): P2P connection to station ${this.getSerial()} present, start livestream for channel: ${device.getChannel()}.`);
+            this.log.debug(`${this.constructor.name}.startLivestream(): P2P connection to station ${this.getSerial()} present, start livestream for channel: ${device.getChannel()}.`);
             const rsa_key = this.p2p_session.getRSAPrivateKey();
 
             if (device.isDoorbell() || device.isFloodLight() || device.isSoloCameras() || device.isIndoorCamera()) {
-                this.log.debug(`Station.startLivestream(): Using CMD_DOORBELL_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
+                this.log.debug(`${this.constructor.name}.startLivestream(): Using CMD_DOORBELL_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
                 await this.p2p_session.sendCommandWithStringPayload(CommandType.CMD_DOORBELL_SET_PAYLOAD, JSON.stringify({
                     "commandType": 1000,
                     "data": {
@@ -548,10 +545,10 @@ export class Station extends TypedEmitter<StationEvents> {
                 }), Station.CHANNEL);
             } else {
                 if ((Device.isIntegratedDeviceBySn(this.getSerial()) || !isGreaterMinVersion("2.0.9.7", this.getSoftwareVersion())) && (!this.getSerial().startsWith("T8420") || !isGreaterMinVersion("1.0.0.25", this.getSoftwareVersion()))) {
-                    this.log.debug(`Station.startLivestream(): Using CMD_START_REALTIME_MEDIA for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
+                    this.log.debug(`${this.constructor.name}.startLivestream(): Using CMD_START_REALTIME_MEDIA for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
                     await this.p2p_session.sendCommandWithInt(CommandType.CMD_START_REALTIME_MEDIA, device.getChannel(), rsa_key?.exportKey("components-public").n.slice(1).toString("hex"), device.getChannel());
                 } else {
-                    this.log.debug(`Station.startLivestream(): Using CMD_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
+                    this.log.debug(`${this.constructor.name}.startLivestream(): Using CMD_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
                     await this.p2p_session.sendCommandWithStringPayload(CommandType.CMD_SET_PAYLOAD, JSON.stringify({
                         "account_id": this.hub.member.admin_user_id,
                         "cmd": CommandType.CMD_START_REALTIME_MEDIA,
@@ -565,20 +562,20 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }
         } else {
-            this.log.warn(`Station.startLivestream(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
+            this.log.warn(`${this.constructor.name}.startLivestream(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
         }
     }
 
     public async stopLivestream(device: Device): Promise<void> {
         if (device.getStationSerial() === this.getSerial()) {
             if (!this.p2p_session || !this.p2p_session.isConnected()) {
-                this.log.warn(`Station.stopLivestream(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+                this.log.warn(`${this.constructor.name}.stopLivestream(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
                 return;
             }
-            this.log.debug(`Station.stopLivestream(): P2P connection to station ${this.getSerial()} present, start livestream for channel: ${device.getChannel()}.`);
+            this.log.debug(`${this.constructor.name}.stopLivestream(): P2P connection to station ${this.getSerial()} present, start livestream for channel: ${device.getChannel()}.`);
             await this.p2p_session.sendCommandWithInt(CommandType.CMD_STOP_REALTIME_MEDIA, device.getChannel(), undefined, device.getChannel());
         } else {
-            this.log.warn(`Station.stopLivestream(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
+            this.log.warn(`${this.constructor.name}.stopLivestream(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
         }
     }
 
