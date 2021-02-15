@@ -231,7 +231,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         const payload = buildCommandWithStringTypePayload(value, channel);
         let nested_commandType = undefined;
 
-        if (commandType == CommandType.CMD_SET_PAYLOAD) {
+        if (commandType == CommandType.CMD_SET_PAYLOAD || commandType == CommandType.CMD_DOORBELL_SET_PAYLOAD) {
             try {
                 const json = JSON.parse(value);
                 nested_commandType = json.cmd;

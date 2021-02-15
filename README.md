@@ -84,6 +84,11 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.4.2 (2021-02-15)
+
+* (bropat) Fixed battery doorbell start livestream P2P command
+* (bropat) Added CMD_DOORBELL_SET_PAYLOAD as nested command type
+
 ### 0.4.1 (2021-02-14)
 
 * (bropat) Fixed small typo

@@ -533,14 +533,14 @@ export class Station extends TypedEmitter<StationEvents> {
             this.log.debug(`${this.constructor.name}.startLivestream(): P2P connection to station ${this.getSerial()} present, start livestream for channel: ${device.getChannel()}.`);
             const rsa_key = this.p2p_session.getRSAPrivateKey();
 
-            if (device.isDoorbell() || device.isFloodLight() || device.isSoloCameras() || device.isIndoorCamera()) {
+            if (device.getDeviceType() === DeviceType.DOORBELL || device.isFloodLight() || device.isSoloCameras() || device.isIndoorCamera()) {
                 this.log.debug(`${this.constructor.name}.startLivestream(): Using CMD_DOORBELL_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
                 await this.p2p_session.sendCommandWithStringPayload(CommandType.CMD_DOORBELL_SET_PAYLOAD, JSON.stringify({
                     "commandType": 1000,
                     "data": {
                         "account_id": this.hub.member.admin_user_id,
                         "encryptkey": rsa_key?.exportKey("components-public").n.slice(1).toString("hex"),
-                        "streamtype": VideoCodec.H264
+                        "streamtype": 0
                     }
                 }), Station.CHANNEL);
             } else {
