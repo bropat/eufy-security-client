@@ -295,10 +295,11 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     private _getDeviceSerial(channel: number): string {
-        for (const device of this.hub.devices) {
-            if (device.device_channel === channel)
-                return device.device_sn;
-        }
+        if (this.hub.devices)
+            for (const device of this.hub.devices) {
+                if (device.device_channel === channel)
+                    return device.device_sn;
+            }
         return "";
     }
 
@@ -542,7 +543,8 @@ export class Station extends TypedEmitter<StationEvents> {
                         "encryptkey": rsa_key?.exportKey("components-public").n.slice(1).toString("hex"),
                         "streamtype": 0
                     }
-                }), Station.CHANNEL);
+                //}), Station.CHANNEL);
+                }), device.getChannel());
             } else {
                 if ((Device.isIntegratedDeviceBySn(this.getSerial()) || !isGreaterMinVersion("2.0.9.7", this.getSoftwareVersion())) && (!this.getSerial().startsWith("T8420") || !isGreaterMinVersion("1.0.0.25", this.getSoftwareVersion()))) {
                     this.log.debug(`${this.constructor.name}.startLivestream(): Using CMD_START_REALTIME_MEDIA for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
@@ -587,6 +589,35 @@ export class Station extends TypedEmitter<StationEvents> {
             return false;
 
         return this.p2p_session.isLiveStreaming(device.getChannel());
+    }
+
+    public async quickResponse(device: Device, voice_id: number): Promise<void> {
+        if (device.getStationSerial() === this.getSerial()) {
+            if (device.isDoorbell()) {
+                if (!this.p2p_session || !this.p2p_session.isConnected()) {
+                    this.log.warn(`${this.constructor.name}.quickResponse(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+                    return;
+                }
+                this.log.debug(`${this.constructor.name}.quickResponse(): P2P connection to station ${this.getSerial()} present, set voice_id: ${voice_id}.`);
+                if (device.isBatteryDoorbell() || device.isBatteryDoorbell2()) {
+                    this.log.debug(`${this.constructor.name}.startLivestream(): Using CMD_BAT_DOORBELL_QUICK_RESPONSE for station ${this.getSerial()}`);
+                    await this.p2p_session.sendCommandWithIntString(CommandType.CMD_BAT_DOORBELL_QUICK_RESPONSE, voice_id, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
+                } else if (device.getDeviceType() === DeviceType.DOORBELL) {
+                    this.log.debug(`${this.constructor.name}.startLivestream(): Using CMD_DOORBELL_SET_PAYLOAD for station ${this.getSerial()}`);
+                    await this.p2p_session.sendCommandWithStringPayload(CommandType.CMD_DOORBELL_SET_PAYLOAD, JSON.stringify({
+                        "commandType": 1004,
+                        "data": {
+                            "voiceID": voice_id
+                        }
+                    //}), Station.CHANNEL);
+                    }), device.getChannel());
+                }
+            } else {
+                this.log.warn(`${this.constructor.name}.quickResponse(): This functionality is only enabled for doorbell products.`);
+            }
+        } else {
+            this.log.warn(`${this.constructor.name}.quickResponse(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
+        }
     }
 
 }

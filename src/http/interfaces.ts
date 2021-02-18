@@ -3,7 +3,7 @@ import { Readable } from "stream";
 import { StreamMetadata } from "../p2p/interfaces";
 import { CommandResult } from "../p2p/models";
 import { Camera, Device } from "./device";
-import { FullDeviceResponse, HubResponse, Cipher } from "./models";
+import { FullDeviceResponse, HubResponse, Cipher, Voice } from "./models";
 import { Station } from "./station";
 
 export interface ParameterValue {
@@ -37,6 +37,10 @@ export interface FullDevices {
 
 export interface Ciphers {
     [index: number]: Cipher;
+}
+
+export interface Voices {
+    [index: number]: Voice;
 }
 
 export interface HTTPApiEvents {

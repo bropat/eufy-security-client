@@ -15,7 +15,7 @@ export interface CusPushData {
     event_time?: number;
     event_type?: number;
     f?: string;                         // Person?
-    i?: number;                         // (received on event security) FetchId / FaceId?
+    i?: string;                         // (received on event security) FetchId / FaceId?
     j?: number;                         // SenseID
     k?: number;                         // Secret Key (received on event security) / Cipher
     cipher?: number;                     // Secret Key (received on event security) / Cipher
@@ -47,14 +47,28 @@ export interface CusPushData {
 export interface EufyPushMessage {
     content: string;
     device_sn: string;
-    event_time: number;
-    payload: CusPushData | IndoorPushData | ServerPushData;
-    push_time: number;
+    event_time: string;
+    payload?: CusPushData | IndoorPushData | ServerPushData | BatteryDoorbellPushData;
+    push_time: string;
     station_sn: string;
     title: string;
-    type: number;
-    doorbell: string;
+    type: string;
+    doorbell?: string;
     "google.c.sender.id": string;
+}
+
+export interface BatteryDoorbellPushData {
+    name: string;
+    channel: number;
+    cipher: number;
+    create_time: number;
+    device_sn: string;
+    session_id: string;
+    event_type: number;
+    file_path: string;
+    pic_url: string;
+    push_count: number;
+    notification_style: number;
 }
 
 export interface RawPushMessage {
@@ -159,6 +173,7 @@ export interface IndoorPushData {
     channel: number;
     cipher: number;
     create_time: number;
+    trigger_time: number;
     device_sn: string;
     event_type: number;
     file_path: string;

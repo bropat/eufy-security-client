@@ -2,8 +2,8 @@ import axios, { AxiosResponse, Method } from "axios";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { dummyLogger, Logger } from "ts-log";
 
-import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher } from "./models"
-import { HTTPApiEvents, Ciphers, FullDevices, Hubs } from "./interfaces";
+import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher, Voice } from "./models"
+import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices } from "./interfaces";
 import { ResponseErrorCode, VerfyCodeTypes } from "./types";
 import { ParameterHelper } from "./parameter";
 import { getTimezoneGMTString } from "./utils";
@@ -471,6 +471,36 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             }
         } catch (error) {
             this.log.error(`${this.constructor.name}.getCiphers(): error: ${error}`);
+        }
+        return {};
+    }
+
+    public async getVoices(device_sn: string): Promise<Voices> {
+        try {
+            const response = await this.request("get", `voice/response/lists/${device_sn}`, null, this.headers).catch(error => {
+                this.log.error(`${this.constructor.name}.getVoices(): error: ${JSON.stringify(error)}`);
+                return error;
+            });
+            this.log.debug(`${this.constructor.name}.getVoices(): Response:  ${JSON.stringify(response.data)}`);
+
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.data) {
+                        const voices: Voices = {};
+                        result.data.forEach((voice: Voice) => {
+                            voices[voice.voice_id] = voice;
+                        });
+                        return voices;
+                    }
+                } else {
+                    this.log.error(`${this.constructor.name}.getVoices(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+                }
+            } else {
+                this.log.error(`${this.constructor.name}.getVoices(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+            }
+        } catch (error) {
+            this.log.error(`${this.constructor.name}.getVoices(): error: ${error}`);
         }
         return {};
     }

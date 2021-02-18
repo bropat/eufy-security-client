@@ -84,6 +84,13 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.4.3 (2021-02-18)
+
+* (bropat) Added new P2P feature: quick response for doorbell products
+* (bropat) Fixed wired doorbell p2p livestream (should fix also indoor, floodlight and solo cameras)
+* (bropat) Fixed issue on new PushMessage interface
+* (bropat) Updated versions of the package dependencies
+
 ### 0.4.2 (2021-02-15)
 
 * (bropat) Fixed battery doorbell start livestream P2P command

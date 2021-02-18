@@ -369,3 +369,13 @@ export interface Cipher {
     user_id: string;
     private_key: string;
 }
+
+export interface Voice {
+    voice_id: number;
+    user_id: string;
+    desc: string;
+    device_sn: string;
+    voice_link: string;
+    voice_type: number;
+    key_prefix: string;
+}

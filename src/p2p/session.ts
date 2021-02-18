@@ -158,7 +158,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         // Send lookup message
         const msgId = RequestMessageType.LOOKUP_WITH_KEY;
         const payload = buildLookupWithKeyPayload(this.socket, p2pDid, dskKey);
-        sendMessage(this.socket, address, msgId, payload);
+        sendMessage(this.socket, address, msgId, payload).catch((error) => {
+            this.log.error(`${this.constructor.name}.lookup(): Error: ${error}`);
+        });
     }
 
     public isConnected(): boolean {
@@ -203,9 +205,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private sendCamCheck(port?: number): void {
         const payload = buildCheckCamPayload(this.p2p_did);
         if (port) {
-            sendMessage(this.socket, { host: this.addresses[this.current_address].host, port: port}, RequestMessageType.CHECK_CAM, payload);
+            sendMessage(this.socket, { host: this.addresses[this.current_address].host, port: port}, RequestMessageType.CHECK_CAM, payload).catch((error) => {
+                this.log.error(`${this.constructor.name}.sendCamCheck(): Error: ${error}`);
+            });
         } else
-            sendMessage(this.socket, this.addresses[this.current_address], RequestMessageType.CHECK_CAM, payload);
+            sendMessage(this.socket, this.addresses[this.current_address], RequestMessageType.CHECK_CAM, payload).catch((error) => {
+                this.log.error(`${this.constructor.name}.sendCamCheck(): Error: ${error}`);
+            });
     }
 
     public sendPing(): void {
@@ -214,7 +220,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             this.log.warn(`${this.constructor.name}.sendPing(): Heartbeat check failed. Connection seems lost. Try to reconnect...`);
             this._disconnected();
         }
-        sendMessage(this.socket, this.addresses[this.current_address], RequestMessageType.PING);
+        sendMessage(this.socket, this.addresses[this.current_address], RequestMessageType.PING).catch((error) => {
+            this.log.error(`${this.constructor.name}.sendPing(): Error: ${error}`);
+        });
     }
 
     public sendCommandWithIntString(commandType: CommandType, value: number, valueSub = 0, strValue = "", strValueSub = "", channel = 0): void {
@@ -231,12 +239,19 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         const payload = buildCommandWithStringTypePayload(value, channel);
         let nested_commandType = undefined;
 
-        if (commandType == CommandType.CMD_SET_PAYLOAD || commandType == CommandType.CMD_DOORBELL_SET_PAYLOAD) {
+        if (commandType == CommandType.CMD_SET_PAYLOAD) {
             try {
                 const json = JSON.parse(value);
                 nested_commandType = json.cmd;
             } catch (error) {
-                this.log.error(`${this.constructor.name}.sendCommandWithString(): Error: ${error}`);
+                this.log.error(`${this.constructor.name}.sendCommandWithString(): CMD_SET_PAYLOAD - Error: ${error}`);
+            }
+        } else if (commandType == CommandType.CMD_DOORBELL_SET_PAYLOAD) {
+            try {
+                const json = JSON.parse(value);
+                nested_commandType = json.commandType;
+            } catch (error) {
+                this.log.error(`${this.constructor.name}.sendCommandWithString(): CMD_DOORBELL_SET_PAYLOAD - Error: ${error}`);
             }
         }
 
@@ -278,7 +293,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 message.data.writeUInt16BE(message.sequence, 2);
                 this.message_states.set(message.sequence, message);
             }
-            sendMessage(this.socket, this.addresses[this.current_address], RequestMessageType.DATA, message.data);
+            sendMessage(this.socket, this.addresses[this.current_address], RequestMessageType.DATA, message.data).catch((error) => {
+                this.log.error(`${this.constructor.name}._sendCommand(): Error: ${error}`);
+            });
             const msg = this.message_states.get(message.sequence);
             if (msg) {
                 msg.return_code = ErrorCode.ERROR_COMMAND_TIMEOUT;
@@ -362,7 +379,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             return;
         } else if (hasHeader(msg, ResponseMessageType.PING)) {
             // Response with PONG to keep alive
-            sendMessage(this.socket, this.addresses[this.current_address], RequestMessageType.PONG);
+            sendMessage(this.socket, this.addresses[this.current_address], RequestMessageType.PONG).catch((error) => {
+                this.log.error(`${this.constructor.name}.handleMsg(): Error: ${error}`);
+            });
             return;
         } else if (hasHeader(msg, ResponseMessageType.END)) {
             // Connection is closed by device
@@ -565,7 +584,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             this._sendCommand(msg_state);
                         } else {
                             if (return_code === ErrorCode.ERROR_PPCS_SUCCESSFUL) {
-                                if (command_type === CommandType.CMD_START_REALTIME_MEDIA || command_type === CommandType.CMD_RECORD_VIEW) {
+                                if (command_type === CommandType.CMD_START_REALTIME_MEDIA || command_type === CommandType.CMD_RECORD_VIEW || (msg_state.nested_command_type !== undefined && msg_state.nested_command_type === 1000 && msg_state.command_type === CommandType.CMD_DOORBELL_SET_PAYLOAD)) {
                                     this.initializeStream(P2PDataType.VIDEO);
                                     this.currentMessageState[P2PDataType.VIDEO].streamChannel = msg_state.channel;
                                 } else if (command_type === CommandType.CMD_STOP_REALTIME_MEDIA) { //TODO: CommandType.CMD_RECORD_PLAY_CTRL only if stop
@@ -612,7 +631,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         aesKey: ""
                     };
                     const data_length = message.data.readUInt32LE();
-                    const isKeyFrame = message.data.slice(4, 5).readUInt8() === 1 ? true : false;
+                    //const isKeyFrame = message.data.slice(4, 5).readUInt8() === 1 ? true : false;
 
                     videoMetaData.videoDataLength = message.data.slice(0, 4).readUInt32LE();
                     videoMetaData.streamType = message.data.slice(5, 6).readUInt8();
@@ -623,7 +642,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     videoMetaData.videoTimestamp = message.data.slice(14, 20).readUIntLE(0, 6);
 
                     let payloadStart = 22;
-                    if (isKeyFrame && message.signCode > 0 && data_length >= 128) {
+                    if (/*isKeyFrame &&*/ message.signCode > 0 && data_length >= 128) {
                         const key = message.data.slice(22, 150);
                         const rsaKey = this.currentMessageState[message.data_type].rsaKey;
                         if (rsaKey) {
@@ -714,8 +733,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this.emit("alarm_mode", message.data.readUIntBE(0, 1) as AlarmMode);
                 break;
             case CommandType.CMD_CAMERA_INFO:
-                this.log.debug(`${this.constructor.name}.handleDataControl(): Camera info: ${message.data.toString()}`);
-                this.emit("camera_info", JSON.parse(message.data.toString()) as CmdCameraInfoResponse);
+                try {
+                    this.log.debug(`${this.constructor.name}.handleDataControl(): Camera info: ${message.data.toString()}`);
+                    this.emit("camera_info", JSON.parse(message.data.toString()) as CmdCameraInfoResponse);
+                } catch (error) {
+                    this.log.error(`${this.constructor.name}.handleDataControl(): Camera info - Error: ${error}`);
+                }
                 break;
             case CommandType.CMD_CONVERT_MP4_OK:
                 const totalBytes = message.data.slice(1).readUInt32LE();
@@ -733,6 +756,15 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this.log.debug(`${this.constructor.name}.handleDataControl(): CMD_DOWNLOAD_FINISH channel: ${message.channel}`);
                 this.endStream(P2PDataType.BINARY);
                 break;
+            case CommandType.CMD_DOORBELL_NOTIFY_PAYLOAD:
+                try {
+                    this.log.debug(`${this.constructor.name}.handleDataControl(): CMD_DOORBELL_NOTIFY_PAYLOAD payload: ${message.data.toString()}`);
+                    //TODO: Finish implementation, emit an event...
+                    //this.emit("camera_info", JSON.parse(message.data.toString()) as xy);
+                } catch (error) {
+                    this.log.error(`${this.constructor.name}.handleDataControl(): CMD_DOORBELL_NOTIFY_PAYLOAD payload: ${error}`);
+                }
+                break;
             default:
                 this.log.warn(`${this.constructor.name}.handleDataControl(): Not implemented - CONTROL message with commandId: ${CommandType[message.commandId]} (${message.commandId}) channel: ${message.channel} - data: ${message.data.toString("hex")}`);
                 break;
@@ -746,7 +778,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         const seqBuffer = Buffer.allocUnsafe(2);
         seqBuffer.writeUInt16BE(seqNo, 0);
         const payload = Buffer.concat([dataType, pendingAcksBuffer, seqBuffer]);
-        sendMessage(this.socket, this.addresses[this.current_address], RequestMessageType.ACK, payload);
+        sendMessage(this.socket, this.addresses[this.current_address], RequestMessageType.ACK, payload).catch((error) => {
+            this.log.error(`${this.constructor.name}.sendAck(): Error: ${error}`);
+        });
     }
 
     private getDataType(input: Buffer): P2PDataType {
@@ -765,7 +799,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     public async close(): Promise<void> {
         if (this.socket) {
             if (this.connected)
-                await sendMessage(this.socket, this.addresses[this.current_address], RequestMessageType.END);
+                await sendMessage(this.socket, this.addresses[this.current_address], RequestMessageType.END).catch((error) => {
+                    this.log.error(`${this.constructor.name}.close(): Error: ${error}`);
+                });
             else
                 try {
                     this.socket.close();
