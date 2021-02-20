@@ -84,6 +84,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.4.4 (2021-02-20)
+
+* (bropat) Fixed possible race condition that sometimes interrupts the livestream
+
 ### 0.4.3 (2021-02-18)
 
 * (bropat) Added new P2P feature: quick response for doorbell products

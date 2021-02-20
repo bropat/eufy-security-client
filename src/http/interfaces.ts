@@ -46,7 +46,8 @@ export interface Voices {
 export interface HTTPApiEvents {
     "devices": (devices: FullDevices) => void;
     "hubs": (hubs: Hubs) => void;
-    "not_connected": () => void;
+    "connect": () => void;
+    "close": () => void;
 }
 
 export interface StationEvents {

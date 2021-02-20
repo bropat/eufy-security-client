@@ -75,7 +75,16 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.socket.on("error", (error) => this.onError(error));
         this.socket.on("close", () => this.onClose());
 
+        this._initialize();
+    }
+
+    private _initialize(): void {
         let rsaKey: NodeRSA | null;
+
+        this.connected = false;
+        this.lastPong = null;
+        this.connectTime = null;
+
         for(let datatype = 0; datatype < 4; datatype++) {
 
             this.expectedSeqNo[datatype] = 0;
@@ -87,6 +96,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
             this.initializeMessageBuilder(datatype);
             this.initializeMessageState(datatype, rsaKey);
+            this.initializeStream(datatype);
         }
     }
 
@@ -136,9 +146,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private _disconnected(): void {
         this._clearHeartbeat();
-        this.connected = false;
-        this.lastPong = null;
-        this.connectTime = null;
+        this._initialize();
         this.emit("close");
     }
 
@@ -280,6 +288,22 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             return_code: ErrorCode.ERROR_COMMAND_TIMEOUT
         };
         this.message_states.set(msgSeqNumber, message);
+
+        if (commandType === CommandType.CMD_START_REALTIME_MEDIA ||
+            (nested_commandType !== undefined && nested_commandType === CommandType.CMD_START_REALTIME_MEDIA && commandType === CommandType.CMD_SET_PAYLOAD) ||
+            commandType === CommandType.CMD_RECORD_VIEW ||
+            (nested_commandType !== undefined && nested_commandType === 1000 && commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD)
+        ) {
+            this.currentMessageState[P2PDataType.VIDEO].streaming = true;
+            this.currentMessageState[P2PDataType.VIDEO].streamChannel = channel;
+        } else if (commandType === CommandType.CMD_DOWNLOAD_VIDEO) {
+            this.currentMessageState[P2PDataType.BINARY].streaming = true;
+            this.currentMessageState[P2PDataType.BINARY].streamChannel = channel;
+        } else if (commandType === CommandType.CMD_STOP_REALTIME_MEDIA) { //TODO: CommandType.CMD_RECORD_PLAY_CTRL only if stop
+            this.endStream(P2PDataType.VIDEO);
+        } else if (commandType === CommandType.CMD_DOWNLOAD_CANCEL) {
+            this.endStream(P2PDataType.BINARY);
+        }
 
         this._sendCommand(message);
     }
@@ -485,74 +509,78 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
 
     private parseDataMessage(message: P2PMessage): void {
-        if (this.currentMessageState[message.type].leftoverData.length > 0) {
-            message.data = Buffer.concat([this.currentMessageState[message.type].leftoverData, message.data]);
-            this.currentMessageState[message.type].leftoverData = Buffer.from([]);
+        if ((message.type === P2PDataType.BINARY || message.type === P2PDataType.VIDEO) && !this.currentMessageState[message.type].streaming) {
+            this.log.trace(`${this.constructor.name}.parseDataMessage(): DATA ${P2PDataType[message.type]} - Stream not started ignore this data - seqNo: ${message.seqNo} header: ${JSON.stringify(this.currentMessageBuilder[message.type].header)} bytesRead: ${this.currentMessageBuilder[message.type].bytesRead} bytesToRead:${this.currentMessageBuilder[message.type].header.bytesToRead} msg_size: ${message.data.length}`);
+        } else {
+            if (this.currentMessageState[message.type].leftoverData.length > 0) {
+                message.data = Buffer.concat([this.currentMessageState[message.type].leftoverData, message.data]);
+                this.currentMessageState[message.type].leftoverData = Buffer.from([]);
+            }
+
+            let data = message.data;
+            const data_offset = 16;
+            do {
+                // is this the first message?
+                const firstPartMessage = data.slice(0, 4).toString() === MAGIC_WORD;
+
+                if (firstPartMessage) {
+                    const header: P2PDataHeader = {commandId: 0, bytesToRead: 0, channel: 0, signCode: 0, type: 0};
+                    header.commandId = data.slice(4, 6).readUIntLE(0, 2);
+                    header.bytesToRead = data.slice(6, 8).readUIntLE(0, 2);
+                    header.channel = data.slice(12, 13).readUInt8();
+                    header.signCode = data.slice(13, 14).readInt8();
+                    header.type = data.slice(14, 15).readUInt8();
+
+                    this.currentMessageBuilder[message.type].header = header;
+
+                    if (data.length - data_offset > header.bytesToRead) {
+                        const payload = data.slice(data_offset, header.bytesToRead + data_offset);
+                        this.currentMessageBuilder[message.type].messages[message.seqNo] = payload;
+                        this.currentMessageBuilder[message.type].bytesRead = payload.byteLength;
+
+                        data = data.slice(header.bytesToRead + data_offset);
+                        if (data.length <= data_offset) {
+                            this.currentMessageState[message.type].leftoverData = data;
+                            data = Buffer.from([]);
+                        }
+                    } else {
+                        const payload = data.slice(data_offset);
+                        this.currentMessageBuilder[message.type].messages[message.seqNo] = payload;
+                        this.currentMessageBuilder[message.type].bytesRead = payload.byteLength;
+                        data = Buffer.from([]);
+                    }
+                } else {
+                    // finish message and print
+                    if (this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead < data.length) {
+                        const payload = data.slice(0, this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead);
+                        this.currentMessageBuilder[message.type].messages[message.seqNo] = payload;
+                        this.currentMessageBuilder[message.type].bytesRead += payload.byteLength;
+
+                        data = data.slice(payload.byteLength);
+                        if (data.length <= data_offset) {
+                            this.currentMessageState[message.type].leftoverData = data;
+                            data = Buffer.from([]);
+                        }
+                    } else {
+                        this.currentMessageBuilder[message.type].messages[message.seqNo] = data;
+                        this.currentMessageBuilder[message.type].bytesRead += data.byteLength;
+                        data = Buffer.from([]);
+                    }
+                }
+                this.log.trace(`${this.constructor.name}.parseDataMessage(): seqNo: ${message.seqNo} header: ${JSON.stringify(this.currentMessageBuilder[message.type].header)} bytesRead: ${this.currentMessageBuilder[message.type].bytesRead} bytesToRead:${this.currentMessageBuilder[message.type].header.bytesToRead} firstPartMessage: ${firstPartMessage} msg_size: ${message.data.length}`);
+                if (this.currentMessageBuilder[message.type].bytesRead === this.currentMessageBuilder[message.type].header.bytesToRead) {
+                    const completeMessage = sortP2PMessageParts(this.currentMessageBuilder[message.type].messages);
+                    const data_message: P2PDataMessage = {
+                        ...this.currentMessageBuilder[message.type].header,
+                        seqNo: message.seqNo,
+                        data_type: message.type,
+                        data: completeMessage
+                    }
+                    this.handleData(data_message);
+                    this.initializeMessageBuilder(message.type);
+                }
+            } while (data.length > 0)
         }
-
-        let data = message.data;
-        const data_offset = 16;
-        do {
-            // is this the first message?
-            const firstPartMessage = data.slice(0, 4).toString() === MAGIC_WORD;
-
-            if (firstPartMessage) {
-                const header: P2PDataHeader = {commandId: 0, bytesToRead: 0, channel: 0, signCode: 0, type: 0};
-                header.commandId = data.slice(4, 6).readUIntLE(0, 2);
-                header.bytesToRead = data.slice(6, 8).readUIntLE(0, 2);
-                header.channel = data.slice(12, 13).readUInt8();
-                header.signCode = data.slice(13, 14).readInt8();
-                header.type = data.slice(14, 15).readUInt8();
-
-                this.currentMessageBuilder[message.type].header = header;
-
-                if (data.length - data_offset > header.bytesToRead) {
-                    const payload = data.slice(data_offset, header.bytesToRead + data_offset);
-                    this.currentMessageBuilder[message.type].messages[message.seqNo] = payload;
-                    this.currentMessageBuilder[message.type].bytesRead = payload.byteLength;
-
-                    data = data.slice(header.bytesToRead + data_offset);
-                    if (data.length <= data_offset) {
-                        this.currentMessageState[message.type].leftoverData = data;
-                        data = Buffer.from([]);
-                    }
-                } else {
-                    const payload = data.slice(data_offset);
-                    this.currentMessageBuilder[message.type].messages[message.seqNo] = payload;
-                    this.currentMessageBuilder[message.type].bytesRead = payload.byteLength;
-                    data = Buffer.from([]);
-                }
-            } else {
-                // finish message and print
-                if (this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead < data.length) {
-                    const payload = data.slice(0, this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead);
-                    this.currentMessageBuilder[message.type].messages[message.seqNo] = payload;
-                    this.currentMessageBuilder[message.type].bytesRead += payload.byteLength;
-
-                    data = data.slice(payload.byteLength);
-                    if (data.length <= data_offset) {
-                        this.currentMessageState[message.type].leftoverData = data;
-                        data = Buffer.from([]);
-                    }
-                } else {
-                    this.currentMessageBuilder[message.type].messages[message.seqNo] = data;
-                    this.currentMessageBuilder[message.type].bytesRead += data.byteLength;
-                    data = Buffer.from([]);
-                }
-            }
-            this.log.trace(`${this.constructor.name}.parseDataMessage(): seqNo: ${message.seqNo} header: ${JSON.stringify(this.currentMessageBuilder[message.type].header)} bytesRead: ${this.currentMessageBuilder[message.type].bytesRead} bytesToRead:${this.currentMessageBuilder[message.type].header.bytesToRead} firstPartMessage: ${firstPartMessage} msg_size: ${message.data.length}`);
-            if (this.currentMessageBuilder[message.type].bytesRead === this.currentMessageBuilder[message.type].header.bytesToRead) {
-                const completeMessage = sortP2PMessageParts(this.currentMessageBuilder[message.type].messages);
-                const data_message: P2PDataMessage = {
-                    ...this.currentMessageBuilder[message.type].header,
-                    seqNo: message.seqNo,
-                    data_type: message.type,
-                    data: completeMessage
-                }
-                this.handleData(data_message);
-                this.initializeMessageBuilder(message.type);
-            }
-        } while (data.length > 0)
     }
 
     private handleData(message: P2PDataMessage): void {
@@ -583,16 +611,17 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             msg_state.return_code = return_code;
                             this._sendCommand(msg_state);
                         } else {
-                            if (return_code === ErrorCode.ERROR_PPCS_SUCCESSFUL) {
+                            /*if (return_code === ErrorCode.ERROR_PPCS_SUCCESSFUL) {
                                 if (command_type === CommandType.CMD_START_REALTIME_MEDIA || command_type === CommandType.CMD_RECORD_VIEW || (msg_state.nested_command_type !== undefined && msg_state.nested_command_type === 1000 && msg_state.command_type === CommandType.CMD_DOORBELL_SET_PAYLOAD)) {
-                                    this.initializeStream(P2PDataType.VIDEO);
+                                    //this.initializeStream(P2PDataType.VIDEO);
+                                    this.currentMessageState[P2PDataType.VIDEO].streaming = true;
                                     this.currentMessageState[P2PDataType.VIDEO].streamChannel = msg_state.channel;
                                 } else if (command_type === CommandType.CMD_STOP_REALTIME_MEDIA) { //TODO: CommandType.CMD_RECORD_PLAY_CTRL only if stop
                                     this.endStream(P2PDataType.VIDEO);
                                 } else if (command_type === CommandType.CMD_DOWNLOAD_CANCEL) {
                                     this.endStream(P2PDataType.BINARY);
                                 }
-                            }
+                            }*/
                             this.emit("command", {
                                 command_type: command_type,
                                 channel: msg_state.channel,
@@ -744,7 +773,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 const totalBytes = message.data.slice(1).readUInt32LE();
                 this.log.debug(`${this.constructor.name}.handleDataControl(): CMD_CONVERT_MP4_OK channel: ${message.channel} totalBytes: ${totalBytes}`);
                 this.downloadTotalBytes = totalBytes;
-                this.initializeStream(P2PDataType.BINARY);
+                //this.initializeStream(P2PDataType.BINARY);
+                this.currentMessageState[P2PDataType.BINARY].streaming = true;
                 this.currentMessageState[P2PDataType.BINARY].streamChannel = message.channel;
                 break;
             case CommandType.CMD_WIFI_CONFIG:
@@ -873,23 +903,24 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             }*/
         });
 
-        this.currentMessageState[datatype].streaming = true;
+        this.currentMessageState[datatype].streaming = false;
+        //this.currentMessageState[datatype].streaming = true;
     }
 
     private endStream(datatype: P2PDataType): void {
-        this.currentMessageState[datatype].videoStream?.push(null);
-        this.currentMessageState[datatype].audioStream?.push(null);
-        this.currentMessageState[datatype].videoStream?.destroy();
-        this.currentMessageState[datatype].audioStream?.destroy();
-        this.currentMessageState[datatype].videoStream = null;
-        this.currentMessageState[datatype].audioStream = null;
+        if (this.currentMessageState[datatype].streaming) {
+            this.currentMessageState[datatype].streaming = false;
 
-        if (!this.currentMessageState[datatype].invalidStream)
-            this.emitStreamStopEvent(datatype);
+            this.currentMessageState[datatype].videoStream?.push(null);
+            this.currentMessageState[datatype].audioStream?.push(null);
 
-        this.currentMessageState[datatype].streaming = false;
-        this.initializeMessageBuilder(datatype);
-        this.initializeMessageState(datatype, this.currentMessageState[datatype].rsaKey);
+            if (!this.currentMessageState[datatype].invalidStream)
+                this.emitStreamStopEvent(datatype);
+
+            this.initializeMessageBuilder(datatype);
+            this.initializeMessageState(datatype, this.currentMessageState[datatype].rsaKey);
+            this.initializeStream(datatype);
+        }
     }
 
     private emitStreamStartEvent(datatype: P2PDataType): void {

@@ -95,6 +95,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
                         this.log.debug(`${this.constructor.name}.authenticate(): token: ${this.token}`);
                         this.log.debug(`${this.constructor.name}.authenticate(): token_expiration: ${this.token_expiration}`);
+
+                        this.emit("connect");
                         return "ok";
                     } else if (result.code == ResponseErrorCode.CODE_NEED_VERIFY_CODE) {
                         this.log.debug(`${this.constructor.name}.authenticate(): Send verification code...`);
@@ -338,7 +340,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (response.status == 401) {
             this.invalidateToken();
             this.log.error(`${this.constructor.name}.request(): Status return code 401, invalidate token (status: ${response.status} text: ${response.statusText}`);
-            this.emit("not_connected");
+            this.emit("connect");
         }
 
         return response;
