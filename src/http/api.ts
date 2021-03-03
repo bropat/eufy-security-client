@@ -1,10 +1,12 @@
 import axios, { AxiosResponse, Method } from "axios";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { dummyLogger, Logger } from "ts-log";
+import { isValid as isValidCountry } from "i18n-iso-countries";
+import { isValid as isValidLanguage } from "@cospired/i18n-iso-languages";
 
 import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher, Voice } from "./models"
 import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices } from "./interfaces";
-import { ResponseErrorCode, VerfyCodeTypes } from "./types";
+import { AuthResult, ResponseErrorCode, VerfyCodeTypes } from "./types";
 import { ParameterHelper } from "./parameter";
 import { getTimezoneGMTString } from "./utils";
 
@@ -31,7 +33,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         phone_model: "ONEPLUS A3003",
         //phone_model: "ioBroker",
         country: "DE",
-        language: "de",
+        language: "en",
         openudid: "5e4621b0152c0d00",
         uid: "",
         net_type: "wifi",
@@ -58,7 +60,37 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         axios.defaults.headers.common["X-Auth-Token"] = null;
     }
 
-    public async authenticate(): Promise<string> {
+    public setPhoneModel(model: string): void {
+        this.headers.phone_model = model.toUpperCase();
+    }
+
+    public getPhoneModel(): string {
+        return this.headers.phone_model;
+    }
+
+    public setCountry(country: string): void {
+        if (isValidCountry(country) && country.length === 2)
+            this.headers.country = country;
+        else
+            throw new Error("Invalid ISO 3166-1 Alpha-2 country code");
+    }
+
+    public getCountry(): string {
+        return this.headers.country;
+    }
+
+    public setLanguage(language: string): void {
+        if (isValidLanguage(language) && language.length === 2)
+            this.headers.language = language;
+        else
+            throw new Error("Invalid ISO 639 language code");
+    }
+
+    public getLanguage(): string {
+        return this.headers.language;
+    }
+
+    public async authenticate(): Promise<AuthResult> {
         //Authenticate and get an access token
         this.log.debug(`${this.constructor.name}.authenticate(): token: ${this.token} token_expiration: ${this.token_expiration}`);
         if (!this.token || this.token_expiration && (new Date()).getTime() >= this.token_expiration.getTime()) {
@@ -89,7 +121,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 this.token = null;
                                 this.token_expiration = null;
                                 axios.defaults.headers.common["X-Auth-Token"] = null;
-                                return "renew";
+                                return AuthResult.RENEW;
                             }
                         }
 
@@ -97,7 +129,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         this.log.debug(`${this.constructor.name}.authenticate(): token_expiration: ${this.token_expiration}`);
 
                         this.emit("connect");
-                        return "ok";
+                        return AuthResult.OK;
                     } else if (result.code == ResponseErrorCode.CODE_NEED_VERIFY_CODE) {
                         this.log.debug(`${this.constructor.name}.authenticate(): Send verification code...`);
                         const dataresult: LoginResultResponse = result.data;
@@ -111,7 +143,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
                         await this.sendVerifyCode(VerfyCodeTypes.TYPE_EMAIL);
 
-                        return "send_verify_code";
+                        return AuthResult.SEND_VERIFY_CODE;
                     } else {
                         this.log.error(`${this.constructor.name}.authenticate(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
                     }
@@ -121,9 +153,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             } catch (error) {
                 this.log.error(`${this.constructor.name}.authenticate(): error: ${error}`);
             }
-            return "error";
+            return AuthResult.ERROR;
         }
-        return "ok";
+        this.emit("connect");
+        return AuthResult.OK;
     }
 
     public async sendVerifyCode(type?: VerfyCodeTypes): Promise<boolean> {
@@ -307,11 +340,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (!this.token && endpoint != "passport/login") {
             //No token get one
             switch (await this.authenticate()) {
-                case "renew":
+                case AuthResult.RENEW:
                     this.log.debug(`${this.constructor.name}.request(): renew token - method: ${method} endpoint: ${endpoint}`);
                     await this.authenticate();
                     break;
-                case "error":
+                case AuthResult.ERROR:
                     this.log.debug(`${this.constructor.name}.request(): token error - method: ${method} endpoint: ${endpoint}`);
                     break;
                 default: break;
@@ -340,7 +373,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (response.status == 401) {
             this.invalidateToken();
             this.log.error(`${this.constructor.name}.request(): Status return code 401, invalidate token (status: ${response.status} text: ${response.statusText}`);
-            this.emit("connect");
+            this.emit("close");
         }
 
         return response;

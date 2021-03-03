@@ -57,6 +57,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private heartbeatTimeout?: NodeJS.Timeout;
     private connectTime: number | null = null;
     private lastPong: number | null = null;
+    private quickStreamStart = false;
 
     private addresses: Array<Address> = [];
     private current_address = 0;
@@ -146,6 +147,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private _disconnected(): void {
         this._clearHeartbeat();
+        if (this.currentMessageState[P2PDataType.VIDEO].streaming) {
+            this.endStream(P2PDataType.VIDEO)
+        }
+        if (this.currentMessageState[P2PDataType.BINARY].streaming) {
+            this.endStream(P2PDataType.BINARY)
+        }
         this._initialize();
         this.emit("close");
     }
@@ -611,17 +618,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             msg_state.return_code = return_code;
                             this._sendCommand(msg_state);
                         } else {
-                            /*if (return_code === ErrorCode.ERROR_PPCS_SUCCESSFUL) {
-                                if (command_type === CommandType.CMD_START_REALTIME_MEDIA || command_type === CommandType.CMD_RECORD_VIEW || (msg_state.nested_command_type !== undefined && msg_state.nested_command_type === 1000 && msg_state.command_type === CommandType.CMD_DOORBELL_SET_PAYLOAD)) {
-                                    //this.initializeStream(P2PDataType.VIDEO);
-                                    this.currentMessageState[P2PDataType.VIDEO].streaming = true;
-                                    this.currentMessageState[P2PDataType.VIDEO].streamChannel = msg_state.channel;
-                                } else if (command_type === CommandType.CMD_STOP_REALTIME_MEDIA) { //TODO: CommandType.CMD_RECORD_PLAY_CTRL only if stop
-                                    this.endStream(P2PDataType.VIDEO);
-                                } else if (command_type === CommandType.CMD_DOWNLOAD_CANCEL) {
-                                    this.endStream(P2PDataType.BINARY);
-                                }
-                            }*/
                             this.emit("command", {
                                 command_type: command_type,
                                 channel: msg_state.channel,
@@ -712,7 +708,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         this.currentMessageState[message.data_type].streamMetadata.videoHeight = videoMetaData.videoHeight;
                         this.currentMessageState[message.data_type].streamMetadata.videoWidth = videoMetaData.videoWidth;
 
-                        if (this.currentMessageState[message.data_type].streamFirstAudioDataReceived && this.currentMessageState[message.data_type].streamFirstVideoDataReceived) {
+                        if ((this.currentMessageState[message.data_type].streamFirstAudioDataReceived && this.currentMessageState[message.data_type].streamFirstVideoDataReceived && !this.quickStreamStart) || (this.currentMessageState[message.data_type].streamFirstVideoDataReceived && this.quickStreamStart)) {
                             this.emitStreamStartEvent(message.data_type);
                         }
                     }
@@ -791,6 +787,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     this.log.debug(`${this.constructor.name}.handleDataControl(): CMD_DOORBELL_NOTIFY_PAYLOAD payload: ${message.data.toString()}`);
                     //TODO: Finish implementation, emit an event...
                     //this.emit("camera_info", JSON.parse(message.data.toString()) as xy);
+                } catch (error) {
+                    this.log.error(`${this.constructor.name}.handleDataControl(): CMD_DOORBELL_NOTIFY_PAYLOAD payload: ${error}`);
+                }
+                break;
+            case CommandType.CMD_NAS_SWITCH:
+                try {
+                    this.log.debug(`${this.constructor.name}.handleDataControl(): CMD_NAS_SWITCH payload: ${message.data.toString()}`);
+                    this.emit("rtsp_url", message.channel, message.data.toString());
                 } catch (error) {
                     this.log.error(`${this.constructor.name}.handleDataControl(): CMD_DOORBELL_NOTIFY_PAYLOAD payload: ${error}`);
                 }
@@ -950,5 +954,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     public isLiveStreaming(channel: number): boolean {
         return this.isStreaming(channel, P2PDataType.VIDEO);
+    }
+
+    public setQuickStreamStart(value: boolean): void {
+        this.quickStreamStart = value;
+    }
+
+    public getQuickStreamStart(): boolean {
+        return this.quickStreamStart;
     }
 }

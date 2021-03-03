@@ -170,7 +170,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
-    public async connect(): Promise<void> {
+    public async connect(quickStreamStart = false): Promise<void> {
         if (this.dsk_key == "" || (this.dsk_expiration && (new Date()).getTime() >= this.dsk_expiration.getTime())) {
             this.log.debug(`${this.constructor.name}.connect(): station: ${this.getSerial()} DSK keys not present or expired, get/renew it. (dsk_expiration: ${this.dsk_expiration})`);
             await this.getDSKKeys();
@@ -185,6 +185,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
 
         this.p2p_session = new P2PClientProtocol(this.hub.p2p_did, this.dsk_key, this.log);
+        this.p2p_session.setQuickStreamStart(quickStreamStart);
         this.p2p_session.on("connect", (address: Address) => this.onConnect(address));
         this.p2p_session.on("close", () => this.onDisconnect());
         this.p2p_session.on("command", (cmd_result: CommandResult) => this.onCommandResponse(cmd_result));
@@ -195,6 +196,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2p_session.on("start_livestream", (channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => this.onStartLivestream(channel, metadata, videoStream, audioStream));
         this.p2p_session.on("stop_livestream", (channel: number) => this.onStopLivestream(channel));
         this.p2p_session.on("wifi_rssi", (channel: number, rssi: number) => this.onWifiRssiChanged(channel, rssi));
+        this.p2p_session.on("rtsp_url", (channel: number, rtsp_url: string) => this.onRTSPUrl(channel, rtsp_url));
 
         this.p2p_session.connect();
     }
@@ -220,8 +222,13 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     private onWifiRssiChanged(channel: number, rssi: number): void {
-        this.log.trace(`${this.constructor.name}.onWifiRssiChanged(): station: ${this.getSerial()} channel: ${channel}`);
+        this.log.trace(`${this.constructor.name}.onWifiRssiChanged(): station: ${this.getSerial()} channel: ${channel} rssi: ${rssi}`);
         this.emit("parameter", this, CommandType.CMD_WIFI_CONFIG, rssi.toString(), +new Date);
+    }
+
+    private onRTSPUrl(channel: number, rtsp_url: string): void {
+        this.log.trace(`${this.constructor.name}.onRTSPUrl(): station: ${this.getSerial()} channel: ${channel} rtsp_url: ${rtsp_url}`);
+        this.emit("rtsp_url", this, channel, rtsp_url, +new Date);
     }
 
     public async setGuardMode(mode: GuardMode): Promise<void> {
@@ -420,6 +427,41 @@ export class Station extends TypedEmitter<StationEvents> {
             }
         } else {
             this.log.warn(`${this.constructor.name}.setAutoNightVision(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
+        }
+    }
+
+    public async setMotionDetection(device: Device, value: boolean): Promise<void> {
+        if (device.getStationSerial() === this.getSerial()) {
+            if (device.isCamera()) {
+                if (!this.p2p_session || !this.p2p_session.isConnected()) {
+                    this.log.warn(`${this.constructor.name}.setMotionDetection(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+                    return;
+                }
+                this.log.debug(`${this.constructor.name}.setMotionDetection(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
+                await this.p2p_session.sendCommandWithIntString(CommandType.CMD_PIR_SWITCH, value === true ? 1 : 0, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
+            } else {
+                this.log.warn(`${this.constructor.name}.setMotionDetection(): This functionality is not implemented or support by this device.`);
+            }
+        } else {
+            this.log.warn(`${this.constructor.name}.setMotionDetection(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
+        }
+    }
+
+    public async setRTSPStream(device: Device, value: boolean): Promise<void> {
+        if (device.getStationSerial() === this.getSerial()) {
+            //TODO: Verify better which devices support this feature
+            if (device.isCamera2Product() || device.isIndoorCamera() || device.isSoloCameras()) {
+                if (!this.p2p_session || !this.p2p_session.isConnected()) {
+                    this.log.warn(`${this.constructor.name}.setRTSPStream(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+                    return;
+                }
+                this.log.debug(`${this.constructor.name}.setRTSPStream(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
+                await this.p2p_session.sendCommandWithIntString(CommandType.CMD_NAS_SWITCH, value === true ? 1 : 0, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
+            } else {
+                this.log.warn(`${this.constructor.name}.setRTSPStream(): This functionality is not implemented or support by this device.`);
+            }
+        } else {
+            this.log.warn(`${this.constructor.name}.setRTSPStream(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
         }
     }
 

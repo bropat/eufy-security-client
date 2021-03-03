@@ -16,6 +16,7 @@ export interface P2PClientProtocolEvents {
     "start_livestream": (channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => void;
     "stop_livestream": (channel: number) => void;
     "wifi_rssi": (channel: number, rssi: number) => void;
+    "rtsp_url": (channel: number, rtsp_url: string) => void;
 }
 
 export interface P2PMessageState {

@@ -60,6 +60,7 @@ export interface StationEvents {
     "finish_download": (station: Station, channel:number) => void;
     "start_livestream": (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
     "stop_livestream": (station: Station, channel:number) => void;
+    "rtsp_url": (station: Station, channel:number, value: string, modified: number) => void;
 }
 
 export interface DeviceEvents {

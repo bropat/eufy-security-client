@@ -84,6 +84,15 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.5.0 (2021-03-03)
+
+* (bropat) Added new P2P feature: enable/disable motion detection for camera products
+* (bropat) Added new P2P feature: enable/disable rtsp stream for camera2 products, indoor and solo cameras
+* (bropat) Added option to P2P session to enable quick start livestream (after receiving first video frame)
+* (bropat) Added new methods to HTTPApi for setting custom HTTP session headers: PhoneModel, Country, Language
+* (bropat) Changed return type of HTTPApi authenticate function
+* (bropat) Fixed issue during livestreaming if p2p connection is lost
+
 ### 0.4.4 (2021-02-20)
 
 * (bropat) Fixed possible race condition that sometimes interrupts the livestream

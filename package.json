@@ -1,6 +1,6 @@
 {
   "name": "eufy-security-client",
-  "version": "0.4.4",
+  "version": "0.5.0",
   "description": "Client to comunicate with Eufy-Security devices",
   "author": {
     "name": "bropat",
@@ -42,7 +42,9 @@
     "@types/node-rsa": "^1.1.0",
     "@types/crypto-js": "^4.0.1",
     "ts-log": "^2.2.3",
-    "tiny-typed-emitter": "^2.0.3"
+    "tiny-typed-emitter": "^2.0.3",
+    "i18n-iso-countries": "^6.5.0",
+    "@cospired/i18n-iso-languages": "^2.2.0"
   },
   "devDependencies": {
     "@types/node": "^14.14.28",

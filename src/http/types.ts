@@ -123,3 +123,10 @@ export enum VerfyCodeTypes {
     TYPE_PUSH = 1,
     TYPE_EMAIL = 2
 }
+
+export enum AuthResult {
+    ERROR = -1,
+    OK = 0,
+    RENEW = 2,
+    SEND_VERIFY_CODE= 3
+}
