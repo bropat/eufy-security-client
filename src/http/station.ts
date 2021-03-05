@@ -539,7 +539,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
-    public async startDownload(path: string, cipher_id: number): Promise<void> {
+    public async startDownload(device: Device, path: string, cipher_id: number): Promise<void> {
         if (!this.p2p_session || !this.p2p_session.isConnected()) {
             this.log.warn(`${this.constructor.name}.startDownload(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
             return;
@@ -548,7 +548,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (cipher) {
             this.log.debug(`${this.constructor.name}.startDownload(): P2P connection to station ${this.getSerial()} present, download video path: ${path}.`);
             this.p2p_session.setDownloadRSAPrivateKeyPem(cipher.private_key);
-            await this.p2p_session.sendCommandWithString(CommandType.CMD_DOWNLOAD_VIDEO, path, this.hub.member.admin_user_id, Station.CHANNEL);
+            await this.p2p_session.sendCommandWithString(CommandType.CMD_DOWNLOAD_VIDEO, path, this.hub.member.admin_user_id, device.getChannel());
         } else {
             this.log.warn(`Cancelled download of video "${path}" from Station ${this.getSerial()}, because RSA certificate couldn't be loaded.`);
         }
@@ -585,7 +585,6 @@ export class Station extends TypedEmitter<StationEvents> {
                         "encryptkey": rsa_key?.exportKey("components-public").n.slice(1).toString("hex"),
                         "streamtype": 0
                     }
-                //}), Station.CHANNEL);
                 }), device.getChannel());
             } else {
                 if ((Device.isIntegratedDeviceBySn(this.getSerial()) || !isGreaterMinVersion("2.0.9.7", this.getSoftwareVersion())) && (!this.getSerial().startsWith("T8420") || !isGreaterMinVersion("1.0.0.25", this.getSoftwareVersion()))) {
@@ -651,7 +650,6 @@ export class Station extends TypedEmitter<StationEvents> {
                         "data": {
                             "voiceID": voice_id
                         }
-                    //}), Station.CHANNEL);
                     }), device.getChannel());
                 }
             } else {

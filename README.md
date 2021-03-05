@@ -23,7 +23,7 @@ If you appreciate my work and progress and want to support me, you can do it her
 
 ## Description
 
-This shared library allows to control Eufy security devices by connecting to the Eufy cloud servers.
+This shared library allows to control Eufy security devices by connecting to the Eufy cloud servers and local/remote stations over p2p.
 
 You need to provide your Cloud login credentials.
 
@@ -35,18 +35,20 @@ One client instance will show all devices from one Eufy Cloud account and allows
 * Connects to station/devices using p2p communication (supported: local and remote connectivity)
 * Supports receiving push notification (unified push messages interface)
 * Basic P2P implementation that supports also commands not already implemented
-* Get info and parameters from stations/devices over https/p2p
+* Get info and parameters from stations/devices over https and/or p2p
 * P2P functionality already implemented:
   * Station:
     * Change guard mode
     * Reboot station
   * Devices:
-    * Start livestream (p2p or rtmp over cloud)
-    * Stop livestream (p2p or rtmp over cloud)
+    * Start livestream (local/remote p2p or rtmp over cloud)
+    * Stop livestream (local/remote p2p or rtmp over cloud)
     * Enable/disable device
     * Enable/disable auto night vision (only camera products)
     * Enable/disable led (only camera 2 products, indoor cameras, floodlight camera and solo cameras)
     * Enable/disable anti-theft detection (only camera 2 products)
+    * Enable/disable motion detection
+    * Enable/disable RTSP stream (only camera2 products, indoor cameras and solo cameras)
     * Change video watermark setting (only camera products)
 
 ## Documentation
@@ -83,6 +85,11 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 Please use GitHub issues for this.
 
 ## Changelog
+
+### 0.5.1 (2021-03-05)
+
+* (bropat) Fixed download of videos via p2p (wrong channel value in callback)
+* (bropat) Updated versions of the dev package dependencies
 
 ### 0.5.0 (2021-03-03)
 
