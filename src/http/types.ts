@@ -56,6 +56,9 @@ export enum ParamType {
     UN_DETECT_ZONE = 2007,
     VOLUME = 2003,
 
+    COMMAND_LED_NIGHT_OPEN = 1026,
+    COMMAND_MOTION_DETECTION_PACKAGE = 1016,
+
     // Inferred from source
     SNOOZE_MODE = 1271,                         // The value is base64 encoded
     WATERMARK_MODE = 1214,                      // 1 - hide, 2 - show

@@ -5,7 +5,7 @@ import { HTTPApi } from "./api";
 import { DeviceType, ParamType } from "./types";
 import { FullDeviceResponse, ResultResponse, StreamResponse } from "./models"
 import { ParameterHelper } from "./parameter";
-import { DeviceEvents, ParameterValue, ParameterArray } from "./interfaces";
+import { DeviceEvents, StringValue, ParameterArray, BooleanValue, NumberValue } from "./interfaces";
 import { CommandType } from "../p2p/types";
 import { getAbsoluteFilePath } from "./utils";
 import { convertTimestampMs } from "../push/utils";
@@ -26,7 +26,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         this.update(this.device);
     }
 
-    public getParameter(param_type: number): ParameterValue {
+    public getParameter(param_type: number): StringValue {
         return this.parameters[param_type];
     }
 
@@ -34,14 +34,14 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         return this.parameters;
     }
 
-    private _updateParameter(param_type: number, param_value: ParameterValue): void {
+    private _updateParameter(param_type: number, param_value: StringValue): void {
         const tmp_param_value = ParameterHelper.readValue(param_type, param_value.value);
-        if ((this.parameters[param_type] !== undefined && (this.parameters[param_type].value != tmp_param_value || this.parameters[param_type].modified < param_value.modified)) || this.parameters[param_type] === undefined) {
+        if ((this.parameters[param_type] !== undefined && (this.parameters[param_type].value != tmp_param_value || this.parameters[param_type].timestamp < param_value.timestamp)) || this.parameters[param_type] === undefined) {
             this.parameters[param_type] = {
                 value: tmp_param_value,
-                modified: param_value.modified
+                timestamp: param_value.timestamp
             };
-            this.emit("parameter", this, param_type, this.parameters[param_type].value, this.parameters[param_type].modified);
+            this.emit("parameter", this, param_type, this.parameters[param_type].value, this.parameters[param_type].timestamp);
         }
     }
 
@@ -57,7 +57,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         if (force)
             this.parameters = {};
         this.device.params.forEach(param => {
-            this._updateParameter(param.param_type, { value: param.param_value, modified: convertTimestampMs(param.update_time) });
+            this._updateParameter(param.param_type, { value: param.param_value, timestamp: convertTimestampMs(param.update_time) });
         });
     }
 
@@ -118,6 +118,12 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         if (type == DeviceType.DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2)
+            return true;
+        return false;
+    }
+
+    static isWiredDoorbell(type: number): boolean {
+        if (type == DeviceType.DOORBELL)
             return true;
         return false;
     }
@@ -226,6 +232,10 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
 
     public isDoorbell(): boolean {
         return Device.isDoorbell(this.device.device_type);
+    }
+
+    public isWiredDoorbell(): boolean {
+        return Device.isWiredDoorbell(this.device.device_type);
     }
 
     public isLock(): boolean {
@@ -363,19 +373,22 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
 
     public abstract getStateChannel(): string;
 
-    public getWifiRssi(): number {
-        return Number.parseInt(this.getParameter(CommandType.CMD_GET_WIFI_RSSI) ? this.getParameter(CommandType.CMD_GET_WIFI_RSSI).value : "0");
+    public getWifiRssi(): NumberValue {
+        const param = this.getParameter(CommandType.CMD_GET_WIFI_RSSI);
+        return { value: Number.parseInt(param ? param.value : "0"), timestamp: param ? param.timestamp : 0 };
     }
 
     public getStoragePath(filename: string): string {
         return getAbsoluteFilePath(this.device.device_type, this.device.device_channel, filename);
     }
 
-    public isEnabled(): boolean {
-        if (this.isIndoorCamera() || this.isSoloCameras() || this.getDeviceType() === DeviceType.DOORBELL) {
-            return this.getParameter(99904) ? (this.getParameter(99904).value === "1" ? true : false) : false;
+    public isEnabled(): BooleanValue {
+        let param = this.getParameter(99904);
+        if (this.isIndoorCamera() || this.isSoloCameras() || this.isWiredDoorbell() || this.isFloodLight()) {
+            param = this.getParameter(ParamType.OPEN_DEVICE);
+            return { value: param !== undefined ? (param.value === "true" ? true : false) : false, timestamp: param !== undefined ? param.timestamp : 0 };
         }
-        return this.getParameter(99904) ? (this.getParameter(99904).value === "0" ? true : false) : false;
+        return { value: param !== undefined ? (param.value === "0" ? true : false) : false, timestamp: param !== undefined ? param.timestamp : 0 };
     }
 
 }
@@ -388,12 +401,8 @@ export class Camera extends Device {
         return "cameras";
     }
 
-    public getLastCameraImageURL(): string {
-        return this.device.cover_path;
-    }
-
-    public getLastCameraImageTimestamp(): number {
-        return this.device.cover_time ? convertTimestampMs(this.device.cover_time) : 0;
+    public getLastCameraImageURL(): StringValue {
+        return { value: this.device.cover_path, timestamp: this.device.cover_time ? convertTimestampMs(this.device.cover_time) : 0 };
     }
 
     public getMACAddress(): string {
@@ -472,8 +481,9 @@ export class Camera extends Device {
         }
     }
 
-    public getState(): number {
-        return Number.parseInt(this.getParameter(CommandType.CMD_GET_DEV_STATUS) ? this.getParameter(CommandType.CMD_GET_DEV_STATUS).value : "0");
+    public getState(): NumberValue {
+        const param = this.getParameter(CommandType.CMD_GET_DEV_STATUS);
+        return { value: Number.parseInt(param ? param.value : "0"), timestamp: param ? param.timestamp : 0 };
     }
 
     public isStreaming(): boolean {
@@ -502,21 +512,125 @@ export class Camera extends Device {
         return this.device.charing_total;
     }
 
-    public getBatteryValue(): number {
-        return Number.parseInt(this.getParameter(CommandType.CMD_GET_BATTERY) ? this.getParameter(CommandType.CMD_GET_BATTERY).value : "0");
+    public getBatteryValue(): NumberValue {
+        const param = this.getParameter(CommandType.CMD_GET_BATTERY);
+        return { value: Number.parseInt(param ? param.value : "0"), timestamp: param ? param.timestamp : 0 };
     }
 
-    public getBatteryTemperature(): number {
-        return Number.parseInt(this.getParameter(CommandType.CMD_GET_BATTERY_TEMP) ? this.getParameter(CommandType.CMD_GET_BATTERY_TEMP).value : "0");
+    public getBatteryTemperature(): NumberValue {
+        const param = this.getParameter(CommandType.CMD_GET_BATTERY_TEMP);
+        return { value: Number.parseInt(param ? param.value : "0"), timestamp: param ? param.timestamp : 0 };
+    }
+
+    public isMotionDetectionEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_PIR_SWITCH);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+    public isLedEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_DEV_LED_SWITCH);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+    public isAutoNightVisionEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_IRCUT_SWITCH);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+    public isRTSPStreamEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_NAS_SWITCH);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+    public isAntiTheftDetectionEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_EAS_SWITCH);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+    public getWatermark(): NumberValue {
+        const param = this.getParameter(CommandType.CMD_SET_DEVS_OSD);
+        return { value: Number.parseInt(param ? param.value : "0"), timestamp: param ? param.timestamp : 0 };
+    }
+
+}
+
+export class SoloCamera extends Camera {
+
+    public isLedEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_INDOOR_LED_SWITCH);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+    public isMotionDetectionEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_INDOOR_DET_SET_MOTION_DETECT_ENABLE);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+}
+
+export class IndoorCamera extends Camera {
+
+    public isLedEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_INDOOR_LED_SWITCH);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+    public isMotionDetectionEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_INDOOR_DET_SET_MOTION_DETECT_ENABLE);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+    public isPetDetectionEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_INDOOR_DET_SET_PET_ENABLE);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+    public isSoundDetectionEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_INDOOR_DET_SET_SOUND_DETECT_ENABLE);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
     }
 
 }
 
 export class DoorbellCamera extends Camera {
 
+    public isLedEnabled(): BooleanValue {
+        const param = this.getParameter(ParamType.DOORBELL_LED_NIGHT_MODE);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+    public isAutoNightVisionEnabled(): BooleanValue {
+        const param = this.getParameter(ParamType.NIGHT_VISUAL);
+        return { value: param ? (param.value === "true" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+    public isMotionDetectionEnabled(): BooleanValue {
+        const param = this.getParameter(ParamType.DETECT_SWITCH);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+}
+
+export class BatteryDoorbellCamera extends Camera {
+
+    public isLedEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_BAT_DOORBELL_SET_LED_ENABLE);
+        return { value: param ? (param.value === "0" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
 }
 
 export class FloodlightCamera extends Camera {
+
+    public isLedEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_INDOOR_LED_SWITCH);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+    public isMotionDetectionEnabled(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_INDOOR_DET_SET_MOTION_DETECT_ENABLE);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
 
 }
 
@@ -526,28 +640,28 @@ export class Sensor extends Device {
         return "sensors";
     }
 
-    public getState(): number {
-        return Number.parseInt(this.getParameter(CommandType.CMD_GET_DEV_STATUS) ? this.getParameter(CommandType.CMD_GET_DEV_STATUS).value : "0");
+    public getState(): NumberValue {
+        const param = this.getParameter(CommandType.CMD_GET_DEV_STATUS);
+        return { value: Number.parseInt(param ? param.value : "0"), timestamp: param ? param.timestamp : 0 };
     }
 
 }
 
 export class EntrySensor extends Sensor {
 
-    public isSensorOpen(): boolean {
-        if (this.getParameter(CommandType.CMD_ENTRY_SENSOR_STATUS) && this.getParameter(CommandType.CMD_ENTRY_SENSOR_STATUS).value === "1")
-            return true;
-        return false;
+    public isSensorOpen(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_ENTRY_SENSOR_STATUS);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
     }
 
-    public getSensorChangeTime(): string {
-        return this.getParameter(CommandType.CMD_ENTRY_SENSOR_CHANGE_TIME) ? this.getParameter(CommandType.CMD_ENTRY_SENSOR_CHANGE_TIME).value : "";
+    public getSensorChangeTime(): NumberValue {
+        const param = this.getParameter(CommandType.CMD_ENTRY_SENSOR_CHANGE_TIME);
+        return { value: Number.parseInt(param ? param.value : "0"), timestamp: param ? param.timestamp : 0 };
     }
 
-    public isBatteryLow(): boolean {
-        if (this.getParameter(CommandType.CMD_ENTRY_SENSOR_BAT_STATE) && this.getParameter(CommandType.CMD_ENTRY_SENSOR_BAT_STATE).value === "1")
-            return true;
-        return false;
+    public isBatteryLow(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_ENTRY_SENSOR_BAT_STATE);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
     }
 
 }
@@ -572,18 +686,18 @@ export class MotionSensor extends Sensor {
     }
 
     public isMotionDetected(): { motion: boolean, cooldown_ms: number} {
-        return MotionSensor.isMotionDetected(this.getMotionSensorPIREvent());
+        return MotionSensor.isMotionDetected(this.getMotionSensorPIREvent().value);
     }
 
-    public getMotionSensorPIREvent(): number {
+    public getMotionSensorPIREvent(): NumberValue {
         //TODO: Implement P2P Control Event over active station connection
-        return Number.parseInt(this.getParameter(CommandType.CMD_MOTION_SENSOR_PIR_EVT) ? this.getParameter(CommandType.CMD_MOTION_SENSOR_PIR_EVT).value : "0");
+        const param = this.getParameter(CommandType.CMD_MOTION_SENSOR_PIR_EVT);
+        return { value: Number.parseInt(param ? param.value : "0"), timestamp: param ? param.timestamp : 0 };
     }
 
-    public isBatteryLow(): boolean {
-        if (this.getParameter(CommandType.CMD_MOTION_SENSOR_BAT_STATE) && this.getParameter(CommandType.CMD_MOTION_SENSOR_BAT_STATE).value === "1")
-            return true;
-        return false;
+    public isBatteryLow(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_MOTION_SENSOR_BAT_STATE);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
     }
 
 }
@@ -611,14 +725,14 @@ export class Keypad extends Device {
         return "keypads";
     }
 
-    public getState(): number {
-        return Number.parseInt(this.getParameter(CommandType.CMD_GET_DEV_STATUS) ? this.getParameter(CommandType.CMD_GET_DEV_STATUS).value : "0");
+    public getState(): NumberValue {
+        const param = this.getParameter(CommandType.CMD_GET_DEV_STATUS);
+        return { value: Number.parseInt(param ? param.value : "0"), timestamp: param ? param.timestamp : 0 };
     }
 
-    public isBatteryLow(): boolean {
-        if (this.getParameter(CommandType.CMD_KEYPAD_BATTERY_CAP_STATE) && this.getParameter(CommandType.CMD_KEYPAD_BATTERY_CAP_STATE).value === "1")
-            return true;
-        return false;
+    public isBatteryLow(): BooleanValue {
+        const param = this.getParameter(CommandType.CMD_KEYPAD_BATTERY_CAP_STATE);
+        return { value: param ? (param.value === "1" ? true : false) : false, timestamp: param ? param.timestamp : 0 };
     }
 
 }

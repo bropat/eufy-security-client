@@ -165,11 +165,11 @@ export const buildCommandWithStringTypePayload = (value: string, channel = 0): B
     // type = 6
     //setCommandWithString()
     const headerBuffer = Buffer.allocUnsafe(2);
-    headerBuffer.writeUInt16LE(value.length, 0);
     const emptyBuffer = Buffer.from([0x00, 0x00]);
     const magicBuffer = Buffer.from([0x01, 0x00]);
     const channelBuffer = Buffer.from([channel, 0x00]);
     const jsonBuffer = Buffer.from(value);
+    headerBuffer.writeUInt16LE(jsonBuffer.length, 0);
 
     return Buffer.concat([
         headerBuffer,

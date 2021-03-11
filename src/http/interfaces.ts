@@ -6,13 +6,23 @@ import { Camera, Device } from "./device";
 import { FullDeviceResponse, HubResponse, Cipher, Voice } from "./models";
 import { Station } from "./station";
 
-export interface ParameterValue {
+export interface StringValue {
     value: string;
-    modified: number;
+    timestamp: number;
+}
+
+export interface BooleanValue {
+    value: boolean;
+    timestamp: number;
+}
+
+export interface NumberValue {
+    value: number;
+    timestamp: number;
 }
 
 export interface ParameterArray {
-    [index: number]: ParameterValue;
+    [index: number]: StringValue;
 }
 
 export interface Devices {

@@ -321,7 +321,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 normalized_message.cipher = push_data.cipher !== undefined ? push_data.cipher : 0;
                 normalized_message.event_session = push_data.session_id !== undefined ? push_data.session_id : "";
                 normalized_message.event_type = push_data.event_type !== undefined ? push_data.event_type : -1;
-                normalized_message.file_path = push_data.file_path !== undefined && push_data.file_path !== "" && push_data.channel ? getAbsoluteFilePath(normalized_message.type, push_data.channel, push_data.file_path) : "",
+                normalized_message.file_path = push_data.file_path !== undefined && push_data.file_path !== "" && push_data.channel !== undefined ? getAbsoluteFilePath(normalized_message.type, push_data.channel, push_data.file_path) : "";
                 normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
                 normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
                 normalized_message.notification_style = push_data.notification_style;
@@ -347,7 +347,8 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 normalized_message.cipher = push_data.cipher;
                 normalized_message.event_session = push_data.session_id;
                 normalized_message.event_type = push_data.event_type;
-                normalized_message.file_path = push_data.file_path !== undefined && push_data.file_path !== "" && push_data.channel ? getAbsoluteFilePath(normalized_message.type, push_data.channel, push_data.file_path) : "",            normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
+                normalized_message.file_path = push_data.file_path !== undefined && push_data.file_path !== "" && push_data.channel !== undefined ? getAbsoluteFilePath(normalized_message.type, push_data.channel, push_data.file_path) : "";
+                normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
                 normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
                 normalized_message.notification_style = push_data.notification_style;
                 normalized_message.msg_type = push_data.msg_type;

@@ -45,11 +45,15 @@ One client instance will show all devices from one Eufy Cloud account and allows
     * Stop livestream (local/remote p2p or rtmp over cloud)
     * Enable/disable device
     * Enable/disable auto night vision (only camera products)
-    * Enable/disable led (only camera 2 products, indoor cameras, floodlight camera and solo cameras)
+    * Enable/disable led (only camera 2 products, indoor cameras, floodlight camera, solo cameras and doorbells)
     * Enable/disable anti-theft detection (only camera 2 products)
     * Enable/disable motion detection
+    * Enable/disable pet detection (only indoor cameras)
+    * Enable/disable sound detection (only indoor cameras)
     * Enable/disable RTSP stream (only camera2 products, indoor cameras and solo cameras)
     * Change video watermark setting (only camera products)
+    * Start/cancel download video
+    * Quick response (only doorbells)
 
 ## Documentation
 
@@ -85,6 +89,23 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 Please use GitHub issues for this.
 
 ## Changelog
+
+### 0.6.0 (2021-03-11)
+
+* (bropat) Added new command types to enum CommandType
+* (bropat) Added new P2P feature: enable/disable pet detection for indoor cameras
+* (bropat) Added new P2P feature: enable/disable sound detection for indoor cameras
+* (bropat) Added new P2P feature: enable/disable led for wired doorbells
+* (bropat) Added some functions to p2p station class: getLANIPAddress, getGuardMode, getCurrentMode
+* (bropat) Added new device class: BatteryDoorbellCamera, IndoorCamera, SoloCamera
+* (bropat) Added new functions to some device classes returning specific parameter values
+* (bropat) Renamed interface ParameterValue to StringValue and added new: BooleanValue, NumberValue
+* (bropat) All functions of the Device base class that return parameter values, return now the value and timestamp of the last modification
+* (bropat) Fixed enable/disable led (for battery doorbells, indoor cameras, floodlight camera and solo cameras)
+* (bropat) Fixed enable/disable motion detection (for wired doorbells, indoor cameras, floodlight camera and solo cameras)
+* (bropat) Fixed change video watermark setting (for wired doorbells, battery doorbells, indoor cameras and floodlight camera)
+* (bropat) Fixed issue with multibyte string with function buildCommandWithStringTypePayload
+* (bropat) Fixed issue on PushMessage interface (fixed parsing of file_path)
 
 ### 0.5.1 (2021-03-05)
 
