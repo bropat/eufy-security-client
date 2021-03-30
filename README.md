@@ -95,6 +95,7 @@ Please use GitHub issues for this.
 * (bropat) Added support for smart locks
 * (bropat) Added new P2P feature: lock/unlock smart lock products
 * (bropat) Optimized speed of P2P connection establishment
+* (bropat) Implemented P2P connection setup preference: local prefered, local only or quickest connection
 * (bropat) Trying to solve issue [#2](https://github.com/bropat/eufy-security-client/issues/2)
 * (bropat) Dropped support for NodeJS 10.x (min. requirement 12)
 * (bropat) Updated versions of the package dependencies
