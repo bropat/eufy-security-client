@@ -90,6 +90,15 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.7.0 (2021-03-30)
+
+* (bropat) Added support for smart locks
+* (bropat) Added new P2P feature: lock/unlock smart lock products
+* (bropat) Optimized speed of P2P connection establishment
+* (bropat) Trying to solve issue [#2](https://github.com/bropat/eufy-security-client/issues/2)
+* (bropat) Dropped support for NodeJS 10.x (min. requirement 12)
+* (bropat) Updated versions of the package dependencies
+
 ### 0.6.0 (2021-03-11)
 
 * (bropat) Added new command types to enum CommandType

@@ -8,13 +8,13 @@ import { DskKeyResponse, HubResponse, ResultResponse } from "./models"
 import { ParameterHelper } from "./parameter";
 import { StringValue, ParameterArray, StationEvents, NumberValue } from "./interfaces";
 import { isGreaterMinVersion } from "./utils";
-import { StreamMetadata } from "./../p2p/interfaces";
+import { DeviceSerial, StreamMetadata } from "./../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
-import { CommandType, ErrorCode, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
-import { Address, CmdCameraInfoResponse, CommandResult } from "../p2p/models";
-import { Device } from "./device";
+import { CommandType, ErrorCode, ESLInnerCommand, P2PConnectionType, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
+import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData } from "../p2p/models";
+import { Device, Lock } from "./device";
 import { convertTimestampMs } from "../push/utils";
-import { isPrivateIp } from "../p2p/utils";
+import { encodeLockPayload, encryptLockAESData, generateLockAESKey, getLockVectorBytes, isPrivateIp } from "../p2p/utils";
 
 export class Station extends TypedEmitter<StationEvents> {
 
@@ -187,7 +187,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
-    public async connect(quickStreamStart = false): Promise<void> {
+    public async connect(p2pConnectionType = P2PConnectionType.PREFER_LOCAL, quickStreamStart = false): Promise<void> {
         if (this.dsk_key == "" || (this.dsk_expiration && (new Date()).getTime() >= this.dsk_expiration.getTime())) {
             this.log.debug(`${this.constructor.name}.connect(): station: ${this.getSerial()} DSK keys not present or expired, get/renew it. (dsk_expiration: ${this.dsk_expiration})`);
             await this.getDSKKeys();
@@ -201,7 +201,16 @@ export class Station extends TypedEmitter<StationEvents> {
             this.p2p_session = null;
         }
 
-        this.p2p_session = new P2PClientProtocol(this.hub.p2p_did, this.dsk_key, this.log);
+        const deviceSNs: DeviceSerial = {};
+        for (const device of this.hub.devices) {
+            deviceSNs[device.device_channel] = {
+                sn: device.device_sn,
+                admin_user_id: this.hub.member.admin_user_id
+            };
+        }
+
+        this.p2p_session = new P2PClientProtocol(this.hub.p2p_did, this.dsk_key, this.getSerial(), deviceSNs, this.log);
+        this.p2p_session.setConnectionType(p2pConnectionType);
         this.p2p_session.setQuickStreamStart(quickStreamStart);
         this.p2p_session.on("connect", (address: Address) => this.onConnect(address));
         this.p2p_session.on("close", () => this.onDisconnect());
@@ -214,6 +223,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2p_session.on("stop_livestream", (channel: number) => this.onStopLivestream(channel));
         this.p2p_session.on("wifi_rssi", (channel: number, rssi: number) => this.onWifiRssiChanged(channel, rssi));
         this.p2p_session.on("rtsp_url", (channel: number, rtsp_url: string) => this.onRTSPUrl(channel, rtsp_url));
+        this.p2p_session.on("esl_parameter", (channel: number, param: number, value: string) => this.onESLParameter(channel, param, value));
 
         this.p2p_session.connect();
     }
@@ -246,6 +256,16 @@ export class Station extends TypedEmitter<StationEvents> {
     private onRTSPUrl(channel: number, rtsp_url: string): void {
         this.log.trace(`${this.constructor.name}.onRTSPUrl(): station: ${this.getSerial()} channel: ${channel} rtsp_url: ${rtsp_url}`);
         this.emit("rtsp_url", this, channel, rtsp_url, +new Date);
+    }
+
+    private onESLParameter(channel: number, param: number, value: string): void {
+        this.log.trace(`${this.constructor.name}.onESLParameter(): station: ${this.getSerial()} channel: ${channel} param: ${param} value: ${value}`);
+        const params: ParameterArray = {};
+        params[param] = {
+            value: ParameterHelper.readValue(param, value),
+            timestamp: +new Date
+        };
+        this.emit("device_parameter", this._getDeviceSerial(channel), params);
     }
 
     public async setGuardMode(mode: GuardMode): Promise<void> {
@@ -492,7 +512,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     }), device.getChannel());
                 }
             } else {
-                this.log.warn(`${this.constructor.name}.setStatusLed(): This functionality is not implemented or support by this device.`);
+                this.log.warn(`${this.constructor.name}.setStatusLed(): This functionality is not implemented or supported by this device.`);
             }
         } else {
             this.log.warn(`${this.constructor.name}.setStatusLed(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
@@ -509,7 +529,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.log.debug(`${this.constructor.name}.setAutoNightVision(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
                 await this.p2p_session.sendCommandWithIntString(CommandType.CMD_IRCUT_SWITCH, value === true ? 1 : 0, device.getChannel(), "", "", device.getChannel());
             } else {
-                this.log.warn(`${this.constructor.name}.setAutoNightVision(): This functionality is not implemented or support by this device.`);
+                this.log.warn(`${this.constructor.name}.setAutoNightVision(): This functionality is not implemented or supported by this device.`);
             }
         } else {
             this.log.warn(`${this.constructor.name}.setAutoNightVision(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
@@ -562,7 +582,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     await this.p2p_session.sendCommandWithIntString(CommandType.CMD_PIR_SWITCH, value === true ? 1 : 0, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
                 }
             } else {
-                this.log.warn(`${this.constructor.name}.setMotionDetection(): This functionality is not implemented or support by this device.`);
+                this.log.warn(`${this.constructor.name}.setMotionDetection(): This functionality is not implemented or supported by this device.`);
             }
         } else {
             this.log.warn(`${this.constructor.name}.setMotionDetection(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
@@ -590,7 +610,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }), device.getChannel());
             } else {
-                this.log.warn(`${this.constructor.name}.setSoundDetection(): This functionality is not implemented or support by this device.`);
+                this.log.warn(`${this.constructor.name}.setSoundDetection(): This functionality is not implemented or supported by this device.`);
             }
         } else {
             this.log.warn(`${this.constructor.name}.setSoundDetection(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
@@ -618,7 +638,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }), device.getChannel());
             } else {
-                this.log.warn(`${this.constructor.name}.setPetDetection(): This functionality is not implemented or support by this device.`);
+                this.log.warn(`${this.constructor.name}.setPetDetection(): This functionality is not implemented or supported by this device.`);
             }
         } else {
             this.log.warn(`${this.constructor.name}.setPetDetection(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
@@ -636,7 +656,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.log.debug(`${this.constructor.name}.setRTSPStream(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
                 await this.p2p_session.sendCommandWithIntString(CommandType.CMD_NAS_SWITCH, value === true ? 1 : 0, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
             } else {
-                this.log.warn(`${this.constructor.name}.setRTSPStream(): This functionality is not implemented or support by this device.`);
+                this.log.warn(`${this.constructor.name}.setRTSPStream(): This functionality is not implemented or supported by this device.`);
             }
         } else {
             this.log.warn(`${this.constructor.name}.setRTSPStream(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
@@ -653,7 +673,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.log.debug(`${this.constructor.name}.setAntiTheftDetection(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
                 await this.p2p_session.sendCommandWithIntString(CommandType.CMD_EAS_SWITCH, value === true ? 1 : 0, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
             } else {
-                this.log.warn(`${this.constructor.name}.setAntiTheftDetection(): This functionality is not implemented or support by this device.`);
+                this.log.warn(`${this.constructor.name}.setAntiTheftDetection(): This functionality is not implemented or supported by this device.`);
             }
         } else {
             this.log.warn(`${this.constructor.name}.setAntiTheftDetection(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
@@ -695,7 +715,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.log.debug(`${this.constructor.name}.setWatermark(): P2P connection to station ${this.getSerial()} present, set value: ${WatermarkSetting2[value]}.`);
                 await this.p2p_session.sendCommandWithIntString(CommandType.CMD_SET_DEVS_OSD, value, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
             } else {
-                this.log.warn(`${this.constructor.name}.setWatermark(): This functionality is not implemented or support by this device.`);
+                this.log.warn(`${this.constructor.name}.setWatermark(): This functionality is not implemented or supported by this device.`);
             }
         } else {
             this.log.warn(`${this.constructor.name}.setWatermark(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
@@ -717,7 +737,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.log.debug(`${this.constructor.name}.enableDevice(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
                 await this.p2p_session.sendCommandWithIntString(CommandType.CMD_DEVS_SWITCH, param_value, device.getChannel(), this.hub.member.admin_user_id, "", device.getChannel());
             } else {
-                this.log.warn(`${this.constructor.name}.enableDevice(): This functionality is not implemented or support by this device.`);
+                this.log.warn(`${this.constructor.name}.enableDevice(): This functionality is not implemented or supported by this device.`);
             }
         } else {
             this.log.warn(`${this.constructor.name}.enableDevice(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
@@ -842,6 +862,44 @@ export class Station extends TypedEmitter<StationEvents> {
             }
         } else {
             this.log.warn(`${this.constructor.name}.quickResponse(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
+        }
+    }
+
+    public async lockDevice(device: Device, value: boolean): Promise<void> {
+        if (device.getStationSerial() === this.getSerial()) {
+            if (device.isLock()) {
+                if (!this.p2p_session || !this.p2p_session.isConnected()) {
+                    this.log.warn(`${this.constructor.name}.lockDevice(): P2P connection to station ${this.getSerial()} not present, command aborted.`);
+                    return;
+                }
+                this.log.debug(`${this.constructor.name}.lockDevice(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
+
+                const key = generateLockAESKey(this.hub.member.admin_user_id, this.getSerial());
+                const iv = getLockVectorBytes(this.getSerial());
+                const lockCmd = Lock.encodeESLCmdOnOff(Number.parseInt(this.hub.member.short_user_id), this.hub.member.nick_name, value);
+                const payload: ESLStationP2PThroughData = {
+                    channel: device.getChannel(),
+                    lock_cmd: ESLInnerCommand.ON_OFF_LOCK,
+                    lock_payload: lockCmd.toString("base64"),
+                    seq_num: this.p2p_session.incLockSequenceNumber()
+                };
+                const encPayload = encryptLockAESData(key, iv, encodeLockPayload(JSON.stringify(payload)));
+
+                this.log.debug(`${this.constructor.name}.lockDevice(): station: ${this.getSerial()} device: ${device.getSerial()} admin_user_id: ${this.hub.member.admin_user_id} payload: ${JSON.stringify(payload)} encPayload: ${encPayload.toString("hex")}`);
+
+                await this.p2p_session.sendCommandWithStringPayload(CommandType.CMD_SET_PAYLOAD, JSON.stringify({
+                    "account_id": this.hub.member.admin_user_id,
+                    "cmd": CommandType.CMD_DOORLOCK_DATA_PASS_THROUGH,
+                    "mValue3": 0,
+                    "payload": {
+                        "payload": encPayload.toString("base64")
+                    }
+                }), device.getChannel());
+            } else {
+                this.log.warn(`${this.constructor.name}.lockDevice(): This functionality is not implemented or supported by this device.`);
+            }
+        } else {
+            this.log.warn(`${this.constructor.name}.lockDevice(): The device ${device.getSerial()} is not managed by this station ${this.getSerial()}, no action is performed.`);
         }
     }
 

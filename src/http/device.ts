@@ -6,9 +6,10 @@ import { DeviceType, ParamType } from "./types";
 import { FullDeviceResponse, ResultResponse, StreamResponse } from "./models"
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, StringValue, ParameterArray, BooleanValue, NumberValue } from "./interfaces";
-import { CommandType } from "../p2p/types";
+import { CommandType, ESLAnkerBleConstant } from "../p2p/types";
 import { getAbsoluteFilePath } from "./utils";
 import { convertTimestampMs } from "../push/utils";
+import { eslTimestamp } from "../p2p/utils";
 
 export abstract class Device extends TypedEmitter<DeviceEvents> {
 
@@ -707,6 +708,68 @@ export class Lock extends Device {
     public getStateChannel(): string {
         return "locks";
     }
+
+    public getState(): NumberValue {
+        const param = this.getParameter(CommandType.CMD_GET_DEV_STATUS);
+        return { value: Number.parseInt(param ? param.value : "0"), timestamp: param ? param.timestamp : 0 };
+    }
+
+    public getBatteryValue(): NumberValue {
+        const param = this.getParameter(CommandType.CMD_GET_BATTERY);
+        return { value: Number.parseInt(param ? param.value : "0"), timestamp: param ? param.timestamp : 0 };
+    }
+
+    public getWifiRssi(): NumberValue {
+        const param = this.getParameter(CommandType.CMD_GET_SUB1G_RSSI);
+        return { value: Number.parseInt(param ? param.value : "0"), timestamp: param ? param.timestamp : 0 };
+    }
+
+    public isLocked(): BooleanValue {
+        const param = this.getLockStatus();
+        return { value: param ? (param.value === 4 ? true : false) : false, timestamp: param ? param.timestamp : 0 };
+    }
+
+    public getLockStatus(): NumberValue {
+        const param = this.getParameter(CommandType.CMD_DOORLOCK_GET_STATE);
+        return { value: Number.parseInt(param ? param.value : "0"), timestamp: param ? param.timestamp : 0 };
+    }
+
+    public static encodeESLCmdOnOff(short_user_id: number, nickname: string, lock: boolean): Buffer {
+        const buf1 = Buffer.from([ESLAnkerBleConstant.a, 2]);
+        const buf2 = Buffer.allocUnsafe(2);
+        buf2.writeUInt16BE(short_user_id);
+        const buf3 = Buffer.from([ESLAnkerBleConstant.b, 1, lock === true ? 1 : 0, ESLAnkerBleConstant.c, 4]);
+        const buf4 = Buffer.from(eslTimestamp());
+        const buf5 = Buffer.from([ESLAnkerBleConstant.d, nickname.length]);
+        const buf6 = Buffer.from(nickname);
+        return Buffer.concat([buf1, buf2, buf3, buf4, buf5, buf6]);
+    }
+
+    public static encodeESLCmdQueryStatus(admin_user_id: string): Buffer {
+        const buf1 = Buffer.from([ESLAnkerBleConstant.a, admin_user_id.length]);
+        const buf2 = Buffer.from(admin_user_id);
+        const buf3 = Buffer.from([ESLAnkerBleConstant.b, 4]);
+        const buf4 = Buffer.from(eslTimestamp());
+        return Buffer.concat([buf1, buf2, buf3, buf4]);
+    }
+
+    /*public static decodeCommand(command: number): void {
+        switch (command) {
+            case ESLCommand.ON_OFF_LOCK:
+            case 8:
+                break;
+
+            case ESLCommand.QUERY_STATUS_IN_LOCK:
+            case 17:
+                break;
+
+            case ESLCommand.NOTIFY:
+            case 18:
+                break;
+            default:
+                break;
+        }
+    }*/
 
 }
 

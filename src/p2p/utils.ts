@@ -4,6 +4,7 @@ import CryptoJS from "crypto-js"
 
 import { P2PMessageParts } from "./interfaces";
 import { CommandType, P2PDataTypeHeader } from "./types";
+import { Address } from "./models";
 
 export const MAGIC_WORD = "XZYH";
 
@@ -46,7 +47,7 @@ export const buildLookupWithKeyPayload = (socket: Socket, p2pDid: string, dskKey
     });
     const ipAsBuffer = Buffer.from(temp_buff);
 
-    const splitter = Buffer.from([0x00, 0x00]);
+    const splitter = Buffer.from([0x00, 0x02]);
     const magic = Buffer.from([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x04, 0x00, 0x00]);
 
     const dskKeyAsBuffer = Buffer.from(dskKey);
@@ -55,10 +56,39 @@ export const buildLookupWithKeyPayload = (socket: Socket, p2pDid: string, dskKey
     return Buffer.concat([p2pDidBuffer, splitter, portAsBuffer, ipAsBuffer, magic, dskKeyAsBuffer, fourEmpty]);
 };
 
+export const buildLookupWithKeyPayload2 = (p2pDid: string, dskKey: string): Buffer => {
+    const p2pDidBuffer = p2pDidToBuffer(p2pDid);
+    const dskKeyAsBuffer = Buffer.from(dskKey);
+
+    const fourEmpty = Buffer.from([0x00, 0x00, 0x00, 0x00]);
+    return Buffer.concat([p2pDidBuffer, dskKeyAsBuffer, fourEmpty]);
+};
+
+export const buildLookupWithKeyPayload3 = (p2pDid: string, address: Address, data: Buffer): Buffer => {
+    const p2pDidBuffer = p2pDidToBuffer(p2pDid);
+    const portAsBuffer = Buffer.allocUnsafe(2);
+    portAsBuffer.writeUInt16LE(address.port, 0);
+    const temp_buff: number[] = [];
+    address.host.split(".").reverse().forEach(element => {
+        temp_buff.push(Number.parseInt(element));
+    });
+    const ipAsBuffer = Buffer.from(temp_buff);
+    const splitter = Buffer.from([0x00, 0x02]);
+    const eightEmpty = Buffer.from([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+
+    return Buffer.concat([p2pDidBuffer, splitter, portAsBuffer, ipAsBuffer, eightEmpty, data]);
+};
+
 export const buildCheckCamPayload = (p2pDid: string): Buffer => {
     const p2pDidBuffer = p2pDidToBuffer(p2pDid);
     const magic = Buffer.from([0x00, 0x00, 0x00]);
     return Buffer.concat([p2pDidBuffer, magic]);
+};
+
+export const buildCheckCamPayload2 = (p2pDid: string, data: Buffer): Buffer => {
+    const p2pDidBuffer = p2pDidToBuffer(p2pDid);
+    const magic = Buffer.from([0x00, 0x00, 0x00, 0x00]);
+    return Buffer.concat([data, p2pDidBuffer, magic]);
 };
 
 export const buildIntCommandPayload = (value: number, strValue = "", channel = 255): Buffer => {
@@ -221,4 +251,121 @@ export const decryptAESData = (hexkey: string, data: Buffer): Buffer => {
         padding: CryptoJS.pad.NoPadding
     });
     return Buffer.from(CryptoJS.enc.Hex.stringify(decrypted), "hex");
+}
+
+export const findStartCode = (data: Buffer): boolean => {
+    if (data !== undefined && data.length > 0) {
+        if (data.length >= 4) {
+            const startcode = [...data.slice(0, 4)]
+            if ((startcode[0] === 0 && startcode[1] === 0 && startcode[2] === 1) || (startcode[0] === 0 && startcode[1] === 0 && startcode[2] === 0 && startcode[3] === 1))
+                return true;
+        } else if (data.length === 3) {
+            const startcode = [...data.slice(0, 3)]
+            if ((startcode[0] === 0 && startcode[1] === 0 && startcode[2] === 1))
+                return true;
+        }
+    }
+    return false;
+}
+
+export const isIFrame = (data: Buffer): boolean => {
+    const validValues = [64, 66, 68, 78, 101, 103];
+    if (data !== undefined && data.length > 0) {
+        if (data.length >= 5) {
+            const startcode = [...data.slice(0, 5)]
+            if (validValues.includes(startcode[3]) || validValues.includes(startcode[4]))
+                return true;
+        }
+    }
+    return false;
+}
+
+export const decryptLockAESData = (key: string, iv: string, data: Buffer): Buffer => {
+    const ekey = CryptoJS.enc.Hex.parse(key);
+    const eiv = CryptoJS.enc.Hex.parse(iv);
+    const cipherParams = CryptoJS.lib.CipherParams.create({
+        ciphertext: CryptoJS.enc.Hex.parse(data.toString("hex"))
+    });
+    const decrypted = CryptoJS.AES.decrypt(cipherParams, ekey, {
+        iv: eiv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+    });
+    return Buffer.from(CryptoJS.enc.Hex.stringify(decrypted), "hex");
+}
+
+export const encryptLockAESData = (key: string, iv: string, data: Buffer): Buffer => {
+    const ekey = CryptoJS.enc.Hex.parse(key);
+    const eiv = CryptoJS.enc.Hex.parse(iv);
+    const encrypted = CryptoJS.AES.encrypt(CryptoJS.enc.Hex.parse(data.toString("hex")), ekey, {
+        iv: eiv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+    });
+    return Buffer.from(CryptoJS.enc.Hex.stringify(encrypted.ciphertext), "hex");
+}
+
+export const generateLockAESKey = (adminID: string, stationSN: string): string => {
+
+    const encoder = new TextEncoder();
+    const encOwnerID = encoder.encode(adminID);
+    const encStationSerial = encoder.encode(stationSN);
+    const array: number[] = [104, -83, -72, 38, -107, 99, -110, 17, -95, -121, 54, 57, -46, -98, -111, 89];
+
+    for (let i = 0; i < 16; i++) {
+        array[i] = (array[i] + encStationSerial[((encStationSerial[i] * 3) + 5) % 16] + encOwnerID[((encOwnerID[i] * 3) + 5) % 40]);
+    }
+
+    return Buffer.from(array).toString("hex");
+}
+
+export const generateLockSequence = (): number => {
+    return Math.trunc(new Date().getTime() / 1000); //ESLBridgeSeqNumManager
+}
+
+export const encodeLockPayload = (data: string): Buffer => {
+    const encoder = new TextEncoder();
+    const encData = encoder.encode(data);
+    const length = encData.length;
+    const old_buffer = Buffer.from(encData);
+    if (length % 16 == 0) {
+        return old_buffer;
+    }
+
+    const new_length = (Math.trunc(length / 16) + 1) * 16;
+    const new_buffer = Buffer.alloc(new_length);
+    old_buffer.copy(new_buffer, 0);
+
+    return new_buffer;
+}
+
+export const getLockVectorBytes = (data: string): string => {
+    const encoder = new TextEncoder();
+    const encData = encoder.encode(data);
+    const old_buffer = Buffer.from(encData);
+
+    if (encData.length >= 16)
+        return old_buffer.toString("hex");
+
+    const new_buffer = Buffer.alloc(16);
+    old_buffer.copy(new_buffer, 0);
+
+    return new_buffer.toString("hex");
+}
+
+export const decodeLockPayload = (data: Buffer): string => {
+    const decoder = new TextDecoder();
+    return decoder.decode(data);
+}
+
+export const decodeBase64 = (data: string): Buffer => {
+    return Buffer.from(data, "base64");
+}
+
+export const eslTimestamp = function(timestamp_in_sec = new Date().getTime() / 1000): number[] {
+    const array: number[] = [];
+    for (let pos = 0; pos < 4; pos++) {
+        array[pos] = ((timestamp_in_sec >> (pos * 8)) & 255);
+    }
+    return array;
 }

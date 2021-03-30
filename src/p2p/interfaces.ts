@@ -17,6 +17,7 @@ export interface P2PClientProtocolEvents {
     "stop_livestream": (channel: number) => void;
     "wifi_rssi": (channel: number, rssi: number) => void;
     "rtsp_url": (channel: number, rtsp_url: string) => void;
+    "esl_parameter": (channel: number, param: number, value: string) => void;
 }
 
 export interface P2PMessageState {
@@ -29,10 +30,6 @@ export interface P2PMessageState {
     acknowledged: boolean;
     return_code: number;
     timeout?: NodeJS.Timeout;
-}
-
-export interface LookupAdresses {
-    [index: string]: Array<Address>;
 }
 
 export interface P2PMessageParts {
@@ -80,6 +77,8 @@ export interface P2PDataMessageState {
     streamFirstVideoDataReceived: boolean;
     streamMetadata: StreamMetadata;
     waitForSeqNoTimeout?: NodeJS.Timeout;
+    receivedFirstIFrame: boolean;
+    preFrameVideoData: Buffer;
 }
 
 export interface P2PDataMessageVideo {
@@ -110,4 +109,11 @@ export interface StreamMetadata {
     videoWidth: number;
     videoHeight: number;
     audioCodec: AudioCodec;
+}
+
+export interface DeviceSerial {
+    [index: number]: {
+        sn: string;
+        admin_user_id: string;
+    };
 }

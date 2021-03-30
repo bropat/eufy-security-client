@@ -27,11 +27,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     private hubs: Hubs = {};
 
     private headers = {
-        app_version: "v2.5.0_833",
+        app_version: "v2.8.0_887",
         os_type: "android",
         os_version: "30",
         phone_model: "ONEPLUS A3003",
-        //phone_model: "ioBroker",
         country: "DE",
         language: "en",
         openudid: "5e4621b0152c0d00",

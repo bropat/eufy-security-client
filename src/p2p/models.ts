@@ -20,3 +20,16 @@ export interface CommandResult {
     channel: number;
     return_code: number;
 }
+
+export interface CmdESLNotifyPayload {
+    cmd: number;
+    payload: ESLStationP2PThroughData
+}
+
+export interface ESLStationP2PThroughData {
+    channel?: number,
+    lock_cmd: number,
+    lock_payload: string,
+    seq_num?: number,
+    stationSn?: string;
+}
