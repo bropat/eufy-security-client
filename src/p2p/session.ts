@@ -18,6 +18,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private readonly MAX_LOOKUP_TIMEOUT = 15 * 1000;
     private readonly MAX_EXPECTED_SEQNO_WAIT = 20 * 1000;
     private readonly HEARTBEAT_INTERVAL = 5 * 1000;
+    private readonly UDP_RECVBUFFERSIZE_BYTES = 1048576;
 
     private readonly MAX_PAYLOAD_BYTES = 1028;
     private readonly MAX_PACKET_BYTES = 1024;
@@ -273,7 +274,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             if (!this.binded)
                 this.socket.bind(0, () => {
                     this.binded = true;
-                    this.socket.setRecvBufferSize(8388608);
+                    try {
+                        this.socket.setRecvBufferSize(this.UDP_RECVBUFFERSIZE_BYTES);
+                    } catch (error) {
+                        this.log.error(`connect(): socket.setRecvBufferSize(): Error: ${error} (current size: ${this.socket.getRecvBufferSize()} requested size: ${this.UDP_RECVBUFFERSIZE_BYTES})`);
+                    }
                     this.lookup();
                 });
             else
@@ -430,9 +435,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             }
             if (!this.connected) {
                 if (this.connectionType === P2PConnectionType.PREFER_LOCAL) {
+                    this._clearLookupTimeout();
                     if (isPrivateIp(ip)) {
-                        this._clearLookupTimeout();
-                        this.log.debug(`${this.constructor.name}.handleMsg(): Try to connect to ${ip}:${port}...`);
+                        this.log.debug(`${this.constructor.name}.handleMsg(): PREFER_LOCAL - Try to connect to ${ip}:${port}...`);
                         this._connect({ host: ip, port: port });
                     } else {
                         if (!this.fallbackAddresses.includes({ host: ip, port: port }))
@@ -441,12 +446,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 } else if (this.connectionType === P2PConnectionType.ONLY_LOCAL) {
                     if (isPrivateIp(ip)) {
                         this._clearLookupTimeout();
-                        this.log.debug(`${this.constructor.name}.handleMsg(): Try to connect to ${ip}:${port}...`);
+                        this.log.debug(`${this.constructor.name}.handleMsg(): ONLY_LOCAL - Try to connect to ${ip}:${port}...`);
                         this._connect({ host: ip, port: port });
                     }
                 } else if (this.connectionType === P2PConnectionType.QUICKEST) {
                     this._clearLookupTimeout();
-                    this.log.debug(`${this.constructor.name}.handleMsg(): Try to connect to ${ip}:${port}...`);
+                    this.log.debug(`${this.constructor.name}.handleMsg(): QUICKEST - Try to connect to ${ip}:${port}...`);
                     this._connect({ host: ip, port: port });
                 }
 

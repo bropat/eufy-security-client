@@ -54,6 +54,7 @@ One client instance will show all devices from one Eufy Cloud account and allows
     * Change video watermark setting (only camera products)
     * Start/cancel download video
     * Quick response (only doorbells)
+    * Lock/unlock (only smart lock products)
 
 ## Documentation
 
@@ -64,6 +65,7 @@ One client instance will show all devices from one Eufy Cloud account and allows
 * HomeBase (T8001)
 * HomeBase E (T8002)
 * HomeBase 2 (T8010)
+* Smart Lock Wi-Fi Bridge (T8021)
 * eufyCam (T8111)
 * eufyCam E (T8112)
 * eufyCam 2 (T8114)
@@ -81,6 +83,7 @@ One client instance will show all devices from one Eufy Cloud account and allows
 * Indoor Cam 2K (T8400)
 * Indoor Cam Pan&Tilt 1080p (T8411)
 * Indoor Cam 1080p (T8401)
+* Smart Lock Front Door (T8500)
 
 If more devices work (or also not) please report them by opening a GitHub issue.
 
@@ -89,6 +92,11 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 Please use GitHub issues for this.
 
 ## Changelog
+
+### 0.7.1 (2021-04-02)
+
+* (bropat) Lowered UDP receive buffer size for FreeBSD
+* (bropat) Fixed lookup timeout issue on "local prefered" connection establishment
 
 ### 0.7.0 (2021-03-30)
 
