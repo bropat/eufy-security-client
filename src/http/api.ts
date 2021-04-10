@@ -4,9 +4,9 @@ import { dummyLogger, Logger } from "ts-log";
 import { isValid as isValidCountry } from "i18n-iso-countries";
 import { isValid as isValidLanguage } from "@cospired/i18n-iso-languages";
 
-import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher, Voice } from "./models"
+import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse } from "./models"
 import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices } from "./interfaces";
-import { AuthResult, ResponseErrorCode, VerfyCodeTypes } from "./types";
+import { AuthResult, EventFilterType, ResponseErrorCode, StorageType, VerfyCodeTypes } from "./types";
 import { ParameterHelper } from "./parameter";
 import { getTimezoneGMTString } from "./utils";
 
@@ -590,6 +590,81 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public setSerialNumber(serialnumber: string): void {
         this.headers.sn = serialnumber;
+    }
+
+    private async _getEvents(functionName: string, endpoint: string, startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
+        const records: Array<EventRecordResponse> = [];
+        try {
+            if (filter === undefined)
+                filter = { deviceSN: "", stationSN: "", storageType: StorageType.NONE };
+            if (maxResults === undefined)
+                maxResults = 1000;
+
+            const response = await this.request("post", endpoint, {
+                device_sn: filter.deviceSN !== undefined ? filter.deviceSN : "",
+                end_time: Math.trunc(endTime.getTime() / 1000),
+                id: 0,
+                id_type: 1,
+                is_favorite: false,
+                num: maxResults,
+                pullup: true,
+                shared: true,
+                start_time: Math.trunc(startTime.getTime() / 1000),
+                station_sn: filter.stationSN !== undefined ? filter.stationSN : "",
+                storage: filter.storageType !== undefined ? filter.storageType : StorageType.NONE,
+                transaction: `${new Date().getTime().toString()}`
+            }, this.headers).catch(error => {
+                this.log.error(`${this.constructor.name}.${functionName}(): Error: ${JSON.stringify(error)}`);
+                return error;
+            });
+            this.log.debug(`${this.constructor.name}.${functionName}(): Response: ${JSON.stringify(response.data)}`);
+
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == 0) {
+                    const dataresult: Array<EventRecordResponse> = result.data;
+                    if (dataresult) {
+                        dataresult.forEach(record => {
+                            this.log.debug(`${this.constructor.name}.${functionName}(): record: ${JSON.stringify(record)}`);
+                            records.push(record);
+                        });
+                    }
+                } else
+                    this.log.error(`${this.constructor.name}.${functionName}(): Response code not ok (code: ${result.code} msg: ${result.msg})`);
+            } else {
+                this.log.error(`${this.constructor.name}.${functionName}(): Status return code not 200 (status: ${response.status} text: ${response.statusText}`);
+            }
+        } catch (error) {
+            this.log.error(`${this.constructor.name}.${functionName}(): error: ${error}`);
+        }
+        return records;
+    }
+
+    public async getVideoEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
+        return this._getEvents("getVideoEvents", "event/app/get_all_video_record", startTime, endTime, filter, maxResults);
+    }
+
+    public async getAlarmEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
+        return this._getEvents("getAlarmEvents", "event/app/get_all_alarm_record", startTime, endTime, filter, maxResults);
+    }
+
+    public async getHistoryEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
+        return this._getEvents("getHistoryEvents", "event/app/get_all_history_record", startTime, endTime, filter, maxResults);
+    }
+
+    public async getAllVideoEvents(filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
+        const fifthyYearsInMilliseconds = 15 * 365 * 24 * 60 * 60 * 1000;
+        return this.getVideoEvents(new Date(new Date().getTime() - fifthyYearsInMilliseconds), new Date(), filter, maxResults);
+    }
+
+    public async getAllAlarmEvents(filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
+        const fifthyYearsInMilliseconds = 15 * 365 * 24 * 60 * 60 * 1000;
+        return this.getAlarmEvents(new Date(new Date().getTime() - fifthyYearsInMilliseconds), new Date(), filter, maxResults);
+    }
+
+    public async getAllHistoryEvents(filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
+        const fifthyYearsInMilliseconds = 15 * 365 * 24 * 60 * 60 * 1000;
+        return this.getHistoryEvents(new Date(new Date().getTime() - fifthyYearsInMilliseconds), new Date(), filter, maxResults);
     }
 
 }

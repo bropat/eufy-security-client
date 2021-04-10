@@ -2,6 +2,7 @@ export interface ResultResponse {
     code: number;
     msg: string;
     data?: any;
+    outline?: any;
 }
 
 export interface LoginResultResponse {
@@ -283,7 +284,7 @@ export interface DskKeyResponse {
     }>;
 }
 
-export interface HistoryRecordEntryResponse {
+export interface EventRecordResponse {
     monitor_id: number;
     transfer_monitor_id: number;
     station_sn: string;
@@ -340,15 +341,17 @@ export interface StreamResponse {
     url: string;
 }
 
-export interface HistoryRecordRequest {
+export interface EventRecordRequest {
     device_sn: string;
     end_time: number;
     id: number;
+    id_type: number;
+    is_favorite: boolean;
     num: number;
-    offset: number;
     pullup: boolean;
     shared: boolean;
     start_time: number;
+    station_sn: string;
     storage: number;
 }
 

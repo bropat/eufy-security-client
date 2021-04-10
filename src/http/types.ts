@@ -131,5 +131,18 @@ export enum AuthResult {
     ERROR = -1,
     OK = 0,
     RENEW = 2,
-    SEND_VERIFY_CODE= 3
+    SEND_VERIFY_CODE = 3
+}
+
+export enum StorageType {
+    NONE = 0,
+    LOCAL = 1,
+    CLOUD = 2,
+    LOCAL_AND_CLOUD = 3
+}
+
+export interface EventFilterType {
+    deviceSN?: string;
+    stationSN?: string;
+    storageType?: StorageType;
 }

@@ -60,6 +60,8 @@ One client instance will show all devices from one Eufy Cloud account and allows
 
 * WIP
 
+*As an example, you can look at the following project: [ioBroker.eufy-security](https://github.com/bropat/ioBroker.eufy-security)*
+
 ## Known working devices
 
 * HomeBase (T8001)
@@ -92,6 +94,12 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 Please use GitHub issues for this.
 
 ## Changelog
+
+### 0.7.2 (2021-04-10)
+
+* (bropat) Added new HTTP API methods: getVideoEvents, getAlarmEvents, getHistoryEvents, getAllVideoEvents, getAllAlarmEvents, getAllHistoryEvents
+* (bropat) P2P session: Added station serial number to logging entries for debugging purposes
+* (bropat) Updated versions of the package dependencies
 
 ### 0.7.1 (2021-04-02)
 
