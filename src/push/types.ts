@@ -58,7 +58,7 @@ export enum DoorbellPushEvent {
 export enum IndoorPushEvent {
     MOTION_DETECTION = 3101,
     FACE_DETECTION = 3102,
-    CRYIG_DETECTION = 3104,
+    CRYING_DETECTION = 3104,
     SOUND_DETECTION = 3105,
     PET_DETECTION = 3106
 }
@@ -66,4 +66,10 @@ export enum IndoorPushEvent {
 export enum IndoorPushMessageType {
     INDOOR = 18,
     TFCARD = 2
+}
+
+export enum NotificationStyle {
+    TEXT = 1,
+    THUMB = 2,
+    ALL = 3
 }

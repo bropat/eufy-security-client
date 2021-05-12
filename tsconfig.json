@@ -33,9 +33,9 @@
         // "noUnusedParameters": true,
 
         // Consider targetting es2017 or higher if you require the new NodeJS 8+ features
-        "target": "es2015",
+        "target": "es2019",
 
-        "sourceMap": false,
+        "sourceMap": true,
         "inlineSourceMap": false,
         "watch": false,
         "esModuleInterop": true,

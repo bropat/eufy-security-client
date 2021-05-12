@@ -5,8 +5,27 @@ import { CommandResult } from "../p2p/models";
 import { Camera, Device } from "./device";
 import { FullDeviceResponse, HubResponse, Cipher, Voice } from "./models";
 import { Station } from "./station";
+import { SupportedFeature } from "./types";
 
-export interface StringValue {
+export interface PropertyValue {
+    value: unknown;
+    timestamp: number;
+}
+
+export interface PropertyValues {
+    [index: string]: PropertyValue;
+}
+
+export interface RawValue {
+    value: string;
+    timestamp: number;
+}
+
+export interface RawValues {
+    [index: number]: RawValue;
+}
+
+/*export interface StringValue {
     value: string;
     timestamp: number;
 }
@@ -23,7 +42,7 @@ export interface NumberValue {
 
 export interface ParameterArray {
     [index: number]: StringValue;
-}
+}*/
 
 export interface Devices {
     [index: string]: Device;
@@ -53,6 +72,58 @@ export interface Voices {
     [index: number]: Voice;
 }
 
+export interface ISupportedFeatures {
+    [index: number]: Array<SupportedFeature>;
+}
+
+//TODO: Finish implementation
+
+export type PropertyMetadataType =
+	| "number"
+	| "boolean"
+	| "string";
+
+export interface PropertyMetadataAny {
+    key: number | string;
+    name: string;
+    type: PropertyMetadataType;
+    default?: any;
+    readable: boolean;
+    writeable: boolean;
+    description?: string;
+    label?: string;
+}
+
+export interface PropertyMetadataNumeric extends PropertyMetadataAny {
+    type: "number";
+    min?: number;
+    max?: number;
+    steps?: number;
+    default?: number;
+    states?: Record<number, string>;
+    unit?: string;
+}
+
+export interface PropertyMetadataBoolean extends PropertyMetadataAny {
+    type: "boolean";
+    default?: number;
+}
+
+export interface PropertyMetadataString extends PropertyMetadataAny {
+    type: "string";
+    minLength?: number;
+    maxLength?: number;
+    default?: string;
+}
+
+export interface IndexedProperty {
+    [index: string]: PropertyMetadataAny;
+}
+
+export interface Properties {
+    [index: number]: IndexedProperty;
+}
+
 export interface HTTPApiEvents {
     "devices": (devices: FullDevices) => void;
     "hubs": (hubs: Hubs) => void;
@@ -63,16 +134,27 @@ export interface HTTPApiEvents {
 export interface StationEvents {
     "connect": (station: Station) => void;
     "close": (station: Station) => void;
-    "device_parameter": (device_sn: string, params: ParameterArray) => void;
-    "parameter": (station: Station, type: number, value: string, modified: number) => void;
-    "p2p_command": (station: Station, result: CommandResult) => void;
-    "start_download": (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
-    "finish_download": (station: Station, channel:number) => void;
-    "start_livestream": (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
-    "stop_livestream": (station: Station, channel:number) => void;
-    "rtsp_url": (station: Station, channel:number, value: string, modified: number) => void;
+    "raw device property changed": (deviceSN: string, params: RawValues) => void;
+    "property changed": (station: Station, name: string, value: PropertyValue) => void;
+    "raw property changed": (station: Station, type: number, value: string, modified: number) => void;
+    "command result": (station: Station, result: CommandResult) => void;
+    "download start": (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
+    "download finish": (station: Station, channel:number) => void;
+    "livestream start": (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
+    "livestream stop": (station: Station, channel:number) => void;
+    "rtsp url": (station: Station, channel:number, value: string, modified: number) => void;
+    "guard mode": (station: Station, guardMode: number, currentMode: number) => void;
 }
 
 export interface DeviceEvents {
-    "parameter": (device: Device, type: number, value: string, modified: number) => void;
+    "property changed": (device: Device, name: string, value: PropertyValue) => void;
+    "raw property changed": (device: Device, type: number, value: string, modified: number) => void;
+    "motion detected": (device: Device, state: boolean) => void;
+    "person detected": (device: Device, state: boolean, person: string) => void;
+    "pet detected": (device: Device, state: boolean) => void;
+    "sound detected": (device: Device, state: boolean) => void;
+    "crying detected": (device: Device, state: boolean) => void;
+    "rings": (device: Device, state: boolean) => void;
+    "locked": (device: Device, state: boolean) => void;
+    "open": (device: Device, state: boolean) => void;
 }

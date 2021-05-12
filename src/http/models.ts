@@ -27,6 +27,7 @@ export interface LoginResultResponse {
 }
 
 export interface HubResponse {
+    readonly [index: string]: unknown;
     station_id: number;
     station_sn: string;
     station_name: string;
@@ -185,6 +186,7 @@ export interface DeviceRequest {
 }
 
 export interface FullDeviceResponse {
+    readonly [index: string]: unknown;
     device_id: number;
     is_init_complete: boolean;
     device_sn: string;
@@ -272,6 +274,7 @@ export interface FullDeviceResponse {
     charing_total: number;
     charging_reserve: number;
     charging_missing: number;
+    battery_usage_last_week: number;
 }
 
 export interface DskKeyResponse {

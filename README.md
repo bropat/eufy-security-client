@@ -2,6 +2,7 @@
 
 ![Logo](img/eufy-security.png)
 
+[![node](https://img.shields.io/node/v/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
 [![NPM version](http://img.shields.io/npm/v/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
 [![Downloads](https://img.shields.io/npm/dm/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
 [![Dependency Status](https://img.shields.io/david/bropat/eufy-security-client.svg)](https://david-dm.org/bropat/eufy-security-client)
@@ -23,7 +24,7 @@ If you appreciate my work and progress and want to support me, you can do it her
 
 ## Description
 
-This shared library allows to control Eufy security devices by connecting to the Eufy cloud servers and local/remote stations over p2p.
+This shared library allows to control [Eufy security devices](https://us.eufylife.com/collections/security) by connecting to the Eufy cloud servers and local/remote stations over p2p.
 
 You need to provide your Cloud login credentials.
 
@@ -94,6 +95,17 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 Please use GitHub issues for this.
 
 ## Changelog
+
+### 0.8.0 (2021-05-12)
+
+* (bropat) **Breaking Changes** (renamed emitter, renamed some functions etc.)
+* (bropat) Added high level class EufySecurity
+* (bropat) Added high level properties with metadata information
+* (bropat) Better error handling
+* (bropat) Fixed Guard Mode Emitter
+* (bropat) Fixed push notification for indoor and floodlight cams
+* (bropat) Cleanup code
+* (bropat) Updated versions of the package dependencies
 
 ### 0.7.2 (2021-04-10)
 
