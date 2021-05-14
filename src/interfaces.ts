@@ -34,6 +34,7 @@ export interface EufySecurityEvents {
     "device added": (device: Device) => void;
     "device removed": (device: Device) => void;
     "device property changed": (device: Device, name: string, value: PropertyValue) => void;
+    "device raw property changed": (device: Device, type: number, value: string, modified: number) => void;
     "device crying detected": (device: Device, state: boolean) => void;
     "device sound detected": (device: Device, state: boolean) => void;
     "device pet detected": (device: Device, state: boolean) => void;
@@ -52,6 +53,7 @@ export interface EufySecurityEvents {
     "station rtsp url": (station: Station, device: Device, value: string, modified: number) => void;
     "station guard mode": (station: Station, guardMode: number, currentMode: number) => void;
     "station property changed": (station: Station, name: string, value: PropertyValue) => void;
+    "station raw property changed": (station: Station, type: number, value: string, modified: number) => void;
     "push connect": () => void;
     "push close": () => void;
     "push message": (message: PushMessage) => void;

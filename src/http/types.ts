@@ -602,6 +602,11 @@ export const DeviceEnabledProperty: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
+export const DeviceEnabledStandaloneProperty: PropertyMetadataBoolean = {
+    ...DeviceEnabledProperty,
+    key: ParamType.OPEN_DEVICE,
+};
+
 export const DeviceStatusLedProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_DEV_LED_SWITCH,
     name: PropertyName.DeviceStatusLed,
@@ -1008,7 +1013,7 @@ export const DeviceProperties: Properties = {
     },
     [DeviceType.DOORBELL]: {
         ...GenericDeviceProperties,
-        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionDoorbellProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
@@ -1064,7 +1069,7 @@ export const DeviceProperties: Properties = {
     },
     [DeviceType.FLOODLIGHT]: {
         ...GenericDeviceProperties,
-        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
@@ -1075,7 +1080,7 @@ export const DeviceProperties: Properties = {
     },
     [DeviceType.INDOOR_CAMERA]: {
         ...GenericDeviceProperties,
-        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
@@ -1092,7 +1097,7 @@ export const DeviceProperties: Properties = {
     },
     [DeviceType.INDOOR_CAMERA_1080]: {
         ...GenericDeviceProperties,
-        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
@@ -1109,7 +1114,7 @@ export const DeviceProperties: Properties = {
     },
     [DeviceType.INDOOR_PT_CAMERA]: {
         ...GenericDeviceProperties,
-        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
@@ -1126,7 +1131,7 @@ export const DeviceProperties: Properties = {
     },
     [DeviceType.INDOOR_PT_CAMERA_1080]: {
         ...GenericDeviceProperties,
-        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
@@ -1143,7 +1148,7 @@ export const DeviceProperties: Properties = {
     },
     [DeviceType.SOLO_CAMERA]: {
         ...GenericDeviceProperties,
-        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
@@ -1156,7 +1161,7 @@ export const DeviceProperties: Properties = {
     },
     [DeviceType.SOLO_CAMERA_PRO]: {
         ...GenericDeviceProperties,
-        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
@@ -1296,8 +1301,14 @@ export const StationLanIpAddressProperty: PropertyMetadataString = {
     type: "string",
 }
 
+export const StationLanIpAddressStandaloneProperty: PropertyMetadataString = {
+    ...StationLanIpAddressProperty,
+    key: "ip_addr",
+};
+
 export const StationMacAddressProperty: PropertyMetadataString = {
-    key: "sub1g_mac",
+    key: "wifi_mac",
+    //key: "sub1g_mac", // are always the same
     name: PropertyName.StationMacAddress,
     label: "MAC Address",
     readable: true,
@@ -1309,6 +1320,62 @@ export const StationProperties: Properties = {
     [DeviceType.STATION]: {
         ...BaseStationProperties,
         [PropertyName.StationLANIpAddress]: StationLanIpAddressProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+    },
+    [DeviceType.INDOOR_CAMERA]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+    },
+    [DeviceType.INDOOR_CAMERA_1080]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+    },
+    [DeviceType.INDOOR_PT_CAMERA]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+    },
+    [DeviceType.INDOOR_PT_CAMERA_1080]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+    },
+    [DeviceType.DOORBELL]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+    },
+    [DeviceType.SOLO_CAMERA]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+    },
+    [DeviceType.SOLO_CAMERA_PRO]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+    },
+    [DeviceType.FLOODLIGHT]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
         [PropertyName.StationMacAddress]: StationMacAddressProperty,
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,

@@ -76,16 +76,22 @@ export class Station extends TypedEmitter<StationEvents> {
         const metadata = this.getPropertiesMetadata();
         for(const property of Object.values(metadata)) {
             if (this.rawStation[property.key] !== undefined && typeof property.key === "string") {
-                let timestamp: number;
+                let timestamp = 0;
                 switch(property.key) {
                     case "main_sw_version":
-                        timestamp = convertTimestampMs(this.rawStation.main_sw_time);
-                        break;
+                        if (this.rawStation.main_sw_time !== undefined) {
+                            timestamp = convertTimestampMs(this.rawStation.main_sw_time);
+                            break;
+                        }
                     case "sec_sw_version":
-                        timestamp = convertTimestampMs(this.rawStation.sec_sw_time);
-                        break;
+                        if (this.rawStation.sec_sw_time !== undefined) {
+                            timestamp = convertTimestampMs(this.rawStation.sec_sw_time);
+                            break;
+                        }
                     default:
-                        timestamp = convertTimestampMs(this.rawStation.update_time);
+                        if (this.rawStation.update_time !== undefined) {
+                            timestamp = convertTimestampMs(this.rawStation.update_time);
+                        }
                         break;
                 }
                 this.updateProperty(property.name, { value: this.rawStation[property.key], timestamp: timestamp });
@@ -102,7 +108,7 @@ export class Station extends TypedEmitter<StationEvents> {
             (this.properties[name] !== undefined
                 && (
                     this.properties[name].value !== value.value
-                    && this.properties[name].timestamp < value.timestamp
+                    && this.properties[name].timestamp <= value.timestamp
                 )
             )
             || this.properties[name] === undefined
@@ -129,7 +135,7 @@ export class Station extends TypedEmitter<StationEvents> {
             (this.rawProperties[type] !== undefined
                 && (
                     this.rawProperties[type].value !== parsedValue
-                    && this.rawProperties[type].timestamp < value.timestamp
+                    && this.rawProperties[type].timestamp <= value.timestamp
                 )
             )
             || this.rawProperties[type] === undefined

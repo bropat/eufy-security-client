@@ -43,19 +43,27 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         const metadata = this.getPropertiesMetadata();
         for(const property of Object.values(metadata)) {
             if (this.rawDevice[property.key] !== undefined && typeof property.key === "string") {
-                let timestamp: number;
+                let timestamp = 0;
                 switch(property.key) {
                     case "cover_path":
-                        timestamp = convertTimestampMs(this.rawDevice.cover_time);
-                        break;
+                        if (this.rawDevice.cover_time !== undefined) {
+                            timestamp = convertTimestampMs(this.rawDevice.cover_time);
+                            break;
+                        }
                     case "main_sw_version":
-                        timestamp = convertTimestampMs(this.rawDevice.main_sw_time);
-                        break;
+                        if (this.rawDevice.main_sw_time !== undefined) {
+                            timestamp = convertTimestampMs(this.rawDevice.main_sw_time);
+                            break;
+                        }
                     case "sec_sw_version":
-                        timestamp = convertTimestampMs(this.rawDevice.sec_sw_time);
-                        break;
+                        if (this.rawDevice.sec_sw_time !== undefined) {
+                            timestamp = convertTimestampMs(this.rawDevice.sec_sw_time);
+                            break;
+                        }
                     default:
-                        timestamp = convertTimestampMs(this.rawDevice.update_time);
+                        if (this.rawDevice.update_time !== undefined) {
+                            timestamp = convertTimestampMs(this.rawDevice.update_time);
+                        }
                         break;
                 }
                 this.updateProperty(property.name, { value: this.rawDevice[property.key], timestamp: timestamp });
@@ -72,7 +80,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
             (this.properties[name] !== undefined
                 && (
                     this.properties[name].value !== value.value
-                    && this.properties[name].timestamp < value.timestamp
+                    && this.properties[name].timestamp <= value.timestamp
                 )
             )
             || this.properties[name] === undefined
@@ -103,7 +111,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
             (this.rawProperties[type] !== undefined
                 && (
                     this.rawProperties[type].value !== parsedValue
-                    && this.rawProperties[type].timestamp < value.timestamp
+                    && this.rawProperties[type].timestamp <= value.timestamp
                 )
             )
             || this.rawProperties[type] === undefined
@@ -137,12 +145,10 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
     protected convertRawPropertyValue(property: PropertyMetadataAny, value: RawValue): PropertyValue {
         try {
             if (property.key === ParamType.PRIVATE_MODE || property.key === ParamType.OPEN_DEVICE) {
-                let param = this.getRawProperty(ParamType.PRIVATE_MODE);
                 if (this.isIndoorCamera() || this.isSoloCameras() || this.isWiredDoorbell() || this.isFloodLight()) {
-                    param = this.getRawProperty(ParamType.OPEN_DEVICE);
-                    return { value: param !== undefined ? (param.value === "true" ? true : false) : false, timestamp: param !== undefined ? param.timestamp : 0 };
+                    return { value: value !== undefined ? (value.value === "true" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
                 }
-                return { value: param !== undefined ? (param.value === "0" ? true : false) : false, timestamp: param !== undefined ? param.timestamp : 0 };
+                return { value: value !== undefined ? (value.value === "0" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
             }
         } catch (error) {
             this.log.error("Convert Error:", { property: property, value: value, error: error });

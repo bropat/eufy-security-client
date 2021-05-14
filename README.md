@@ -96,6 +96,14 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.8.1 (2021-05-14)
+
+* (bropat) Fixed (raw) property value refresh for devices and stations
+* (bropat) Fixed "enabled" property for standalone devices
+* (bropat) Fixed "lanIpAddress" property for standalone devices
+* (bropat) Fixed "macAddress" property for standalone devices
+* (bropat) Added "station raw property changed" and "device raw property changed" event for high level class EufySecurity
+
 ### 0.8.0 (2021-05-12)
 
 * (bropat) **Breaking Changes** (renamed emitter, renamed some functions etc.)

@@ -1,6 +1,6 @@
 {
   "name": "eufy-security-client",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Client to comunicate with Eufy-Security devices",
   "author": {
     "name": "bropat",
@@ -24,7 +24,8 @@
     "cam",
     "cameras",
     "security",
-    "eufy-security"
+    "eufy-security",
+    "doorbell"
   ],
   "repository": {
     "type": "git",
