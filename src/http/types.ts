@@ -183,9 +183,13 @@ export enum SupportedFeature {
     Ringing,
     LocalStorage,
     OpenClose,
+    RebootHUB,
 }
 
 export const SupportedFeatures: ISupportedFeatures = {
+    [DeviceType.STATION]: [
+        SupportedFeature.RebootHUB
+    ],
     [DeviceType.BATTERY_DOORBELL]: [
         SupportedFeature.Battery,
         SupportedFeature.MotionDetection,
@@ -223,6 +227,7 @@ export const SupportedFeatures: ISupportedFeatures = {
         SupportedFeature.LocalStorage,
         SupportedFeature.Watermarking,
         SupportedFeature.Ringing,
+        SupportedFeature.RebootHUB,
     ],
     [DeviceType.CAMERA]: [
         SupportedFeature.Battery,
@@ -300,6 +305,7 @@ export const SupportedFeatures: ISupportedFeatures = {
         SupportedFeature.Watermarking,
         SupportedFeature.RTSP,
         SupportedFeature.LocalStorage,
+        SupportedFeature.RebootHUB,
     ],
     [DeviceType.INDOOR_CAMERA]: [
         SupportedFeature.MotionDetection,
@@ -314,6 +320,7 @@ export const SupportedFeatures: ISupportedFeatures = {
         SupportedFeature.Watermarking,
         SupportedFeature.RTSP,
         SupportedFeature.Speaker,
+        SupportedFeature.RebootHUB,
     ],
     [DeviceType.INDOOR_CAMERA_1080]: [
         SupportedFeature.MotionDetection,
@@ -328,6 +335,7 @@ export const SupportedFeatures: ISupportedFeatures = {
         SupportedFeature.Watermarking,
         SupportedFeature.RTSP,
         SupportedFeature.Speaker,
+        SupportedFeature.RebootHUB,
     ],
     [DeviceType.INDOOR_PT_CAMERA]: [
         SupportedFeature.MotionDetection,
@@ -342,6 +350,7 @@ export const SupportedFeatures: ISupportedFeatures = {
         SupportedFeature.Watermarking,
         SupportedFeature.RTSP,
         SupportedFeature.Speaker,
+        SupportedFeature.RebootHUB,
     ],
     [DeviceType.INDOOR_PT_CAMERA_1080]: [
         SupportedFeature.MotionDetection,
@@ -356,6 +365,7 @@ export const SupportedFeatures: ISupportedFeatures = {
         SupportedFeature.Watermarking,
         SupportedFeature.RTSP,
         SupportedFeature.Speaker,
+        SupportedFeature.RebootHUB,
     ],
     [DeviceType.KEYPAD]: [
     ],
@@ -415,6 +425,7 @@ export enum PropertyName {
     SerialNumber = "serialNumber",
     HardwareVersion = "hardwareVersion",
     SoftwareVersion = "softwareVersion",
+    Type = "type",
     DeviceStationSN = "stationSerialNumber",
     DeviceBattery = "battery",
     DeviceBatteryTemp = "batteryTemperature",
@@ -499,10 +510,46 @@ export const GenericSWVersionProperty: PropertyMetadataString = {
     type: "string",
 }
 
+export const GenericTypeProperty: PropertyMetadataNumeric = {
+    key: "device_type",
+    name: PropertyName.Type,
+    label: "Type",
+    readable: true,
+    writeable: false,
+    type: "number",
+    states: {
+        0: "Station",
+        1: "Camera",
+        2: "Sensor",
+        3: "Floodlight",
+        4: "Camera E",
+        5: "Doorbell",
+        7: "Battery Doorbell",
+        8: "Camera 2",
+        9: "Camera 2c",
+        10: "Motion Sensor",
+        11: "Keypad",
+        14: "Camera 2 Pro",
+        15: "Camera 2c Pro",
+        16: "Battery Doorbell 2",
+        30: "Indoor Camera",
+        31: "Indoor Camera PT",
+        32: "Solo Camera",
+        33: "Solo Camera Pro",
+        34: "Indoor Camera 1080",
+        35: "Indoor Camera PT 1080",
+        50: "Lock Basic",
+        51: "Lock Advanced",
+        52: "Lock Basic No Finger",
+        53: "Lock Basic Advanced No Finger",
+    },
+}
+
 export const BaseDeviceProperties: IndexedProperty = {
     [DeviceNameProperty.name]: DeviceNameProperty,
     [DeviceModelProperty.name]: DeviceModelProperty,
     [DeviceSerialNumberProperty.name]: DeviceSerialNumberProperty,
+    [GenericTypeProperty.name]: GenericTypeProperty,
     [GenericHWVersionProperty.name]: GenericHWVersionProperty,
     [GenericSWVersionProperty.name]: GenericSWVersionProperty,
 }
@@ -1254,6 +1301,7 @@ export const BaseStationProperties: IndexedProperty = {
     [StationNameProperty.name]: StationNameProperty,
     [StationModelProperty.name]: StationModelProperty,
     [StationSerialNumberProperty.name]: StationSerialNumberProperty,
+    [GenericTypeProperty.name]: GenericTypeProperty,
     [GenericHWVersionProperty.name]: GenericHWVersionProperty,
     [GenericSWVersionProperty.name]: GenericSWVersionProperty,
 }

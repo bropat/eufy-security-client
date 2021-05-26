@@ -3,7 +3,7 @@ import { Readable } from "stream";
 import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
-import { AlarmMode, DeviceType, GuardMode, ParamType, PropertyName, StationProperties, SupportedFeature } from "./types";
+import { AlarmMode, DeviceType, GuardMode, ParamType, PropertyName, StationProperties, SupportedFeature, SupportedFeatures } from "./types";
 import { DskKeyResponse, HubResponse, ResultResponse } from "./models"
 import { ParameterHelper } from "./parameter";
 import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValue, RawValues, StationEvents } from "./interfaces";
@@ -583,10 +583,20 @@ export class Station extends TypedEmitter<StationEvents> {
             }, delay);
     }
 
+    public getSupportedFeatures(): Array<SupportedFeature> {
+        return SupportedFeatures[this.getDeviceType()];
+    }
+
+    public isFeatureSupported(feature: SupportedFeature): boolean {
+        return SupportedFeatures[this.getDeviceType()].includes(feature);
+    }
+
     public async rebootHUB(): Promise<void> {
+        if (!this.isFeatureSupported(SupportedFeature.RebootHUB)) {
+            throw new NotSupportedFeatureError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
         if (!this.p2pSession || !this.p2pSession.isConnected()) {
-            this.log.warn(`P2P connection to station ${this.getSerial()} not present, command aborted`);
-            return;
+            throw new NotConnectedError(`No p2p connection to station ${this.getSerial()}`);
         }
         this.log.debug(`P2P connection to station ${this.getSerial()} present, reboot requested`);
         await this.p2pSession.sendCommandWithInt(CommandType.CMD_HUB_REBOOT, 0, this.rawStation.member.admin_user_id, Station.CHANNEL);

@@ -96,6 +96,12 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.8.2 (2021-05-26)
+
+* (bropat) Fixed issue [#2](https://github.com/bropat/eufy-security-client/issues/2)
+* (bropat) Added new high level property "type" for devices/stations
+* (bropat) Updated versions of the package dependencies
+
 ### 0.8.1 (2021-05-14)
 
 * (bropat) Fixed (raw) property value refresh for devices and stations

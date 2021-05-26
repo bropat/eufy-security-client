@@ -53,7 +53,7 @@ export interface P2PDataHeader {
 
 export interface P2PDataMessage extends P2PDataHeader {
     seqNo: number;
-    data_type: P2PDataType;
+    dataType: P2PDataType;
     data: Buffer;
 }
 
@@ -97,10 +97,6 @@ export interface P2PDataMessageAudio {
     audioSeqNo: number;
     audioTimestamp: number;
     audioDataLength: number;
-}
-
-export interface P2PBinaryMessageBuilder extends P2PDataMessageBuilder {
-    metadata: P2PDataMessageVideo | P2PDataMessageAudio | null
 }
 
 export interface StreamMetadata {

@@ -1,6 +1,6 @@
 {
   "name": "eufy-security-client",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Client to comunicate with Eufy-Security devices",
   "author": {
     "name": "bropat",
@@ -47,16 +47,15 @@
     "fs-extra": "^10.0.0"
   },
   "devDependencies": {
-    "@types/node": "^15.0.2",
+    "@types/node": "^15.6.1",
     "@types/qs": "^6.9.6",
     "@types/node-rsa": "^1.1.0",
     "@types/crypto-js": "^4.0.1",
     "@types/fs-extra": "^9.0.11",
-    "@typescript-eslint/eslint-plugin": "^4.23.0",
-    "@typescript-eslint/parser": "^4.23.0",
-    "eslint": "^7.26.0",
-    "ts-node": "^9.1.1",
-    "typescript": "^4.2.4"
+    "@typescript-eslint/eslint-plugin": "^4.25.0",
+    "@typescript-eslint/parser": "^4.25.0",
+    "eslint": "^7.27.0",
+    "typescript": "^4.3.2"
   },
   "bugs": {
     "url": "https://github.com/bropat/eufy-security-client/issues"
