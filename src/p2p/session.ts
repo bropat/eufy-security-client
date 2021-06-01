@@ -655,7 +655,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
                     data = data.slice(this.P2P_DATA_HEADER_BYTES);
 
-                    if (data.length > header.bytesToRead) {
+                    if (data.length >= header.bytesToRead) {
                         const payload = data.slice(0, header.bytesToRead);
                         this.currentMessageBuilder[message.type].messages[message.seqNo] = payload;
                         this.currentMessageBuilder[message.type].bytesRead = payload.byteLength;

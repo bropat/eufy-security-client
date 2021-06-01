@@ -61,7 +61,7 @@ One client instance will show all devices from one Eufy Cloud account and allows
 
 * WIP
 
-*As an example, you can look at the following project: [ioBroker.eufy-security](https://github.com/bropat/ioBroker.eufy-security)*
+*As an example, you can look at the following projects: [ioBroker.eufy-security](https://github.com/bropat/ioBroker.eufy-security), [eufy-security-ws](https://github.com/bropat/eufy-security-ws)*
 
 ## Known working devices
 
@@ -95,6 +95,10 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 Please use GitHub issues for this.
 
 ## Changelog
+
+### 0.8.3 (2021-06-01)
+
+* (bropat) Fixed regression in p2p protocol
 
 ### 0.8.2 (2021-05-26)
 
