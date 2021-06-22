@@ -294,9 +294,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }
             if (message.event_type === CusPushEvent.ALARM && message.station_sn === this.getSerial()) {
-                this.log.info("Received push notification for changing alarm mode", { guard_mode: message.station_guard_mode, current_mode: message.station_current_mode, stationSN: message.station_sn });
+                this.log.info("Received push notification for alarm triggered", { sound_alarm: message.sound_alarm, stationSN: message.station_sn });
                 try {
-                    let alarmModeChanged = false;
                     if (message.sound_alarm !== undefined) {
                         this.emit("alarm mode", this, message.sound_alarm);
                     }
