@@ -52,7 +52,7 @@ export interface EufySecurityEvents {
     "station command result": (station: Station, result: CommandResult) => void;
     "station rtsp url": (station: Station, device: Device, value: string, modified: number) => void;
     "station guard mode": (station: Station, guardMode: number, currentMode: number) => void;
-    "station alarm mode": (station: Station, alarmMode: boolean) => void;
+    "station alarm mode": (station: Station, alarm_type: number) => void;
     "station property changed": (station: Station, name: string, value: PropertyValue) => void;
     "station raw property changed": (station: Station, type: number, value: string, modified: number) => void;
     "push connect": () => void;

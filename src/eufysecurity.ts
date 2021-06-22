@@ -314,7 +314,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 station.on("download finish", (station: Station, channel: number) => this.onStationFinishDownload(station, channel));
                 station.on("command result", (station: Station, result: CommandResult) => this.onStationCommandResult(station, result));
                 station.on("guard mode", (station: Station, guardMode: number, currentMode: number) => this.onStationGuardMode(station, guardMode, currentMode));
-                station.on("alarm mode", (station: Station, alarmMode: boolean) => this.onAlarmMode(station, alarmMode));
+                station.on("alarm mode", (station: Station, alarm_type: number) => this.onAlarmMode(station, alarm_type));
                 station.on("rtsp url", (station: Station, channel:number, value: string, modified: number) => this.onStationRtspUrl(station, channel, value, modified));
                 station.on("property changed", (station: Station, name: string, value: PropertyValue) => this.onStationPropertyChanged(station, name, value));
                 station.on("raw property changed", (station: Station, type: number, value: string, modified: number) => this.onStationRawPropertyChanged(station, type, value, modified));
@@ -822,8 +822,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.emit("station guard mode", station, guardMode, currentMode);
     }
 
-    private onAlarmMode(station: Station, alarmMode: boolean): void {
-        this.emit("station alarm mode", station, alarmMode);
+    private onAlarmMode(station: Station, alarm_type: number): void {
+        this.emit("station alarm mode", station, alarm_type);
     }
 
     private onStationPropertyChanged(station: Station, name: string, value: PropertyValue): void {

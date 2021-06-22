@@ -275,7 +275,6 @@ export class Station extends TypedEmitter<StationEvents> {
 
     public processPushNotification(message: PushMessage): void {
         if (message.type !== undefined && message.event_type !== undefined) {
-            this.log.info("Received push notification for changing guard mode", { message });
             if (message.event_type === CusPushEvent.MODE_SWITCH && message.station_sn === this.getSerial()) {
                 this.log.info("Received push notification for changing guard mode", { guard_mode: message.station_guard_mode, current_mode: message.station_current_mode, stationSN: message.station_sn });
                 try {
@@ -294,10 +293,10 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }
             if (message.event_type === CusPushEvent.ALARM && message.station_sn === this.getSerial()) {
-                this.log.info("Received push notification for alarm triggered", { sound_alarm: message.sound_alarm, stationSN: message.station_sn });
+                this.log.info("Received push notification for alarm triggered", { alarm_type: message.alarm_type, stationSN: message.station_sn });
                 try {
-                    if (message.sound_alarm !== undefined) {
-                        this.emit("alarm mode", this, message.sound_alarm);
+                    if (message.alarm_type !==  undefined) {
+                        this.emit("alarm mode", this, message.alarm_type);
                     }
                 } catch (error) {
                     this.log.debug(`Station ${message.station_sn} ALARM event (${message.event_type}) - Error:`, error);
@@ -516,7 +515,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     private onCameraInfo(cameraInfo: CmdCameraInfoResponse): void {
-        this.log.info("Got camera infos", { station: this.getSerial(), cameraInfo: cameraInfo });
+        this.log.debug("Got camera infos", { station: this.getSerial(), cameraInfo: cameraInfo });
         const devices: { [index: string]: RawValues; } = {};
         const timestamp = +new Date;
         let guardModeChanged = false;

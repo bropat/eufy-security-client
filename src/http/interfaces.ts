@@ -144,7 +144,7 @@ export interface StationEvents {
     "livestream stop": (station: Station, channel:number) => void;
     "rtsp url": (station: Station, channel:number, value: string, modified: number) => void;
     "guard mode": (station: Station, guardMode: number, currentMode: number) => void;
-    "alarm mode": (station: Station, alarmMode: boolean) => void;
+    "alarm mode": (station: Station, alarm_type: number) => void;
 }
 
 export interface DeviceEvents {
