@@ -59,9 +59,88 @@ One client instance will show all devices from one Eufy Cloud account and allows
 
 ## Documentation
 
-* WIP
-
+### Sample projects
 *As an example, you can look at the following projects: [ioBroker.eufy-security](https://github.com/bropat/ioBroker.eufy-security), [eufy-security-ws](https://github.com/bropat/eufy-security-ws)*
+
+### Getting started without 2FA
+Setting up EufySecurity
+```
+const { EufySecurity } = require('eufy-security-client');
+
+const config = {
+  country: 'nl',
+  username: 'xxxx,
+  password: xxxx,
+};
+const eufy = new EufySecurity(config);
+await eufy.connect()
+```
+todo: list of config params
+
+### Getting data from API
+To get data first the the data need to be refreshed.
+```
+await eufy.refreshData();
+const stations = await eufy.getStations();
+```
+### Working with (base)stations
+To update a basestation to change arming mode first we need to retrieve the serial number of the base station.
+```
+await eufy.refreshData();
+const stations = await eufy.getStations();
+const targetStationSerialNumber = stations[0].properties.serialNumber.value;
+```
+
+With the serialnumber you can start a P2P(local network) connection to the  basestation to send commands.
+
+```
+ eufy
+  .getStation(targetStationSerialNumber) //get SN from use eufy.getStations
+  .on('connect', (station) => {
+    //work with the connected station
+    let currentMode = station.getGuardMode().value;
+    console.log(currentMode)
+    station.close(); 
+  });
+```
+
+#### set arming mode
+when connected to the station you can send commands, eg change arming mode
+
+To get correct arming mode commands:
+```
+const { GuardMode } = require('eufy-security-client/build/http/types');'
+```
+
+```
+ const armMode = GuardMode.AWAY; 
+  
+ eufy
+  .getStation(targetStationSerialNumber) 
+  .on('connect', (station) => {
+    let currentMode = station.getGuardMode().value;
+    if (currentMode === armMode) { //nothing to change
+      station.close();
+    } else {
+      station.setGuardMode(armMode);
+    }
+  })
+  .on('guard mode', (station) => {
+    let currentModeInt = station.getGuardMode().value;
+    let currentModeName = GuardMode[currentModeInt];
+    console.log('guard mode changed to:' + currentModeName;);
+    station.close();
+  })
+  .on('close', () => 
+    console.log(connection to '+targetStationSerialNumber+' is closed');          
+  });
+  
+```
+
+
+
+
+
 
 ## Known working devices
 
