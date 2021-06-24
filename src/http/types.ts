@@ -463,6 +463,7 @@ export enum PropertyName {
     StationMacAddress = "macAddress",
     StationGuardMode = "guardMode",
     StationCurrentMode = "currentMode",
+    StationAlarmType = "alarmType",
 }
 
 export const DeviceNameProperty: PropertyMetadataString = {
@@ -972,7 +973,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
         [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
-        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        // [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
     },
     [DeviceType.CAMERA2C]: {
         ...GenericDeviceProperties,
@@ -1340,6 +1341,20 @@ export const StationCurrentModeProperty: PropertyMetadataNumeric = {
     },
 }
 
+// export const StationAlarmTypeProperty: PropertyMetadataNumeric = {
+//     key: ParamType.ALARM_TYPE,
+//     name: PropertyName.StationAlarmType,
+//     label: "Alarm Type",
+//     readable: true,
+//     writeable: false,
+//     type: "number",
+//     states: {
+//         0: "AWAY",
+//         1: "HOME",
+//         63: "DISARMED",
+//     },
+// }
+
 export const StationLanIpAddressProperty: PropertyMetadataString = {
     key: CommandType.CMD_GET_HUB_LAN_IP,
     name: PropertyName.StationLANIpAddress,
@@ -1371,6 +1386,7 @@ export const StationProperties: Properties = {
         [PropertyName.StationMacAddress]: StationMacAddressProperty,
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+        // [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.INDOOR_CAMERA]: {
         ...BaseStationProperties,

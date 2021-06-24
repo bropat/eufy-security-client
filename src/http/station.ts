@@ -294,8 +294,10 @@ export class Station extends TypedEmitter<StationEvents> {
             }
             if (message.event_type === CusPushEvent.ALARM && message.station_sn === this.getSerial()) {
                 this.log.info("Received push notification for alarm triggered", { alarm_type: message.alarm_type, stationSN: message.station_sn });
+                this.log.info("Received push notification for alarm triggered", { message });
                 try {
                     if (message.alarm_type !==  undefined) {
+                        // this.updateRawProperty(CommandType.CMD_GET_ALARM_TYPE, { value: message.alarm_type.toString(), timestamp: convertTimestampMs(message.event_time) })
                         this.emit("alarm mode", this, message.alarm_type);
                     }
                 } catch (error) {
