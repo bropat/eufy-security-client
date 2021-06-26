@@ -748,6 +748,8 @@ export class Camera extends Device {
                         // Person or someone identified
                         this.updateProperty(PropertyName.DevicePersonDetected, { value: true, timestamp: message.event_time });
                         this.updateProperty(PropertyName.DevicePersonName, { value: !isEmpty(message.person_name) ? message.person_name! : "Unknown", timestamp: message.event_time });
+                        if (!isEmpty (message.pic_url))
+                            this.updateProperty(PropertyName.DevicePictureUrl, { value: message.pic_url, timestamp: message.event_time})
                         if (message.push_count === 1 || message.push_count === undefined)
                             this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected).value as boolean, this.getPropertyValue(PropertyName.DevicePersonName).value as string);
 
@@ -762,6 +764,8 @@ export class Camera extends Device {
                     } else {
                         // Motion detected
                         this.updateProperty(PropertyName.DeviceMotionDetected, { value: true, timestamp: message.event_time });
+                        if (!isEmpty (message.pic_url))
+                            this.updateProperty(PropertyName.DevicePictureUrl, { value: message.pic_url, timestamp: message.event_time})
                         if (message.push_count === 1 || message.push_count === undefined)
                             this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected).value as boolean);
                         this.clearEventTimeout(DeviceEvent.MotionDetected);
@@ -868,6 +872,8 @@ export class IndoorCamera extends Camera {
                     switch (message.event_type) {
                         case IndoorPushEvent.MOTION_DETECTION:
                             this.updateProperty(PropertyName.DeviceMotionDetected, { value: true, timestamp: message.event_time });
+                            if (!isEmpty (message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, { value: message.pic_url, timestamp: message.event_time})
                             if (message.push_count === 1 || message.push_count === undefined)
                                 this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected).value as boolean);
                             this.clearEventTimeout(DeviceEvent.MotionDetected);
@@ -880,6 +886,8 @@ export class IndoorCamera extends Camera {
                         case IndoorPushEvent.FACE_DETECTION:
                             this.updateProperty(PropertyName.DevicePersonDetected, { value: true, timestamp: message.event_time });
                             this.updateProperty(PropertyName.DevicePersonName, { value: !isEmpty(message.person_name) ? message.person_name! : "Unknown", timestamp: message.event_time });
+                            if (!isEmpty (message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, { value: message.pic_url, timestamp: message.event_time})
                             if (message.push_count === 1 || message.push_count === undefined)
                                 this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected).value as boolean, this.getPropertyValue(PropertyName.DevicePersonName).value as string);
                             this.clearEventTimeout(DeviceEvent.PersonDetected);
@@ -915,6 +923,8 @@ export class IndoorCamera extends Camera {
                             break;
                         case IndoorPushEvent.PET_DETECTION:
                             this.updateProperty(PropertyName.DevicePetDetected, { value: true, timestamp: message.event_time });
+                            if (!isEmpty (message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, { value: message.pic_url, timestamp: message.event_time})
                             if (message.push_count === 1 || message.push_count === undefined)
                                 this.emit("pet detected", this, this.getPropertyValue(PropertyName.DevicePetDetected).value as boolean);
                             this.clearEventTimeout(DeviceEvent.PetDetected);
@@ -961,6 +971,8 @@ export class DoorbellCamera extends Camera {
                     switch (message.event_type) {
                         case DoorbellPushEvent.MOTION_DETECTION:
                             this.updateProperty(PropertyName.DeviceMotionDetected, { value: true, timestamp: message.event_time });
+                            if (!isEmpty (message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, { value: message.pic_url, timestamp: message.event_time})
                             if (message.push_count === 1 || message.push_count === undefined)
                                 this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected).value as boolean);
                             this.clearEventTimeout(DeviceEvent.MotionDetected);
@@ -973,6 +985,8 @@ export class DoorbellCamera extends Camera {
                         case DoorbellPushEvent.FACE_DETECTION:
                             this.updateProperty(PropertyName.DevicePersonDetected, { value: true, timestamp: message.event_time });
                             this.updateProperty(PropertyName.DevicePersonName, { value: !isEmpty(message.person_name) ? message.person_name! : "Unknown", timestamp: message.event_time });
+                            if (!isEmpty (message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, { value: message.pic_url, timestamp: message.event_time})
                             if (message.push_count === 1 || message.push_count === undefined)
                                 this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected).value as boolean, this.getPropertyValue(PropertyName.DevicePersonName).value as string);
                             this.clearEventTimeout(DeviceEvent.PersonDetected);
@@ -1222,6 +1236,8 @@ export class MotionSensor extends Sensor {
             if (message.event_type === CusPushEvent.MOTION_SENSOR_PIR && message.device_sn === this.getSerial()) {
                 try {
                     this.updateProperty(PropertyName.DeviceMotionDetection, { value: true, timestamp: message.event_time });
+                    if (!isEmpty (message.pic_url))
+                        this.updateProperty(PropertyName.DevicePictureUrl, { value: message.pic_url, timestamp: message.event_time})
                     this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected).value as boolean);
                     this.clearEventTimeout(DeviceEvent.MotionDetected);
                     this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
