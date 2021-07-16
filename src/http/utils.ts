@@ -1,6 +1,6 @@
-import { DeviceType } from "./types";
+import { NotificationSwitchMode, DeviceType } from "./types";
 
-export const isGreaterMinVersion = function(minimal_version: string, current_version: string): boolean {
+export const isGreaterEqualMinVersion = function(minimal_version: string, current_version: string): boolean {
     if (minimal_version === undefined)
         minimal_version = "";
     if (current_version === undefined)
@@ -48,4 +48,26 @@ export const getAbsoluteFilePath = function(device_type:number, channel: number,
         return `/mnt/data/Camera${String(channel).padStart(2,"0")}/${filename}.dat`;
     }
     return `/media/mmcblk0p1/Camera${String(channel).padStart(2,"0")}/${filename}.dat`;
+}
+
+export const isNotificationSwitchMode = function(value: number, mode: NotificationSwitchMode): boolean {
+    if (value === 1)
+        value = 240;
+    return (value & mode) !== 0;
+}
+
+export const switchNotificationMode = function(currentValue: number, mode: NotificationSwitchMode, enable: boolean): number {
+    let result = 0;
+    if (!enable && currentValue === 1 /* ALL */) {
+        currentValue = 240;
+    }
+    if (enable) {
+        result = mode | currentValue;
+    } else {
+        result = ~mode & currentValue;
+    }
+    if (isNotificationSwitchMode(result, NotificationSwitchMode.SCHEDULE) && isNotificationSwitchMode(result, NotificationSwitchMode.APP) && isNotificationSwitchMode(result, NotificationSwitchMode.GEOFENCE) && isNotificationSwitchMode(result, NotificationSwitchMode.KEYPAD)) {
+        result = 1; /* ALL */
+    }
+    return result;
 }

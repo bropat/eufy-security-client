@@ -4,9 +4,9 @@ import { dummyLogger, Logger } from "ts-log";
 import { isValid as isValidCountry } from "i18n-iso-countries";
 import { isValid as isValidLanguage } from "@cospired/i18n-iso-languages";
 
-import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse } from "./models"
-import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices } from "./interfaces";
-import { AuthResult, EventFilterType, ResponseErrorCode, StorageType, VerfyCodeTypes } from "./types";
+import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite } from "./models"
+import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites } from "./interfaces";
+import { AuthResult, EventFilterType, PublicKeyType, ResponseErrorCode, StorageType, VerfyCodeTypes } from "./types";
 import { ParameterHelper } from "./parameter";
 import { getTimezoneGMTString } from "./utils";
 import { InvalidCountryCodeError, InvalidLanguageCodeError } from "./../error";
@@ -681,6 +681,96 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public isConnected(): boolean {
         return this.connected;
+    }
+
+    public async getInvites(): Promise<Invites> {
+        try {
+            const response = await this.request("post", "family/get_invites", {
+                num: 100,
+                orderby: "",
+                own: false,
+                page: 0,
+                transaction: `${new Date().getTime().toString()}`
+            }, this.headers).catch(error => {
+                this.log.error("Error:", error);
+                return error;
+            });
+            this.log.debug("Response:", response.data);
+
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.data) {
+                        const invites: Invites = {};
+                        result.data.forEach((invite: Invite) => {
+                            invites[invite.invite_id] = invite;
+                            invites[invite.invite_id].devices = JSON.parse((invites[invite.invite_id].devices as unknown) as string);
+                        });
+                        return invites;
+                    }
+                } else {
+                    this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                }
+            } else {
+                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+            }
+        } catch (error) {
+            this.log.error("Generic Error:", error);
+        }
+        return {};
+    }
+
+    public async confirmInvites(confirmInvites: Array<ConfirmInvite>): Promise<boolean> {
+        try {
+            const response = await this.request("post", "family/confirm_invite", {
+                invites: confirmInvites,
+                transaction: `${new Date().getTime().toString()}`
+            }, this.headers).catch(error => {
+                this.log.error("Error:", error);
+                return error;
+            });
+            this.log.debug("Response:", response.data);
+
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    return true;
+                } else {
+                    this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                }
+            } else {
+                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+            }
+        } catch (error) {
+            this.log.error("Generic Error:", error);
+        }
+        return false;
+    }
+
+    public async getPublicKey(deviceSN: string, type: PublicKeyType): Promise<string> {
+        try {
+            const response = await this.request("get", `public_key/query?device_sn=${deviceSN}&type=${type}`, null, this.headers).catch(error => {
+                this.log.error("Error:", error);
+                return error;
+            });
+            this.log.debug("Response:", response.data);
+
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.data) {
+                        return result.data.public_key;
+                    }
+                } else {
+                    this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                }
+            } else {
+                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+            }
+        } catch (error) {
+            this.log.error("Generic Error:", error);
+        }
+        return "";
     }
 
 }

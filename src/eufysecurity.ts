@@ -7,8 +7,8 @@ import { EufySecurityEvents, EufySecurityConfig, EufySecurityPersistentData } fr
 import { HTTPApi } from "./http/api";
 import { Devices, FullDevices, Hubs, PropertyValue, RawValues, Stations } from "./http/interfaces";
 import { Station } from "./http/station";
-import { FullDeviceResponse, HubResponse } from "./http/models";
-import { AuthResult, DeviceType, PropertyName, SupportedFeature } from "./http/types";
+import { ConfirmInvite, FullDeviceResponse, HubResponse, Invite } from "./http/models";
+import { AuthResult, CommandName, DeviceType, FloodlightMotionTriggeredDistance, NotificationSwitchMode, NotificationType, PropertyName } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
 import { BatteryDoorbellCamera, Camera, Device, DoorbellCamera, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SoloCamera, UnknownDevice } from "./http/device";
@@ -16,10 +16,11 @@ import { CommandType, P2PConnectionType } from "./p2p/types";
 import { StreamMetadata } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
 import { generateSerialnumber, generateUDID, handleUpdate, md5, parseValue, removeLastChar } from "./utils";
-import { DeviceNotFoundError, NotSupportedFeatureError, DuplicateDeviceError, DuplicateStationError, StationNotFoundError, ReadOnlyPropertyError } from "./error";
+import { DeviceNotFoundError, DuplicateDeviceError, DuplicateStationError, StationNotFoundError, ReadOnlyPropertyError, InvalidPropertyValueError, NotSupportedError } from "./error";
 import { libVersion } from ".";
 import { InvalidPropertyError } from "./http/error";
 import { Readable } from "stream";
+import { ServerPushEvent } from "./push";
 
 export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
@@ -33,7 +34,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private devices: Devices = {};
 
     private cameraMaxLivestreamSeconds = 30;
-    private pollingIntervalMinutes = 10;
     private cameraStationLivestreamTimeout: Map<string, NodeJS.Timeout> = new Map<string, NodeJS.Timeout>();
     private cameraCloudLivestreamTimeout: Map<string, NodeJS.Timeout> = new Map<string, NodeJS.Timeout>();
 
@@ -78,6 +78,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.config.p2pConnectionSetup = P2PConnectionType.PREFER_LOCAL;
         } else if (!Object.values(P2PConnectionType).includes(this.config.p2pConnectionSetup)) {
             this.config.p2pConnectionSetup = P2PConnectionType.PREFER_LOCAL;
+        }
+        if (this.config.pollingIntervalMinutes === undefined) {
+            this.config.pollingIntervalMinutes = 10;
+        }
+        if (this.config.acceptInvitations === undefined) {
+            this.config.acceptInvitations = false;
         }
         if (this.config.persistentDir === undefined) {
             this.config.persistentDir = path.resolve(__dirname, "..");
@@ -184,7 +190,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (serial && !Object.keys(this.stations).includes(serial)) {
             this.stations[serial] = station;
             this.emit("station added", station);
-            station.connect(this.config.p2pConnectionSetup, true);
+            station.setConnectionType(this.config.p2pConnectionSetup);
+            station.setQuickStreamStart(true);
+            station.connect();
         } else {
             throw new DuplicateStationError(`Station with this serial ${station.getSerial()} exists already and couldn't be added again!`);
         }
@@ -206,8 +214,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private updateStation(hub: HubResponse): void {
         if (Object.keys(this.stations).includes(hub.station_sn)) {
             this.stations[hub.station_sn].update(hub);
-            if (!this.stations[hub.station_sn].isConnected())
-                this.stations[hub.station_sn].connect(this.config.p2pConnectionSetup, true);
+            if (!this.stations[hub.station_sn].isConnected()) {
+                this.stations[hub.station_sn].setConnectionType(this.config.p2pConnectionSetup);
+                this.stations[hub.station_sn].setQuickStreamStart(true);
+                this.stations[hub.station_sn].connect();
+            }
         } else {
             throw new StationNotFoundError(`Station with this serial ${hub.station_sn} doesn't exists and couldn't be updated!`);
         }
@@ -283,9 +294,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async connectToStation(stationSN: string, p2pConnectionType: P2PConnectionType = P2PConnectionType.PREFER_LOCAL): Promise<void> {
-        if (Object.keys(this.stations).includes(stationSN))
-            this.stations[stationSN].connect(p2pConnectionType, true);
-        else
+        if (Object.keys(this.stations).includes(stationSN)) {
+            this.stations[stationSN].setConnectionType(p2pConnectionType);
+            this.stations[stationSN].setQuickStreamStart(true);
+            this.stations[stationSN].connect();
+        } else
             throw new StationNotFoundError(`No station with this serial number: ${stationSN}!`);
     }
 
@@ -313,7 +326,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 station.on("download start", (station: Station, channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => this.onStationStartDownload(station, channel, metadata, videoStream, audioStream));
                 station.on("download finish", (station: Station, channel: number) => this.onStationFinishDownload(station, channel));
                 station.on("command result", (station: Station, result: CommandResult) => this.onStationCommandResult(station, result));
-                station.on("guard mode", (station: Station, guardMode: number, currentMode: number) => this.onStationGuardMode(station, guardMode, currentMode));
+                station.on("guard mode", (station: Station, guardMode: number) => this.onStationGuardMode(station, guardMode));
+                station.on("current mode", (station: Station, currentMode: number) => this.onStationCurrentMode(station, currentMode));
                 station.on("rtsp url", (station: Station, channel:number, value: string, modified: number) => this.onStationRtspUrl(station, channel, value, modified));
                 station.on("property changed", (station: Station, name: string, value: PropertyValue) => this.onStationPropertyChanged(station, name, value));
                 station.on("raw property changed", (station: Station, type: number, value: string, modified: number) => this.onStationRawPropertyChanged(station, type, value, modified));
@@ -403,6 +417,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async refreshData(): Promise<void> {
+        if (this.config.acceptInvitations) {
+            await this.processInvitations();
+        }
         await this.api.updateDeviceInfo();
         Object.values(this.stations).forEach(async (station: Station) => {
             if (station.isConnected() && station.getDeviceType() !== DeviceType.DOORBELL)
@@ -529,15 +546,15 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         if (this.refreshEufySecurityTimeout !== undefined)
             clearTimeout(this.refreshEufySecurityTimeout);
-        this.refreshEufySecurityTimeout = setTimeout(() => { this.refreshData() }, this.pollingIntervalMinutes * 60 * 1000);
+        this.refreshEufySecurityTimeout = setTimeout(() => { this.refreshData() }, this.config.pollingIntervalMinutes * 60 * 1000);
     }
 
     public async startStationLivestream(deviceSN: string): Promise<void> {
         const device = this.getDevice(deviceSN);
         const station = this.getStation(device.getStationSerial());
 
-        if (!device.isFeatureSupported(SupportedFeature.Livestreaming))
-            throw new NotSupportedFeatureError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        if (!device.hasCommand(CommandName.DeviceStartLivestream))
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
 
         const camera = device as Camera;
         if (station.isConnected()) {
@@ -557,8 +574,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         const device = this.getDevice(deviceSN);
         const station = this.getStation(device.getStationSerial());
 
-        if (!device.isFeatureSupported(SupportedFeature.Livestreaming))
-            throw new NotSupportedFeatureError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        if (!device.hasCommand(CommandName.DeviceStartLivestream))
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
 
         const camera = device as Camera;
         if (!camera.isStreaming()) {
@@ -576,8 +593,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         const device = this.getDevice(deviceSN);
         const station = this.getStation(device.getStationSerial());
 
-        if (!device.isFeatureSupported(SupportedFeature.Livestreaming))
-            throw new NotSupportedFeatureError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        if (!device.hasCommand(CommandName.DeviceStopLivestream))
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
 
         if (station.isConnected() && station.isLiveStreaming(device)) {
             await station.stopLivestream(device);
@@ -596,8 +613,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         const device = this.getDevice(deviceSN);
         const station = this.getStation(device.getStationSerial());
 
-        if (!device.isFeatureSupported(SupportedFeature.Livestreaming))
-            throw new NotSupportedFeatureError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        if (!device.hasCommand(CommandName.DeviceStopLivestream))
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
 
         const camera = device as Camera;
         if (camera.isStreaming()) {
@@ -664,11 +681,45 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         return this.connected;
     }
 
+    private async processInvitations(): Promise<void> {
+        const invites = await this.api.getInvites();
+        if (Object.keys(invites).length > 0) {
+            const confirmInvites: Array<ConfirmInvite> = [];
+            for(const invite of Object.values(invites) as Invite[]) {
+                const devices: Array<string> = [];
+                invite.devices.forEach(device => {
+                    devices.push(device.device_sn);
+                });
+                if (devices.length > 0) {
+                    confirmInvites.push({
+                        invite_id: invite.invite_id,
+                        station_sn: invite.station_sn,
+                        device_sns: devices
+                    });
+                }
+            }
+            if (confirmInvites.length > 0) {
+                const result = await this.api.confirmInvites(confirmInvites);
+                if (result) {
+                    this.log.info(`Accepted received invitations`, confirmInvites);
+                    this.refreshData();
+                }
+            }
+        }
+    }
+
     private async onPushMessage(message: PushMessage): Promise<void> {
         this.emit("push message", message);
 
         try {
             this.log.debug("Received push message", message);
+            try {
+                if (message.type === ServerPushEvent.INVITE_DEVICE && this.config.acceptInvitations) {
+                    this.processInvitations();
+                }
+            } catch (error) {
+                this.log.error(`Error processing server push notification for device invitation`, error);
+            }
             this.getStations().forEach(station => {
                 try {
                     station.processPushNotification(message);
@@ -693,7 +744,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         const station = this.getStation(device.getStationSerial());
 
         if (!device.isCamera())
-            throw new NotSupportedFeatureError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
 
         if (station.isConnected()) {
             if (!station.isDownloading(device)) {
@@ -709,7 +760,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         const station = this.getStation(device.getStationSerial());
 
         if (!device.isCamera())
-            throw new NotSupportedFeatureError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
 
         if (station.isConnected() && station.isDownloading(device)) {
             await station.cancelDownload(device);
@@ -722,7 +773,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         return this.config;
     }
 
-    public setDeviceProperty(deviceSN: string, name: string, value: unknown): void {
+    public async setDeviceProperty(deviceSN: string, name: string, value: unknown): Promise<void> {
         const device = this.getDevice(deviceSN);
         const station = this.getStation(device.getStationSerial());
         const metadata = device.getPropertyMetadata(name);
@@ -731,34 +782,159 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         switch (name) {
             case PropertyName.DeviceEnabled:
-                station.enableDevice(device, value as boolean);
+                await station.enableDevice(device, value as boolean);
                 break;
             case PropertyName.DeviceStatusLed:
-                station.setStatusLed(device, value as boolean);
+                await station.setStatusLed(device, value as boolean);
                 break;
             case PropertyName.DeviceAutoNightvision:
-                station.setAutoNightVision(device, value as boolean);
+                await station.setAutoNightVision(device, value as boolean);
                 break;
             case PropertyName.DeviceMotionDetection:
-                station.setMotionDetection(device, value as boolean);
+                await station.setMotionDetection(device, value as boolean);
                 break;
             case PropertyName.DeviceSoundDetection:
-                station.setSoundDetection(device, value as boolean);
+                await station.setSoundDetection(device, value as boolean);
                 break;
             case PropertyName.DevicePetDetection:
-                station.setPetDetection(device, value as boolean);
+                await station.setPetDetection(device, value as boolean);
                 break;
             case PropertyName.DeviceRTSPStream:
-                station.setRTSPStream(device, value as boolean);
+                await station.setRTSPStream(device, value as boolean);
                 break;
             case PropertyName.DeviceAntitheftDetection:
-                station.setAntiTheftDetection(device, value as boolean);
+                await station.setAntiTheftDetection(device, value as boolean);
                 break;
             case PropertyName.DeviceLocked:
-                station.lockDevice(device, value as boolean);
+                await station.lockDevice(device, value as boolean);
                 break;
             case PropertyName.DeviceWatermark:
-                station.setWatermark(device, value as number);
+                await station.setWatermark(device, value as number);
+                break;
+            case PropertyName.DeviceLight:
+                await station.switchLight(device, value as boolean);
+                break;
+            case PropertyName.DeviceLightSettingsEnable:
+                await station.setFloodlightLightSettingsEnable(device, value as boolean);
+                break;
+            case PropertyName.DeviceLightSettingsBrightnessManual:
+                await station.setFloodlightLightSettingsBrightnessManual(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsBrightnessMotion:
+                await station.setFloodlightLightSettingsBrightnessMotion(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsBrightnessSchedule:
+                await station.setFloodlightLightSettingsBrightnessSchedule(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsMotionTriggered:
+                await station.setFloodlightLightSettingsMotionTriggered(device, value as boolean);
+                break;
+            case PropertyName.DeviceLightSettingsMotionTriggeredDistance:
+            {
+                let newValue: FloodlightMotionTriggeredDistance;
+                switch (value as number) {
+                    case 1: newValue = FloodlightMotionTriggeredDistance.MIN;
+                        break;
+                    case 2: newValue = FloodlightMotionTriggeredDistance.LOW;
+                        break;
+                    case 3: newValue = FloodlightMotionTriggeredDistance.MEDIUM;
+                        break;
+                    case 4: newValue = FloodlightMotionTriggeredDistance.HIGH;
+                        break;
+                    case 5: newValue = FloodlightMotionTriggeredDistance.MAX;
+                        break;
+                    default:
+                        throw new InvalidPropertyValueError(`Device ${deviceSN} not supported value "${value}" for property named "${name}"`);
+                }
+                await station.setFloodlightLightSettingsMotionTriggeredDistance(device, newValue);
+                break;
+            }
+            case PropertyName.DeviceLightSettingsMotionTriggeredTimer:
+                await station.setFloodlightLightSettingsMotionTriggeredTimer(device, value as number);
+                break;
+            case PropertyName.DeviceMicrophone:
+                await station.setMicMute(device, value as boolean);
+                break;
+            case PropertyName.DeviceSpeaker:
+                await station.enableSpeaker(device, value as boolean);
+                break;
+            case PropertyName.DeviceSpeakerVolume:
+                await station.setSpeakerVolume(device, value as number);
+                break;
+            case PropertyName.DeviceAudioRecording:
+                await station.setAudioRecording(device, value as boolean);
+                break;
+            case PropertyName.DevicePowerSource:
+                await station.setPowerSource(device, value as number);
+                break;
+            case PropertyName.DevicePowerWorkingMode:
+                await station.setPowerWorkingMode(device, value as number);
+                break;
+            case PropertyName.DeviceRecordingEndClipMotionStops:
+                await station.setRecordingEndClipMotionStops(device, value as boolean);
+                break;
+            case PropertyName.DeviceRecordingClipLength:
+                await station.setRecordingClipLength(device, value as number);
+                break;
+            case PropertyName.DeviceRecordingRetriggerInterval:
+                await station.setRecordingRetriggerInterval(device, value as number);
+                break;
+            case PropertyName.DeviceVideoStreamingQuality:
+                await station.setVideoStreamingQuality(device, value as number);
+                break;
+            case PropertyName.DeviceVideoRecordingQuality:
+                await station.setVideoRecordingQuality(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionSensivity:
+                await station.setMotionDetectionSensivity(device, value as number);
+                break;
+            case PropertyName.DeviceMotionTracking:
+                await station.setMotionTracking(device, value as boolean);
+                break;
+            case PropertyName.DeviceMotionDetectionType:
+                await station.setMotionDetectionType(device, value as number);
+                break;
+            case PropertyName.DeviceVideoWDR:
+                await station.setWDR(device, value as boolean);
+                break;
+            case PropertyName.DeviceRingtoneVolume:
+                await station.setRingtoneVolume(device, value as number);
+                break;
+            case PropertyName.DeviceChimeIndoor:
+                await station.enableIndoorChime(device, value as boolean);
+                break;
+            case PropertyName.DeviceChimeHomebase:
+                await station.enableHomebaseChime(device, value as boolean);
+                break;
+            case PropertyName.DeviceChimeHomebaseRingtoneVolume:
+                await station.setHomebaseChimeRingtoneVolume(device, value as number);
+                break;
+            case PropertyName.DeviceChimeHomebaseRingtoneType:
+                await station.setHomebaseChimeRingtoneType(device, value as number);
+                break;
+            case PropertyName.DeviceNotificationType:
+                await station.setNotificationType(device, value as NotificationType);
+                break;
+            case PropertyName.DeviceNotificationPerson:
+                await station.setNotificationPerson(device, value as boolean);
+                break;
+            case PropertyName.DeviceNotificationPet:
+                await station.setNotificationPet(device, value as boolean);
+                break;
+            case PropertyName.DeviceNotificationAllOtherMotion:
+                await station.setNotificationAllOtherMotion(device, value as boolean);
+                break;
+            case PropertyName.DeviceNotificationAllSound:
+                await station.setNotificationAllSound(device, value as boolean);
+                break;
+            case PropertyName.DeviceNotificationCrying:
+                await station.setNotificationCrying(device, value as boolean);
+                break;
+            case PropertyName.DeviceNotificationMotion:
+                await station.setNotificationMotion(device, value as boolean);
+                break;
+            case PropertyName.DeviceNotificationRing:
+                await station.setNotificationRing(device, value as boolean);
                 break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
@@ -767,14 +943,41 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
     }
 
-    public setStationProperty(stationSN: string, name: string, value: unknown): void {
+    public async setStationProperty(stationSN: string, name: string, value: unknown): Promise<void> {
         const station = this.getStation(stationSN);
         const metadata = station.getPropertyMetadata(name);
         value = parseValue(metadata, value);
 
         switch (name) {
             case PropertyName.StationGuardMode:
-                station.setGuardMode(value as number);
+                await station.setGuardMode(value as number);
+                break;
+            case PropertyName.StationAlarmTone:
+                await station.setStationAlarmTone(value as number);
+                break;
+            case PropertyName.StationAlarmVolume:
+                await station.setStationAlarmRingtoneVolume(value as number);
+                break;
+            case PropertyName.StationPromptVolume:
+                await station.setStationPromptVolume(value as number);
+                break;
+            case PropertyName.StationNotificationSwitchModeApp:
+                await station.setStationNotificationSwitchMode(NotificationSwitchMode.APP, value as boolean);
+                break;
+            case PropertyName.StationNotificationSwitchModeGeofence:
+                await station.setStationNotificationSwitchMode(NotificationSwitchMode.GEOFENCE, value as boolean);
+                break;
+            case PropertyName.StationNotificationSwitchModeSchedule:
+                await station.setStationNotificationSwitchMode(NotificationSwitchMode.SCHEDULE, value as boolean);
+                break;
+            case PropertyName.StationNotificationSwitchModeKeypad:
+                await station.setStationNotificationSwitchMode(NotificationSwitchMode.KEYPAD, value as boolean);
+                break;
+            case PropertyName.StationNotificationStartAlarmDelay:
+                await station.setStationNotificationStartAlarmDelay(value as boolean);
+                break;
+            case PropertyName.StationTimeFormat:
+                await station.setStationTimeFormat(value as number);
                 break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
@@ -817,8 +1020,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.emit("station rtsp url", station, device, value, modified);
     }
 
-    private onStationGuardMode(station: Station, guardMode: number, currentMode: number): void {
-        this.emit("station guard mode", station, guardMode, currentMode);
+    private onStationGuardMode(station: Station, guardMode: number): void {
+        this.emit("station guard mode", station, guardMode);
+    }
+
+    private onStationCurrentMode(station: Station, currentMode: number): void {
+        this.emit("station current mode", station, currentMode);
     }
 
     private onStationPropertyChanged(station: Station, name: string, value: PropertyValue): void {

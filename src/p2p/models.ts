@@ -33,3 +33,10 @@ export interface ESLStationP2PThroughData {
     seq_num?: number,
     stationSn?: string;
 }
+
+export interface LockBasicOnOffRequestPayload {
+    shortUserId: string;
+    slOperation: number;
+    userId: string;
+    userName: string;
+}

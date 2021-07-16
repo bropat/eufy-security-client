@@ -1,6 +1,7 @@
 import { Socket } from "dgram";
 import NodeRSA from "node-rsa";
 import CryptoJS from "crypto-js"
+import { randomBytes } from "crypto";
 
 import { P2PMessageParts } from "./interfaces";
 import { CommandType, P2PDataTypeHeader } from "./types";
@@ -368,4 +369,43 @@ export const eslTimestamp = function(timestamp_in_sec = new Date().getTime() / 1
         array[pos] = ((timestamp_in_sec >> (pos * 8)) & 255);
     }
     return array;
+}
+
+export const generateLockBasicAESKey = (): string => {
+    const randomBytesArray = [...randomBytes(16)];
+    let result = "";
+    for(let pos = 0; pos < randomBytesArray.length; pos++) {
+        result += "0123456789ABCDEF".charAt((randomBytesArray[pos] >> 4) & 15);
+        result += "0123456789ABCDEF".charAt(randomBytesArray[pos] & 15);
+    }
+    return result;
+}
+
+export const encryptLockBasicPublicKey = (key: string, data: Buffer): Buffer => {
+    const ekey = CryptoJS.enc.Hex.parse(key);
+    const encrypted = CryptoJS.AES.encrypt(CryptoJS.enc.Hex.parse(data.toString("hex")), ekey, {
+        mode: CryptoJS.mode.ECB,
+        padding: CryptoJS.pad.NoPadding
+    });
+    return Buffer.from(CryptoJS.enc.Hex.stringify(encrypted.ciphertext), "hex");
+}
+
+export const generateLockBasicSequence = (): number => {
+    return Math.trunc(Math.random() * 1000);
+}
+
+export const generateLockBasicPublicKeyAESKey = (userID: string): string => {
+    if (userID === undefined || userID === "") {
+        return "00000000000000000000000000000000";
+    }
+    if (userID.length > 32) {
+        return userID.substring(0, 32);
+    }
+    if (userID.length === 32) {
+        return userID;
+    }
+    for (let length = userID.length; length < 32; length++) {
+        userID += "0";
+    }
+    return userID;
 }

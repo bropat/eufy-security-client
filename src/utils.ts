@@ -1,6 +1,6 @@
 import * as crypto from "crypto";
 import { InvalidPropertyValueError } from "./error";
-import { PropertyMetadataAny } from "./http";
+import { PropertyMetadataAny, PropertyMetadataNumeric } from "./http";
 
 export const removeLastChar = function(text: string, char: string): string {
     const strArr = [...text];
@@ -98,3 +98,14 @@ export const parseValue = function(metadata: PropertyMetadataAny, value: unknown
     }
     return value;
 };
+
+
+export const validValue = function(metadata: PropertyMetadataAny, value: unknown): void {
+    if (metadata.type === "number") {
+        const numberMetadata = metadata as PropertyMetadataNumeric;
+        const numericValue = value as number;
+        if ((numberMetadata.min !== undefined && numberMetadata.min > numericValue) || (numberMetadata.max !== undefined && numberMetadata.max < numericValue) || (numberMetadata.states !== undefined && numberMetadata.states[numericValue] === undefined)) {
+            throw new InvalidPropertyValueError(`Value "${numericValue}" isn't a valid value for property "${numberMetadata.name}"`);
+        }
+    }
+}

@@ -1,5 +1,6 @@
 import NodeRSA from "node-rsa";
 import { Readable } from "stream";
+import { SortedMap } from "sweet-collections";
 
 import { AlarmMode } from "../http/types";
 import { Address, CmdCameraInfoResponse, CommandResult } from "./models";
@@ -65,7 +66,7 @@ export interface P2PDataMessageBuilder {
 
 export interface P2PDataMessageState {
     leftoverData: Buffer;
-    queuedData: Map<number, P2PMessage>;
+    queuedData: SortedMap<number, P2PMessage>;
     rsaKey: NodeRSA | null;
     videoStream: Readable | null;
     audioStream: Readable | null;

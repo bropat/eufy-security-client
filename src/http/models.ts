@@ -385,3 +385,30 @@ export interface Voice {
     voice_type: number;
     key_prefix: string;
 }
+
+export interface DeviceInvite {
+    device_sn: string;
+    checked: boolean;
+}
+
+export interface Invite {
+    invite_id: number;
+    station_sn: string;
+    email: string;
+    devices: Array<DeviceInvite>;
+    action_user_id: string;
+    member_nick: string;
+    member_type: number;
+    permissions: number;
+    create_time: number;
+    update_time: number;
+    status: number;
+    action_user_email: string;
+    action_user_nick: string;
+}
+
+export interface ConfirmInvite {
+    device_sns: Array<string>;
+    invite_id: number;
+    station_sn: string;
+}

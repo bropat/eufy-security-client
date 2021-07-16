@@ -3,9 +3,9 @@ import { Readable } from "stream";
 import { StreamMetadata } from "../p2p/interfaces";
 import { CommandResult } from "../p2p/models";
 import { Camera, Device } from "./device";
-import { FullDeviceResponse, HubResponse, Cipher, Voice } from "./models";
+import { FullDeviceResponse, HubResponse, Cipher, Voice, Invite } from "./models";
 import { Station } from "./station";
-import { SupportedFeature } from "./types";
+import { CommandName } from "./types";
 
 export interface PropertyValue {
     value: unknown;
@@ -72,11 +72,9 @@ export interface Voices {
     [index: number]: Voice;
 }
 
-export interface ISupportedFeatures {
-    [index: number]: Array<SupportedFeature>;
+export interface Invites {
+    [index: number]: Invite;
 }
-
-//TODO: Finish implementation
 
 export type PropertyMetadataType =
 	| "number"
@@ -106,7 +104,7 @@ export interface PropertyMetadataNumeric extends PropertyMetadataAny {
 
 export interface PropertyMetadataBoolean extends PropertyMetadataAny {
     type: "boolean";
-    default?: number;
+    default?: boolean;
 }
 
 export interface PropertyMetadataString extends PropertyMetadataAny {
@@ -122,6 +120,10 @@ export interface IndexedProperty {
 
 export interface Properties {
     [index: number]: IndexedProperty;
+}
+
+export interface Commands {
+    [index: number]: Array<CommandName>;
 }
 
 export interface HTTPApiEvents {
@@ -143,7 +145,8 @@ export interface StationEvents {
     "livestream start": (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
     "livestream stop": (station: Station, channel:number) => void;
     "rtsp url": (station: Station, channel:number, value: string, modified: number) => void;
-    "guard mode": (station: Station, guardMode: number, currentMode: number) => void;
+    "guard mode": (station: Station, guardMode: number) => void;
+    "current mode": (station: Station, currentMode: number) => void;
 }
 
 export interface DeviceEvents {

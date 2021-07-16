@@ -96,6 +96,76 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.9.0 (2021-07-16)
+
+* (bropat) **Breaking Change** Station/EufySecurity "guard mode" event changed to emit only the guard mode
+* (bropat) Added Station/EufySecurity "current mode" event that emits only the current mode change
+* (bropat) Added more Eufy Cloud error codes to "ResponseErrorCode"
+* (bropat) Added more server push notification types to "ServerPushEvent"
+* (bropat) Added pan an tilt functionality to supported indoor cameras
+* (bropat) Added functionality to handle invitations on "HTTPApi"
+* (bropat) Added error detection if stopping or starting stream that isn't running or already running
+* (bropat) Added new setting "acceptInvitations" to "EufySecurity" to accept invitations automatically
+* (bropat) Added floodlight camera light switch
+* (bropat) Added motion detection sensivity for indoor cameras, solo cameras, floodlight cameras, camera 2 products and battery doorbells
+* (bropat) Added motion detection type for indoor cameras, solo cameras, floodlight cameras, camera 2 products and battery doorbells
+* (bropat) Added motion tracking for indoor camera pan & tilt cameras
+* (bropat) Added video stream quality setting for indoor cameras, solo cameras, floodlight cameras and battery doorbell
+* (bropat) Added video recording quality setting for indoor cameras
+* (bropat) Added WDR setting for battery doorbells
+* (bropat) Added microphone mute setting for indoor cameras, solo cameras, floodlight cameras, camera 2 products and battery doorbells
+* (bropat) Added audio recording setting for indoor cameras, solo cameras, floodlight cameras, camera 2 products and battery doorbells
+* (bropat) Added enable/disable speaker setting for indoor cameras, solo cameras, floodlight cameras, camera 2 products
+* (bropat) Added speaker volume setting for indoor cameras, solo cameras, floodlight cameras, camera 2 products and battery doorbells
+* (bropat) Added power source setting for camera 2 products cameras, eufy cameras and eufy E cameras
+* (bropat) Added power working mode setting for solo cameras, camera 2 products, battery doorbells, eufy cameras and eufy E cameras
+* (bropat) Added power custom working mode recording clip length setting for solo cameras, floodlight cameras, camera 2 products, battery doorbells, eufy cameras and eufy E cameras
+* (bropat) Added power custom working mode recording retrigger interval setting for solo cameras, floodlight cameras, camera 2 products, battery doorbells, eufy cameras and eufy E cameras
+* (bropat) Added power custom working mode recording ends if motion stops setting for solo cameras, floodlight cameras, camera 2 products, battery doorbells, eufy cameras and eufy E cameras
+* (bropat) Added video streaming quality setting for indoor cameras, solo cameras, floodlight cameras and battery doorbells
+* (bropat) Added video recording quality setting for indoor 2k cameras
+* (bropat) Added motion detection sensivity setting for indoor cameras, floodlight cameras and camera 2 products
+* (bropat) Added enable/disable motion tracking setting for indoor pan & tilt cameras
+* (bropat) Added motion detection type setting for indoor cameras, solo cameras, floodlight cameras, camera 2 products and battery doorbells
+* (bropat) Added enable/disable WDR setting for battery doorbells
+* (bropat) Added ringtone volume setting for battery doorbells
+* (bropat) Added enable/disable chime indoor setting for battery doorbells
+* (bropat) Added enable/disable chime homebase setting for battery doorbells
+* (bropat) Added chime homebase ringtone volume setting for battery doorbells
+* (bropat) Added chime homebase ringtone type setting for battery doorbells
+* (bropat) Added notification type setting for solo cameras, floodlight cameras, camera 2 products, battery doorbells, eufy cameras and eufy E cameras
+* (bropat) Added enable/disable person notification setting for indoor cameras
+* (bropat) Added enable/disable pet notification setting for indoor cameras
+* (bropat) Added enable/disable all other motion notification setting for indoor cameras
+* (bropat) Added enable/disable all sound notification setting for indoor cameras
+* (bropat) Added enable/disable crying notification setting for indoor cameras
+* (bropat) Added enable/disable motion notification setting for battery doorbells
+* (bropat) Added enable/disable ring notification setting for battery doorbells
+* (bropat) Added trigger alarm sound for camera 2 products
+* (bropat) Added reset alarm sound for camera 2 products
+* (bropat) Added trigger alarm sound for homebase 1+2
+* (bropat) Added reset alarm sound for homebase 1+2
+* (bropat) Added alarm tone setting for homebase 1+2
+* (bropat) Added alarm volume setting for homebase 1+2
+* (bropat) Added prompt volume setting for homebase 1+2
+* (bropat) Added time format setting for homebase 1+2
+* (bropat) Added enable/disable switch mode app notification setting for homebase 1+2
+* (bropat) Added enable/disable switch mode geofence notification setting for homebase 1+2
+* (bropat) Added enable/disable switch mode schedule notification setting for homebase 1+2
+* (bropat) Added enable/disable switch mode keypad notification setting for homebase 1+2
+* (bropat) Added enable/disable start alarm delay notification setting for homebase 1+2
+* (bropat) Added new floodlight, solo and outdoor cameras (untested!)
+* (bropat) Fixed issue where the "pollingIntervalMinutes" setting of "EufySecurity" was not respected
+* (bropat) Fixed p2p livestream for floodlight camera
+* (bropat) Fixed p2p enable/disable device for floodlight camera
+* (bropat) Fixed p2p enable/disable autonightvision for floodlight camera
+* (bropat) Fixed p2p download video
+* (bropat) Fixed P2PClientProtocol "close" event that was emitted even if there was no connection and a reconnection was attempted
+* (bropat) Fixed "guard mode" and "current mode" event not emittet in some conditions
+* (bropat) Fixed possible race conditions processing unordered p2p packets
+* (bropat) Optimized p2p lookup functionality
+* (bropat) Updated versions of the package dependencies
+
 ### 0.8.3 (2021-06-01)
 
 * (bropat) Fixed regression in p2p protocol

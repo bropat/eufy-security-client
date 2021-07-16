@@ -5,4 +5,4 @@ export * from "./models";
 export * from "./parameter";
 export * from "./station";
 export * from "./types";
-export { isGreaterMinVersion } from "./utils";
+export { isGreaterEqualMinVersion, getAbsoluteFilePath} from "./utils";

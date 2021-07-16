@@ -27,8 +27,17 @@ export enum CusPushAlarmType {
     HOT = 5,
     DOOR = 6,
     CAMERA = 7,
-    EVT = 10,
-    DELAY_EVT = 16
+    MOTION_SENSOR = 8,
+    CAMERA_GSENSOR = 9,
+    CAMERA_APP = 10,
+    CAMERA_LINKAGE = 11,
+    HUB_LINKAGE = 12,
+    HUB_KEYPAD_PANIC_BUTTON = 13,
+    HUB_KEYPAD_EMERGENCY_CODE = 14,
+    HUB_STOP_BY_KEYPAD = 15,
+    HUB_STOP_BY_APP = 16,
+    HUB_STOP_BY_HUB = 17,
+    HUB_KEYPAD_CUSTOM_NOT_MAP = 18
 }
 
 export enum CusPushMode {
@@ -42,8 +51,9 @@ export enum ServerPushEvent {
     REMOVE_DEVICE = 10200,
     REMOVE_HOMEBASE = 10100,
     VERIFICATION = 10500,
-    WEB_ACTION = 10800
-
+    WEB_ACTION = 10800,
+    ALARM_NOTIFY = 10900,
+    ALARM_GUEST_NOTIFY = 11000
 }
 
 export enum DoorbellPushEvent {
