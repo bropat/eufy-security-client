@@ -12,7 +12,7 @@ import { AuthResult, CommandName, DeviceType, FloodlightMotionTriggeredDistance,
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
 import { BatteryDoorbellCamera, Camera, Device, DoorbellCamera, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SoloCamera, UnknownDevice } from "./http/device";
-import { CommandType, P2PConnectionType } from "./p2p/types";
+import { AlarmEvent, CommandType, P2PConnectionType } from "./p2p/types";
 import { StreamMetadata } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
 import { generateSerialnumber, generateUDID, handleUpdate, md5, parseValue, removeLastChar } from "./utils";
@@ -320,7 +320,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 station.on("connect", (station: Station) => this.onStationConnect(station));
                 station.on("close", (station: Station) => this.onStationClose(station));
                 station.on("raw device property changed", (deviceSN: string, params: RawValues) => this.updateDeviceProperties(deviceSN, params));
-
                 station.on("livestream start", (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => this.onStartStationLivestream(station, channel, metadata, videostream, audiostream));
                 station.on("livestream stop", (station: Station, channel:number) => this.onStopStationLivestream(station, channel));
                 station.on("download start", (station: Station, channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => this.onStationStartDownload(station, channel, metadata, videoStream, audioStream));
@@ -331,6 +330,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 station.on("rtsp url", (station: Station, channel:number, value: string, modified: number) => this.onStationRtspUrl(station, channel, value, modified));
                 station.on("property changed", (station: Station, name: string, value: PropertyValue) => this.onStationPropertyChanged(station, name, value));
                 station.on("raw property changed", (station: Station, type: number, value: string, modified: number) => this.onStationRawPropertyChanged(station, type, value, modified));
+                station.on("alarm event", (station: Station, alarmEvent: AlarmEvent) => this.onStationAlarmEvent(station, alarmEvent));
 
                 this.addStation(station);
             }
@@ -1034,6 +1034,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onStationRawPropertyChanged(station: Station, type: number, value: string, modified: number): void {
         this.emit("station raw property changed", station, type, value, modified);
+    }
+
+    private onStationAlarmEvent(station: Station, alarmEvent: AlarmEvent): void {
+        this.emit("station alarm event", station, alarmEvent);
     }
 
     private onDevicePropertyChanged(device: Device, name: string, value: PropertyValue): void {

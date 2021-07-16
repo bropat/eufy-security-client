@@ -155,6 +155,8 @@ Please use GitHub issues for this.
 * (bropat) Added enable/disable switch mode keypad notification setting for homebase 1+2
 * (bropat) Added enable/disable start alarm delay notification setting for homebase 1+2
 * (bropat) Added new floodlight, solo and outdoor cameras (untested!)
+* (bropat) Added alarm event for Station
+* (bropat) Picture url attribute is now also updated via push notifications
 * (bropat) Fixed issue where the "pollingIntervalMinutes" setting of "EufySecurity" was not respected
 * (bropat) Fixed p2p livestream for floodlight camera
 * (bropat) Fixed p2p enable/disable device for floodlight camera
@@ -164,6 +166,7 @@ Please use GitHub issues for this.
 * (bropat) Fixed "guard mode" and "current mode" event not emittet in some conditions
 * (bropat) Fixed possible race conditions processing unordered p2p packets
 * (bropat) Optimized p2p lookup functionality
+* (bropat) Other small bugfixes and code cleanup
 * (bropat) Updated versions of the package dependencies
 
 ### 0.8.3 (2021-06-01)

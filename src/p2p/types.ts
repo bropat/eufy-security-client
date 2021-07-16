@@ -533,27 +533,27 @@ export enum ErrorCode {
     ERROR_FAILED_TO_REQUEST = 503
 }
 
-export enum ControlResponse {
+export enum AlarmEvent {
     //com.oceanwing.battery.cam.zmedia.model.ZControlResponse
-    ALARM_HUB_STOP = 0,
-    ALARM_DEV_STOP = 1,
-    ALARM_GSENSOR = 2,
-    ALARM_PIR = 3,
-    ALARM_APP = 4,
-    ALARM_HOT = 5,
-    ALARM_DOOR = 6,
-    ALARM_CAMERA_PIR = 7,
-    ALARM_MOTION_SENSOR = 8,
-    ALARM_CAMERA_GSENSOR = 9,
-    ALARM_CAMERA_APP = 10,
-    ALARM_CAMERA_LINKAGE = 11,
-    ALARM_HUB_KEYPAD = 13,
-    ALARM_HUB_STOP_BY_KEYPAD = 15,
-    ALARM_HUB_STOP_BY_APP = 16,
-    ALARM_HUB_STOP_BY_HAND = 17,
-    ALARM_APP_LIGHT = 22,
-    ALARM_APP_LIGHT_SOUND = 23,
-    ALARM_MOTION_APP_LIGHT = 24,
+    HUB_STOP = 0,
+    DEV_STOP = 1,
+    GSENSOR = 2,
+    PIR = 3,
+    APP = 4,
+    HOT = 5,
+    DOOR = 6,
+    CAMERA_PIR = 7,
+    MOTION_SENSOR = 8,
+    CAMERA_GSENSOR = 9,
+    CAMERA_APP = 10,
+    CAMERA_LINKAGE = 11,
+    HUB_KEYPAD = 13,
+    HUB_STOP_BY_KEYPAD = 15,
+    HUB_STOP_BY_APP = 16,
+    HUB_STOP_BY_HAND = 17,
+    APP_LIGHT = 22,
+    APP_LIGHT_SOUND = 23,
+    MOTION_APP_LIGHT = 24,
 }
 
 // Doorbell, Solo cameras

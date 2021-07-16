@@ -2,6 +2,7 @@ import { Readable } from "stream";
 
 import { StreamMetadata } from "../p2p/interfaces";
 import { CommandResult } from "../p2p/models";
+import { AlarmEvent } from "../p2p/types";
 import { Camera, Device } from "./device";
 import { FullDeviceResponse, HubResponse, Cipher, Voice, Invite } from "./models";
 import { Station } from "./station";
@@ -147,6 +148,7 @@ export interface StationEvents {
     "rtsp url": (station: Station, channel:number, value: string, modified: number) => void;
     "guard mode": (station: Station, guardMode: number) => void;
     "current mode": (station: Station, currentMode: number) => void;
+    "alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
 }
 
 export interface DeviceEvents {

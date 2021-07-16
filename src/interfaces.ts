@@ -4,6 +4,7 @@ import { PropertyValue } from "./http/interfaces";
 import { Station } from "./http/station";
 import { StreamMetadata } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
+import { AlarmEvent } from "./p2p/types";
 import { Credentials, PushMessage } from "./push/models";
 
 export interface EufySecurityConfig {
@@ -56,6 +57,7 @@ export interface EufySecurityEvents {
     "station current mode": (station: Station, currentMode: number) => void;
     "station property changed": (station: Station, name: string, value: PropertyValue) => void;
     "station raw property changed": (station: Station, type: number, value: string, modified: number) => void;
+    "station alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
     "push connect": () => void;
     "push close": () => void;
     "push message": (message: PushMessage) => void;
