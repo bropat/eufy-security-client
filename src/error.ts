@@ -79,6 +79,14 @@ export class InvalidPropertyValueError extends Error {
     }
 }
 
+export class InvalidCommandValueError extends Error {
+    constructor(message?: string) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = InvalidCommandValueError.name;
+    }
+}
+
 export class ReadOnlyPropertyError extends Error {
     constructor(message?: string) {
         super(message);

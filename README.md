@@ -96,6 +96,11 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.9.1 (2021-07-17)
+
+* (bropat) Exported some missing error classes and types
+* (bropat) Checking valid direction values for panAndTilt command
+
 ### 0.9.0 (2021-07-16)
 
 * (bropat) **Breaking Change** Station/EufySecurity "guard mode" event changed to emit only the guard mode

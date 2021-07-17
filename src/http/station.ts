@@ -15,7 +15,7 @@ import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData
 import { Device, Lock } from "./device";
 import { convertTimestampMs } from "../push/utils";
 import { encodeLockPayload, encryptLockAESData, generateLockAESKey, getLockVectorBytes, isPrivateIp } from "../p2p/utils";
-import { InvalidPropertyValueError, NotConnectedError, NotSupportedError, WrongStationError } from "../error";
+import { InvalidCommandValueError, InvalidPropertyValueError, NotConnectedError, NotSupportedError, WrongStationError } from "../error";
 import { PushMessage } from "../push/models";
 import { CusPushEvent } from "../push/types";
 import { InvalidPropertyError, LivestreamAlreadyRunningError, LivestreamNotRunningError, PropertyNotSupportedError } from "./error";
@@ -949,12 +949,14 @@ export class Station extends TypedEmitter<StationEvents> {
 
     public async panAndTilt(device: Device, direction: PanTiltDirection, command = 1): Promise<void> {
         //TODO: A Floodlight model seems to support this feature
-        //TODO: Check valid values
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
         if (!device.hasCommand(CommandName.DevicePanAndTilt)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        if (!(direction in PanTiltDirection)) {
+            throw new InvalidCommandValueError(`Value "${direction}" isn't a valid value for command "panAndTilt"`);
         }
         if (!this.p2pSession || !this.p2pSession.isConnected()) {
             throw new NotConnectedError(`No p2p connection to station ${this.getSerial()}`);
