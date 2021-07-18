@@ -107,6 +107,9 @@ export enum ParamType {
 export enum AlarmMode {
     AWAY = 0,
     HOME = 1,
+    CUSTOM1 = 3,
+    CUSTOM2 = 4,
+    CUSTOM3 = 5,
     DISARMED = 63
 }
 
@@ -2258,6 +2261,9 @@ export const StationCurrentModeProperty: PropertyMetadataNumeric = {
     states: {
         0: "AWAY",
         1: "HOME",
+        3: "CUSTOM1",
+        4: "CUSTOM2",
+        5: "CUSTOM3",
         63: "DISARMED",
     },
 }
