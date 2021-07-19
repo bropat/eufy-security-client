@@ -800,7 +800,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (this.stationSerial.startsWith("T8410") || this.stationSerial.startsWith("T8400") || this.stationSerial.startsWith("T8401") || this.stationSerial.startsWith("T8411") ||
             this.stationSerial.startsWith("T8202") || this.stationSerial.startsWith("T8422") || this.stationSerial.startsWith("T8424") || this.stationSerial.startsWith("T8423") ||
             this.stationSerial.startsWith("T8130") || this.stationSerial.startsWith("T8131") || this.stationSerial.startsWith("T8420") || this.stationSerial.startsWith("T8440") ||
-            this.stationSerial.startsWith("T8441") || this.stationSerial.startsWith("T8442")) {
+            this.stationSerial.startsWith("T8441") || this.stationSerial.startsWith("T8442") || (!this.stationSerial.startsWith("T8420") || this.stationSerial.length <= 7 || this.stationSerial[6] !== "6")) {
             return isKeyFrame;
         }
         return isIFrame(data);

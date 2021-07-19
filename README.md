@@ -61,7 +61,7 @@ One client instance will show all devices from one Eufy Cloud account and allows
 
 * WIP
 
-*As an example, you can look at the following projects: [ioBroker.eufy-security](https://github.com/bropat/ioBroker.eufy-security), [eufy-security-ws](https://github.com/bropat/eufy-security-ws)*
+*As an example, you can look at the following projects: [ioBroker.eufy-security](https://github.com/bropat/ioBroker.eufy-security), [eufy-security-ws](https://github.com/bropat/eufy-security-ws), [eufy_security](https://github.com/fuatakgun/eufy_security)*
 
 ## Known working devices
 
@@ -95,6 +95,11 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 Please use GitHub issues for this.
 
 ## Changelog
+
+### 0.9.2 (2021-07-19)
+
+* (bropat) Fixed p2p livestream video regression
+* (bropat) Merged #22 - Add custom modes in alarm mode (thx to @piitaya)
 
 ### 0.9.1 (2021-07-17)
 
