@@ -96,7 +96,7 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 0.9.2 (2021-07-19)
+### 0.9.3 (2021-07-20)
 
 * (bropat) Fixed p2p livestream video regression
 * (bropat) Merged #22 - Add custom modes in alarm mode (thx to @piitaya)
