@@ -96,6 +96,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 0.9.4 (2021-07-23)
+
+* (bropat) Fixed regression on p2p connection timeout and reconnect tentatives
+* (bropat) Updated versions of the package dependencies
 ### 0.9.3 (2021-07-20)
 
 * (bropat) Fixed p2p livestream video regression

@@ -456,6 +456,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.setQuickStreamStart(this.quickStreamStart);
         this.p2pSession.on("connect", (address: Address) => this.onConnect(address));
         this.p2pSession.on("close", () => this.onDisconnect());
+        this.p2pSession.on("timeout", () => this.onTimeout());
         this.p2pSession.on("command", (result: CommandResult) => this.onCommandResponse(result));
         this.p2pSession.on("alarm mode", (mode: AlarmMode) => this.onAlarmMode(mode));
         this.p2pSession.on("camera info", (cameraInfo: CmdCameraInfoResponse) => this.onCameraInfo(cameraInfo));
@@ -641,6 +642,12 @@ export class Station extends TypedEmitter<StationEvents> {
             this.scheduleReconnect();
     }
 
+    private onTimeout(): void {
+        this.log.info(`Timeout connecting to station ${this.getSerial()}`);
+        if (this.p2pSession)
+            this.scheduleReconnect();
+    }
+
     private getCurrentDelay(): number {
         const delay = this.currentDelay == 0 ? 5000 : this.currentDelay;
 
@@ -659,7 +666,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private scheduleReconnect(): void {
         const delay = this.getCurrentDelay();
-        this.log.debug("Schedule reconnect...", { delay: delay });
+        this.log.debug(`Schedule reconnect to station ${this.getSerial()}...`, { delay: delay });
         if (!this.reconnectTimeout)
             this.reconnectTimeout = setTimeout(async () => {
                 this.reconnectTimeout = undefined;
