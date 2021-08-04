@@ -65,6 +65,11 @@ export enum DoorbellPushEvent {
     ONLINE = 3107
 }
 
+export enum LockPushEvent {
+    LOCKED = 264,
+    UNLOCKED = 261
+}
+
 export enum IndoorPushEvent {
     MOTION_DETECTION = 3101,
     FACE_DETECTION = 3102,

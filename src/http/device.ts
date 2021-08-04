@@ -10,7 +10,7 @@ import { CommandType, ESLAnkerBleConstant } from "../p2p/types";
 import { getAbsoluteFilePath } from "./utils";
 import { convertTimestampMs } from "../push/utils";
 import { eslTimestamp } from "../p2p/utils";
-import { CusPushEvent, DoorbellPushEvent, IndoorPushEvent, PushMessage } from "../push";
+import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, PushMessage } from "../push";
 import { isEmpty } from "../utils";
 import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
 
@@ -1279,6 +1279,31 @@ export class Lock extends Device {
         const buf3 = Buffer.from([ESLAnkerBleConstant.b, 4]);
         const buf4 = Buffer.from(eslTimestamp());
         return Buffer.concat([buf1, buf2, buf3, buf4]);
+    }
+
+    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(message, eventDurationSeconds);
+        if (message.type !== undefined && message.event_type !== undefined) {
+            if (message.device_sn === this.getSerial()) {
+                try {
+                    switch (message.event_type) {
+                        case LockPushEvent.LOCKED:
+                            this.updateProperty(PropertyName.DeviceLocked, { value: true, timestamp: message.event_time });
+                            this.emit("locked", this, this.getPropertyValue(PropertyName.DeviceLocked).value as boolean);
+                            break;
+                        case LockPushEvent.UNLOCKED:
+                            this.updateProperty(PropertyName.DeviceLocked, { value: false, timestamp: message.event_time });
+                            this.emit("locked", this, this.getPropertyValue(PropertyName.DeviceLocked).value as boolean);
+                            break;
+                        default:
+                            this.log.debug("Unhandled lock push event", message);
+                            break;
+                    }
+                } catch (error) {
+                    this.log.debug(`LockPushEvent - Device: ${message.device_sn} Error:`, error);
+                }
+            }
+        }
     }
 
     /*public static decodeCommand(command: number): void {
