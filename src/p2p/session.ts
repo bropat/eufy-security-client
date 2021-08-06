@@ -200,8 +200,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (this.currentMessageState[P2PDataType.BINARY].streaming) {
             this.endStream(P2PDataType.BINARY)
         }
-        if (this.connected)
+        if (this.connected) {
             this.emit("close");
+        } else {
+            this.emit("timeout");
+        }
 
         this._initialize();
     }

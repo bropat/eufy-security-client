@@ -2529,14 +2529,14 @@ export const StationProperties: Properties = {
 }
 
 export enum CommandName {
-    DeviceStartLivestream,
-    DeviceStopLivestream,
-    DeviceQuickResponse,
-    DevicePanAndTilt,
-    DeviceTriggerAlarmSound,
-    StationReboot,
-    StationTriggerAlarmSound,
-    StationDownload,
+    DeviceStartLivestream = "deviceStartLivestream",
+    DeviceStopLivestream = "deviceStopLivestream",
+    DeviceQuickResponse = "deviceQuickResponse",
+    DevicePanAndTilt = "devicePanAndTilt",
+    DeviceTriggerAlarmSound = "deviceTriggerAlarmSound",
+    StationReboot = "stationReboot",
+    StationTriggerAlarmSound = "stationTriggerAlarmSound",
+    StationDownload = "stationDownload",
 }
 
 export const DeviceCommands: Commands = {

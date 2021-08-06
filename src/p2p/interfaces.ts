@@ -19,6 +19,7 @@ export interface P2PClientProtocolEvents {
     "wifi rssi": (channel: number, rssi: number) => void;
     "rtsp url": (channel: number, rtspUrl: string) => void;
     "esl parameter": (channel: number, param: number, value: string) => void;
+    "timeout": () => void;
 }
 
 export interface P2PMessageState {
