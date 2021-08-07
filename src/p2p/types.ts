@@ -178,7 +178,7 @@ export enum CommandType {
     CMD_GET_HUB_LOG = 1132,
     CMD_GET_HUB_LOGIG = 1140,
     CMD_GET_HUB_NAME = 1128,
-    CMD_GET_HUB_POWWER_SUPPLY = 1137,
+    CMD_GET_HUB_POWER_SUPPLY = 1137,
     CMD_GET_HUB_TONE_INFO = 1126,
     CMD_GET_HUB_UPGRADE = 1133,
     CMD_GET_IRCUTSENSITIVITY = 1114,
@@ -592,9 +592,9 @@ export enum PanTiltDirection {
 }
 
 export enum VideoCodec {
-    UNKNOWN = 0,
-    H264 = 1,
-    H265 = 2
+    UNKNOWN = -1,
+    H264 = 0,
+    H265 = 1
 }
 
 export enum AudioCodec {

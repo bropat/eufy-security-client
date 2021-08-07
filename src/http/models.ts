@@ -412,3 +412,9 @@ export interface ConfirmInvite {
     invite_id: number;
     station_sn: string;
 }
+
+export interface SensorHistoryEntry {
+    trigger_time: number;
+    create_time: number;
+    status: string;
+}

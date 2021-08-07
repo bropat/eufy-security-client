@@ -91,6 +91,7 @@ export interface PropertyMetadataAny {
     writeable: boolean;
     description?: string;
     label?: string;
+    commandId?: number;
 }
 
 export interface PropertyMetadataNumeric extends PropertyMetadataAny {
@@ -149,6 +150,10 @@ export interface StationEvents {
     "guard mode": (station: Station, guardMode: number) => void;
     "current mode": (station: Station, currentMode: number) => void;
     "alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
+    "ready": (station: Station) => void;
+    "runtime state": (station: Station, channel: number, batteryLevel: number, temperature: number, modified: number) => void;
+    "charging state": (station: Station, channel: number, chargeType: number, batteryLevel: number, modified: number) => void;
+    "wifi rssi": (station: Station, channel: number, rssi: number, modified: number) => void;
 }
 
 export interface DeviceEvents {
@@ -162,4 +167,5 @@ export interface DeviceEvents {
     "rings": (device: Device, state: boolean) => void;
     "locked": (device: Device, state: boolean) => void;
     "open": (device: Device, state: boolean) => void;
+    "ready": (device: Device) => void;
 }

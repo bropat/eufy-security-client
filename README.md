@@ -56,6 +56,7 @@ One client instance will show all devices from one Eufy Cloud account and allows
     * Start/cancel download video
     * Quick response (only doorbells)
     * Lock/unlock (only smart lock products)
+    * And many more, check it out...
 
 ## Documentation
 
@@ -96,10 +97,42 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.0.0 (2021-08-07)
+
+* (bropat) Added new method "getSensorHistory" to HTTPApi class for getting entry sensor history data
+* (bropat) Added new events "station connect" and "station close" to EufySecurity class
+* (bropat) Added new "chargingStatus", "wifiSignalLevel", "rtspStreamUrl", "chirpVolume", "chirpTone", "videoHdr", "videoDistortionCorrection" and "videoRingRecord" properties for supported devices
+* (bropat) Added enable/disable led setting for camera 1 products
+* (bropat) Added motion detection sensitivity setting for camera 1 products and wired doorbell
+* (bropat) Added motion detection type setting for camera 1 products
+* (bropat) Added motion audio recording setting for camera 1 products and wired doorbell
+* (bropat) Added ringtone volume setting for wired doorbell
+* (bropat) Added enable/disable indoor chime setting for wired doorbell
+* (bropat) Added notification ring setting for wired doorbell
+* (bropat) Added notification motion setting for wired doorbell
+* (bropat) Added video streaming quality setting for wired doorbell
+* (bropat) Added video recording quality setting for wired doorbell
+* (bropat) Added video HDR setting for wired doorbell
+* (bropat) Added video distortion correction setting for wired doorbell
+* (bropat) Added video ring recording setting for wired doorbell
+* (bropat) Added notification type setting for camera 1 products, solo cameras and wired doorbell
+* (bropat) Added chirp volume setting for entry sensor
+* (bropat) Added chirp tone setting for entry sensor
+* (bropat) Implemented queuing of p2p commands in class P2PClientProtocol if connection to station isn't already present
+* (bropat) Renamed some properties for typo issues
+* (bropat) Renamed some properties to correct the use of camelcase
+* (bropat) Fixed issue where data was not updated (cloud and p2p polling)
+* (bropat) Fixed issue with resetting api_base when changing credentials
+* (bropat) Fixed some issues with clearing timeouts in class P2PClientProtocol
+* (bropat) Fixed issue in class P2PClientProtocol not detecting video codec for some devices (#)
+* (bropat) Fixed event "rtsp url" returning the url value containing nulls "\0"
+* (bropat) Updated versions of the package dependencies
+
 ### 0.9.4 (2021-07-23)
 
 * (bropat) Fixed regression on p2p connection timeout and reconnect tentatives
 * (bropat) Updated versions of the package dependencies
+
 ### 0.9.3 (2021-07-20)
 
 * (bropat) Fixed p2p livestream video regression
@@ -121,7 +154,7 @@ Please use GitHub issues for this.
 * (bropat) Added error detection if stopping or starting stream that isn't running or already running
 * (bropat) Added new setting "acceptInvitations" to "EufySecurity" to accept invitations automatically
 * (bropat) Added floodlight camera light switch
-* (bropat) Added motion detection sensivity for indoor cameras, solo cameras, floodlight cameras, camera 2 products and battery doorbells
+* (bropat) Added motion detection sensitivity for indoor cameras, solo cameras, floodlight cameras, camera 2 products and battery doorbells
 * (bropat) Added motion detection type for indoor cameras, solo cameras, floodlight cameras, camera 2 products and battery doorbells
 * (bropat) Added motion tracking for indoor camera pan & tilt cameras
 * (bropat) Added video stream quality setting for indoor cameras, solo cameras, floodlight cameras and battery doorbell
@@ -138,7 +171,7 @@ Please use GitHub issues for this.
 * (bropat) Added power custom working mode recording ends if motion stops setting for solo cameras, floodlight cameras, camera 2 products, battery doorbells, eufy cameras and eufy E cameras
 * (bropat) Added video streaming quality setting for indoor cameras, solo cameras, floodlight cameras and battery doorbells
 * (bropat) Added video recording quality setting for indoor 2k cameras
-* (bropat) Added motion detection sensivity setting for indoor cameras, floodlight cameras and camera 2 products
+* (bropat) Added motion detection sensitivity setting for indoor cameras, floodlight cameras and camera 2 products
 * (bropat) Added enable/disable motion tracking setting for indoor pan & tilt cameras
 * (bropat) Added motion detection type setting for indoor cameras, solo cameras, floodlight cameras, camera 2 products and battery doorbells
 * (bropat) Added enable/disable WDR setting for battery doorbells

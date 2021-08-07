@@ -71,6 +71,20 @@ export enum ParamType {
 
     COMMAND_LED_NIGHT_OPEN = 1026,
     COMMAND_MOTION_DETECTION_PACKAGE = 1016,
+    COMMAND_HDR = 1019,
+    COMMAND_DISTORTION_CORRECTION = 1022,
+    COMMAND_VIDEO_QUALITY = 1020,
+    COMMAND_VIDEO_RECORDING_QUALITY = 1023,
+    COMMAND_VIDEO_RING_RECORD = 1027,
+    COMMAND_AUDIO_RECORDING = 1029,
+    COMMAND_INDOOR_CHIME = 1006,
+    COMMAND_RINGTONE_VOLUME = 1012,
+    COMMAND_NOTIFICATION_RING = 1031,
+    COMMAND_NOTIFICATION_TYPE = 1030,
+    COMMAND_QUICK_RESPONSE = 1004,
+    COMMAND_START_LIVESTREAM = 1000,
+    COMMAND_STREAM_INFO = 1005,
+    COMMAND_VOLTAGE_INFO = 1015,
 
     // Inferred from source
     SNOOZE_MODE = 1271,                         // The value is base64 encoded
@@ -216,6 +230,14 @@ export enum TimeFormat {
     FORMAT_24H = 1,
 }
 
+export enum WifiSignalLevel {
+    NO_SIGNAL = 0,
+    WEAK = 1,
+    NORMAL = 2,
+    STRONG = 3,
+    FULL = 4,
+}
+
 export interface EventFilterType {
     deviceSN?: string;
     stationSN?: string;
@@ -247,19 +269,21 @@ export enum PropertyName {
     DeviceLastChargingRecordedEvents = "lastChargingRecordedEvents",
     DeviceLastChargingFalseEvents = "lastChargingFalseEvents",
     DeviceBatteryUsageLastWeek = "batteryUsageLastWeek",
-    DeviceWifiRSSI = "wifiRSSI",
+    DeviceWifiRSSI = "wifiRssi",
+    DeviceWifiSignalLevel = "wifiSignalLevel",
     DeviceEnabled = "enabled",
     DeviceAntitheftDetection= "antitheftDetection",
     DeviceAutoNightvision = "autoNightvision",
     DeviceStatusLed = "statusLed",
     DeviceMotionDetection = "motionDetection",
     DeviceMotionDetectionType = "motionDetectionType",
-    DeviceMotionDetectionSensivity = "motionDetectionSensivity",
+    DeviceMotionDetectionSensitivity = "motionDetectionSensitivity",
     DeviceMotionDetected = "motionDetected",
     DeviceMotionTracking = "motionTracking",
     DevicePersonDetected = "personDetected",
     DevicePersonName = "personName",
     DeviceRTSPStream = "rtspStream",
+    DeviceRTSPStreamUrl = "rtspStreamUrl",
     DeviceWatermark = "watermark",
     DevicePictureUrl = "pictureUrl",
     DeviceState = "state",
@@ -267,12 +291,12 @@ export enum PropertyName {
     DevicePetDetected = "petDetected",
     DeviceSoundDetection = "soundDetection",
     DeviceSoundDetectionType = "soundDetectionType",
-    DeviceSoundDetectionSensivity = "soundDetectionSensivity",
+    DeviceSoundDetectionSensitivity = "soundDetectionSensitivity",
     DeviceSoundDetected = "soundDetected",
     DeviceCryingDetected = "cryingDetected",
     DeviceSensorOpen = "sensorOpen",
     DeviceSensorChangeTime = "sensorChangeTime",
-    DeviceMotionSensorPIREvent = "motionSensorPIREvent",
+    DeviceMotionSensorPIREvent = "motionSensorPirEvent",
     DeviceLocked = "locked",
     DeviceRinging = "ringing",
     DeviceLockStatus = "lockStatus",
@@ -284,12 +308,13 @@ export enum PropertyName {
     DeviceAudioRecording = "audioRecording",
     DevicePowerSource = "powerSource",
     DevicePowerWorkingMode = "powerWorkingMode",
+    DeviceChargingStatus = "chargingStatus",
     DeviceRecordingEndClipMotionStops = "recordingEndClipMotionStops",
     DeviceRecordingClipLength = "recordingClipLength",
     DeviceRecordingRetriggerInterval = "recordingRetriggerInterval",
     DeviceVideoStreamingQuality = "videoStreamingQuality",
     DeviceVideoRecordingQuality = "videoRecordingQuality",
-    DeviceVideoWDR = "videoWDR",
+    DeviceVideoWDR = "videoWdr",
     DeviceLightSettingsEnable = "lightSettingsEnable",
     DeviceLightSettingsBrightnessManual = "lightSettingsBrightnessManual",
     DeviceLightSettingsBrightnessMotion = "lightSettingsBrightnessMotion",
@@ -299,7 +324,7 @@ export enum PropertyName {
     DeviceLightSettingsMotionTriggeredTimer = "lightSettingsMotionTriggeredTimer",
     //DeviceLightSettingsSunsetToSunrise = "lightSettingsSunsetToSunrise",
     //DeviceVideoEncodingFormat = "videoEncodingFormat", //BatteryDoorbell - included in Streaming Quality
-    DeviceChimeIndoor = "chimeIndoor",  //BatteryDoorbell
+    DeviceChimeIndoor = "chimeIndoor",  //BatteryDoorbell, WiredDoorbell
     DeviceChimeHomebase = "chimeHomebase",  //BatteryDoorbell
     DeviceChimeHomebaseRingtoneVolume = "chimeHomebaseRingtoneVolume",  //BatteryDoorbell
     DeviceChimeHomebaseRingtoneType = "chimeHomebaseRingtoneType",  //BatteryDoorbell
@@ -314,6 +339,11 @@ export enum PropertyName {
     DeviceNotificationRing = "notificationRing",  //BatteryDoorbell
     DeviceNotificationMotion = "notificationMotion",  //BatteryDoorbell
     //DeviceContinuosRecording = "continousRecording",
+    DeviceChirpVolume = "chirpVolume",
+    DeviceChirpTone = "chirpTone",
+    DeviceVideoHDR = "videoHdr", // Wired Doorbell
+    DeviceVideoDistortionCorrection = "videoDistortionCorrection", // Wired Doorbell
+    DeviceVideoRingRecord = "videoRingRecord", // Wired Doorbell
 
     StationLANIpAddress = "lanIpAddress",
     StationMacAddress = "macAddress",
@@ -329,6 +359,9 @@ export enum PropertyName {
     StationNotificationSwitchModeApp = "notificationSwitchModeApp",
     StationNotificationSwitchModeKeypad = "notificationSwitchModeKeypad",
     StationNotificationStartAlarmDelay = "notificationStartAlarmDelay",
+
+    DeviceHiddenMotionDetectionSensitivity = "hidden-motionDetectionSensitivity",
+    DeviceHiddenMotionDetectionMode = "hidden-motionDetectionMode",
 }
 
 export const DeviceNameProperty: PropertyMetadataString = {
@@ -513,6 +546,11 @@ export const DeviceAutoNightvisionProperty: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
+export const DeviceAutoNightvisionWiredDoorbellProperty: PropertyMetadataBoolean = {
+    ...DeviceAutoNightvisionProperty,
+    key: ParamType.NIGHT_VISUAL,
+}
+
 export const DeviceWifiRSSIProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_GET_WIFI_RSSI,
     name: PropertyName.DeviceWifiRSSI,
@@ -523,7 +561,30 @@ export const DeviceWifiRSSIProperty: PropertyMetadataNumeric = {
     unit: "dBm",
 }
 
+export const DeviceWifiSignalLevelProperty: PropertyMetadataNumeric = {
+    key: "custom_wifiSignalLevel",
+    name: PropertyName.DeviceWifiSignalLevel,
+    label: "Wifi Signal Level",
+    readable: true,
+    writeable: false,
+    type: "number",
+    min: 0,
+    max: 4,
+    states: {
+        0: "No signal",
+        1: "Weak",
+        2: "Normal",
+        3: "Strong",
+        4: "Full",
+    },
+}
+
 export const DeviceWifiRSSILockProperty: PropertyMetadataNumeric = {
+    ...DeviceWifiRSSIProperty,
+    key: CommandType.CMD_GET_SUB1G_RSSI,
+};
+
+export const DeviceWifiRSSIEntrySensorProperty: PropertyMetadataNumeric = {
     ...DeviceWifiRSSIProperty,
     key: CommandType.CMD_GET_SUB1G_RSSI,
 };
@@ -535,6 +596,7 @@ export const DeviceEnabledProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: true,
     type: "boolean",
+    commandId: 1035,
 }
 
 export const DeviceEnabledStandaloneProperty: PropertyMetadataBoolean = {
@@ -563,7 +625,7 @@ export const DeviceStatusLedBatteryDoorbellProperty: PropertyMetadataBoolean = {
 
 export const DeviceStatusLedDoorbellProperty: PropertyMetadataBoolean = {
     ...DeviceStatusLedProperty,
-    key: ParamType.COMMAND_LED_NIGHT_OPEN,
+    key: ParamType.DOORBELL_LED_NIGHT_MODE,
 };
 
 export const DeviceMotionDetectionProperty: PropertyMetadataBoolean = {
@@ -582,7 +644,7 @@ export const DeviceMotionDetectionIndoorSoloFloodProperty: PropertyMetadataBoole
 
 export const DeviceMotionDetectionDoorbellProperty: PropertyMetadataBoolean = {
     ...DeviceMotionDetectionProperty,
-    key: ParamType.COMMAND_MOTION_DETECTION_PACKAGE,
+    key: ParamType.DETECT_SWITCH,
 };
 
 export const DeviceSoundDetectionProperty: PropertyMetadataBoolean = {
@@ -612,6 +674,16 @@ export const DeviceRTSPStreamProperty: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
+export const DeviceRTSPStreamUrlProperty: PropertyMetadataString = {
+    key: "custom_rtspStreamUrl",
+    name: PropertyName.DeviceRTSPStreamUrl,
+    label: "RTSP Stream URL",
+    readable: true,
+    writeable: false,
+    type: "string",
+    default: "",
+}
+
 export const DeviceWatermarkProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_SET_DEVS_OSD,
     name: PropertyName.DeviceWatermark,
@@ -620,34 +692,34 @@ export const DeviceWatermarkProperty: PropertyMetadataNumeric = {
     writeable: true,
     type: "number",
     states: {
-        0: "OFF",
-        1: "TIMESTAMP",
-        2: "TIMESTAMP_AND_LOGO",
+        0: "Off",
+        1: "Timestamp",
+        2: "Timestamp and Logo",
     },
 }
 
 export const DeviceWatermarkIndoorFloodProperty: PropertyMetadataNumeric = {
     ...DeviceWatermarkProperty,
     states: {
-        0: "TIMESTAMP",
-        1: "TIMESTAMP_AND_LOGO",
-        2: "OFF",
+        0: "Timestamp",
+        1: "Timestamp and Logo",
+        2: "Off",
     },
 };
 
 export const DeviceWatermarkSoloWiredDoorbellProperty: PropertyMetadataNumeric = {
     ...DeviceWatermarkProperty,
     states: {
-        0: "OFF",
-        1: "ON",
+        0: "Off",
+        1: "On",
     },
 };
 
 export const DeviceWatermarkBatteryDoorbellCamera1Property: PropertyMetadataNumeric = {
     ...DeviceWatermarkProperty,
     states: {
-        1: "OFF",
-        2: "ON",
+        1: "Off",
+        2: "On",
     },
 };
 
@@ -659,12 +731,12 @@ export const DeviceStateProperty: PropertyMetadataNumeric = {
     writeable: false,
     type: "number",
     states: {
-        0: "OFFLINE",
-        1: "ONLINE",
-        2: "MANUALLY_DISABLED",
-        3: "OFFLINE_LOWBAT",
-        4: "REMOVE_AND_READD",
-        5: "RESET_AND_READD",
+        0: "Offline",
+        1: "Online",
+        2: "Manually disabled",
+        3: "Offline low battery",
+        4: "Remove and readd",
+        5: "Reset and readd",
     }
 }
 
@@ -825,11 +897,11 @@ export const DeviceBasicLockStatusProperty: PropertyMetadataNumeric = {
     writeable: false,
     type: "number",
     states: {
-        1: "1",
+        1: "1",         //TODO: Finish naming of states
         2: "2",
-        3: "UNLOCKED",
-        4: "LOCKED",
-        5: "MECHANICAL_ANOMALY",
+        3: "Unlocked",
+        4: "Locked",
+        5: "Mechanical anomaly",
         6: "6",
         7: "7",
     }
@@ -857,8 +929,18 @@ export const DeviceMotionDetectionTypeProperty: PropertyMetadataNumeric = {
     writeable: true,
     type: "number",
     states: {
-        1: "Humans only",
+        0: "Humans only",
         2: "All motions",
+    },
+}
+
+export const DeviceMotionDetectionCamera1Property: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionTypeProperty,
+    key: CommandType.CMD_DEV_PUSHMSG_MODE,
+    states: {
+        0: "Person Alerts",
+        1: "Facial Alerts",
+        2: "All Alerts",
     },
 }
 
@@ -885,10 +967,10 @@ export const DeviceMotionDetectionTypeIndoorProperty: PropertyMetadataNumeric = 
     },
 }
 
-export const DeviceMotionDetectionSensivityCamera2Property: PropertyMetadataNumeric = {
+export const DeviceMotionDetectionSensitivityCamera2Property: PropertyMetadataNumeric = {
     key: CommandType.CMD_SET_PIRSENSITIVITY,
-    name: PropertyName.DeviceMotionDetectionSensivity,
-    label: "Motion Detection Sensivity",
+    name: PropertyName.DeviceMotionDetectionSensitivity,
+    label: "Motion Detection Sensitivity",
     readable: true,
     writeable: true,
     type: "number",
@@ -896,11 +978,54 @@ export const DeviceMotionDetectionSensivityCamera2Property: PropertyMetadataNume
     max: 7,
 }
 
-export const DeviceMotionDetectionSensivityIndoorProperty: PropertyMetadataNumeric = {
-    ...DeviceMotionDetectionSensivityCamera2Property,
+export const DeviceMotionDetectionSensitivityCamera1Property: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionSensitivityCamera2Property,
+    min: 1,
+    max: 100,
+    steps: 1,
+}
+
+export const DeviceMotionDetectionSensitivityIndoorProperty: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionSensitivityCamera2Property,
     key: CommandType.CMD_INDOOR_DET_SET_MOTION_SENSITIVITY_IDX,
     min: 1,
     max: 5,
+}
+
+export const DeviceMotionDetectionSensitivityBatteryDoorbellProperty: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionSensitivityCamera2Property,
+    key: CommandType.CMD_SET_MOTION_SENSITIVITY,
+    min: 1,
+    max: 5,
+}
+
+export const DeviceMotionDetectionSensitivityWiredDoorbellProperty: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionSensitivityCamera2Property,
+    key: "custom_motionDetectionSensitivity",
+    min: 1,
+    max: 5,
+}
+
+export const DeviceHiddenMotionDetectionSensitivityWiredDoorbellProperty: PropertyMetadataNumeric = {
+    key: ParamType.DETECT_MOTION_SENSITIVE,
+    name: PropertyName.DeviceHiddenMotionDetectionSensitivity,
+    label: "HIDDEN Motion Detection Sensitivity",
+    readable: true,
+    writeable: false,
+    type: "number",
+    min: 1,
+    max: 3,
+}
+
+export const DeviceHiddenMotionDetectionModeWiredDoorbellProperty: PropertyMetadataNumeric = {
+    key: ParamType.DETECT_MODE,
+    name: PropertyName.DeviceHiddenMotionDetectionMode,
+    label: "HIDDEN Motion Detection Mode",
+    readable: true,
+    writeable: false,
+    type: "number",
+    min: 1,
+    max: 3,
 }
 
 export const DeviceFloodlightLightProperty: PropertyMetadataBoolean = {
@@ -1017,12 +1142,13 @@ export const DeviceAudioRecordingProperty: PropertyMetadataBoolean = {
 }
 
 export const DeviceAudioRecordingIndoorFloodlightProperty: PropertyMetadataBoolean = {
+    ...DeviceAudioRecordingProperty,
     key: CommandType.CMD_INDOOR_SET_RECORD_AUDIO_ENABLE,
-    name: PropertyName.DeviceAudioRecording,
-    label: "Audio Recording",
-    readable: true,
-    writeable: true,
-    type: "boolean",
+}
+
+export const DeviceAudioRecordingWiredDoorbellProperty: PropertyMetadataBoolean = {
+    ...DeviceAudioRecordingProperty,
+    key: ParamType.DOORBELL_AUDIO_RECODE,
 }
 
 export const DeviceMotionTrackingProperty: PropertyMetadataBoolean = {
@@ -1059,6 +1185,12 @@ export const DeviceSpeakerVolumeIndoorFloodDoorbellProperty: PropertyMetadataNum
     max: 100,
 }
 
+export const DeviceSpeakerVolumeWiredDoorbellProperty: PropertyMetadataNumeric = {
+    ...DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
+    key: ParamType.VOLUME,
+    max: 169,
+}
+
 export const DeviceRingtoneVolumeBatteryDoorbellProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_BAT_DOORBELL_SET_RINGTONE_VOLUME,
     name: PropertyName.DeviceRingtoneVolume,
@@ -1068,6 +1200,12 @@ export const DeviceRingtoneVolumeBatteryDoorbellProperty: PropertyMetadataNumeri
     type: "number",
     min: 0,
     max: 100,
+}
+
+export const DeviceRingtoneVolumeWiredDoorbellProperty: PropertyMetadataNumeric = {
+    ...DeviceRingtoneVolumeBatteryDoorbellProperty,
+    key: ParamType.RINGING_VOLUME,
+    max: 130,
 }
 
 export const DevicePowerSourceProperty: PropertyMetadataNumeric = {
@@ -1104,6 +1242,20 @@ export const DevicePowerWorkingModeBatteryDoorbellProperty: PropertyMetadataNume
         1: "Optimal Surveillance",
         2: "Custom Recording",
         3: "Optimal Battery Life",
+    },
+}
+
+export const DeviceChargingStatusProperty: PropertyMetadataNumeric = {
+    key: CommandType.SUB1G_REP_UNPLUG_POWER_LINE,
+    name: PropertyName.DeviceChargingStatus,
+    label: "Charging Status",
+    readable: true,
+    writeable: false,
+    type: "number",
+    states: {
+        1: "Charging",
+        2: "Unplugged",
+        3: "Plugged",
     },
 }
 
@@ -1192,7 +1344,7 @@ export const DeviceVideoStreamingQualityBatteryDoorbellProperty: PropertyMetadat
 }
 
 export const DeviceVideoRecordingQualityIndoorProperty: PropertyMetadataNumeric = {
-    key: 1023,
+    key: ParamType.DOORBELL_RECORD_QUALITY,
     name: PropertyName.DeviceVideoRecordingQuality,
     label: "Video Recording Quality",
     readable: true,
@@ -1201,6 +1353,16 @@ export const DeviceVideoRecordingQualityIndoorProperty: PropertyMetadataNumeric 
     states: {
         2: "Full HD (1080P)",
         3: "2K HD",
+    },
+}
+
+export const DeviceVideoRecordingQualityWiredDoorbellProperty: PropertyMetadataNumeric = {
+    ...DeviceVideoRecordingQualityIndoorProperty,
+    key: ParamType.DOORBELL_RECORD_QUALITY,
+    states: {
+        1: "Storage Saver (1600 * 1200)",
+        2: "Full HD (1600 * 1200)",
+        3: "2K HD (2560 * 1920)",
     },
 }
 
@@ -1220,6 +1382,11 @@ export const DeviceChimeIndoorBatteryDoorbellProperty: PropertyMetadataBoolean =
     readable: true,
     writeable: true,
     type: "boolean",
+}
+
+export const DeviceChimeIndoorWiredDoorbellProperty: PropertyMetadataBoolean = {
+    ...DeviceChimeIndoorBatteryDoorbellProperty,
+    key: ParamType.CHIME_STATE,
 }
 
 export const DeviceChimeHomebaseBatteryDoorbellProperty: PropertyMetadataBoolean = {
@@ -1287,6 +1454,11 @@ export const DeviceNotificationTypeBatteryDoorbellProperty: PropertyMetadataNume
     key: CommandType.CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE,
 }
 
+export const DeviceNotificationTypeWiredDoorbellProperty: PropertyMetadataNumeric = {
+    ...DeviceNotificationTypeProperty,
+    key: ParamType.DOORBELL_MOTION_NOTIFICATION,
+}
+
 export const DeviceRotationSpeedProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_INDOOR_PAN_SPEED,
     name: PropertyName.DeviceRotationSpeed,
@@ -1316,10 +1488,10 @@ export const DeviceSoundDetectionTypeProperty: PropertyMetadataNumeric = {
     },
 }
 
-export const DeviceSoundDetectionSensivityProperty: PropertyMetadataNumeric = {
+export const DeviceSoundDetectionSensitivityProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_INDOOR_DET_SET_SOUND_SENSITIVITY_IDX,
-    name: PropertyName.DeviceSoundDetectionSensivity,
-    label: "Sound Detection Sensivity",
+    name: PropertyName.DeviceSoundDetectionSensitivity,
+    label: "Sound Detection Sensitivity",
     readable: true,
     writeable: true,
     type: "number",
@@ -1377,13 +1549,18 @@ export const DeviceNotificationCryingProperty: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
-export const DeviceNotificationRing: PropertyMetadataBoolean = {
+export const DeviceNotificationRingProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE,
     name: PropertyName.DeviceNotificationRing,
     label: "Notification Ring detected",
     readable: true,
     writeable: true,
     type: "boolean",
+}
+
+export const DeviceNotificationRingWiredDoorbellProperty: PropertyMetadataBoolean = {
+    ...DeviceNotificationRingProperty,
+    key: ParamType.DOORBELL_NOTIFICATION_OPEN,
 }
 
 export const DeviceNotificationMotionProperty: PropertyMetadataBoolean = {
@@ -1395,18 +1572,85 @@ export const DeviceNotificationMotionProperty: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
+export const DeviceNotificationMotionWiredDoorbellProperty: PropertyMetadataBoolean = {
+    ...DeviceNotificationMotionProperty,
+    key: ParamType.DOORBELL_NOTIFICATION_OPEN,
+}
+
+export const DeviceChirpVolumeEntrySensorProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SENSOR_SET_CHIRP_VOLUME,
+    name: PropertyName.DeviceChirpVolume,
+    label: "Chirp Volume",
+    readable: true,
+    writeable: true,
+    type: "number",
+    min: 1,
+    max: 26,
+    steps: 1,
+}
+
+export const DeviceChirpToneEntrySensorProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SENSOR_SET_CHIRP_TONE,
+    name: PropertyName.DeviceChirpTone,
+    label: "Chirp Tone",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "None",
+        1: "Water",
+        2: "Classic",
+        3: "Light",
+        4: "Ding",
+    }
+}
+
+export const DeviceVideoHDRWiredDoorbellProperty: PropertyMetadataBoolean = {
+    key: ParamType.DOORBELL_HDR,
+    name: PropertyName.DeviceVideoHDR,
+    label: "HDR",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceVideoDistortionCorrectionWiredDoorbellProperty: PropertyMetadataBoolean = {
+    key: ParamType.DOORBELL_DISTORTION,
+    name: PropertyName.DeviceVideoDistortionCorrection,
+    label: "Distortion Correction",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceVideoRingRecordWiredDoorbellProperty: PropertyMetadataNumeric = {
+    key: ParamType.DOORBELL_RING_RECORD,
+    name: PropertyName.DeviceVideoRingRecord,
+    label: "Record while live viewing after opening notification",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Disabled",
+        1: "Enabled - Recording Quality Preferred",
+        2: "Enabled - Streaming Quality Preferred",
+    }
+}
+
 export const DeviceProperties: Properties = {
     [DeviceType.CAMERA2]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceBattery]: DeviceBatteryProperty,
         [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
         [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
         [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
@@ -1421,10 +1665,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeProperty,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityCamera2Property,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityCamera2Property,
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
         [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
@@ -1435,12 +1680,14 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceBattery]: DeviceBatteryProperty,
         [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
         [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
         [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
@@ -1455,10 +1702,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeProperty,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityCamera2Property,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityCamera2Property,
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
         [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
@@ -1469,12 +1717,14 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceBattery]: DeviceBatteryProperty,
         [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
         [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
         [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
@@ -1489,10 +1739,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeProperty,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityCamera2Property,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityCamera2Property,
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
         [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
@@ -1503,12 +1754,14 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceBattery]: DeviceBatteryProperty,
         [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
         [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
         [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
@@ -1523,10 +1776,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeProperty,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityCamera2Property,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityCamera2Property,
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
         [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
@@ -1542,13 +1796,20 @@ export const DeviceProperties: Properties = {
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
-        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeProperty,
         [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
+        [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
+        [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityCamera1Property,
+        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionCamera1Property,
     },
     [DeviceType.CAMERA_E]: {
         ...GenericDeviceProperties,
@@ -1560,18 +1821,25 @@ export const DeviceProperties: Properties = {
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
-        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeProperty,
         [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
+        [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
+        [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityCamera1Property,
+        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionCamera1Property,
     },
     [DeviceType.DOORBELL]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
-        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionWiredDoorbellProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionDoorbellProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectionDoorbellProperty,
@@ -1579,13 +1847,28 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRinging]: DeviceRingingProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedDoorbellProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
-        //[PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
+        [PropertyName.DeviceHiddenMotionDetectionSensitivity]: DeviceHiddenMotionDetectionSensitivityWiredDoorbellProperty,
+        [PropertyName.DeviceHiddenMotionDetectionMode]: DeviceHiddenMotionDetectionModeWiredDoorbellProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityWiredDoorbellProperty,
+        [PropertyName.DeviceVideoHDR]: DeviceVideoHDRWiredDoorbellProperty,
+        [PropertyName.DeviceVideoDistortionCorrection]: DeviceVideoDistortionCorrectionWiredDoorbellProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityWiredDoorbellProperty,
+        [PropertyName.DeviceVideoRingRecord]: DeviceVideoRingRecordWiredDoorbellProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingWiredDoorbellProperty,
+        [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorWiredDoorbellProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeWiredDoorbellProperty,
+        [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeWiredDoorbellProperty,
+        [PropertyName.DeviceNotificationRing]: DeviceNotificationRingWiredDoorbellProperty,
+        [PropertyName.DeviceNotificationMotion]: DeviceNotificationMotionWiredDoorbellProperty,
+        [PropertyName.DeviceNotificationType]: DeviceNotificationTypeWiredDoorbellProperty,
     },
     [DeviceType.BATTERY_DOORBELL]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceBattery]: DeviceBatteryProperty,
         [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedBatteryDoorbellProperty,
@@ -1602,23 +1885,24 @@ export const DeviceProperties: Properties = {
         [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
         [PropertyName.DeviceRinging]: DeviceRingingProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
-        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
         [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeBatteryDoorbellProperty,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeBatteryDoorbellProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalBatteryDoorbellProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
-        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityBatteryDoorbellProperty,
         [PropertyName.DeviceVideoWDR]: DeviceWDRProperty,
         [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebaseRingtoneVolume]: DeviceChimeHomebaseRingtoneVolumeBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebaseRingtoneType]: DeviceChimeHomebaseRingtoneTypeBatteryDoorbellProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeBatteryDoorbellProperty,
-        [PropertyName.DeviceNotificationRing]: DeviceNotificationRing,
+        [PropertyName.DeviceNotificationRing]: DeviceNotificationRingProperty,
         [PropertyName.DeviceNotificationMotion]: DeviceNotificationMotionProperty,
     },
     [DeviceType.BATTERY_DOORBELL_2]: {
@@ -1626,6 +1910,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceBattery]: DeviceBatteryProperty,
         [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedBatteryDoorbellProperty,
@@ -1642,23 +1927,24 @@ export const DeviceProperties: Properties = {
         [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
         [PropertyName.DeviceRinging]: DeviceRingingProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
-        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
         [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeBatteryDoorbellProperty,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeBatteryDoorbellProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalBatteryDoorbellProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
-        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityBatteryDoorbellProperty,
         [PropertyName.DeviceVideoWDR]: DeviceWDRProperty,
         [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebaseRingtoneVolume]: DeviceChimeHomebaseRingtoneVolumeBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebaseRingtoneType]: DeviceChimeHomebaseRingtoneTypeBatteryDoorbellProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeBatteryDoorbellProperty,
-        [PropertyName.DeviceNotificationRing]: DeviceNotificationRing,
+        [PropertyName.DeviceNotificationRing]: DeviceNotificationRingProperty,
         [PropertyName.DeviceNotificationMotion]: DeviceNotificationMotionProperty,
     },
     [DeviceType.FLOODLIGHT]: {
@@ -1678,7 +1964,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredProperty,
         [PropertyName.DeviceLightSettingsMotionTriggeredDistance]: DeviceFloodlightLightSettingsMotionTriggeredDistanceProperty,
         [PropertyName.DeviceLightSettingsMotionTriggeredTimer]: DeviceFloodlightLightSettingsMotionTriggeredTimerProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityIndoorProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
@@ -1707,7 +1993,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredProperty,
         [PropertyName.DeviceLightSettingsMotionTriggeredDistance]: DeviceFloodlightLightSettingsMotionTriggeredDistanceProperty,
         [PropertyName.DeviceLightSettingsMotionTriggeredTimer]: DeviceFloodlightLightSettingsMotionTriggeredTimerProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityIndoorProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
@@ -1736,7 +2022,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredProperty,
         [PropertyName.DeviceLightSettingsMotionTriggeredDistance]: DeviceFloodlightLightSettingsMotionTriggeredDistanceProperty,
         [PropertyName.DeviceLightSettingsMotionTriggeredTimer]: DeviceFloodlightLightSettingsMotionTriggeredTimerProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityIndoorProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
@@ -1765,7 +2051,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredProperty,
         [PropertyName.DeviceLightSettingsMotionTriggeredDistance]: DeviceFloodlightLightSettingsMotionTriggeredDistanceProperty,
         [PropertyName.DeviceLightSettingsMotionTriggeredTimer]: DeviceFloodlightLightSettingsMotionTriggeredTimerProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityIndoorProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
@@ -1785,17 +2071,18 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
         [PropertyName.DevicePetDetection]: DevicePetDetectionProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkIndoorFloodProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
         [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
         [PropertyName.DevicePetDetected]: DevicePetDetectedProperty,
         [PropertyName.DeviceSoundDetected]: DeviceSoundDetectedProperty,
         [PropertyName.DeviceSoundDetectionType]: DeviceSoundDetectionTypeProperty,
-        [PropertyName.DeviceSoundDetectionSensivity]: DeviceSoundDetectionSensivityProperty,
+        [PropertyName.DeviceSoundDetectionSensitivity]: DeviceSoundDetectionSensitivityProperty,
         [PropertyName.DeviceCryingDetected]: DeviceCryingDetectedProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedIndoorSoloFloodProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityIndoorProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
@@ -1818,17 +2105,18 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
         [PropertyName.DevicePetDetection]: DevicePetDetectionProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkIndoorFloodProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
         [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
         [PropertyName.DevicePetDetected]: DevicePetDetectedProperty,
         [PropertyName.DeviceSoundDetected]: DeviceSoundDetectedProperty,
         [PropertyName.DeviceSoundDetectionType]: DeviceSoundDetectionTypeProperty,
-        [PropertyName.DeviceSoundDetectionSensivity]: DeviceSoundDetectionSensivityProperty,
+        [PropertyName.DeviceSoundDetectionSensitivity]: DeviceSoundDetectionSensitivityProperty,
         [PropertyName.DeviceCryingDetected]: DeviceCryingDetectedProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedIndoorSoloFloodProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityIndoorProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
@@ -1850,17 +2138,18 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
         [PropertyName.DevicePetDetection]: DevicePetDetectionProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkIndoorFloodProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
         [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
         [PropertyName.DevicePetDetected]: DevicePetDetectedProperty,
         [PropertyName.DeviceSoundDetected]: DeviceSoundDetectedProperty,
         [PropertyName.DeviceSoundDetectionType]: DeviceSoundDetectionTypeProperty,
-        [PropertyName.DeviceSoundDetectionSensivity]: DeviceSoundDetectionSensivityProperty,
+        [PropertyName.DeviceSoundDetectionSensitivity]: DeviceSoundDetectionSensitivityProperty,
         [PropertyName.DeviceCryingDetected]: DeviceCryingDetectedProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedIndoorSoloFloodProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityIndoorProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
@@ -1885,17 +2174,18 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
         [PropertyName.DevicePetDetection]: DevicePetDetectionProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkIndoorFloodProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
         [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
         [PropertyName.DevicePetDetected]: DevicePetDetectedProperty,
         [PropertyName.DeviceSoundDetected]: DeviceSoundDetectedProperty,
         [PropertyName.DeviceSoundDetectionType]: DeviceSoundDetectionTypeProperty,
-        [PropertyName.DeviceSoundDetectionSensivity]: DeviceSoundDetectionSensivityProperty,
+        [PropertyName.DeviceSoundDetectionSensitivity]: DeviceSoundDetectionSensitivityProperty,
         [PropertyName.DeviceCryingDetected]: DeviceCryingDetectedProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedIndoorSoloFloodProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityIndoorProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
@@ -1919,17 +2209,18 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
         [PropertyName.DevicePetDetection]: DevicePetDetectionProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkIndoorFloodProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
         [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
         [PropertyName.DevicePetDetected]: DevicePetDetectedProperty,
         [PropertyName.DeviceSoundDetected]: DeviceSoundDetectedProperty,
         [PropertyName.DeviceSoundDetectionType]: DeviceSoundDetectionTypeProperty,
-        [PropertyName.DeviceSoundDetectionSensivity]: DeviceSoundDetectionSensivityProperty,
+        [PropertyName.DeviceSoundDetectionSensitivity]: DeviceSoundDetectionSensitivityProperty,
         [PropertyName.DeviceCryingDetected]: DeviceCryingDetectedProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedIndoorSoloFloodProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityIndoorProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
@@ -1952,17 +2243,18 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
         [PropertyName.DevicePetDetection]: DevicePetDetectionProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkIndoorFloodProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
         [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
         [PropertyName.DevicePetDetected]: DevicePetDetectedProperty,
         [PropertyName.DeviceSoundDetected]: DeviceSoundDetectedProperty,
         [PropertyName.DeviceSoundDetectionType]: DeviceSoundDetectionTypeProperty,
-        [PropertyName.DeviceSoundDetectionSensivity]: DeviceSoundDetectionSensivityProperty,
+        [PropertyName.DeviceSoundDetectionSensitivity]: DeviceSoundDetectionSensitivityProperty,
         [PropertyName.DeviceCryingDetected]: DeviceCryingDetectedProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedIndoorSoloFloodProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityIndoorProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
@@ -1985,17 +2277,18 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
         [PropertyName.DevicePetDetection]: DevicePetDetectionProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkIndoorFloodProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
         [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
         [PropertyName.DevicePetDetected]: DevicePetDetectedProperty,
         [PropertyName.DeviceSoundDetected]: DeviceSoundDetectedProperty,
         [PropertyName.DeviceSoundDetectionType]: DeviceSoundDetectionTypeProperty,
-        [PropertyName.DeviceSoundDetectionSensivity]: DeviceSoundDetectionSensivityProperty,
+        [PropertyName.DeviceSoundDetectionSensitivity]: DeviceSoundDetectionSensitivityProperty,
         [PropertyName.DeviceCryingDetected]: DeviceCryingDetectedProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedIndoorSoloFloodProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
-        [PropertyName.DeviceMotionDetectionSensivity]: DeviceMotionDetectionSensivityIndoorProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
@@ -2016,6 +2309,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
@@ -2040,6 +2334,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
@@ -2064,6 +2359,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
@@ -2088,6 +2384,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
@@ -2112,6 +2409,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
@@ -2178,6 +2476,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSensorOpen]: DeviceSensorOpenProperty,
         [PropertyName.DeviceBatteryLow]: DeviceBatteryLowSensorProperty,
         [PropertyName.DeviceSensorChangeTime]: DeviceSensorChangeTimeProperty,
+        [PropertyName.DeviceChirpVolume]: DeviceChirpVolumeEntrySensorProperty,
+        [PropertyName.DeviceChirpTone]: DeviceChirpToneEntrySensorProperty,
+        [PropertyName.DeviceState]: DeviceStateProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIEntrySensorProperty,
     },
 }
 
@@ -2225,29 +2527,29 @@ export const StationGuardModeProperty: PropertyMetadataNumeric = {
     writeable: true,
     type: "number",
     states: {
-        0: "AWAY",
-        1: "HOME",
-        2: "SCHEDULE",
-        3: "CUSTOM1",
-        4: "CUSTOM2",
-        5: "CUSTOM3",
-        47: "GEO",
-        63: "DISARMED",
+        0: "Away",
+        1: "Home",
+        2: "Schedule",
+        3: "Custom 1",
+        4: "Custom 2",
+        5: "Custom 3",
+        47: "Geofencing",
+        63: "Disarmed",
     },
 }
 
 export const StationGuardModeKeyPadProperty: PropertyMetadataNumeric = {
     ...StationGuardModeProperty,
     states: {
-        0: "AWAY",
-        1: "HOME",
-        2: "SCHEDULE",
-        3: "CUSTOM1",
-        4: "CUSTOM2",
-        5: "CUSTOM3",
-        6: "OFF",
-        47: "GEO",
-        63: "DISARMED",
+        0: "Away",
+        1: "Home",
+        2: "Schedule",
+        3: "Custom 1",
+        4: "Custom 2",
+        5: "Custom 3",
+        6: "Off",
+        47: "Geofencing",
+        63: "Disarmed",
     },
 }
 
@@ -2259,12 +2561,12 @@ export const StationCurrentModeProperty: PropertyMetadataNumeric = {
     writeable: false,
     type: "number",
     states: {
-        0: "AWAY",
-        1: "HOME",
-        3: "CUSTOM1",
-        4: "CUSTOM2",
-        5: "CUSTOM3",
-        63: "DISARMED",
+        0: "Away",
+        1: "Home",
+        3: "Custom 1",
+        4: "Custom 2",
+        5: "Custom 3",
+        63: "Disarmed",
     },
 }
 
@@ -2457,6 +2759,7 @@ export const StationProperties: Properties = {
         [PropertyName.StationMacAddress]: StationMacAddressProperty,
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+        [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
     },
     [DeviceType.SOLO_CAMERA]: {
         ...BaseStationProperties,
@@ -2526,6 +2829,18 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeKeyPadProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
     },
+    [DeviceType.LOCK_ADVANCED]: {
+        ...BaseStationProperties,
+    },
+    [DeviceType.LOCK_ADVANCED_NO_FINGER]: {
+        ...BaseStationProperties,
+    },
+    [DeviceType.LOCK_BASIC]: {
+        ...BaseStationProperties,
+    },
+    [DeviceType.LOCK_BASIC_NO_FINGER]: {
+        ...BaseStationProperties,
+    },
 }
 
 export enum CommandName {
@@ -2534,9 +2849,10 @@ export enum CommandName {
     DeviceQuickResponse = "deviceQuickResponse",
     DevicePanAndTilt = "devicePanAndTilt",
     DeviceTriggerAlarmSound = "deviceTriggerAlarmSound",
+    DeviceStartDownload = "deviceStartDownload",
+    DeviceCancelDownload = "deviceCancelDownload",
     StationReboot = "stationReboot",
     StationTriggerAlarmSound = "stationTriggerAlarmSound",
-    StationDownload = "stationDownload",
 }
 
 export const DeviceCommands: Commands = {
@@ -2544,111 +2860,161 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceTriggerAlarmSound,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.CAMERA2]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceTriggerAlarmSound,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.CAMERA2C]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceTriggerAlarmSound,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.CAMERA2C_PRO]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceTriggerAlarmSound,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.CAMERA2_PRO]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceTriggerAlarmSound,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.CAMERA_E]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.DOORBELL]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceQuickResponse,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.BATTERY_DOORBELL]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceQuickResponse,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.BATTERY_DOORBELL_2]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceQuickResponse,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.INDOOR_CAMERA]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.INDOOR_CAMERA_1080]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.INDOOR_OUTDOOR_CAMERA_2K]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.INDOOR_PT_CAMERA]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DevicePanAndTilt,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.INDOOR_PT_CAMERA_1080]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DevicePanAndTilt,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.SOLO_CAMERA]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.SOLO_CAMERA_PRO]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_1080]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_2K]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.FLOODLIGHT]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8422]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8423]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8424]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
     ],
     [DeviceType.KEYPAD]: [],
     [DeviceType.LOCK_BASIC]: [],
@@ -2663,7 +3029,6 @@ export const StationCommands: Commands = {
     [DeviceType.STATION]: [
         CommandName.StationReboot,
         CommandName.StationTriggerAlarmSound,
-        CommandName.StationDownload,
     ],
     [DeviceType.INDOOR_CAMERA]: [
         CommandName.StationReboot,
@@ -2686,7 +3051,9 @@ export const StationCommands: Commands = {
     [DeviceType.INDOOR_PT_CAMERA_1080]: [
         CommandName.StationReboot,
     ],
-    [DeviceType.DOORBELL]: [],
+    [DeviceType.DOORBELL]: [
+        CommandName.StationReboot,
+    ],
     [DeviceType.SOLO_CAMERA]: [],
     [DeviceType.SOLO_CAMERA_PRO]: [],
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_1080]: [],
