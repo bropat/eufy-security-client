@@ -4,7 +4,7 @@ import { dummyLogger, Logger } from "ts-log";
 import { isValid as isValidCountry } from "i18n-iso-countries";
 import { isValid as isValidLanguage } from "@cospired/i18n-iso-languages";
 
-import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite } from "./models"
+import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry } from "./models"
 import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites } from "./interfaces";
 import { AuthResult, EventFilterType, PublicKeyType, ResponseErrorCode, StorageType, VerfyCodeTypes } from "./types";
 import { ParameterHelper } from "./parameter";
@@ -771,6 +771,40 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             this.log.error("Generic Error:", error);
         }
         return "";
+    }
+
+    public async getSensorHistory(stationSN: string, deviceSN: string): Promise<Array<SensorHistoryEntry>> {
+        try {
+            const response = await this.request("post", "app/get_sensor_history", {
+                devicse_sn: deviceSN,
+                max_time: 0,  //TODO: Finish implementation
+                num: 500,     //TODO: Finish implementation
+                page: 0,      //TODO: Finish implementation
+                station_sn: stationSN,
+                transaction: `${new Date().getTime().toString()}`
+            }, this.headers).catch(error => {
+                this.log.error("Error:", error);
+                return error;
+            });
+            this.log.debug("Response:", response.data);
+
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.data) {
+                        const entries: Array<SensorHistoryEntry> = result.data;
+                        return entries;
+                    }
+                } else {
+                    this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                }
+            } else {
+                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+            }
+        } catch (error) {
+            this.log.error("Generic Error:", error);
+        }
+        return [];
     }
 
 }

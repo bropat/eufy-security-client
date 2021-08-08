@@ -7,7 +7,7 @@ import { FullDeviceResponse, ResultResponse, StreamResponse } from "./models"
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, RawValue, PropertyMetadataNumeric, PropertyMetadataBoolean } from "./interfaces";
 import { CommandType, ESLAnkerBleConstant } from "../p2p/types";
-import { getAbsoluteFilePath } from "./utils";
+import { calculateWifiSignalLevel, getAbsoluteFilePath } from "./utils";
 import { convertTimestampMs } from "../push/utils";
 import { eslTimestamp } from "../p2p/utils";
 import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, PushMessage } from "../push";
@@ -32,6 +32,9 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         this.log = api.getLog();
         this.update(this.rawDevice);
         this.ready = true;
+        setImmediate(() => {
+            this.emit("ready", this);
+        });
     }
 
     public getRawDevice(): FullDeviceResponse {
@@ -67,6 +70,8 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
                         break;
                 }
                 this.updateProperty(property.name, { value: this.rawDevice[property.key], timestamp: timestamp });
+            } else if (this.properties[property.name] === undefined && property.default !== undefined && !this.ready) {
+                this.updateProperty(property.name, { value: property.default, timestamp: new Date().getTime() });
             }
         }
         this.rawDevice.params.forEach(param => {
@@ -86,8 +91,10 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
             || this.properties[name] === undefined
         ) {
             this.properties[name] = value;
-            if (this.ready)
-                this.emit("property changed", this, name, value);
+            if (!name.startsWith("hidden-")) {
+                if (this.ready)
+                    this.emit("property changed", this, name, value);
+            }
             return true;
         }
         return false;
@@ -102,7 +109,30 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     protected processCustomParameterChanged(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
-        // nothing to do
+        if ((metadata.key === ParamType.DETECT_MOTION_SENSITIVE || metadata.key === ParamType.DETECT_MODE) && this.isWiredDoorbell()) {
+            //TODO: Not perfectly solved, can in certain cases briefly trigger a double event where the last event is the correct one
+            const rawSensitivity = this.getRawProperty(ParamType.DETECT_MOTION_SENSITIVE);
+            const rawMode = this.getRawProperty(ParamType.DETECT_MODE);
+
+            if (rawSensitivity !== undefined && rawMode !== undefined) {
+                const sensitivity = Number.parseInt(rawSensitivity.value);
+                const mode = Number.parseInt(rawMode.value);
+
+                if (mode === 3 && sensitivity === 2) {
+                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 1, timestamp: newValue ? newValue.timestamp : 0 });
+                } else if (mode === 1 && sensitivity === 1) {
+                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 2, timestamp: newValue ? newValue.timestamp : 0 });
+                } else if (mode === 1 && sensitivity === 2) {
+                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 3, timestamp: newValue ? newValue.timestamp : 0 });
+                } else if (mode === 1 && sensitivity === 3) {
+                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 4, timestamp: newValue ? newValue.timestamp : 0 });
+                } else if (mode === 2 && sensitivity === 1) {
+                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 5, timestamp: newValue ? newValue.timestamp : 0 });
+                }
+            }
+        } else if (metadata.name === PropertyName.DeviceWifiRSSI) {
+            this.updateProperty(PropertyName.DeviceWifiSignalLevel, { value: calculateWifiSignalLevel(this, newValue.value as number), timestamp: newValue ? newValue.timestamp : 0 });
+        }
     }
 
     public updateRawProperty(type: number, value: RawValue): boolean {
@@ -168,6 +198,57 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
                     this.log.error("Convert CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE Error:", { property: property, value: value, error: error });
                     return { value: 1, timestamp: 0 };
                 }
+            } else if (property.key === ParamType.DOORBELL_NOTIFICATION_OPEN) {
+                try {
+                    switch (property.name) {
+                        case PropertyName.DeviceNotificationRing:
+                            return { value: value !== undefined ? (Number.parseInt((value.value as any)) === 3 || Number.parseInt((value.value as any)) === 1 ? true : false): false, timestamp: value !== undefined ? value.timestamp : 0 };
+                        case PropertyName.DeviceNotificationMotion:
+                            return { value: value !== undefined ? (Number.parseInt((value.value as any)) === 3 || Number.parseInt((value.value as any)) === 2 ? true : false): false, timestamp: value !== undefined ? value.timestamp : 0 };
+                    }
+                } catch (error) {
+                    this.log.error("Convert DOORBELL_NOTIFICATION_OPEN Error:", { property: property, value: value, error: error });
+                    return { value: false, timestamp: 0 };
+                }
+            } else if (property.key === CommandType.CMD_SET_PIRSENSITIVITY) {
+                try {
+                    if (this.getDeviceType() === DeviceType.CAMERA || this.getDeviceType() === DeviceType.CAMERA_E) {
+                        const convertedValue = ((200 - Number.parseInt(value.value)) / 2) + 1;
+                        return { value: convertedValue, timestamp: value.timestamp };
+                    } else if (this.isCamera2Product()) {
+                        let convertedValue;
+                        switch(Number.parseInt(value.value)) {
+                            case 192:
+                                convertedValue = 1;
+                                break;
+                            case 118:
+                                convertedValue = 2;
+                                break;
+                            case 72:
+                                convertedValue = 3;
+                                break;
+                            case 46:
+                                convertedValue = 4;
+                                break;
+                            case 30:
+                                convertedValue = 5;
+                                break;
+                            case 20:
+                                convertedValue = 6;
+                                break;
+                            case 14:
+                                convertedValue = 7;
+                                break;
+                            default:
+                                convertedValue = 4;
+                                break;
+                        }
+                        return { value: convertedValue, timestamp: value.timestamp };
+                    }
+                } catch (error) {
+                    this.log.error("Convert CMD_SET_PIRSENSITIVITY Error:", { property: property, value: value, error: error });
+                    return value;
+                }
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
@@ -211,7 +292,12 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
     }
 
     public getProperties(): PropertyValues {
-        return this.properties;
+        const result: PropertyValues = {};
+        for(const property of Object.keys(this.properties)) {
+            if (!property.startsWith("hidden-"))
+                result[property] = this.properties[property];
+        }
+        return result;
     }
 
     public getPropertiesMetadata(): IndexedProperty {
@@ -238,6 +324,13 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
 
     public processPushNotification(_message: PushMessage, _eventDurationSeconds: number): void {
         // Nothing to do
+    }
+
+    public setCustomPropertyValue(name: string, value: PropertyValue): void {
+        const metadata = this.getPropertyMetadata(name);
+        if (typeof metadata.key === "string" && metadata.key.startsWith("custom_")) {
+            this.updateProperty(name, value);
+        }
     }
 
     public destroy(): void {

@@ -20,6 +20,8 @@ export interface P2PClientProtocolEvents {
     "rtsp url": (channel: number, rtspUrl: string) => void;
     "esl parameter": (channel: number, param: number, value: string) => void;
     "timeout": () => void;
+    "runtime state": (channel: number, batteryLevel: number, temperature: number) => void;
+    "charging state": (channel: number, chargeType: number, batteryLevel: number) => void;
 }
 
 export interface P2PMessageState {

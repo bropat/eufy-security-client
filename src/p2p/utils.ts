@@ -4,7 +4,7 @@ import CryptoJS from "crypto-js"
 import { randomBytes } from "crypto";
 
 import { P2PMessageParts } from "./interfaces";
-import { CommandType, P2PDataTypeHeader } from "./types";
+import { CommandType, P2PDataTypeHeader, VideoCodec } from "./types";
 import { Address } from "./models";
 
 export const MAGIC_WORD = "XZYH";
@@ -408,4 +408,28 @@ export const generateLockBasicPublicKeyAESKey = (userID: string): string => {
         userID += "0";
     }
     return userID;
+}
+
+export const getVideoCodec = (data: Buffer): VideoCodec => {
+    if (data !== undefined && data.length > 0) {
+        if (data.length >= 5) {
+            const h265Values = [38, 64, 66, 68, 78];
+            const startcode = [...data.slice(0, 5)]
+            if (h265Values.includes(startcode[3]) || h265Values.includes(startcode[4])) {
+                return VideoCodec.H265;
+            } else if (startcode[3] === 103 || startcode[4] === 103) {
+                return VideoCodec.H264;
+            }
+        } else {
+            return VideoCodec.H264;
+        }
+    }
+    return VideoCodec.UNKNOWN; // Maybe return h264 as Eufy does?
+}
+
+export const checkT8420 = (serialNumber: string): boolean => {
+    if (!(serialNumber !== undefined && serialNumber !== null && serialNumber.length > 0 && serialNumber.startsWith("T8420")) || serialNumber.length <= 7 || serialNumber[6] != "6") {
+        return false;
+    }
+    return true;
 }

@@ -3,10 +3,10 @@ import { TypedEmitter } from "tiny-typed-emitter";
 import NodeRSA from "node-rsa";
 import { Readable } from "stream";
 import { dummyLogger, Logger } from "ts-log";
-import { SortedMap } from "sweet-collections";
+import { SortedMap, SortedArray } from "sweet-collections";
 
 import { Address, CmdCameraInfoResponse, CmdESLNotifyPayload, CommandResult } from "./models";
-import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64 } from "./utils";
+import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420 } from "./utils";
 import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, ESLInnerCommand, P2PConnectionType } from "./types";
 import { AlarmMode } from "../http/types";
 import { P2PDataMessage, P2PDataMessageAudio, P2PDataMessageBuilder, P2PMessageState, P2PDataMessageVideo, P2PMessage, P2PDataHeader, P2PDataMessageState, P2PClientProtocolEvents, DeviceSerial } from "./interfaces";
@@ -20,6 +20,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private readonly LOOKUP_RETRY_TIMEOUT = 150;
     private readonly MAX_EXPECTED_SEQNO_WAIT = 20 * 1000;
     private readonly HEARTBEAT_INTERVAL = 5 * 1000;
+    private readonly MAX_COMMAND_CONNECT_TIMEOUT = 45 * 1000;
 
     private readonly UDP_RECVBUFFERSIZE_BYTES = 1048576;
     private readonly MAX_PAYLOAD_BYTES = 1028;
@@ -59,6 +60,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     ];
 
     private messageStates: Map<number, P2PMessageState> = new Map<number, P2PMessageState>();
+    private sendQueue: SortedArray<number> = new SortedArray<number>((a: number, b: number) => a - b);
 
     private connectTimeout?: NodeJS.Timeout;
     private lookupTimeout?: NodeJS.Timeout;
@@ -105,6 +107,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
         this._clearMessageStateTimeouts();
         this.messageStates.clear();
+        this.sendQueue.clear();
 
         for(let datatype = 0; datatype < 4; datatype++) {
 
@@ -194,6 +197,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private _disconnected(): void {
         this._clearHeartbeatTimeout();
+        this._clearLookupRetryTimeout();
+        this._clearLookupTimeout();
+        this._clearConnectTimeout();
         if (this.currentMessageState[P2PDataType.VIDEO].streaming) {
             this.endStream(P2PDataType.VIDEO)
         }
@@ -405,24 +411,37 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private _sendCommand(message: P2PMessageState): void {
         this.log.debug("Sending p2p command...", { station: this.stationSerial, sequence: message.sequence, commandType: message.command_type, channel: message.channel, retries: message.retries, messageStatesSize: this.messageStates.size });
-        if (message.retries < this.MAX_RETRIES) {
+        if (message.retries < this.MAX_RETRIES && message.return_code !== ErrorCode.ERROR_CONNECT_TIMEOUT) {
             if (message.return_code === ErrorCode.ERROR_FAILED_TO_REQUEST) {
                 this.messageStates.delete(message.sequence);
                 message.sequence = this.seqNumber++;
                 message.data.writeUInt16BE(message.sequence, 2);
                 this.messageStates.set(message.sequence, message);
             }
-            sendMessage(this.socket, this.connectAddress!, RequestMessageType.DATA, message.data).catch((error) => {
-                this.log.error(`Station ${this.stationSerial} - Error:`, error);
-            });
             const msg = this.messageStates.get(message.sequence);
-            if (msg) {
-                msg.return_code = ErrorCode.ERROR_COMMAND_TIMEOUT;
-                msg.retries++;
-                msg.timeout = setTimeout(() => {
-                    this._sendCommand(msg);
-                }, this.MAX_AKNOWLEDGE_TIMEOUT);
-                this.messageStates.set(msg.sequence, msg);
+            if (this.connected) {
+                sendMessage(this.socket, this.connectAddress!, RequestMessageType.DATA, message.data).catch((error) => {
+                    this.log.error(`Station ${this.stationSerial} - Error:`, error);
+                });
+
+                if (msg) {
+                    msg.return_code = ErrorCode.ERROR_COMMAND_TIMEOUT;
+                    msg.retries++;
+                    msg.timeout = setTimeout(() => {
+                        this._sendCommand(msg);
+                    }, this.MAX_AKNOWLEDGE_TIMEOUT);
+                    this.messageStates.set(msg.sequence, msg);
+                }
+            } else {
+                if (msg) {
+                    msg.return_code = ErrorCode.ERROR_CONNECT_TIMEOUT;
+                    msg.timeout = setTimeout(() => {
+                        this._sendCommand(msg);
+                    }, this.MAX_COMMAND_CONNECT_TIMEOUT);
+                    this.messageStates.set(msg.sequence, msg);
+                    if (!this.sendQueue.includes(msg.sequence))
+                        this.sendQueue.push(msg.sequence);
+                }
             }
         } else {
             this.log.error(`Station ${this.stationSerial} - Max retries ${this.messageStates.get(message.sequence)?.retries} - stop with error`, { sequence: message.sequence, commandType: message.command_type, channel: message.channel, retries: message.retries });
@@ -432,6 +451,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 return_code: message.return_code
             } as CommandResult);
             this.messageStates.delete(message.sequence);
+            this.sendQueue.delete(message.sequence);
             if (message.return_code === ErrorCode.ERROR_COMMAND_TIMEOUT) {
                 this.log.warn(`Station ${this.stationSerial} - Connection seems lost. Try to reconnect...`);
                 this._disconnected();
@@ -482,6 +502,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             // Answer from the device to a CAM_CHECK message
             if (!this.connected) {
                 this.log.debug(`Station ${this.stationSerial} - CAM_ID - Connected to station ${this.stationSerial} on host ${rinfo.address} port ${rinfo.port}`);
+                this._clearLookupRetryTimeout();
+                this._clearLookupTimeout();
                 this._clearConnectTimeout();
                 this.connected = true;
                 this.connectTime = new Date().getTime();
@@ -493,6 +515,19 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     this.scheduleHeartbeat();
                 }, this.getHeartbeatInterval());
                 this.emit("connect", this.connectAddress);
+
+                for (const messageId of this.sendQueue.toArray()) {
+                    this.sendQueue.delete(messageId);
+                    const message = this.messageStates.get(messageId);
+                    if (message !== undefined) {
+                        if (message.timeout !== undefined)
+                            clearTimeout(message.timeout);
+                        message.timeout = undefined;
+                        message.return_code = ErrorCode.ERROR_COMMAND_TIMEOUT;
+                        this._sendCommand(message);
+                        this.log.debug(`Station ${this.stationSerial} channel ${message.channel} - Sending queued message ${message.sequence}, remaining messages in queue ${this.sendQueue.length} (command_type: ${message.command_type} nested_command_type: ${message.nested_command_type})`);
+                    }
+                }
             } else {
                 this.log.debug(`Station ${this.stationSerial} - CAM_ID - Already connected, ignoring...`);
             }
@@ -509,12 +544,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         } else if (hasHeader(msg, ResponseMessageType.END)) {
             // Connection is closed by device
             this.log.debug(`Station ${this.stationSerial} - END - received from host ${rinfo.address}:${rinfo.port}`);
-            //this.socket.close();
-            this._clearLookupTimeout();
-            this._clearLookupRetryTimeout();
-            this._clearConnectTimeout();
-            this._clearHeartbeatTimeout();
-            this._initialize();
+            this._disconnected();
             return;
         } else if (hasHeader(msg, ResponseMessageType.ACK)) {
             // Device ACK a message from our side
@@ -543,6 +573,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             return_code: ErrorCode.ERROR_COMMAND_TIMEOUT
                         } as CommandResult);
                     }, this.MAX_COMMAND_RESULT_WAIT);
+                    this.messageStates.set(ackedSeqNo, msg_state);
                 }
             }
         } else if (hasHeader(msg, ResponseMessageType.DATA)) {
@@ -646,15 +677,17 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         } else if (hasHeader(msg, ResponseMessageType.UNKNOWN_81) || hasHeader(msg, ResponseMessageType.UNKNOWN_83)) {
             // Do nothing / ignore
         } else if (hasHeader(msg, ResponseMessageType.LOOKUP_RESP)) {
-            const responseCode = msg.slice(4, 6).readUInt16LE();
+            if (!this.connected) {
+                const responseCode = msg.slice(4, 6).readUInt16LE();
 
-            this.log.debug(`Station ${this.stationSerial} - LOOKUP_RESP - Got response`, { remoteAddress: rinfo.address, remotePort: rinfo.port, response: { responseCode: responseCode }});
+                this.log.debug(`Station ${this.stationSerial} - LOOKUP_RESP - Got response`, { remoteAddress: rinfo.address, remotePort: rinfo.port, response: { responseCode: responseCode }});
 
-            if (responseCode !== 0 && this.lookupTimeout !== undefined && this.lookupRetryTimeout === undefined) {
-                this.lookupRetryTimeout = setTimeout(() => {
-                    this.lookupRetryTimeout = undefined;
-                    this.cloudAddresses.map((address) => this.lookupByAddress(address, this.p2pDid, this.dskKey));
-                }, this.LOOKUP_RETRY_TIMEOUT);
+                if (responseCode !== 0 && this.lookupTimeout !== undefined && this.lookupRetryTimeout === undefined) {
+                    this.lookupRetryTimeout = setTimeout(() => {
+                        this.lookupRetryTimeout = undefined;
+                        this.cloudAddresses.map((address) => this.lookupByAddress(address, this.p2pDid, this.dskKey));
+                    }, this.LOOKUP_RETRY_TIMEOUT);
+                }
             }
         } else {
             this.log.debug(`Station ${this.stationSerial} - received unknown message`, { remoteAddress: rinfo.address, remotePort: rinfo.port, response: { message: msg.toString("hex"), length: msg.length }});
@@ -803,7 +836,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (this.stationSerial.startsWith("T8410") || this.stationSerial.startsWith("T8400") || this.stationSerial.startsWith("T8401") || this.stationSerial.startsWith("T8411") ||
             this.stationSerial.startsWith("T8202") || this.stationSerial.startsWith("T8422") || this.stationSerial.startsWith("T8424") || this.stationSerial.startsWith("T8423") ||
             this.stationSerial.startsWith("T8130") || this.stationSerial.startsWith("T8131") || this.stationSerial.startsWith("T8420") || this.stationSerial.startsWith("T8440") ||
-            this.stationSerial.startsWith("T8441") || this.stationSerial.startsWith("T8442") || (!this.stationSerial.startsWith("T8420") || this.stationSerial.length <= 7 || this.stationSerial[6] !== "6")) {
+            this.stationSerial.startsWith("T8441") || this.stationSerial.startsWith("T8442") || checkT8420(this.stationSerial)) {
+            //TODO: Need to add battery doorbells as seen in source => T8210,T8220,T8221,T8222
             return isKeyFrame;
         }
         return isIFrame(data);
@@ -866,12 +900,26 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
                     this.log.debug(`Station ${this.stationSerial} - CMD_VIDEO_FRAME`, { dataSize: message.data.length, metadata: videoMetaData, videoDataSize: video_data.length });
 
+                    this.currentMessageState[message.dataType].streamMetadata.videoFPS = videoMetaData.videoFPS;
+                    this.currentMessageState[message.dataType].streamMetadata.videoHeight = videoMetaData.videoHeight;
+                    this.currentMessageState[message.dataType].streamMetadata.videoWidth = videoMetaData.videoWidth;
+
                     if (this.currentMessageState[message.dataType].streamNotStarted) {
+                        if (this.stationSerial.startsWith("T8410") || this.stationSerial.startsWith("T8400") || this.stationSerial.startsWith("T8401") || this.stationSerial.startsWith("T8411") ||
+                            this.stationSerial.startsWith("T8202") || this.stationSerial.startsWith("T8422") || this.stationSerial.startsWith("T8424") || this.stationSerial.startsWith("T8423") ||
+                            this.stationSerial.startsWith("T8130") || this.stationSerial.startsWith("T8131") || this.stationSerial.startsWith("T8420") || this.stationSerial.startsWith("T8440") ||
+                            this.stationSerial.startsWith("T8441") || this.stationSerial.startsWith("T8442") || checkT8420(this.stationSerial)) {
+                            this.currentMessageState[message.dataType].streamMetadata.videoCodec = videoMetaData.streamType === 1 ? VideoCodec.H264 : videoMetaData.streamType === 2 ? VideoCodec.H265 : VideoCodec.UNKNOWN;
+                            this.log.debug(`Station ${this.stationSerial} - CMD_VIDEO_FRAME - Video codec information received from packet`, { commandIdName: CommandType[message.commandId], commandId: message.commandId, channel: message.channel, metadata: videoMetaData });
+                        } else if (this.isIFrame(video_data, isKeyFrame)) {
+                            this.currentMessageState[message.dataType].streamMetadata.videoCodec = getVideoCodec(video_data);
+                            this.log.debug(`Station ${this.stationSerial} - CMD_VIDEO_FRAME - Video codec extracted from video data`, { commandIdName: CommandType[message.commandId], commandId: message.commandId, channel: message.channel, metadata: videoMetaData });
+                        } else {
+                            this.currentMessageState[message.dataType].streamMetadata.videoCodec = VideoCodec.UNKNOWN;
+                            this.log.debug(`Station ${this.stationSerial} - CMD_VIDEO_FRAME - Unknown video codec skip packet`, { commandIdName: CommandType[message.commandId], commandId: message.commandId, channel: message.channel, metadata: videoMetaData });
+                            break;
+                        }
                         this.currentMessageState[message.dataType].streamFirstVideoDataReceived = true;
-                        this.currentMessageState[message.dataType].streamMetadata.videoCodec = videoMetaData.streamType;
-                        this.currentMessageState[message.dataType].streamMetadata.videoFPS = videoMetaData.videoFPS;
-                        this.currentMessageState[message.dataType].streamMetadata.videoHeight = videoMetaData.videoHeight;
-                        this.currentMessageState[message.dataType].streamMetadata.videoWidth = videoMetaData.videoWidth;
 
                         if ((this.currentMessageState[message.dataType].streamFirstAudioDataReceived && this.currentMessageState[message.dataType].streamFirstVideoDataReceived && !this.quickStreamStart) || (this.currentMessageState[message.dataType].streamFirstVideoDataReceived && this.quickStreamStart)) {
                             this.emitStreamStartEvent(message.dataType);
@@ -976,6 +1024,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 try {
                     this.log.debug(`Station ${this.stationSerial} - CMD_DOORBELL_NOTIFY_PAYLOAD`, { payload: message.data.toString() });
                     //TODO: Finish implementation, emit an event...
+                    //VDBStreamInfo (1005) and VoltageEvent (1015)
                     //this.emit("", JSON.parse(message.data.toString()) as xy);
                 } catch (error) {
                     this.log.error(`Station ${this.stationSerial} - CMD_DOORBELL_NOTIFY_PAYLOAD - Error:`, error);
@@ -984,7 +1033,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             case CommandType.CMD_NAS_SWITCH:
                 try {
                     this.log.debug(`Station ${this.stationSerial} - CMD_NAS_SWITCH`, { payload: message.data.toString() });
-                    this.emit("rtsp url", message.channel, message.data.toString());
+                    this.emit("rtsp url", message.channel, message.data.toString("utf8", 0, message.data.indexOf("\0", 0, "utf8")));
                 } catch (error) {
                     this.log.error(`Station ${this.stationSerial} - CMD_NAS_SWITCH - Error:`, error);
                 }
@@ -992,10 +1041,21 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             case CommandType.SUB1G_REP_UNPLUG_POWER_LINE:
                 try {
                     this.log.debug(`Station ${this.stationSerial} - SUB1G_REP_UNPLUG_POWER_LINE`, { payload: message.data.toString() });
-                    //TODO: Finish implementation, emit an event...
-                    //this.emit("", );
+                    const chargeType = message.data.slice(0, 4).readUInt32LE();
+                    const batteryLevel = message.data.slice(4, 8).readUInt32LE();
+                    this.emit("charging state", message.channel, chargeType, batteryLevel);
                 } catch (error) {
                     this.log.error(`Station ${this.stationSerial} - SUB1G_REP_UNPLUG_POWER_LINE - Error:`, error);
+                }
+                break;
+            case CommandType.SUB1G_REP_RUNTIME_STATE:
+                try {
+                    this.log.debug(`Station ${this.stationSerial} - SUB1G_REP_RUNTIME_STATE`, { payload: message.data.toString() });
+                    const batteryLevel = message.data.slice(0, 4).readUInt32LE();
+                    const temperature = message.data.slice(4, 8).readUInt32LE();
+                    this.emit("runtime state", message.channel, batteryLevel, temperature);
+                } catch (error) {
+                    this.log.error(`Station ${this.stationSerial} - SUB1G_REP_RUNTIME_STATE - Error:`, error);
                 }
                 break;
             case CommandType.CMD_NOTIFY_PAYLOAD:

@@ -1,4 +1,5 @@
-import { NotificationSwitchMode, DeviceType } from "./types";
+import { Device } from "./device";
+import { NotificationSwitchMode, DeviceType, WifiSignalLevel } from "./types";
 
 export const isGreaterEqualMinVersion = function(minimal_version: string, current_version: string): boolean {
     if (minimal_version === undefined)
@@ -70,4 +71,60 @@ export const switchNotificationMode = function(currentValue: number, mode: Notif
         result = 1; /* ALL */
     }
     return result;
+}
+
+export const calculateWifiSignalLevel = function(device: Device, rssi: number): WifiSignalLevel {
+    if (device.isWiredDoorbell()) {
+        if (rssi >= -65) {
+            return WifiSignalLevel.FULL;
+        }
+        if (rssi >= -75) {
+            return WifiSignalLevel.STRONG;
+        }
+        return rssi >= -80 ? WifiSignalLevel.NORMAL : WifiSignalLevel.WEAK;
+    } else if (device.isCamera2Product()) {
+        if (rssi >= 0) {
+            return WifiSignalLevel.NO_SIGNAL;
+        }
+        if (rssi >= -65) {
+            return WifiSignalLevel.FULL;
+        }
+        if (rssi >= -75) {
+            return WifiSignalLevel.STRONG;
+        }
+        return rssi >= -85 ? WifiSignalLevel.NORMAL : WifiSignalLevel.WEAK;
+
+    } else if (device.isFloodLight()) {
+        if (rssi >= 0) {
+            return WifiSignalLevel.NO_SIGNAL;
+        }
+        if (rssi >= -60) {
+            return WifiSignalLevel.FULL;
+        }
+        if (rssi >= -70) {
+            return WifiSignalLevel.STRONG;
+        }
+        return rssi >= -80 ? WifiSignalLevel.NORMAL : WifiSignalLevel.WEAK;
+
+    } else if (device.isBatteryDoorbell() || device.isBatteryDoorbell2()) {
+        if (rssi >= -65) {
+            return WifiSignalLevel.FULL;
+        }
+        if (rssi >= -75) {
+            return WifiSignalLevel.STRONG;
+        }
+        return rssi >= -85 ? WifiSignalLevel.NORMAL : WifiSignalLevel.WEAK;
+
+    } else {
+        if (rssi >= 0) {
+            return WifiSignalLevel.NO_SIGNAL;
+        }
+        if (rssi >= -65) {
+            return WifiSignalLevel.FULL;
+        }
+        if (rssi >= -75) {
+            return WifiSignalLevel.STRONG;
+        }
+        return rssi >= -85 ? WifiSignalLevel.NORMAL : WifiSignalLevel.WEAK;
+    }
 }
