@@ -65,6 +65,27 @@ export enum DoorbellPushEvent {
     ONLINE = 3107
 }
 
+export enum LockPushEvent {
+    APP_LOCK = 264,
+    APP_UNLOCK = 261,
+    AUTO_LOCK = 265,
+    AUTO_UNLOCK = 258,
+    FINGER_UNLOCK = 260,
+    FINGER_LOCK = 267,
+    KEYPAD_LOCK = 263,
+    LOCK_MECHANICAL_ANOMALY = 519,
+    LOCK_OFFLINE = 516,
+    LOW_POWE = 513,
+    MANUAL_LOCK = 262,
+    MANUAL_UNLOCK = 257,
+    MECHANICAL_ANOMALY = 517,
+    MULTIPLE_ERRORS = 515,
+    PW_LOCK = 266,
+    PW_UNLOCK = 259,
+    VERY_LOW_POWE = 514,
+    VIOLENT_DESTRUCTION = 518
+}
+
 export enum IndoorPushEvent {
     MOTION_DETECTION = 3101,
     FACE_DETECTION = 3102,
