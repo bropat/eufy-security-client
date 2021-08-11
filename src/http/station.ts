@@ -3,10 +3,10 @@ import { Readable } from "stream";
 import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
-import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands } from "./types";
+import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty } from "./types";
 import { DskKeyResponse, HubResponse, ResultResponse } from "./models"
 import { ParameterHelper } from "./parameter";
-import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValue, RawValues, StationEvents } from "./interfaces";
+import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValue, RawValues, StationEvents, PropertyMetadataNumeric, PropertyMetadataBoolean } from "./interfaces";
 import { isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
 import { DeviceSerial, StreamMetadata } from "./../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
@@ -20,6 +20,7 @@ import { PushMessage } from "../push/models";
 import { CusPushEvent } from "../push/types";
 import { InvalidPropertyError, LivestreamAlreadyRunningError, LivestreamNotRunningError, PropertyNotSupportedError } from "./error";
 import { validValue } from "../utils";
+import { StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty } from "./types";
 
 export class Station extends TypedEmitter<StationEvents> {
 
@@ -254,6 +255,27 @@ export class Station extends TypedEmitter<StationEvents> {
                         this.log.error("Convert CMD_SET_HUB_OSD Error:", { property: property, value: value, error: error });
                         return { value: 0, timestamp: 0 };
                     }
+                case CommandType.CMD_SET_HUB_ALARM_AUTO_END:
+                    return { value: value !== undefined ? value.value !== "0" ? false : true : false, timestamp: value !== undefined ? value.timestamp : 0 };
+                case CommandType.CMD_SET_HUB_ALARM_CLOSE:
+                    return { value: value !== undefined ? value.value === "1" ? false : true : false, timestamp: value !== undefined ? value.timestamp : 0 };
+            }
+            if (property.type === "number") {
+                const numericProperty = property as PropertyMetadataNumeric;
+                try {
+                    return { value: value !== undefined ? Number.parseInt(value.value) : (property.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0)), timestamp: value ? value.timestamp : 0 };
+                } catch (error) {
+                    this.log.warn("PropertyMetadataNumeric Convert Error:", { property: property, value: value, error: error });
+                    return { value: property.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0), timestamp: value ? value.timestamp : 0 };
+                }
+            } else if (property.type === "boolean") {
+                const booleanProperty = property as PropertyMetadataBoolean;
+                try {
+                    return { value: value !== undefined ? (value.value === "1" || value.value.toLowerCase() === "true" ? true : false) : (property.default !== undefined ? booleanProperty.default : false), timestamp: value ? value.timestamp : 0 };
+                } catch (error) {
+                    this.log.warn("PropertyMetadataBoolean Convert Error:", { property: property, value: value, error: error });
+                    return { value: property.default !== undefined ? booleanProperty.default : false, timestamp: value ? value.timestamp : 0 };
+                }
             }
         } catch (error) {
             this.log.error("Convert Error:", { property: property, value: value, error: error });
@@ -289,9 +311,17 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public getPropertiesMetadata(): IndexedProperty {
-        const metadata = StationProperties[this.getDeviceType()];
-        if (metadata === undefined)
-            return StationProperties[DeviceType.STATION];
+        let metadata = StationProperties[this.getDeviceType()];
+        if (metadata === undefined) {
+            metadata = StationProperties[DeviceType.STATION];
+        }
+        if (this.hasDeviceWithType(DeviceType.KEYPAD)) {
+            metadata[PropertyName.StationGuardMode] = StationGuardModeKeyPadProperty;
+            metadata[PropertyName.StationCurrentMode] = StationCurrentModeKeyPadProperty;
+            metadata[PropertyName.StationSwitchModeWithAccessCode] = StationSwitchModeWithAccessCodeProperty;
+            metadata[PropertyName.StationAutoEndAlarm] = StationAutoEndAlarmProperty;
+            metadata[PropertyName.StationTurnOffAlarmWithButton] = StationTurnOffAlarmWithButtonProperty;
+        }
         return metadata;
     }
 
@@ -529,8 +559,8 @@ export class Station extends TypedEmitter<StationEvents> {
             if (this.p2pSession.isConnected()) {
                 this.log.debug(`P2P connection to station ${this.getSerial()} present, send command mode: ${mode}`);
 
-                if (mode === GuardMode.OFF && (!Device.isKeyPad(this.getDeviceType()) || (!isGreaterEqualMinVersion("2.0.8.4", this.getSoftwareVersion()) && Device.isKeyPad(this.getDeviceType()))))
-                    throw new InvalidPropertyValueError(`Value "${mode}" isn't a valid value for property "${PropertyName.StationGuardMode}"`);
+                /*if (mode === GuardMode.OFF && (!Device.isKeyPad(this.getDeviceType()) || (!isGreaterEqualMinVersion("2.0.8.4", this.getSoftwareVersion()) && Device.isKeyPad(this.getDeviceType()))))
+                    throw new InvalidPropertyValueError(`Value "${mode}" isn't a valid value for property "${PropertyName.StationGuardMode}"`);*/
 
                 if ((isGreaterEqualMinVersion("2.0.7.9", this.getSoftwareVersion()) && !Device.isIntegratedDeviceBySn(this.getSerial())) || Device.isSoloCameraBySn(this.getSerial())) {
                     this.log.debug(`Using CMD_SET_PAYLOAD for station ${this.getSerial()}`, { main_sw_version: this.getSoftwareVersion() });
@@ -793,6 +823,29 @@ export class Station extends TypedEmitter<StationEvents> {
         await this.p2pSession.sendCommandWithIntString(CommandType.CMD_IRCUT_SWITCH, value === true ? 1 : 0, device.getChannel(), "", "", device.getChannel());
     }
 
+    public async setNightVision(device: Device, value: number): Promise<void> {
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(PropertyName.DeviceNightvision)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        if (!this.p2pSession) {
+            throw new NotConnectedError(`No p2p connection to station ${this.getSerial()}`);
+        }
+
+        this.log.debug(`${this.constructor.name}.setNightVision(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
+        await this.p2pSession.sendCommandWithStringPayload(CommandType.CMD_SET_PAYLOAD, JSON.stringify({
+            "account_id": this.rawStation.member.admin_user_id,
+            "cmd": CommandType.CMD_SET_NIGHT_VISION_TYPE,
+            "mValue3": 0,
+            "payload": {
+                "channel": device.getChannel(),
+                "night_sion": value,
+            }
+        }), device.getChannel());
+    }
+
     public async setMotionDetection(device: Device, value: boolean): Promise<void> {
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
@@ -998,7 +1051,9 @@ export class Station extends TypedEmitter<StationEvents> {
         }
 
         this.log.debug(`P2P connection to station ${this.getSerial()} present, set value: ${value}`);
-        if (device.isFloodLight()) {
+        if (device.isFloodLight() || device.isSoloCameraSpotlight1080() || device.isSoloCameraSpotlight2k() ||
+            device.isSoloCameraSpotlightSolar() || device.isCamera2C() || device.isCamera2CPro() ||
+            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k()) {
             await this.p2pSession.sendCommandWithIntString(CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH, value === true ? 1 : 0, device.getChannel(), this.rawStation.member.admin_user_id, "", device.getChannel());
         }
     }
@@ -1849,7 +1904,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     "quality": value,
                 }
             }), device.getChannel());
-        } else if (device.isBatteryDoorbell() || device.isBatteryDoorbell2()) {
+        } else if (device.isBatteryDoorbell() || device.isBatteryDoorbell2() || device.isCamera2CPro()) {
             await this.p2pSession.sendCommandWithIntString(CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY, value, device.getChannel(), this.rawStation.member.admin_user_id, "", device.getChannel());
         }
     }
@@ -1879,6 +1934,15 @@ export class Station extends TypedEmitter<StationEvents> {
                 "commandType": ParamType.COMMAND_VIDEO_RECORDING_QUALITY,
                 "data": {
                     "quality": value,
+                }
+            }), device.getChannel());
+        } else if (device.isCamera2CPro()) {
+            await this.p2pSession.sendCommandWithStringPayload(CommandType.CMD_SET_PAYLOAD, JSON.stringify({
+                "account_id": this.rawStation.member.admin_user_id,
+                "cmd": CommandType.CMD_SET_RECORD_QUALITY,
+                "mValue3": 0,
+                "payload": {
+                    "record_quality": value,
                 }
             }), device.getChannel());
         }
@@ -1934,7 +1998,9 @@ export class Station extends TypedEmitter<StationEvents> {
         }
 
         this.log.debug(`P2P connection to station ${this.getSerial()} present, set value: ${value}`);
-        if (device.isFloodLight()) {
+        if (device.isFloodLight() || device.isSoloCameraSpotlight1080() || device.isSoloCameraSpotlight2k() ||
+            device.isSoloCameraSpotlightSolar() || device.isCamera2C() || device.isCamera2CPro() ||
+            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k()) {
             await this.p2pSession.sendCommandWithIntString(CommandType.CMD_SET_FLOODLIGHT_BRIGHT_VALUE, value, device.getChannel(), this.rawStation.member.admin_user_id, "", device.getChannel());
         }
     }
@@ -2708,6 +2774,69 @@ export class Station extends TypedEmitter<StationEvents> {
         }*/
     }
 
+    public async setStationSwitchModeWithAccessCode(value: boolean): Promise<void> {
+        if (!this.hasProperty(PropertyName.StationNotificationSwitchModeGeofence)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
+        if (!this.p2pSession) {
+            throw new NotConnectedError(`No p2p connection to station ${this.getSerial()}`);
+        }
+
+        this.log.debug(`${this.constructor.name}.setSwitchModeWithAccessCode(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
+        if (this.isStation()) {
+            await this.p2pSession.sendCommandWithStringPayload(CommandType.CMD_SET_PAYLOAD, JSON.stringify({
+                "account_id": this.rawStation.member.admin_user_id,
+                "cmd": CommandType.CMD_KEYPAD_PSW_OPEN,
+                "mValue3": 0,
+                "payload": {
+                    "psw_required": value === true ? 1 : 0,
+                }
+            }), Station.CHANNEL);
+        }
+    }
+
+    public async setStationAutoEndAlarm(value: boolean): Promise<void> {
+        if (!this.hasProperty(PropertyName.StationAutoEndAlarm)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
+        if (!this.p2pSession) {
+            throw new NotConnectedError(`No p2p connection to station ${this.getSerial()}`);
+        }
+
+        this.log.debug(`${this.constructor.name}.setSwitchModeWithAccessCode(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
+        if (this.isStation()) {
+            await this.p2pSession.sendCommandWithStringPayload(CommandType.CMD_SET_PAYLOAD, JSON.stringify({
+                "account_id": this.rawStation.member.admin_user_id,
+                "cmd": CommandType.CMD_SET_HUB_ALARM_AUTO_END,
+                "mValue3": 0,
+                "payload": {
+                    "value": value === true ? 0 : 2147483647,
+                }
+            }), Station.CHANNEL);
+        }
+    }
+
+    public async setStationTurnOffAlarmWithButton(value: boolean): Promise<void> {
+        if (!this.hasProperty(PropertyName.StationTurnOffAlarmWithButton)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
+        if (!this.p2pSession) {
+            throw new NotConnectedError(`No p2p connection to station ${this.getSerial()}`);
+        }
+
+        this.log.debug(`${this.constructor.name}.setSwitchModeWithAccessCode(): P2P connection to station ${this.getSerial()} present, set value: ${value}.`);
+        if (this.isStation()) {
+            await this.p2pSession.sendCommandWithStringPayload(CommandType.CMD_SET_PAYLOAD, JSON.stringify({
+                "account_id": this.rawStation.member.admin_user_id,
+                "cmd": CommandType.CMD_SET_HUB_ALARM_CLOSE,
+                "mValue3": 0,
+                "payload": {
+                    "value": value === true ? 0 : 1,
+                }
+            }), Station.CHANNEL);
+        }
+    }
+
     public setQuickStreamStart(value: boolean): void {
         this.quickStreamStart = value;
     }
@@ -2730,6 +2859,24 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onChargingState(channel: number, chargeType: number, batteryLevel: number): void {
         this.emit("charging state", this, channel, chargeType, batteryLevel, +new Date);
+    }
+
+    public hasDevice(deviceSN: string): boolean {
+        if (this.rawStation.devices)
+            for (const device of this.rawStation.devices) {
+                if (device.device_sn === deviceSN)
+                    return true;
+            }
+        return false;
+    }
+
+    public hasDeviceWithType(deviceType: DeviceType): boolean {
+        if (this.rawStation.devices)
+            for (const device of this.rawStation.devices) {
+                if (device.device_type === deviceType)
+                    return true;
+            }
+        return false;
     }
 
 }

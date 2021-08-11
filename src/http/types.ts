@@ -264,6 +264,7 @@ export enum PropertyName {
     DeviceBattery = "battery",
     DeviceBatteryTemp = "batteryTemperature",
     DeviceBatteryLow = "batteryLow",
+    DeviceBatteryIsCharging = "batteryIsCharging",
     DeviceLastChargingDays = "lastChargingDays",
     DeviceLastChargingTotalEvents = "lastChargingTotalEvents",
     DeviceLastChargingRecordedEvents = "lastChargingRecordedEvents",
@@ -274,6 +275,7 @@ export enum PropertyName {
     DeviceEnabled = "enabled",
     DeviceAntitheftDetection= "antitheftDetection",
     DeviceAutoNightvision = "autoNightvision",
+    DeviceNightvision = "nightvision",
     DeviceStatusLed = "statusLed",
     DeviceMotionDetection = "motionDetection",
     DeviceMotionDetectionType = "motionDetectionType",
@@ -359,6 +361,10 @@ export enum PropertyName {
     StationNotificationSwitchModeApp = "notificationSwitchModeApp",
     StationNotificationSwitchModeKeypad = "notificationSwitchModeKeypad",
     StationNotificationStartAlarmDelay = "notificationStartAlarmDelay",
+    StationSwitchModeWithAccessCode = "switchModeWithAccessCode",
+    StationAutoEndAlarm = "autoEndAlarm",
+    StationTurnOffAlarmWithButton = "turnOffAlarmWithButton",
+
 
     DeviceHiddenMotionDetectionSensitivity = "hidden-motionDetectionSensitivity",
     DeviceHiddenMotionDetectionMode = "hidden-motionDetectionMode",
@@ -528,6 +534,16 @@ export const DeviceBatteryTempProperty: PropertyMetadataNumeric = {
     unit: "°C",
 }
 
+export const DeviceBatteryIsChargingKeypadProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_KEYPAD_BATTERY_CHARGER_STATE,
+    name: PropertyName.DeviceBatteryIsCharging,
+    label: "Battery is charging",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+    default: false,
+}
+
 export const DeviceAntitheftDetectionProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_EAS_SWITCH,
     name: PropertyName.DeviceAntitheftDetection,
@@ -549,6 +565,20 @@ export const DeviceAutoNightvisionProperty: PropertyMetadataBoolean = {
 export const DeviceAutoNightvisionWiredDoorbellProperty: PropertyMetadataBoolean = {
     ...DeviceAutoNightvisionProperty,
     key: ParamType.NIGHT_VISUAL,
+}
+
+export const DeviceNightvisionProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SET_NIGHT_VISION_TYPE,
+    name: PropertyName.DeviceNightvision,
+    label: "Nightvision",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Off",
+        1: "B&W Night Vision",
+        2: "Spotlight Night Vision",
+    },
 }
 
 export const DeviceWifiRSSIProperty: PropertyMetadataNumeric = {
@@ -585,6 +615,11 @@ export const DeviceWifiRSSILockProperty: PropertyMetadataNumeric = {
 };
 
 export const DeviceWifiRSSIEntrySensorProperty: PropertyMetadataNumeric = {
+    ...DeviceWifiRSSIProperty,
+    key: CommandType.CMD_GET_SUB1G_RSSI,
+};
+
+export const DeviceWifiRSSIKeypadProperty: PropertyMetadataNumeric = {
     ...DeviceWifiRSSIProperty,
     key: CommandType.CMD_GET_SUB1G_RSSI,
 };
@@ -1057,6 +1092,12 @@ export const DeviceFloodlightLightSettingsBrightnessManualProperty: PropertyMeta
     max: 100,
 }
 
+export const DeviceCameraLightSettingsBrightnessManualProperty: PropertyMetadataNumeric = {
+    ...DeviceFloodlightLightSettingsBrightnessManualProperty,
+    min: 40,
+    default: 100,
+}
+
 export const DeviceFloodlightLightSettingsBrightnessMotionProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR,
     name: PropertyName.DeviceLightSettingsBrightnessMotion,
@@ -1268,6 +1309,7 @@ export const DeviceRecordingClipLengthProperty: PropertyMetadataNumeric = {
     type: "number",
     min: 5,
     max: 120,
+    default: 60,
 }
 
 export const DeviceRecordingClipLengthFloodlightProperty: PropertyMetadataNumeric = {
@@ -1286,12 +1328,14 @@ export const DeviceRecordingRetriggerIntervalProperty: PropertyMetadataNumeric =
     unit: "sec",
     min: 5,
     max: 60,
+    default: 5,
 }
 
 export const DeviceRecordingRetriggerIntervalBatteryDoorbellProperty: PropertyMetadataNumeric = {
     ...DeviceRecordingRetriggerIntervalProperty,
     min: 2,
     max: 60,
+    default: 2,
 }
 
 export const DeviceRecordingRetriggerIntervalFloodlightProperty: PropertyMetadataNumeric = {
@@ -1307,6 +1351,7 @@ export const DeviceRecordingEndClipMotionStopsProperty: PropertyMetadataBoolean 
     readable: true,
     writeable: true,
     type: "boolean",
+    default: true,
 }
 
 export const DeviceVideoStreamingQualityProperty: PropertyMetadataNumeric = {
@@ -1343,6 +1388,11 @@ export const DeviceVideoStreamingQualityBatteryDoorbellProperty: PropertyMetadat
     },
 }
 
+export const DeviceVideoStreamingQualityCameraProperty: PropertyMetadataNumeric = {
+    ...DeviceVideoStreamingQualityProperty,
+    key: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY,
+}
+
 export const DeviceVideoRecordingQualityIndoorProperty: PropertyMetadataNumeric = {
     key: ParamType.DOORBELL_RECORD_QUALITY,
     name: PropertyName.DeviceVideoRecordingQuality,
@@ -1363,6 +1413,15 @@ export const DeviceVideoRecordingQualityWiredDoorbellProperty: PropertyMetadataN
         1: "Storage Saver (1600 * 1200)",
         2: "Full HD (1600 * 1200)",
         3: "2K HD (2560 * 1920)",
+    },
+}
+
+export const DeviceVideoRecordingQualityProperty: PropertyMetadataNumeric = {
+    ...DeviceVideoRecordingQualityIndoorProperty,
+    key: CommandType.CMD_SET_RECORD_QUALITY,
+    states: {
+        2: "Full HD (1080P)",
+        3: "2K HD",
     },
 }
 
@@ -1683,7 +1742,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
         [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
-        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
@@ -1711,6 +1770,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceCameraLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
     },
     [DeviceType.CAMERA2C_PRO]: {
         ...GenericDeviceProperties,
@@ -1720,7 +1781,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
         [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
-        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
@@ -1748,6 +1809,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityCameraProperty,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceCameraLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
     },
     [DeviceType.CAMERA2_PRO]: {
         ...GenericDeviceProperties,
@@ -2204,7 +2269,7 @@ export const DeviceProperties: Properties = {
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
-        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
         [PropertyName.DevicePetDetection]: DevicePetDetectionProperty,
@@ -2234,6 +2299,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionProperty,
         [PropertyName.DeviceNotificationAllSound]: DeviceNotificationAllSoundProperty,
         [PropertyName.DeviceNotificationCrying]: DeviceNotificationCryingProperty,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
     },
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT]: {
         ...GenericDeviceProperties,
@@ -2356,7 +2423,7 @@ export const DeviceProperties: Properties = {
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_1080]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
-        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
         [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
@@ -2377,11 +2444,13 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
     },
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_2K]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
-        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
         [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
@@ -2402,11 +2471,13 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
     },
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
-        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
         [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
@@ -2427,11 +2498,15 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
     },
     [DeviceType.KEYPAD]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceBatteryLow]: DeviceBatteryLowKeypadProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIKeypadProperty,
+        [PropertyName.DeviceBatteryIsCharging]: DeviceBatteryIsChargingKeypadProperty,
     },
     [DeviceType.LOCK_ADVANCED]: {
         ...GenericDeviceProperties,
@@ -2570,6 +2645,19 @@ export const StationCurrentModeProperty: PropertyMetadataNumeric = {
     },
 }
 
+export const StationCurrentModeKeyPadProperty: PropertyMetadataNumeric = {
+    ...StationCurrentModeProperty,
+    states: {
+        0: "Away",
+        1: "Home",
+        3: "Custom 1",
+        4: "Custom 2",
+        5: "Custom 3",
+        6: "Off",
+        63: "Disarmed",
+    },
+}
+
 export const StationLanIpAddressProperty: PropertyMetadataString = {
     key: CommandType.CMD_GET_HUB_LAN_IP,
     name: PropertyName.StationLANIpAddress,
@@ -2603,6 +2691,7 @@ export const StationAlarmVolumeProperty: PropertyMetadataNumeric = {
     type: "number",
     min: 1,
     max: 26,
+    default: 26,
 }
 
 export const StationPromptVolumeProperty: PropertyMetadataNumeric = {
@@ -2685,6 +2774,33 @@ export const StationTimeFormatProperty: PropertyMetadataNumeric = {
         0: "12h",
         1: "24h",
     }
+}
+
+export const StationSwitchModeWithAccessCodeProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_KEYPAD_PSW_OPEN,
+    name: PropertyName.StationSwitchModeWithAccessCode,
+    label: "Switch mode with access code",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const StationAutoEndAlarmProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SET_HUB_ALARM_AUTO_END,
+    name: PropertyName.StationAutoEndAlarm,
+    label: "Auto End Alarm",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const StationTurnOffAlarmWithButtonProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SET_HUB_ALARM_CLOSE,
+    name: PropertyName.StationTurnOffAlarmWithButton,
+    label: "Turn off alarm with button",
+    readable: true,
+    writeable: true,
+    type: "boolean",
 }
 
 export const StationProperties: Properties = {
@@ -2824,11 +2940,6 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
     },
-    [DeviceType.KEYPAD]: {
-        ...BaseStationProperties,
-        [PropertyName.StationGuardMode]: StationGuardModeKeyPadProperty,
-        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
-    },
     [DeviceType.LOCK_ADVANCED]: {
         ...BaseStationProperties,
     },
@@ -2894,6 +3005,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.CAMERA_E]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
     ],
@@ -3007,6 +3119,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.FLOODLIGHT_CAMERA_8423]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DevicePanAndTilt,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
     ],
@@ -3032,44 +3145,70 @@ export const StationCommands: Commands = {
     ],
     [DeviceType.INDOOR_CAMERA]: [
         CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
     ],
     [DeviceType.INDOOR_CAMERA_1080]: [
         CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
     ],
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P]: [
         CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
     ],
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT]: [
         CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
     ],
     [DeviceType.INDOOR_OUTDOOR_CAMERA_2K]: [
         CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
     ],
     [DeviceType.INDOOR_PT_CAMERA]: [
         CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
     ],
     [DeviceType.INDOOR_PT_CAMERA_1080]: [
         CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
     ],
     [DeviceType.DOORBELL]: [
         CommandName.StationReboot,
     ],
-    [DeviceType.SOLO_CAMERA]: [],
-    [DeviceType.SOLO_CAMERA_PRO]: [],
-    [DeviceType.SOLO_CAMERA_SPOTLIGHT_1080]: [],
-    [DeviceType.SOLO_CAMERA_SPOTLIGHT_2K]: [],
-    [DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR]: [],
+    [DeviceType.SOLO_CAMERA]: [
+        CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
+    ],
+    [DeviceType.SOLO_CAMERA_PRO]: [
+        CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
+    ],
+    [DeviceType.SOLO_CAMERA_SPOTLIGHT_1080]: [
+        CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
+    ],
+    [DeviceType.SOLO_CAMERA_SPOTLIGHT_2K]: [
+        CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
+    ],
+    [DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR]: [
+        CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
+    ],
     [DeviceType.FLOODLIGHT]: [
         CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8422]: [
         CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8423]: [
         CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8424]: [
         CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
     ],
     [DeviceType.KEYPAD]: [],
 }
