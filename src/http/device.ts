@@ -1355,6 +1355,10 @@ export class Lock extends Device {
         return this.getPropertyValue(PropertyName.DeviceLockStatus);
     }
 
+    // public isBatteryLow(): PropertyValue {
+    //     return this.getPropertyValue(PropertyName.DeviceBatteryLow);
+    // }
+
     public static encodeESLCmdOnOff(short_user_id: number, nickname: string, lock: boolean): Buffer {
         const buf1 = Buffer.from([ESLAnkerBleConstant.a, 2]);
         const buf2 = Buffer.allocUnsafe(2);
@@ -1419,12 +1423,12 @@ export class Lock extends Device {
                         case LockPushEvent.MULTIPLE_ERRORS:
                             this.updateRawProperty(CommandType.CMD_DOORLOCK_GET_STATE, { value: "5", timestamp: convertTimestampMs(message.event_time) });
                             break;
-                        case LockPushEvent.LOW_POWE:
-                            this.updateRawProperty(CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL, { value: "10", timestamp: convertTimestampMs(message.event_time) });
-                            break;
-                        case LockPushEvent.VERY_LOW_POWE:
-                            this.updateRawProperty(CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL, { value: "5", timestamp: convertTimestampMs(message.event_time) });
-                            break;
+                        // case LockPushEvent.LOW_POWE:
+                        //     this.updateRawProperty(CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL, { value: "10", timestamp: convertTimestampMs(message.event_time) });
+                        //     break;
+                        // case LockPushEvent.VERY_LOW_POWE:
+                        //     this.updateRawProperty(CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL, { value: "5", timestamp: convertTimestampMs(message.event_time) });
+                        //     break;
                         default:
                             this.log.debug("Unhandled lock push event", message);
                             break;
