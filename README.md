@@ -119,6 +119,7 @@ Please use GitHub issues for this.
 * (bropat) Fixed issue with nightvision setting for devices with light (b&w, light, off)
 * (bropat) Fixed issue in station property value conversion for number or boolean types
 * (bropat) Fixed issue where "motionDetection" property was incorrectly updated instead of "motionDetected" when a push notification arrived
+* (lenoxys) Handle Lock Push Event for Lock / Unlock #36
 
 ### 1.0.0 (2021-08-07)
 
