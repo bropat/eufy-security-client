@@ -88,6 +88,7 @@ One client instance will show all devices from one Eufy Cloud account and allows
 * Indoor Cam Pan&Tilt 1080p (T8411)
 * Indoor Cam 1080p (T8401)
 * Smart Lock Front Door (T8500)
+* Keypad (T8960)
 
 If more devices work (or also not) please report them by opening a GitHub issue.
 
@@ -96,6 +97,29 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 Please use GitHub issues for this.
 
 ## Changelog
+
+### 1.1.0 (2021-08-11)
+
+* (bropat) Added brightness light setting for 2c/2c pro cameras, new solo cameras and new outdoor cameras
+* (bropat) Added enable/disable light setting for 2c/2c pro cameras, new solo cameras and new outdoor cameras
+* (bropat) Added trigger/reset alarm sound for indoor cameras, solo cameras and floodlight cameras
+* (bropat) Added video streaming quality setting for 2c pro cameras
+* (bropat) Added video recording quality setting for 2c pro cameras
+* (bropat) Added trigger alarm sound for indoor cameras, solo cameras (incl. new) and floodlight cameras
+* (bropat) Added reset alarm sound for indoor cameras, solo cameras (incl. new) and floodlight cameras
+* (bropat) Added battery charging state for keypad devices
+* (bropat) Added new property "batteryIsCharging" for keypad devices
+* (bropat) Added property "wifiRssi" for keypad devices
+* (bropat) Added new property "nightvision" for devices supporting the "light" nightvision mode
+* (bropat) Added new properties "switchModeWithAccessCode", "autoEndAlarm" and "turnOffAlarmWithButton" for station with registered keypad
+* (bropat) Added default values for some properties that, if not set first, were not listed in the cloud response
+* (bropat) Fixed issue with guard mode setting where the "Off" state was not handled correctly (only supported with keypad) (#27)
+* (bropat) Fixed issue in class EufySecurity if start cloud stream command fails
+* (bropat) Fixed issue with "locked" event for locks
+* (bropat) Fixed issue with nightvision setting for devices with light (b&w, light, off)
+* (bropat) Fixed issue in station property value conversion for number or boolean types
+* (bropat) Fixed issue where "motionDetection" property was incorrectly updated instead of "motionDetected" when a push notification arrived
+* (lenoxys) Handle Lock Push Event for Lock / Unlock #36
 
 ### 1.0.0 (2021-08-07)
 
