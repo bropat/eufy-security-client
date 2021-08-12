@@ -597,10 +597,14 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         const camera = device as Camera;
         if (!camera.isStreaming()) {
             const url = await camera.startStream();
-            this.cameraCloudLivestreamTimeout.set(deviceSN, setTimeout(() => {
-                this.stopCloudLivestream(deviceSN);
-            }, this.cameraMaxLivestreamSeconds * 1000));
-            this.emit("cloud livestream start", station, camera, url);
+            if (url !== "") {
+                this.cameraCloudLivestreamTimeout.set(deviceSN, setTimeout(() => {
+                    this.stopCloudLivestream(deviceSN);
+                }, this.cameraMaxLivestreamSeconds * 1000));
+                this.emit("cloud livestream start", station, camera, url);
+            } else {
+                this.log.error(`Failed to start cloud stream for the device ${deviceSN}`);
+            }
         } else {
             this.log.warn(`The cloud stream for the device ${deviceSN} cannot be started, because it is already streaming!`);
         }
@@ -971,6 +975,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             case PropertyName.DeviceRotationSpeed:
                 await station.setPanAndTiltRotationSpeed(device, value as number);
                 break;
+            case PropertyName.DeviceNightvision:
+                await station.setNightVision(device, value as number);
+                break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
                     throw new ReadOnlyPropertyError(`Property ${name} is read only`);
@@ -1013,6 +1020,15 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 break;
             case PropertyName.StationTimeFormat:
                 await station.setStationTimeFormat(value as number);
+                break;
+            case PropertyName.StationSwitchModeWithAccessCode:
+                await station.setStationSwitchModeWithAccessCode(value as boolean);
+                break;
+            case PropertyName.StationAutoEndAlarm:
+                await station.setStationAutoEndAlarm(value as boolean);
+                break;
+            case PropertyName.StationTurnOffAlarmWithButton:
+                await station.setStationTurnOffAlarmWithButton(value as boolean);
                 break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
