@@ -98,6 +98,11 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.1.1 (2021-08-13)
+
+* (bropat) Fixed p2p video streaming for some devices (fallback mechanism implemented)
+* (bropat) Fixed p2p audio codec detection
+
 ### 1.1.0 (2021-08-11)
 
 * (bropat) Added brightness light setting for 2c/2c pro cameras, new solo cameras and new outdoor cameras
