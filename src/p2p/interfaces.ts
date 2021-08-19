@@ -81,6 +81,7 @@ export interface P2PDataMessageState {
     streamFirstVideoDataReceived: boolean;
     streamMetadata: StreamMetadata;
     waitForSeqNoTimeout?: NodeJS.Timeout;
+    waitForAudioData?: NodeJS.Timeout;
     receivedFirstIFrame: boolean;
     preFrameVideoData: Buffer;
 }

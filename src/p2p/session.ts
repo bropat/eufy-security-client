@@ -21,6 +21,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private readonly MAX_EXPECTED_SEQNO_WAIT = 20 * 1000;
     private readonly HEARTBEAT_INTERVAL = 5 * 1000;
     private readonly MAX_COMMAND_CONNECT_TIMEOUT = 45 * 1000;
+    private readonly AUDIO_CODEC_ANALYZE_TIMEOUT = 650;
 
     private readonly UDP_RECVBUFFERSIZE_BYTES = 1048576;
     private readonly MAX_PAYLOAD_BYTES = 1028;
@@ -68,7 +69,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private heartbeatTimeout?: NodeJS.Timeout;
     private connectTime: number | null = null;
     private lastPong: number | null = null;
-    private quickStreamStart = false;
     private connectionType: P2PConnectionType = P2PConnectionType.PREFER_LOCAL;
     private fallbackAddresses: Array<Address> = [];
 
@@ -156,7 +156,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 videoFPS: 15,
                 videoHeight: 1080,
                 videoWidth: 1920,
-                audioCodec: AudioCodec.AAC
+                audioCodec: AudioCodec.NONE
             },
             receivedFirstIFrame: false,
             preFrameVideoData: Buffer.from([])
@@ -840,7 +840,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             //TODO: Need to add battery doorbells as seen in source => T8210,T8220,T8221,T8222
             return isKeyFrame;
         }
-        return isIFrame(data);
+        const iframe = isIFrame(data);
+        if (iframe === false) {
+            // Fallback
+            return isKeyFrame;
+        }
+        return iframe;
     }
 
     private handleDataBinaryAndVideo(message: P2PDataMessage): void {
@@ -904,7 +909,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     this.currentMessageState[message.dataType].streamMetadata.videoHeight = videoMetaData.videoHeight;
                     this.currentMessageState[message.dataType].streamMetadata.videoWidth = videoMetaData.videoWidth;
 
-                    if (this.currentMessageState[message.dataType].streamNotStarted) {
+                    if (!this.currentMessageState[message.dataType].streamFirstVideoDataReceived) {
                         if (this.stationSerial.startsWith("T8410") || this.stationSerial.startsWith("T8400") || this.stationSerial.startsWith("T8401") || this.stationSerial.startsWith("T8411") ||
                             this.stationSerial.startsWith("T8202") || this.stationSerial.startsWith("T8422") || this.stationSerial.startsWith("T8424") || this.stationSerial.startsWith("T8423") ||
                             this.stationSerial.startsWith("T8130") || this.stationSerial.startsWith("T8131") || this.stationSerial.startsWith("T8420") || this.stationSerial.startsWith("T8440") ||
@@ -915,13 +920,31 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             this.currentMessageState[message.dataType].streamMetadata.videoCodec = getVideoCodec(video_data);
                             this.log.debug(`Station ${this.stationSerial} - CMD_VIDEO_FRAME - Video codec extracted from video data`, { commandIdName: CommandType[message.commandId], commandId: message.commandId, channel: message.channel, metadata: videoMetaData });
                         } else {
-                            this.currentMessageState[message.dataType].streamMetadata.videoCodec = VideoCodec.UNKNOWN;
-                            this.log.debug(`Station ${this.stationSerial} - CMD_VIDEO_FRAME - Unknown video codec skip packet`, { commandIdName: CommandType[message.commandId], commandId: message.commandId, channel: message.channel, metadata: videoMetaData });
-                            break;
+                            this.currentMessageState[message.dataType].streamMetadata.videoCodec = getVideoCodec(video_data);//videoMetaData.streamType === 1 ? VideoCodec.H264 : videoMetaData.streamType === 2 ? VideoCodec.H265 : VideoCodec.UNKNOWN;
+                            if (this.currentMessageState[message.dataType].streamMetadata.videoCodec === VideoCodec.UNKNOWN) {
+                                this.currentMessageState[message.dataType].streamMetadata.videoCodec = videoMetaData.streamType === 1 ? VideoCodec.H264 : videoMetaData.streamType === 2 ? VideoCodec.H265 : VideoCodec.UNKNOWN;
+                                if (this.currentMessageState[message.dataType].streamMetadata.videoCodec === VideoCodec.UNKNOWN) {
+                                    this.log.debug(`Station ${this.stationSerial} - CMD_VIDEO_FRAME - Unknown video codec skip packet`, { commandIdName: CommandType[message.commandId], commandId: message.commandId, channel: message.channel, metadata: videoMetaData });
+                                    break;
+                                } else {
+                                    this.log.debug(`Station ${this.stationSerial} - CMD_VIDEO_FRAME - Fallback, using video codec information received from packet`, { commandIdName: CommandType[message.commandId], commandId: message.commandId, channel: message.channel, metadata: videoMetaData });
+                                }
+                            } else {
+                                this.log.debug(`Station ${this.stationSerial} - CMD_VIDEO_FRAME - Fallback, video codec extracted from video data`, { commandIdName: CommandType[message.commandId], commandId: message.commandId, channel: message.channel, metadata: videoMetaData });
+                            }
                         }
                         this.currentMessageState[message.dataType].streamFirstVideoDataReceived = true;
-
-                        if ((this.currentMessageState[message.dataType].streamFirstAudioDataReceived && this.currentMessageState[message.dataType].streamFirstVideoDataReceived && !this.quickStreamStart) || (this.currentMessageState[message.dataType].streamFirstVideoDataReceived && this.quickStreamStart)) {
+                        this.currentMessageState[message.dataType].waitForAudioData = setTimeout(() => {
+                            this.currentMessageState[message.dataType].waitForAudioData = undefined;
+                            this.currentMessageState[message.dataType].streamMetadata.audioCodec = AudioCodec.NONE;
+                            this.currentMessageState[message.dataType].streamFirstAudioDataReceived = true;
+                            if (this.currentMessageState[message.dataType].streamFirstAudioDataReceived && this.currentMessageState[message.dataType].streamFirstVideoDataReceived) {
+                                this.emitStreamStartEvent(message.dataType);
+                            }
+                        }, this.AUDIO_CODEC_ANALYZE_TIMEOUT);
+                    }
+                    if (this.currentMessageState[message.dataType].streamNotStarted) {
+                        if (this.currentMessageState[message.dataType].streamFirstAudioDataReceived && this.currentMessageState[message.dataType].streamFirstVideoDataReceived) {
                             this.emitStreamStartEvent(message.dataType);
                         }
                     }
@@ -955,7 +978,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     break;
                 case CommandType.CMD_AUDIO_FRAME:
                     const audioMetaData: P2PDataMessageAudio = {
-                        audioType: 0,
+                        audioType: AudioCodec.NONE,
                         audioSeqNo: 0,
                         audioTimestamp: 0,
                         audioDataLength: 0
@@ -969,10 +992,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     const audio_data = Buffer.from(message.data.slice(16));
                     this.log.debug(`Station ${this.stationSerial} - CMD_AUDIO_FRAME`, { dataSize: message.data.length, metadata: audioMetaData, audioDataSize: audio_data.length });
 
-                    if (this.currentMessageState[message.dataType].streamNotStarted) {
+                    if (!this.currentMessageState[message.dataType].streamFirstAudioDataReceived) {
+                        if (this.currentMessageState[message.dataType].waitForAudioData !== undefined) {
+                            clearTimeout(this.currentMessageState[message.dataType].waitForAudioData!);
+                        }
                         this.currentMessageState[message.dataType].streamFirstAudioDataReceived = true;
-                        this.currentMessageState[message.dataType].streamMetadata.audioCodec = audioMetaData.audioType;
-
+                        this.currentMessageState[message.dataType].streamMetadata.audioCodec = audioMetaData.audioType === 0 ? AudioCodec.AAC : audioMetaData.audioType === 1 ? AudioCodec.AAC_LC : audioMetaData.audioType === 7 ? AudioCodec.AAC_ELD : AudioCodec.UNKNOWN;
+                    }
+                    if (this.currentMessageState[message.dataType].streamNotStarted) {
                         if (this.currentMessageState[message.dataType].streamFirstAudioDataReceived && this.currentMessageState[message.dataType].streamFirstVideoDataReceived) {
                             this.emitStreamStartEvent(message.dataType);
                         }
@@ -1007,7 +1034,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 const totalBytes = message.data.slice(1).readUInt32LE();
                 this.log.debug(`Station ${this.stationSerial} - CMD_CONVERT_MP4_OK`, { channel: message.channel, totalBytes: totalBytes });
                 this.downloadTotalBytes = totalBytes;
-                //this.initializeStream(P2PDataType.BINARY);
                 this.currentMessageState[P2PDataType.BINARY].streaming = true;
                 this.currentMessageState[P2PDataType.BINARY].streamChannel = message.channel;
                 break;
@@ -1217,6 +1243,15 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         });
 
         this.currentMessageState[datatype].streaming = false;
+
+        if (this.currentMessageState[datatype].waitForSeqNoTimeout !== undefined) {
+            clearTimeout(this.currentMessageState[datatype].waitForSeqNoTimeout!);
+            this.currentMessageState[datatype].waitForSeqNoTimeout = undefined;
+        }
+        if (this.currentMessageState[datatype].waitForAudioData !== undefined) {
+            clearTimeout(this.currentMessageState[datatype].waitForAudioData!);
+            this.currentMessageState[datatype].waitForAudioData = undefined;
+        }
     }
 
     private endStream(datatype: P2PDataType): void {
@@ -1264,14 +1299,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     public isDownloading(channel: number): boolean {
         return this.isStreaming(channel, P2PDataType.BINARY);
-    }
-
-    public setQuickStreamStart(value: boolean): void {
-        this.quickStreamStart = value;
-    }
-
-    public getQuickStreamStart(): boolean {
-        return this.quickStreamStart;
     }
 
     public getLockSequenceNumber(): number {

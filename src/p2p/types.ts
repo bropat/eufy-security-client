@@ -599,7 +599,10 @@ export enum VideoCodec {
 
 export enum AudioCodec {
     UNKNOWN = -1,
-    AAC = 0
+    NONE = 0,
+    AAC = 1,        // 0
+    AAC_LC = 2,     // 1
+    AAC_ELD = 3,    // 7
 }
 
 export enum ESLCommand {
