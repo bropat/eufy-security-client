@@ -98,6 +98,11 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.1.2 (2021-08-19)
+
+* (bropat) Fixed push notification issue on new indoor outdoor camera device (thx to @lenoxys)
+* (bropat) Fixed issue where device doesn't support p2p connection
+
 ### 1.1.1 (2021-08-13)
 
 * (bropat) Fixed p2p video streaming for some devices (fallback mechanism implemented)

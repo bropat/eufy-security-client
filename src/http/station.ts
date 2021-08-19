@@ -467,42 +467,46 @@ export class Station extends TypedEmitter<StationEvents> {
             await this.getDSKKeys();
         }
 
-        this.log.debug(`Connecting to station ${this.getSerial()}...`, { p2p_did: this.rawStation.p2p_did, dskKey: this.dskKey, p2pConnectionType: P2PConnectionType[this.p2pConnectionType] });
+        if (this.dskKey !== undefined && this.dskKey !== "" && this.rawStation.p2p_did !== undefined) {
+            this.log.debug(`Connecting to station ${this.getSerial()}...`, { p2p_did: this.rawStation.p2p_did, dskKey: this.dskKey, p2pConnectionType: P2PConnectionType[this.p2pConnectionType] });
 
-        if (this.p2pSession) {
-            this.p2pSession.removeAllListeners();
-            this.p2pSession.close();
-            this.p2pSession = null;
-        }
-
-        const deviceSNs: DeviceSerial = {};
-        if (this.rawStation.devices)
-            for (const device of this.rawStation.devices) {
-                deviceSNs[device.device_channel] = {
-                    sn: device.device_sn,
-                    admin_user_id: this.rawStation.member.admin_user_id
-                };
+            if (this.p2pSession) {
+                this.p2pSession.removeAllListeners();
+                this.p2pSession.close();
+                this.p2pSession = null;
             }
 
-        this.p2pSession = new P2PClientProtocol(this.rawStation.p2p_did, this.dskKey, this.getSerial(), deviceSNs, this.log);
-        this.p2pSession.setConnectionType(this.p2pConnectionType);
-        this.p2pSession.on("connect", (address: Address) => this.onConnect(address));
-        this.p2pSession.on("close", () => this.onDisconnect());
-        this.p2pSession.on("timeout", () => this.onTimeout());
-        this.p2pSession.on("command", (result: CommandResult) => this.onCommandResponse(result));
-        this.p2pSession.on("alarm mode", (mode: AlarmMode) => this.onAlarmMode(mode));
-        this.p2pSession.on("camera info", (cameraInfo: CmdCameraInfoResponse) => this.onCameraInfo(cameraInfo));
-        this.p2pSession.on("download started", (channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => this.onStartDownload(channel, metadata, videoStream, audioStream));
-        this.p2pSession.on("download finished", (channel: number) => this.onFinishDownload(channel));
-        this.p2pSession.on("livestream started", (channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => this.onStartLivestream(channel, metadata, videoStream, audioStream));
-        this.p2pSession.on("livestream stopped", (channel: number) => this.onStopLivestream(channel));
-        this.p2pSession.on("wifi rssi", (channel: number, rssi: number) => this.onWifiRssiChanged(channel, rssi));
-        this.p2pSession.on("rtsp url", (channel: number, rtspUrl: string) => this.onRTSPUrl(channel, rtspUrl));
-        this.p2pSession.on("esl parameter", (channel: number, param: number, value: string) => this.onESLParameter(channel, param, value));
-        this.p2pSession.on("runtime state", (channel: number, batteryLevel: number, temperature: number) => this.onRuntimeState(channel, batteryLevel, temperature));
-        this.p2pSession.on("charging state", (channel: number, chargeType: number, batteryLevel: number) => this.onChargingState(channel, chargeType, batteryLevel));
+            const deviceSNs: DeviceSerial = {};
+            if (this.rawStation.devices)
+                for (const device of this.rawStation.devices) {
+                    deviceSNs[device.device_channel] = {
+                        sn: device.device_sn,
+                        admin_user_id: this.rawStation.member.admin_user_id
+                    };
+                }
 
-        this.p2pSession.connect();
+            this.p2pSession = new P2PClientProtocol(this.rawStation.p2p_did, this.dskKey, this.getSerial(), deviceSNs, this.log);
+            this.p2pSession.setConnectionType(this.p2pConnectionType);
+            this.p2pSession.on("connect", (address: Address) => this.onConnect(address));
+            this.p2pSession.on("close", () => this.onDisconnect());
+            this.p2pSession.on("timeout", () => this.onTimeout());
+            this.p2pSession.on("command", (result: CommandResult) => this.onCommandResponse(result));
+            this.p2pSession.on("alarm mode", (mode: AlarmMode) => this.onAlarmMode(mode));
+            this.p2pSession.on("camera info", (cameraInfo: CmdCameraInfoResponse) => this.onCameraInfo(cameraInfo));
+            this.p2pSession.on("download started", (channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => this.onStartDownload(channel, metadata, videoStream, audioStream));
+            this.p2pSession.on("download finished", (channel: number) => this.onFinishDownload(channel));
+            this.p2pSession.on("livestream started", (channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => this.onStartLivestream(channel, metadata, videoStream, audioStream));
+            this.p2pSession.on("livestream stopped", (channel: number) => this.onStopLivestream(channel));
+            this.p2pSession.on("wifi rssi", (channel: number, rssi: number) => this.onWifiRssiChanged(channel, rssi));
+            this.p2pSession.on("rtsp url", (channel: number, rtspUrl: string) => this.onRTSPUrl(channel, rtspUrl));
+            this.p2pSession.on("esl parameter", (channel: number, param: number, value: string) => this.onESLParameter(channel, param, value));
+            this.p2pSession.on("runtime state", (channel: number, batteryLevel: number, temperature: number) => this.onRuntimeState(channel, batteryLevel, temperature));
+            this.p2pSession.on("charging state", (channel: number, chargeType: number, batteryLevel: number) => this.onChargingState(channel, chargeType, batteryLevel));
+
+            this.p2pSession.connect();
+        } else {
+            this.log.debug(`The station ${this.getSerial()} doesn't support p2p connectivity, since is missing dskkey or p2p_did`, { p2p_did: this.rawStation.p2p_did, dskKey: this.dskKey, p2pConnectionType: P2PConnectionType[this.p2pConnectionType] });
+        }
     }
 
     private onFinishDownload(channel: number): void {
