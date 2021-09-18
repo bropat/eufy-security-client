@@ -105,6 +105,10 @@ export enum ParamType {
     CAMERA_RECORD_RETRIGGER_INTERVAL = 1250,    // In seconds
     CAMERA_RECORD_CLIP_LENGTH = 1249,           // In seconds
 
+    SPOTLIGHT_ENABLE = 6080,
+    SPOTLIGHT_AUTO = 6081, // The Spotlight will turn on when motion or noise is detected at night.
+    SPOTLIGHT_SCHEDULE = 6086, // The Spotlight will turn on and turn off according to the schedule.
+
     CAMERA_IR_CUT = 1013,
     CAMERA_PIR = 1011,
     CAMERA_WIFI_RSSI = 1142,
@@ -365,9 +369,12 @@ export enum PropertyName {
     StationAutoEndAlarm = "autoEndAlarm",
     StationTurnOffAlarmWithButton = "turnOffAlarmWithButton",
 
-
     DeviceHiddenMotionDetectionSensitivity = "hidden-motionDetectionSensitivity",
     DeviceHiddenMotionDetectionMode = "hidden-motionDetectionMode",
+
+    DeviceSpotlightLightSettingsEnable = "spotLightSettingsEnable",
+    DeviceSpotlightLightSettingsAuto = "spotLightSettingsAuto",
+    DeviceSpotlightLightSettingsSchedule = "spotLightSettingsSchedule",
 }
 
 export const DeviceNameProperty: PropertyMetadataString = {
@@ -1696,6 +1703,33 @@ export const DeviceVideoRingRecordWiredDoorbellProperty: PropertyMetadataNumeric
     }
 }
 
+export const DeviceSpotlightLightSettingsEnableProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_INDOOR_SPOT_ENABLE,
+    name: PropertyName.DeviceSpotlightLightSettingsEnable,
+    label: "Spotlight Enable",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceSpotlightLightSettingsAutoProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_INDOOR_SPOT_AUTO,
+    name: PropertyName.DeviceSpotlightLightSettingsAuto,
+    label: "Auto Spotlight",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceSpotlightLightSettingsScheduleProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_INDOOR_SPOT_SCHEDULE,
+    name: PropertyName.DeviceSpotlightLightSettingsSchedule,
+    label: "Spotlight Schedule",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
 export const DeviceProperties: Properties = {
     [DeviceType.CAMERA2]: {
         ...GenericDeviceProperties,
@@ -2269,7 +2303,7 @@ export const DeviceProperties: Properties = {
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
-        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
         [PropertyName.DevicePetDetection]: DevicePetDetectionProperty,
@@ -2299,8 +2333,9 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionProperty,
         [PropertyName.DeviceNotificationAllSound]: DeviceNotificationAllSoundProperty,
         [PropertyName.DeviceNotificationCrying]: DeviceNotificationCryingProperty,
-        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
-        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceSpotlightLightSettingsEnable]: DeviceSpotlightLightSettingsEnableProperty,
+        [PropertyName.DeviceSpotlightLightSettingsAuto]: DeviceSpotlightLightSettingsAutoProperty,
+        [PropertyName.DeviceSpotlightLightSettingsSchedule]: DeviceSpotlightLightSettingsScheduleProperty,
     },
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT]: {
         ...GenericDeviceProperties,
