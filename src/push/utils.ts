@@ -43,7 +43,7 @@ export const buildCheckinRequest = async (): Promise<Uint8Array> => {
         loggingId: 1234567890,
         macAddress: ["A1B2C3D4E5F6"],
         meid: "109269993813709",
-        accountCookie: [],
+        accountCookie: [] as string[],
         timeZone: "GMT",
         version: 3,
         otaCert: ["71Q6Rn2DDZl1zPDVaaeEHItd+Yg="],

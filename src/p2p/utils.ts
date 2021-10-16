@@ -433,3 +433,18 @@ export const checkT8420 = (serialNumber: string): boolean => {
     }
     return true;
 }
+
+export const buildPingCommandPayload = (channel = 255): Buffer => {
+    const headerBuffer = Buffer.from([0x00, 0x00]);
+    const emptyBuffer = Buffer.from([0x00, 0x00]);
+    const magicBuffer = Buffer.from([0x01, 0x00]);
+    const channelBuffer = Buffer.from([channel, 0x00]);
+
+    return Buffer.concat([
+        headerBuffer,
+        emptyBuffer,
+        magicBuffer,
+        channelBuffer,
+        emptyBuffer
+    ]);
+};

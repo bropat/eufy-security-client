@@ -114,7 +114,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
             user: androidId,
             useRmq2: true,
             setting: [{ name: "new_vc", value: "1" }],
-            clientEvent: [],
+            clientEvent: [] as any[],
             receivedPersistentId: this.persistentIds,
         };
 

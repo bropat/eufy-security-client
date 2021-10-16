@@ -63,11 +63,11 @@ export class WrongStationError extends Error {
     }
 }
 
-export class NotConnectedError extends Error {
+export class RTSPPropertyNotEnabled extends Error {
     constructor(message?: string) {
         super(message);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = NotConnectedError.name;
+        this.name = RTSPPropertyNotEnabled.name;
     }
 }
 

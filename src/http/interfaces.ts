@@ -146,6 +146,8 @@ export interface StationEvents {
     "download finish": (station: Station, channel:number) => void;
     "livestream start": (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
     "livestream stop": (station: Station, channel:number) => void;
+    "rtsp livestream start": (station: Station, channel:number) => void;
+    "rtsp livestream stop": (station: Station, channel:number) => void;
     "rtsp url": (station: Station, channel:number, value: string, modified: number) => void;
     "guard mode": (station: Station, guardMode: number) => void;
     "current mode": (station: Station, currentMode: number) => void;

@@ -22,6 +22,8 @@ export interface P2PClientProtocolEvents {
     "timeout": () => void;
     "runtime state": (channel: number, batteryLevel: number, temperature: number) => void;
     "charging state": (channel: number, chargeType: number, batteryLevel: number) => void;
+    "rtsp livestream started": (channel: number) => void;
+    "rtsp livestream stopped": (channel: number) => void;
 }
 
 export interface P2PMessageState {
@@ -74,12 +76,15 @@ export interface P2PDataMessageState {
     videoStream: Readable | null;
     audioStream: Readable | null;
     invalidStream: boolean;
-    streaming: boolean;
-    streamNotStarted: boolean;
-    streamChannel: number;
-    streamFirstAudioDataReceived: boolean;
-    streamFirstVideoDataReceived: boolean;
-    streamMetadata: StreamMetadata;
+    p2pStreaming: boolean;
+    p2pStreamNotStarted: boolean;
+    p2pStreamChannel: number;
+    p2pStreamFirstAudioDataReceived: boolean;
+    p2pStreamFirstVideoDataReceived: boolean;
+    p2pStreamMetadata: StreamMetadata;
+    rtspStream: boolean;
+    rtspStreaming: boolean;
+    rtspStreamChannel: number;
     waitForSeqNoTimeout?: NodeJS.Timeout;
     waitForAudioData?: NodeJS.Timeout;
     receivedFirstIFrame: boolean;

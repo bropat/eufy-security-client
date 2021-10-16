@@ -76,7 +76,9 @@ One client instance will show all devices from one Eufy Cloud account and allows
 * eufyCam 2C (T8113)
 * eufyCam 2 Pro (T8140)
 * eufyCam 2C Pro (T8141)
+* SoloCam E40
 * Floodlight (T8420)
+* Floodlight (T8422)
 * Wired Doorbell 2k (T8200)
 * Wired Doorbell 1080p (T8201)
 * Battery Doorbell 2K (T8210)
@@ -97,6 +99,17 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 Please use GitHub issues for this.
 
 ## Changelog
+
+### 1.2 (2021-10-xx)
+
+* (bropat) Extended P2P implementation to better support solo cameras
+* (bropat) Added support for Floodlight T8422
+* (bropat) Added support for SoloCam e40
+* (bropat) Added experimental feature for supported devices: start/stop local RTSP streaming
+* (bropat) Fixed push notifications for solo cameras (motion and person detection)
+* (bropat) Fixed "livestream stopped" if live stream is started for multiple devices of the same station (1 p2p session could start only 1 live stream at a time)
+* (bropat) Fixed "download finished" if download is started for multiple devices of the same station (1 p2p session could start only 1 download at a time)
+* (bropat) Updated versions of the package dependencies
 
 ### 1.1.2 (2021-08-19)
 

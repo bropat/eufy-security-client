@@ -179,8 +179,8 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
 
     protected convertRawPropertyValue(property: PropertyMetadataAny, value: RawValue): PropertyValue {
         try {
-            if (property.key === ParamType.PRIVATE_MODE || property.key === ParamType.OPEN_DEVICE) {
-                if (this.isIndoorCamera() || this.isSoloCameras() || this.isWiredDoorbell() || this.isFloodLight()) {
+            if (property.key === ParamType.PRIVATE_MODE || property.key === ParamType.OPEN_DEVICE || property.key === CommandType.CMD_DEVS_SWITCH) {
+                if (this.isIndoorCamera() || this.isWiredDoorbell() || this.isFloodLight()) {
                     return { value: value !== undefined ? (value.value === "true" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
                 }
                 return { value: value !== undefined ? (value.value === "0" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
@@ -392,6 +392,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_2K ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR)
+            //TODO: Add other battery devices
             return true;
         return false;
     }
@@ -579,7 +580,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
     }
 
     public isFloodLight(): boolean {
-        return DeviceType.FLOODLIGHT == this.rawDevice.device_type;
+        return Device.isFloodLight(this.rawDevice.device_type);
     }
 
     public isDoorbell(): boolean {
@@ -999,6 +1000,52 @@ export class SoloCamera extends Camera {
 
     public isMotionDetectionEnabled(): PropertyValue {
         return this.getPropertyValue(PropertyName.DeviceMotionDetection);
+    }
+
+    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(message, eventDurationSeconds);
+        if (message.type !== undefined && message.event_type !== undefined) {
+            if (message.device_sn === this.getSerial()) {
+                try {
+                    switch (message.event_type) {
+                        case IndoorPushEvent.MOTION_DETECTION:
+                            this.updateProperty(PropertyName.DeviceMotionDetected, { value: true, timestamp: message.event_time });
+                            if (!isEmpty(message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, { value: message.pic_url, timestamp: message.event_time });
+                            if (message.push_count === 1 || message.push_count === undefined)
+                                this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected).value as boolean);
+                            this.clearEventTimeout(DeviceEvent.MotionDetected);
+                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, { value: false, timestamp: new Date().getTime() });
+                                this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected).value as boolean);
+                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                            }, eventDurationSeconds * 1000));
+                            break;
+                        case IndoorPushEvent.FACE_DETECTION:
+                            this.updateProperty(PropertyName.DevicePersonDetected, { value: true, timestamp: message.event_time });
+                            this.updateProperty(PropertyName.DevicePersonName, { value: !isEmpty(message.person_name) ? message.person_name! : "Unknown", timestamp: message.event_time });
+                            if (!isEmpty(message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, { value: message.pic_url, timestamp: message.event_time });
+                            if (message.push_count === 1 || message.push_count === undefined)
+                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected).value as boolean, this.getPropertyValue(PropertyName.DevicePersonName).value as string);
+                            this.clearEventTimeout(DeviceEvent.PersonDetected);
+                            this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                const timestamp = new Date().getTime();
+                                this.updateProperty(PropertyName.DevicePersonDetected, { value: false, timestamp: timestamp });
+                                this.updateProperty(PropertyName.DevicePersonName, { value: "", timestamp: timestamp });
+                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected).value as boolean, this.getPropertyValue(PropertyName.DevicePersonName).value as string);
+                                this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                            }, eventDurationSeconds * 1000));
+                            break;
+                        default:
+                            this.log.debug("Unhandled solo camera push event", message);
+                            break;
+                    }
+                } catch (error) {
+                    this.log.debug(`SoloPushEvent - Device: ${message.device_sn} Error:`, error);
+                }
+            }
+        }
     }
 
 }

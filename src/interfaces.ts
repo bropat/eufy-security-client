@@ -52,6 +52,8 @@ export interface EufySecurityEvents {
     "station download start": (station: Station, device: Device, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => void;
     "station download finish": (station: Station, device: Device) => void;
     "station command result": (station: Station, result: CommandResult) => void;
+    "station rtsp livestream start": (station: Station, device: Device) => void;
+    "station rtsp livestream stop": (station: Station, device: Device) => void;
     "station rtsp url": (station: Station, device: Device, value: string, modified: number) => void;
     "station guard mode": (station: Station, guardMode: number) => void;
     "station current mode": (station: Station, currentMode: number) => void;
