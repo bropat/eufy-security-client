@@ -220,7 +220,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private updateStation(hub: HubResponse): void {
         if (Object.keys(this.stations).includes(hub.station_sn)) {
             this.stations[hub.station_sn].update(hub);
-            if (!this.stations[hub.station_sn].isConnected()) {
+            if (!this.stations[hub.station_sn].isConnected() && !this.stations[hub.station_sn].isEnergySavingDevice()) {
                 this.stations[hub.station_sn].setConnectionType(this.config.p2pConnectionSetup);
                 this.stations[hub.station_sn].connect();
             }
@@ -587,6 +587,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 station.startLivestream(camera);
 
                 this.cameraStationLivestreamTimeout.set(deviceSN, setTimeout(() => {
+                    this.log.info(`Stopping the station stream for the device ${deviceSN}, because we have reached the configured maximum stream timeout (${this.cameraMaxLivestreamSeconds} seconds)`);
                     this.stopStationLivestream(deviceSN);
                 }, this.cameraMaxLivestreamSeconds * 1000));
             } else {
@@ -607,6 +608,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             const url = await camera.startStream();
             if (url !== "") {
                 this.cameraCloudLivestreamTimeout.set(deviceSN, setTimeout(() => {
+                    this.log.info(`Stopping the station stream for the device ${deviceSN}, because we have reached the configured maximum stream timeout (${this.cameraMaxLivestreamSeconds} seconds)`);
                     this.stopCloudLivestream(deviceSN);
                 }, this.cameraMaxLivestreamSeconds * 1000));
                 this.emit("cloud livestream start", station, camera, url);

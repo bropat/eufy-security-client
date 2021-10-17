@@ -116,7 +116,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.connectAddress = undefined;
 
         this._clearMessageStateTimeouts();
-        this.messageStates.clear();
 
         for(let datatype = 0; datatype < 4; datatype++) {
 
@@ -230,6 +229,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (this.currentMessageState[P2PDataType.BINARY].p2pStreaming) {
             this.endStream(P2PDataType.BINARY)
         }
+        this.endRTSPStream();
         if (this.connected) {
             this.emit("close");
         } else if (!this.terminating) {
@@ -243,7 +243,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             if (this.esdDisconnectTimeout) {
                 this.esdDisconnectTimeout = setTimeout(() => {
                     this.esdDisconnectTimeout = undefined;
-                    this.close();
+                    sendMessage(this.socket, this.connectAddress!, RequestMessageType.END).catch((error) => {
+                        this.log.error(`Station ${this.rawStation.station_sn} - Error`, error);
+                    });
+                    this._disconnected();
                 }, this.ESD_DISCONNECT_TIMEOUT);
             }
         }
@@ -315,6 +318,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         const tmp_addresses = this.fallbackAddresses;
                         this.fallbackAddresses = [];
                         for(const addr of tmp_addresses) {
+                            this.log.debug(`Station ${this.rawStation.station_sn} - PREFER_LOCAL - Try to connect to remote address ${addr.host}:${addr.port}...`);
                             this._connect({ host: addr.host, port: addr.port });
                         }
                         return;
@@ -326,7 +330,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
 
     private _connect(address: Address): void {
-        this.log.debug(`Station ${this.rawStation.station_sn} - Connecting to host ${address.host} on port ${address.port}...`);
+        this.log.debug(`Station ${this.rawStation.station_sn} - CHECK_CAM - Connecting to host ${address.host} on port ${address.port}...`);
         for (let i = 0; i < 4; i++)
             this.sendCamCheck(address);
 
@@ -441,6 +445,31 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             return_code: ErrorCode.ERROR_COMMAND_TIMEOUT
         };
         this.messageStates.set(msgSeqNumber, message);
+
+        if (message.command_type === CommandType.CMD_START_REALTIME_MEDIA ||
+            (message.nested_command_type !== undefined && message.nested_command_type === CommandType.CMD_START_REALTIME_MEDIA && message.command_type === CommandType.CMD_SET_PAYLOAD) ||
+            message.command_type === CommandType.CMD_RECORD_VIEW ||
+            (message.nested_command_type !== undefined && message.nested_command_type === 1000 && message.command_type === CommandType.CMD_DOORBELL_SET_PAYLOAD)
+        ) {
+            if (this.currentMessageState[P2PDataType.VIDEO].p2pStreaming && message.channel !== this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel) {
+                this.endStream(P2PDataType.VIDEO)
+            }
+            this.currentMessageState[P2PDataType.VIDEO].p2pStreaming = true;
+            this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel = message.channel;
+            this.waitForStreamData(P2PDataType.VIDEO);
+        } else if (message.command_type === CommandType.CMD_DOWNLOAD_VIDEO) {
+            if (this.currentMessageState[P2PDataType.BINARY].p2pStreaming && message.channel !== this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel) {
+                this.endStream(P2PDataType.BINARY)
+            }
+            this.currentMessageState[P2PDataType.BINARY].p2pStreaming = true;
+            this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel = message.channel;
+            this.waitForStreamData(P2PDataType.BINARY);
+        } else if (message.command_type === CommandType.CMD_STOP_REALTIME_MEDIA) { //TODO: CommandType.CMD_RECORD_PLAY_CTRL only if stop
+            this.endStream(P2PDataType.VIDEO);
+        } else if (message.command_type === CommandType.CMD_DOWNLOAD_CANCEL) {
+            this.endStream(P2PDataType.BINARY);
+        }
+
         this.handleCommand(message);
     }
 
@@ -456,7 +485,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             const msg = this.messageStates.get(message.sequence);
             if (this.connected) {
 
-                if (this.messageStates.size === 0 || (msg && msg.retries > 0))
+                if (this.messageStates.size === 0 || (msg && msg.retries > 0) || msg?.command_type === CommandType.CMD_PING
+                || msg?.command_type === CommandType.CMD_START_REALTIME_MEDIA || msg?.command_type === CommandType.CMD_STOP_REALTIME_MEDIA
+                || msg?.command_type === CommandType.CMD_DOWNLOAD_VIDEO || msg?.command_type === CommandType.CMD_DOWNLOAD_CANCEL
+                || msg?.nested_command_type === CommandType.CMD_START_REALTIME_MEDIA || msg?.nested_command_type === CommandType.CMD_STOP_REALTIME_MEDIA
+                || msg?.nested_command_type === CommandType.CMD_DOWNLOAD_VIDEO || msg?.nested_command_type === CommandType.CMD_DOWNLOAD_CANCEL)
                     this._sendCommand(message);
 
                 if (msg) {
@@ -521,8 +554,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         this.log.debug(`Station ${this.rawStation.station_sn} - PREFER_LOCAL - Try to connect to ${ip}:${port}...`);
                         this._connect({ host: ip, port: port });
                     } else {
+                        this.log.debug(`Station ${this.rawStation.station_sn} - PREFER_LOCAL - Got public IP, remember ${ip}:${port}...`);
                         if (!this.fallbackAddresses.includes({ host: ip, port: port }))
                             this.fallbackAddresses.push({ host: ip, port: port });
+                        this._startConnectTimeout();
                     }
                 } else if (this.connectionType === P2PConnectionType.ONLY_LOCAL) {
                     if (isPrivateIp(ip)) {
@@ -605,11 +640,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 if (msg_state && !msg_state.acknowledged) {
                     this._clearTimeout(msg_state.timeout);
                     if (msg_state.command_type === CommandType.CMD_PING) {
-                        this.emit("command", {
-                            command_type: msg_state.command_type,
-                            channel: msg_state.channel,
-                            return_code: 0
-                        } as CommandResult);
                         this.messageStates.delete(ackedSeqNo);
                     } else {
                         msg_state.acknowledged = true;
@@ -701,6 +731,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this._clearLookupRetryTimeout();
 
                 this.log.debug(`Station ${this.rawStation.station_sn} - LOOKUP_ADDR2 - Got response`, { remoteAddress: rinfo.address, remotePort: rinfo.port, response: { ip: ip, port: port, data: data.toString("hex") }});
+                this.log.debug(`Station ${this.rawStation.station_sn} - CHECK_CAM2 - Connecting to host ${ip} on port ${port}...`);
 
                 for (let i = 0; i < 4; i++)
                     this.sendCamCheck2({ host: ip, port: port }, data);
@@ -875,29 +906,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             }
                             this.closeEnergySavingDevice();
 
-                            if (msg_state.command_type === CommandType.CMD_START_REALTIME_MEDIA ||
-                                (msg_state.nested_command_type !== undefined && msg_state.nested_command_type === CommandType.CMD_START_REALTIME_MEDIA && msg_state.command_type === CommandType.CMD_SET_PAYLOAD) ||
-                                msg_state.command_type === CommandType.CMD_RECORD_VIEW ||
-                                (msg_state.nested_command_type !== undefined && msg_state.nested_command_type === 1000 && msg_state.command_type === CommandType.CMD_DOORBELL_SET_PAYLOAD)
-                            ) {
-                                if (this.currentMessageState[P2PDataType.VIDEO].p2pStreaming && msg_state.channel !== this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel) {
-                                    this.endStream(P2PDataType.VIDEO)
-                                }
-                                this.currentMessageState[P2PDataType.VIDEO].p2pStreaming = true;
-                                this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel = msg_state.channel;
-                                this.waitForStreamData(P2PDataType.VIDEO);
-                            } else if (msg_state.command_type === CommandType.CMD_DOWNLOAD_VIDEO) {
-                                if (this.currentMessageState[P2PDataType.BINARY].p2pStreaming && msg_state.channel !== this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel) {
-                                    this.endStream(P2PDataType.BINARY)
-                                }
-                                this.currentMessageState[P2PDataType.BINARY].p2pStreaming = true;
-                                this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel = msg_state.channel;
-                                this.waitForStreamData(P2PDataType.BINARY);
-                            } else if (msg_state.command_type === CommandType.CMD_STOP_REALTIME_MEDIA) { //TODO: CommandType.CMD_RECORD_PLAY_CTRL only if stop
-                                this.endStream(P2PDataType.VIDEO);
-                            } else if (msg_state.command_type === CommandType.CMD_DOWNLOAD_CANCEL) {
-                                this.endStream(P2PDataType.BINARY);
-                            } else if (msg_state.command_type === CommandType.CMD_NAS_TEST) {
+                            if (msg_state.command_type === CommandType.CMD_NAS_TEST) {
                                 //TODO: Verify if starting p2p live stream stopps this or viceversa
                                 if (this.currentMessageState[P2PDataType.DATA].rtspStream) {
                                     this.currentMessageState[P2PDataType.DATA].rtspStreaming = this.currentMessageState[P2PDataType.DATA].rtspStream;
@@ -945,7 +954,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             clearTimeout(this.currentMessageState[dataType].p2pStreamingTimeout!);
         }
         this.currentMessageState[dataType].p2pStreamingTimeout = setTimeout(() => {
-            this.log.debug(`Station ${this.rawStation.station_sn} - No stream data received in ${this.MAX_STREAM_DATA_WAIT} seconds, stopping stream.`, { dataType: dataType });
+            this.log.info(`Stopping the station stream for the device ${this.deviceSNs[this.currentMessageState[dataType].p2pStreamChannel]?.sn}, because we haven't received any data for ${this.MAX_STREAM_DATA_WAIT} seconds`);
             this.endStream(dataType);
         }, this.MAX_STREAM_DATA_WAIT);
     }
@@ -1274,7 +1283,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this._clearConnectTimeout();
         this._clearHeartbeatTimeout();
         this._clearMessageStateTimeouts();
-        this.endRTSPStream();
         if (this.socket) {
             if (this.connected) {
                 await sendMessage(this.socket, this.connectAddress!, RequestMessageType.END).catch((error) => {
@@ -1284,6 +1292,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             } else {
                 this._initialize();
             }
+            this.messageStates.clear();
         }
     }
 
@@ -1386,7 +1395,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private endStream(datatype: P2PDataType): void {
         if (this.currentMessageState[datatype].p2pStreaming) {
             this.currentMessageState[datatype].p2pStreaming = false;
-            this.currentMessageState[datatype].p2pStreamChannel = -1;
 
             this.currentMessageState[datatype].videoStream?.push(null);
             this.currentMessageState[datatype].audioStream?.push(null);
@@ -1513,9 +1521,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     public updateRawStation(value: HubResponse): void {
         this.rawStation = value;
         if (this.rawStation.devices.length === 1) {
-            this.energySavingDevice = this.rawStation.station_sn === this.rawStation.devices[0].device_sn && Device.hasBattery(this.rawStation.devices[0].device_type);
-            if (this.energySavingDevice)
-                this.log.debug(`Identified standalone battery device ${this.rawStation.station_sn} => activate p2p keepalive command`);
+            if (!this.energySavingDevice) {
+                this.energySavingDevice = this.rawStation.station_sn === this.rawStation.devices[0].device_sn && Device.hasBattery(this.rawStation.devices[0].device_type);
+                if (this.energySavingDevice)
+                    this.log.debug(`Identified standalone battery device ${this.rawStation.station_sn} => activate p2p keepalive command`);
+            }
         } else {
             this.energySavingDevice = false;
         }

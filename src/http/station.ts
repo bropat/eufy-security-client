@@ -445,7 +445,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
-    private isEnergySavingDevice(): boolean {
+    public isEnergySavingDevice(): boolean {
         return this.p2pSession.isEnergySavingDevice();
     }
 

@@ -107,11 +107,13 @@ Please use GitHub issues for this.
 * (bropat) Added support for Floodlight T8422
 * (bropat) Added support for SoloCam E40 (T8131)
 * (bropat) Added experimental feature for supported devices: start/stop local RTSP streaming
+* (bropat) Added new properties for solo cameras: battery, batteryTemperature, wifiSignalLevel, state, chargingStatus, lastChargingDays, lastChargingRecordedEvents, lastChargingTotalEvents, batteryUsageLastWeek
 * (bropat) Implemented interrupted p2p stream detection
 * (bropat) Fixed issue #51
 * (bropat) Fixed push notifications for solo cameras (motion and person detection)
 * (bropat) Fixed "livestream stopped" if live stream is started for multiple devices of the same station (1 p2p session could start only 1 live stream at a time)
 * (bropat) Fixed "download finished" if download is started for multiple devices of the same station (1 p2p session could start only 1 download at a time)
+* (bropat) Fixed an issue where the P2P connection type PREFER_LOCAL did not attempt to connect if no local IP address was found
 * (bropat) Updated versions of the package dependencies
 
 ### 1.1.2 (2021-08-19)
