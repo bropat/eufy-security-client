@@ -34,6 +34,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private currentDelay = 0;
     private reconnectTimeout?: NodeJS.Timeout;
+    private terminating = false;
 
     private p2pConnectionType = P2PConnectionType.PREFER_LOCAL;
 
@@ -433,6 +434,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public close(): void {
+        this.terminating = true;
         this.log.info(`Disconnect from station ${this.getSerial()}`);
         if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
@@ -591,6 +593,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     private onConnect(address: Address): void {
+        this.terminating = false;
         this.resetCurrentDelay();
         this.log.info(`Connected to station ${this.getSerial()} on host ${address.host} and port ${address.port}`);
         this.emit("connect", this);
@@ -599,7 +602,7 @@ export class Station extends TypedEmitter<StationEvents> {
     private onDisconnect(): void {
         this.log.info(`Disconnected from station ${this.getSerial()}`);
         this.emit("close", this);
-        if (!this.isEnergySavingDevice())
+        if (!this.isEnergySavingDevice() && !this.terminating)
             this.scheduleReconnect();
     }
 
@@ -625,13 +628,14 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     private scheduleReconnect(): void {
-        const delay = this.getCurrentDelay();
-        this.log.debug(`Schedule reconnect to station ${this.getSerial()}...`, { delay: delay });
-        if (!this.reconnectTimeout)
+        if (!this.reconnectTimeout) {
+            const delay = this.getCurrentDelay();
+            this.log.debug(`Schedule reconnect to station ${this.getSerial()}...`, { delay: delay });
             this.reconnectTimeout = setTimeout(async () => {
                 this.reconnectTimeout = undefined;
                 this.connect();
             }, delay);
+        }
     }
 
     public async rebootHUB(): Promise<void> {
