@@ -26,15 +26,23 @@ export interface P2PClientProtocolEvents {
     "rtsp livestream stopped": (channel: number) => void;
 }
 
+export interface P2PQueueMessage {
+    commandType: CommandType;
+    nestedCommandType?: CommandType;
+    channel: number;
+    payload: Buffer;
+    timestamp: number;
+}
+
 export interface P2PMessageState {
     sequence: number;
-    command_type: CommandType;
-    nested_command_type?: CommandType;
+    commandType: CommandType;
+    nestedCommandType?: CommandType;
     channel: number;
     data: Buffer;
     retries: number;
     acknowledged: boolean;
-    return_code: number;
+    returnCode: number;
     timeout?: NodeJS.Timeout;
 }
 
@@ -121,6 +129,6 @@ export interface StreamMetadata {
 export interface DeviceSerial {
     [index: number]: {
         sn: string;
-        admin_user_id: string;
+        adminUserId: string;
     };
 }

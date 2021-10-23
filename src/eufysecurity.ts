@@ -312,6 +312,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         throw new StationNotFoundError(`No station with this serial number: ${stationSN}!`);
     }
 
+    public isStationEnergySavingDevice(stationSN: string): boolean {
+        if (Object.keys(this.stations).includes(stationSN))
+            return this.stations[stationSN].isEnergySavingDevice();
+        throw new StationNotFoundError(`No station with this serial number: ${stationSN}!`);
+    }
+
     private handleHubs(hubs: Hubs): void {
         this.log.debug("Got hubs:", hubs);
         const stationsSNs: string[] = Object.keys(this.stations);
@@ -582,17 +588,15 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
 
         const camera = device as Camera;
-        if (station.isConnected()) {
-            if (!station.isLiveStreaming(camera)) {
-                station.startLivestream(camera);
+        if (!station.isLiveStreaming(camera)) {
+            station.startLivestream(camera);
 
-                this.cameraStationLivestreamTimeout.set(deviceSN, setTimeout(() => {
-                    this.log.info(`Stopping the station stream for the device ${deviceSN}, because we have reached the configured maximum stream timeout (${this.cameraMaxLivestreamSeconds} seconds)`);
-                    this.stopStationLivestream(deviceSN);
-                }, this.cameraMaxLivestreamSeconds * 1000));
-            } else {
-                this.log.warn(`The station stream for the device ${deviceSN} cannot be started, because it is already streaming!`);
-            }
+            this.cameraStationLivestreamTimeout.set(deviceSN, setTimeout(() => {
+                this.log.info(`Stopping the station stream for the device ${deviceSN}, because we have reached the configured maximum stream timeout (${this.cameraMaxLivestreamSeconds} seconds)`);
+                this.stopStationLivestream(deviceSN);
+            }, this.cameraMaxLivestreamSeconds * 1000));
+        } else {
+            this.log.warn(`The station stream for the device ${deviceSN} cannot be started, because it is already streaming!`);
         }
     }
 
@@ -777,12 +781,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (!device.isCamera())
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
 
-        if (station.isConnected()) {
-            if (!station.isDownloading(device)) {
-                await station.startDownload(device, path, cipherID);
-            } else {
-                this.log.warn(`The station is already downloading a video for the device ${deviceSN}!`);
-            }
+        if (!station.isDownloading(device)) {
+            await station.startDownload(device, path, cipherID);
+        } else {
+            this.log.warn(`The station is already downloading a video for the device ${deviceSN}!`);
         }
     }
 

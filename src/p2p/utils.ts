@@ -3,7 +3,7 @@ import NodeRSA from "node-rsa";
 import CryptoJS from "crypto-js"
 import { randomBytes } from "crypto";
 
-import { P2PMessageParts } from "./interfaces";
+import { P2PMessageParts, P2PMessageState, P2PQueueMessage } from "./interfaces";
 import { CommandType, P2PDataTypeHeader, VideoCodec } from "./types";
 import { Address } from "./models";
 
@@ -448,3 +448,7 @@ export const buildPingCommandPayload = (channel = 255): Buffer => {
         emptyBuffer
     ]);
 };
+
+export function isP2PQueueMessage(type: P2PQueueMessage | P2PMessageState): type is P2PQueueMessage {
+    return (type as P2PQueueMessage).payload !== undefined;
+}

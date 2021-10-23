@@ -100,6 +100,13 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.2.1 (2021-10-23)
+
+* (bropat) Changed event detection for start/stop local RTSP streaming
+* (bropat) Fixed regression introduced by fixing issue #51
+* (bropat) Fixed new implementation that detects interrupted p2p streams
+* (bropat) Fixed missing start/stop local RTSP streaming commands to hasCommand and getCommands
+
 ### 1.2.0 (2021-10-17)
 
 * (bropat) Extended p2p implementation to better support solo cameras and other battery powered devices

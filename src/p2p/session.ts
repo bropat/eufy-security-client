@@ -6,10 +6,10 @@ import { Logger } from "ts-log";
 import { SortedMap } from "sweet-collections";
 
 import { Address, CmdCameraInfoResponse, CmdESLNotifyPayload, CommandResult } from "./models";
-import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildPingCommandPayload } from "./utils";
+import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildPingCommandPayload, isP2PQueueMessage } from "./utils";
 import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, ESLInnerCommand, P2PConnectionType } from "./types";
 import { AlarmMode } from "../http/types";
-import { P2PDataMessage, P2PDataMessageAudio, P2PDataMessageBuilder, P2PMessageState, P2PDataMessageVideo, P2PMessage, P2PDataHeader, P2PDataMessageState, P2PClientProtocolEvents, DeviceSerial } from "./interfaces";
+import { P2PDataMessage, P2PDataMessageAudio, P2PDataMessageBuilder, P2PMessageState, P2PDataMessageVideo, P2PMessage, P2PDataHeader, P2PDataMessageState, P2PClientProtocolEvents, DeviceSerial, P2PQueueMessage } from "./interfaces";
 import { DskKeyResponse, HubResponse, ResultResponse } from "../http/models";
 import { HTTPApi } from "../http/api";
 import { Device } from "../http/device";
@@ -68,6 +68,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     ];
 
     private messageStates: SortedMap<number, P2PMessageState> = new SortedMap<number, P2PMessageState>((a: number, b: number) => a - b);
+    private sendQueue: Array<P2PQueueMessage> = new Array<P2PQueueMessage>();
 
     private connectTimeout?: NodeJS.Timeout;
     private lookupTimeout?: NodeJS.Timeout;
@@ -116,6 +117,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.connectAddress = undefined;
 
         this._clearMessageStateTimeouts();
+        this.messageStates.clear();
 
         for(let datatype = 0; datatype < 4; datatype++) {
 
@@ -239,7 +241,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
 
     private closeEnergySavingDevice(): void {
-        if (this.messageStates.size === 0 && this.energySavingDevice) {
+        if (this.messageStates.size === 0 && this.sendQueue.length === 0 && this.energySavingDevice) {
             if (this.esdDisconnectTimeout) {
                 this.esdDisconnectTimeout = setTimeout(() => {
                     this.esdDisconnectTimeout = undefined;
@@ -428,111 +430,138 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.sendCommand(CommandType.CMD_PING, payload, channel);
     }
 
-    private sendCommand(commandType: CommandType, payload: Buffer, channel: number, nested_commandType?: CommandType): void {
-        // Command header
-        const msgSeqNumber = this.seqNumber++;
-        const commandHeader = buildCommandHeader(msgSeqNumber, commandType);
-        const data = Buffer.concat([commandHeader, payload]);
-
-        const message: P2PMessageState = {
-            sequence: msgSeqNumber,
-            command_type: commandType,
-            nested_command_type: nested_commandType,
-            channel: channel,
-            data: data,
-            retries: 0,
-            acknowledged: false,
-            return_code: ErrorCode.ERROR_COMMAND_TIMEOUT
-        };
-        this.messageStates.set(msgSeqNumber, message);
-
-        if (message.command_type === CommandType.CMD_START_REALTIME_MEDIA ||
-            (message.nested_command_type !== undefined && message.nested_command_type === CommandType.CMD_START_REALTIME_MEDIA && message.command_type === CommandType.CMD_SET_PAYLOAD) ||
-            message.command_type === CommandType.CMD_RECORD_VIEW ||
-            (message.nested_command_type !== undefined && message.nested_command_type === 1000 && message.command_type === CommandType.CMD_DOORBELL_SET_PAYLOAD)
-        ) {
-            if (this.currentMessageState[P2PDataType.VIDEO].p2pStreaming && message.channel !== this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel) {
-                this.endStream(P2PDataType.VIDEO)
+    private sendQueuedMessage(): void {
+        if (this.sendQueue.length > 0 && this.connected) {
+            if (this.messageStates.size === 0) {
+                this._sendCommand(this.sendQueue.shift()!);
+            } else if (this.messageStates.size > 0) {
+                let queuedMessage: P2PQueueMessage;
+                while ((queuedMessage = this.sendQueue.shift()!) !== undefined) {
+                    let exists = false;
+                    this.messageStates.forEach(stateMessage => {
+                        if (stateMessage.commandType === queuedMessage.commandType && stateMessage.nestedCommandType === queuedMessage.nestedCommandType) {
+                            exists = true;
+                        }
+                    });
+                    if (!exists) {
+                        this._sendCommand(queuedMessage);
+                    } else {
+                        this.sendQueue.unshift(queuedMessage);
+                        break;
+                    }
+                }
             }
-            this.currentMessageState[P2PDataType.VIDEO].p2pStreaming = true;
-            this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel = message.channel;
-            this.waitForStreamData(P2PDataType.VIDEO);
-        } else if (message.command_type === CommandType.CMD_DOWNLOAD_VIDEO) {
-            if (this.currentMessageState[P2PDataType.BINARY].p2pStreaming && message.channel !== this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel) {
-                this.endStream(P2PDataType.BINARY)
-            }
-            this.currentMessageState[P2PDataType.BINARY].p2pStreaming = true;
-            this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel = message.channel;
-            this.waitForStreamData(P2PDataType.BINARY);
-        } else if (message.command_type === CommandType.CMD_STOP_REALTIME_MEDIA) { //TODO: CommandType.CMD_RECORD_PLAY_CTRL only if stop
-            this.endStream(P2PDataType.VIDEO);
-        } else if (message.command_type === CommandType.CMD_DOWNLOAD_CANCEL) {
-            this.endStream(P2PDataType.BINARY);
+        } else if (!this.connected) {
+            this.connect();
         }
-
-        this.handleCommand(message);
     }
 
-    private handleCommand(message: P2PMessageState): void {
-        this.log.debug("Handle p2p command...", { station: this.rawStation.station_sn, sequence: message.sequence, commandType: message.command_type, channel: message.channel, retries: message.retries, messageStatesSize: this.messageStates.size });
-        if (message.retries < this.MAX_RETRIES && message.return_code !== ErrorCode.ERROR_CONNECT_TIMEOUT) {
-            if (message.return_code === ErrorCode.ERROR_FAILED_TO_REQUEST) {
-                this.messageStates.delete(message.sequence);
-                message.sequence = this.seqNumber++;
-                message.data.writeUInt16BE(message.sequence, 2);
-                this.messageStates.set(message.sequence, message);
-            }
-            const msg = this.messageStates.get(message.sequence);
-            if (this.connected) {
+    private sendCommand(commandType: CommandType, payload: Buffer, channel: number, nestedCommandType?: CommandType): void {
+        const message: P2PQueueMessage = {
+            commandType: commandType,
+            nestedCommandType: nestedCommandType,
+            channel: channel,
+            payload: payload,
+            timestamp: +new Date,
+        };
+        this.sendQueue.push(message);
+        this.sendQueuedMessage();
+    }
 
-                if (this.messageStates.size === 0 || (msg && msg.retries > 0) || msg?.command_type === CommandType.CMD_PING
-                || msg?.command_type === CommandType.CMD_START_REALTIME_MEDIA || msg?.command_type === CommandType.CMD_STOP_REALTIME_MEDIA
-                || msg?.command_type === CommandType.CMD_DOWNLOAD_VIDEO || msg?.command_type === CommandType.CMD_DOWNLOAD_CANCEL
-                || msg?.nested_command_type === CommandType.CMD_START_REALTIME_MEDIA || msg?.nested_command_type === CommandType.CMD_STOP_REALTIME_MEDIA
-                || msg?.nested_command_type === CommandType.CMD_DOWNLOAD_VIDEO || msg?.nested_command_type === CommandType.CMD_DOWNLOAD_CANCEL)
-                    this._sendCommand(message);
+    private _sendCommand(message: P2PMessageState|P2PQueueMessage):void {
+        if (isP2PQueueMessage(message)) {
+            const ageing = +new Date - message.timestamp;
+            if (ageing <= this.MAX_COMMAND_CONNECT_TIMEOUT) {
+                const msgSeqNumber = this.seqNumber++;
+                const commandHeader = buildCommandHeader(msgSeqNumber, message.commandType);
+                const data = Buffer.concat([commandHeader, message.payload]);
 
-                if (msg) {
-                    msg.return_code = ErrorCode.ERROR_COMMAND_TIMEOUT;
-                    msg.retries++;
-                    msg.timeout = setTimeout(() => {
-                        this.handleCommand(msg);
-                    }, this.MAX_AKNOWLEDGE_TIMEOUT);
-                    this.messageStates.set(msg.sequence, msg);
-                }
+                const messageState: P2PMessageState = {
+                    sequence: msgSeqNumber,
+                    commandType: message.commandType,
+                    nestedCommandType: message.nestedCommandType,
+                    channel: message.channel,
+                    data: data,
+                    retries: 0,
+                    acknowledged: false,
+                    returnCode: ErrorCode.ERROR_COMMAND_TIMEOUT
+                };
+                message = messageState;
             } else {
-                this.connect();
-                if (msg) {
-                    msg.return_code = ErrorCode.ERROR_CONNECT_TIMEOUT;
-                    msg.timeout = setTimeout(() => {
-                        this.handleCommand(msg);
-                    }, this.MAX_COMMAND_CONNECT_TIMEOUT);
-                    this.messageStates.set(msg.sequence, msg);
-                }
+                this.log.warn(`Station ${this.rawStation.station_sn} - Command aged out from queue`, { commandType: message.commandType, nestedCommandType: message.nestedCommandType, channel: message.channel, ageing: ageing, maxAgeing: this.MAX_COMMAND_CONNECT_TIMEOUT });
+                this.emit("command", {
+                    command_type: message.nestedCommandType !== undefined ? message.nestedCommandType : message.commandType,
+                    channel: message.channel,
+                    return_code: ErrorCode.ERROR_CONNECT_TIMEOUT,
+                } as CommandResult);
+                return;
             }
         } else {
-            this.log.error(`Station ${this.rawStation.station_sn} - Max retries ${this.messageStates.get(message.sequence)?.retries} - stop with error ${ErrorCode[message.return_code]}`, { sequence: message.sequence, commandType: message.command_type, channel: message.channel, retries: message.retries, returnCode: message.return_code });
-            this.emit("command", {
-                command_type: message.nested_command_type !== undefined ? message.nested_command_type : message.command_type,
-                channel: message.channel,
-                return_code: message.return_code
-            } as CommandResult);
-            this.messageStates.delete(message.sequence);
-            if (this.messageStates.size > 0) {
-                this._sendCommand(this.messageStates.values().next().value);
-            }
-            if (message.return_code === ErrorCode.ERROR_COMMAND_TIMEOUT) {
-                this.log.warn(`Station ${this.rawStation.station_sn} - Connection seems lost. Try to reconnect...`);
-                this._disconnected();
+            if (message.retries < this.MAX_RETRIES && message.returnCode !== ErrorCode.ERROR_CONNECT_TIMEOUT) {
+                if (message.returnCode === ErrorCode.ERROR_FAILED_TO_REQUEST) {
+                    this.messageStates.delete(message.sequence);
+                    message.sequence = this.seqNumber++;
+                    message.data.writeUInt16BE(message.sequence, 2);
+                    this.messageStates.set(message.sequence, message);
+                }
+                message.retries++;
+            } else {
+                this.log.error(`Station ${this.rawStation.station_sn} - Max retries ${this.messageStates.get(message.sequence)?.retries} - stop with error ${ErrorCode[message.returnCode]}`, { sequence: message.sequence, commandType: message.commandType, channel: message.channel, retries: message.retries, returnCode: message.returnCode });
+                this.emit("command", {
+                    command_type: message.nestedCommandType !== undefined ? message.nestedCommandType : message.commandType,
+                    channel: message.channel,
+                    return_code: message.returnCode
+                } as CommandResult);
+                this.messageStates.delete(message.sequence);
+                this.sendQueuedMessage();
+                return;
             }
         }
-    }
 
-    private _sendCommand(message: P2PMessageState):void {
-        this.log.debug("Sending p2p command...", { station: this.rawStation.station_sn, sequence: message.sequence, commandType: message.command_type, channel: message.channel, retries: message.retries, messageStatesSize: this.messageStates.size });
+        message = message as P2PMessageState;
+        message.returnCode = ErrorCode.ERROR_COMMAND_TIMEOUT;
+        message.timeout = setTimeout(() => {
+            this._sendCommand(message);
+        }, this.MAX_AKNOWLEDGE_TIMEOUT);
+        this.messageStates.set(message.sequence, message);
+
+        this.log.debug("Sending p2p command...", { station: this.rawStation.station_sn, sequence: message.sequence, commandType: message.commandType, channel: message.channel, retries: message.retries, messageStatesSize: this.messageStates.size });
         sendMessage(this.socket, this.connectAddress!, RequestMessageType.DATA, message.data).catch((error) => {
             this.log.error(`Station ${this.rawStation.station_sn} - Error:`, error);
         });
+
+        if (message.retries === 0) {
+            if (message.commandType === CommandType.CMD_START_REALTIME_MEDIA ||
+                (message.nestedCommandType !== undefined && message.nestedCommandType === CommandType.CMD_START_REALTIME_MEDIA && message.commandType === CommandType.CMD_SET_PAYLOAD) ||
+                message.commandType === CommandType.CMD_RECORD_VIEW ||
+                (message.nestedCommandType !== undefined && message.nestedCommandType === 1000 && message.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD)
+            ) {
+                if (this.currentMessageState[P2PDataType.VIDEO].p2pStreaming && message.channel !== this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel) {
+                    this.endStream(P2PDataType.VIDEO)
+                }
+                this.currentMessageState[P2PDataType.VIDEO].p2pStreaming = true;
+                this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel = message.channel;
+            } else if (message.commandType === CommandType.CMD_DOWNLOAD_VIDEO) {
+                if (this.currentMessageState[P2PDataType.BINARY].p2pStreaming && message.channel !== this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel) {
+                    this.endStream(P2PDataType.BINARY)
+                }
+                this.currentMessageState[P2PDataType.BINARY].p2pStreaming = true;
+                this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel = message.channel;
+            } else if (message.commandType === CommandType.CMD_STOP_REALTIME_MEDIA) { //TODO: CommandType.CMD_RECORD_PLAY_CTRL only if stop
+                this.endStream(P2PDataType.VIDEO);
+            } else if (message.commandType === CommandType.CMD_DOWNLOAD_CANCEL) {
+                this.endStream(P2PDataType.BINARY);
+            } else if (message.commandType === CommandType.CMD_NAS_TEST) {
+                //TODO: Verify if starting p2p live stream stopps this or viceversa
+                if (this.currentMessageState[P2PDataType.DATA].rtspStream) {
+                    this.currentMessageState[P2PDataType.DATA].rtspStreaming = this.currentMessageState[P2PDataType.DATA].rtspStream;
+                    this.currentMessageState[P2PDataType.DATA].rtspStreamChannel = message.channel;
+                    this.emit("rtsp livestream started", this.currentMessageState[P2PDataType.DATA].rtspStreamChannel);
+                } else {
+                    this.endRTSPStream();
+                }
+            }
+        }
     }
 
     private handleMsg(msg: Buffer, rinfo: RemoteInfo): void {
@@ -600,10 +629,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 }
 
                 this.emit("connect", this.connectAddress);
-
-                if (this.messageStates.size > 0) {
-                    this._sendCommand(this.messageStates.values().next().value);
-                }
+                this.sendQueuedMessage();
             } else {
                 this.log.debug(`Station ${this.rawStation.station_sn} - CAM_ID - Already connected, ignoring...`);
             }
@@ -620,7 +646,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         } else if (hasHeader(msg, ResponseMessageType.END)) {
             // Connection is closed by device
             this.log.debug(`Station ${this.rawStation.station_sn} - END - received from host ${rinfo.address}:${rinfo.port}`);
-            this._disconnected();
+            //this._disconnected();
+            this.onClose();
             return;
         } else if (hasHeader(msg, ResponseMessageType.ACK)) {
             // Device ACK a message from our side
@@ -639,7 +666,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 const msg_state = this.messageStates.get(ackedSeqNo);
                 if (msg_state && !msg_state.acknowledged) {
                     this._clearTimeout(msg_state.timeout);
-                    if (msg_state.command_type === CommandType.CMD_PING) {
+                    if (msg_state.commandType === CommandType.CMD_PING) {
                         this.messageStates.delete(ackedSeqNo);
                     } else {
                         msg_state.acknowledged = true;
@@ -647,13 +674,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             this.log.warn(`Station ${this.rawStation.station_sn} - Result data for command not received`, { message: msg_state });
                             this.messageStates.delete(ackedSeqNo);
                             this.emit("command", {
-                                command_type: msg_state.nested_command_type !== undefined ? msg_state.nested_command_type : msg_state.command_type,
+                                command_type: msg_state.nestedCommandType !== undefined ? msg_state.nestedCommandType : msg_state.commandType,
                                 channel: msg_state.channel,
                                 return_code: ErrorCode.ERROR_COMMAND_TIMEOUT
                             } as CommandResult);
-                            if (this.messageStates.size > 0) {
-                                this._sendCommand(this.messageStates.values().next().value);
-                            }
+                            this.sendQueuedMessage();
                             this.closeEnergySavingDevice();
                         }, this.MAX_COMMAND_RESULT_WAIT);
                         this.messageStates.set(ackedSeqNo, msg_state);
@@ -887,13 +912,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 const msg_state = this.messageStates.get(message.seqNo);
 
                 if (msg_state) {
-                    if (msg_state.command_type === message.commandId) {
+                    if (msg_state.commandType === message.commandId) {
                         this._clearTimeout(msg_state.timeout);
-                        const command_type =  msg_state.nested_command_type !== undefined ? msg_state.nested_command_type : msg_state.command_type;
+                        const command_type =  msg_state.nestedCommandType !== undefined ? msg_state.nestedCommandType : msg_state.commandType;
                         this.log.debug(`Station ${this.rawStation.station_sn} - Result data for command received`, { messageState: msg_state, resultCodeName: error_codeStr, resultCode: return_code });
                         if (return_code === ErrorCode.ERROR_FAILED_TO_REQUEST) {
-                            msg_state.return_code = return_code;
-                            this.handleCommand(msg_state);
+                            msg_state.returnCode = return_code;
+                            this._sendCommand(msg_state);
                         } else {
                             this.emit("command", {
                                 command_type: command_type,
@@ -901,20 +926,17 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 return_code: return_code
                             } as CommandResult);
                             this.messageStates.delete(message.seqNo);
-                            if (this.messageStates.size > 0) {
-                                this._sendCommand(this.messageStates.values().next().value);
-                            }
+                            this.sendQueuedMessage();
                             this.closeEnergySavingDevice();
 
-                            if (msg_state.command_type === CommandType.CMD_NAS_TEST) {
-                                //TODO: Verify if starting p2p live stream stopps this or viceversa
-                                if (this.currentMessageState[P2PDataType.DATA].rtspStream) {
-                                    this.currentMessageState[P2PDataType.DATA].rtspStreaming = this.currentMessageState[P2PDataType.DATA].rtspStream;
-                                    this.currentMessageState[P2PDataType.DATA].rtspStreamChannel = msg_state.channel;
-                                    this.emit("rtsp livestream started", this.currentMessageState[P2PDataType.DATA].rtspStreamChannel);
-                                } else {
-                                    this.endRTSPStream();
-                                }
+                            if (msg_state.commandType === CommandType.CMD_START_REALTIME_MEDIA ||
+                                (msg_state.nestedCommandType !== undefined && msg_state.nestedCommandType === CommandType.CMD_START_REALTIME_MEDIA && msg_state.commandType === CommandType.CMD_SET_PAYLOAD) ||
+                                msg_state.commandType === CommandType.CMD_RECORD_VIEW ||
+                                (msg_state.nestedCommandType !== undefined && msg_state.nestedCommandType === 1000 && msg_state.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD)
+                            ) {
+                                this.waitForStreamData(P2PDataType.VIDEO);
+                            } else if (msg_state.commandType === CommandType.CMD_DOWNLOAD_VIDEO) {
+                                this.waitForStreamData(P2PDataType.BINARY);
                             }
                         }
                     } else {
@@ -1219,7 +1241,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         if (this.deviceSNs[message.channel] !== undefined) {
                             if (json.payload.lock_payload !== undefined) {
                                 const decoded = decodeBase64(decodeLockPayload(Buffer.from(json.payload.lock_payload)));
-                                const key = generateLockAESKey(this.deviceSNs[message.channel].admin_user_id, this.rawStation.station_sn);
+                                const key = generateLockAESKey(this.deviceSNs[message.channel].adminUserId, this.rawStation.station_sn);
                                 const iv = getLockVectorBytes(this.rawStation.station_sn);
 
                                 this.log.debug(`Station ${this.rawStation.station_sn} - CMD_DOORLOCK_DATA_PASS_THROUGH`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, key: key, iv: iv, decoded: decoded.toString("hex") });
@@ -1283,6 +1305,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this._clearConnectTimeout();
         this._clearHeartbeatTimeout();
         this._clearMessageStateTimeouts();
+        this.sendQueue = [];
         if (this.socket) {
             if (this.connected) {
                 await sendMessage(this.socket, this.connectAddress!, RequestMessageType.END).catch((error) => {
@@ -1292,7 +1315,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             } else {
                 this._initialize();
             }
-            this.messageStates.clear();
         }
     }
 
@@ -1404,7 +1426,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this.currentMessageState[datatype].p2pStreamingTimeout = undefined;
             }
 
-            if (!this.currentMessageState[datatype].invalidStream)
+            if (!this.currentMessageState[datatype].invalidStream && !this.currentMessageState[datatype].p2pStreamNotStarted)
                 this.emitStreamStopEvent(datatype);
 
             this.initializeMessageBuilder(datatype);
@@ -1533,7 +1555,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             for (const device of this.rawStation.devices) {
                 this.deviceSNs[device.device_channel] = {
                     sn: device.device_sn,
-                    admin_user_id: this.rawStation.member.admin_user_id
+                    adminUserId: this.rawStation.member.admin_user_id
                 };
             }
     }
