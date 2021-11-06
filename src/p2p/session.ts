@@ -1439,9 +1439,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (this.currentMessageState[P2PDataType.DATA].rtspStreaming) {
             this.currentMessageState[P2PDataType.DATA].rtspStream = false;
             this.currentMessageState[P2PDataType.DATA].rtspStreaming = false;
-            this.currentMessageState[P2PDataType.DATA].rtspStreamChannel = -1;
 
             this.emit("rtsp livestream stopped", this.currentMessageState[P2PDataType.DATA].rtspStreamChannel);
+
+            this.currentMessageState[P2PDataType.DATA].rtspStreamChannel = -1;
         }
     }
 

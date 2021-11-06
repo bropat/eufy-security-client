@@ -100,6 +100,11 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.2.2 (2021-11-06)
+
+* (bropat) Fixed issue of wrong channel value on event rtsp livestream stopped
+* (bropat) Updated versions of the package dependencies
+
 ### 1.2.1 (2021-10-23)
 
 * (bropat) Changed event detection for start/stop local RTSP streaming
