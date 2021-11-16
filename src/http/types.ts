@@ -2108,7 +2108,6 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
-        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
         [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityIndoorProperty,
     },
     [DeviceType.FLOODLIGHT_CAMERA_8423]: {
@@ -2138,6 +2137,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityIndoorProperty,
     },
     [DeviceType.FLOODLIGHT_CAMERA_8424]: {
         ...GenericDeviceProperties,
@@ -2166,6 +2166,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityIndoorProperty,
     },
     [DeviceType.INDOOR_CAMERA]: {
         ...GenericDeviceProperties,

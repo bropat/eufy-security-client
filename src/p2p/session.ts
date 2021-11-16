@@ -1543,7 +1543,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     public updateRawStation(value: HubResponse): void {
         this.rawStation = value;
-        if (this.rawStation.devices.length === 1) {
+        if (this.rawStation.devices?.length === 1) {
             if (!this.energySavingDevice) {
                 this.energySavingDevice = this.rawStation.station_sn === this.rawStation.devices[0].device_sn && Device.hasBattery(this.rawStation.devices[0].device_type);
                 if (this.energySavingDevice)

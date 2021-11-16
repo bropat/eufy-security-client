@@ -138,42 +138,57 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
     private async createPushCredentials(): Promise<Credentials> {
         const generatedFid = generateFid();
-
-        const registerFidResponse = await this.registerFid(generatedFid);
-        const checkinResponse = await this.executeCheckin();
-        //TODO: On exception handle it and maybe retry later
-        const registerGcmResponse = await this.registerGcm(registerFidResponse, checkinResponse);
-
-        return {
-            fidResponse: registerFidResponse,
-            checkinResponse: checkinResponse,
-            gcmResponse: registerGcmResponse,
-        };
+        return await this.registerFid(generatedFid)
+            .then(async (registerFidResponse) => {
+                const checkinResponse = await this.executeCheckin();
+                return {
+                    fidResponse: registerFidResponse,
+                    checkinResponse: checkinResponse
+                };
+            })
+            .then(async (result) => {
+                const registerGcmResponse = await this.registerGcm(result.fidResponse, result.checkinResponse);
+                return {
+                    ...result,
+                    gcmResponse: registerGcmResponse,
+                };
+            }).catch((error) => {
+                throw error;
+            });
     }
 
     private async renewPushCredentials(credentials: Credentials): Promise<Credentials> {
-        credentials.fidResponse.authToken = await this.renewFidToken(credentials.fidResponse.fid, credentials.fidResponse.refreshToken);
-        const checkinResponse = await this.executeCheckin();
-        //TODO: On exception handle it and maybe retry later
-        const registerGcmResponse = await this.registerGcm(credentials.fidResponse, checkinResponse);
-
-        return {
-            fidResponse: credentials.fidResponse,
-            checkinResponse: checkinResponse,
-            gcmResponse: registerGcmResponse,
-        };
+        return await this.renewFidToken(credentials.fidResponse.fid, credentials.fidResponse.refreshToken)
+            .then(async (response) => {
+                credentials.fidResponse.authToken = response;
+                return await this.executeCheckin();
+            })
+            .then(async (response) => {
+                const registerGcmResponse = await this.registerGcm(credentials.fidResponse, response);
+                return {
+                    fidResponse: credentials.fidResponse,
+                    checkinResponse: response,
+                    gcmResponse: registerGcmResponse,
+                } as Credentials;
+            })
+            .catch(() => {
+                return this.createPushCredentials();
+            });
     }
 
     private async loginPushCredentials(credentials: Credentials): Promise<Credentials> {
-        const checkinResponse = await this.executeCheckin();
-        //TODO: On exception handle it and maybe retry later
-        const registerGcmResponse = await this.registerGcm(credentials.fidResponse, checkinResponse);
-
-        return {
-            fidResponse: credentials.fidResponse,
-            checkinResponse: checkinResponse,
-            gcmResponse: registerGcmResponse,
-        };
+        return await this.executeCheckin()
+            .then(async (response) => {
+                const registerGcmResponse = await this.registerGcm(credentials.fidResponse, response);
+                return {
+                    fidResponse: credentials.fidResponse,
+                    checkinResponse: response,
+                    gcmResponse: registerGcmResponse,
+                } as Credentials;
+            })
+            .catch(() => {
+                return this.createPushCredentials();
+            });
     }
 
     private async executeCheckin(): Promise<CheckinResponse> {
@@ -542,7 +557,9 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
     }
 
     public async open(): Promise<Credentials | undefined> {
-        await this._open();
+        await this._open().catch((error) => {
+            this.log.error(`Got exception trying to initialize push notifications`, error);
+        });
 
         if (!this.credentials) {
             this.clearRetryTimeout();
