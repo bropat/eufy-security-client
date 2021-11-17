@@ -168,9 +168,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 videoWidth: 1920,
                 audioCodec: AudioCodec.NONE
             },
-            rtspStream: false,
-            rtspStreaming: false,
-            rtspStreamChannel: -1,
+            rtspStream: {},
+            rtspStreaming: {},
             receivedFirstIFrame: false,
             preFrameVideoData: Buffer.from([])
         };
@@ -231,7 +230,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (this.currentMessageState[P2PDataType.BINARY].p2pStreaming) {
             this.endStream(P2PDataType.BINARY)
         }
-        this.endRTSPStream();
+        for (const channel in this.currentMessageState[P2PDataType.DATA].rtspStreaming) {
+            this.endRTSPStream(Number.parseInt(channel));
+        }
         if (this.connected) {
             this.emit("close");
         } else if (!this.terminating) {
@@ -387,7 +388,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     public sendCommandWithIntString(commandType: CommandType, value: number, valueSub = 0, strValue = "", strValueSub = "", channel = 0): void {
         const payload = buildIntStringCommandPayload(value, valueSub, strValue, strValueSub, channel);
         if (commandType === CommandType.CMD_NAS_TEST) {
-            this.currentMessageState[P2PDataType.DATA].rtspStream = value === 1 ? true : false;
+            this.currentMessageState[P2PDataType.DATA].rtspStream[channel] = value === 1 ? true : false;
         }
         this.sendCommand(commandType, payload, channel);
     }
@@ -552,13 +553,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             } else if (message.commandType === CommandType.CMD_DOWNLOAD_CANCEL) {
                 this.endStream(P2PDataType.BINARY);
             } else if (message.commandType === CommandType.CMD_NAS_TEST) {
-                //TODO: Verify if starting p2p live stream stopps this or viceversa
-                if (this.currentMessageState[P2PDataType.DATA].rtspStream) {
-                    this.currentMessageState[P2PDataType.DATA].rtspStreaming = this.currentMessageState[P2PDataType.DATA].rtspStream;
-                    this.currentMessageState[P2PDataType.DATA].rtspStreamChannel = message.channel;
-                    this.emit("rtsp livestream started", this.currentMessageState[P2PDataType.DATA].rtspStreamChannel);
+                if (this.currentMessageState[P2PDataType.DATA].rtspStream[message.channel]) {
+                    this.currentMessageState[P2PDataType.DATA].rtspStreaming[message.channel] = true;
+                    this.emit("rtsp livestream started", message.channel);
                 } else {
-                    this.endRTSPStream();
+                    this.endRTSPStream(message.channel);
                 }
             }
         }
@@ -1435,14 +1434,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         }
     }
 
-    private endRTSPStream(): void {
-        if (this.currentMessageState[P2PDataType.DATA].rtspStreaming) {
-            this.currentMessageState[P2PDataType.DATA].rtspStream = false;
-            this.currentMessageState[P2PDataType.DATA].rtspStreaming = false;
-
-            this.emit("rtsp livestream stopped", this.currentMessageState[P2PDataType.DATA].rtspStreamChannel);
-
-            this.currentMessageState[P2PDataType.DATA].rtspStreamChannel = -1;
+    private endRTSPStream(channel: number): void {
+        if (this.currentMessageState[P2PDataType.DATA].rtspStreaming[channel]) {
+            this.currentMessageState[P2PDataType.DATA].rtspStream[channel] = false;
+            this.currentMessageState[P2PDataType.DATA].rtspStreaming[channel] = false;
+            this.emit("rtsp livestream stopped", channel);
         }
     }
 
@@ -1474,9 +1470,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
 
     public isRTSPLiveStreaming(channel: number): boolean {
-        if (this.currentMessageState[P2PDataType.DATA].rtspStreamChannel === channel)
-            return this.currentMessageState[P2PDataType.DATA].rtspStreaming;
-        return false;
+        return this.currentMessageState[P2PDataType.DATA].rtspStreaming[channel] ? this.currentMessageState[P2PDataType.DATA].rtspStreaming[channel] : false;
     }
 
     public isDownloading(channel: number): boolean {

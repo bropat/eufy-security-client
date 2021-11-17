@@ -91,9 +91,8 @@ export interface P2PDataMessageState {
     p2pStreamFirstVideoDataReceived: boolean;
     p2pStreamMetadata: StreamMetadata;
     p2pStreamingTimeout?: NodeJS.Timeout;
-    rtspStream: boolean;
-    rtspStreaming: boolean;
-    rtspStreamChannel: number;
+    rtspStream: { [index: number]: boolean };
+    rtspStreaming: { [index: number]: boolean };
     waitForSeqNoTimeout?: NodeJS.Timeout;
     waitForAudioData?: NodeJS.Timeout;
     receivedFirstIFrame: boolean;

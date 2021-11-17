@@ -101,6 +101,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.2.4 (2021-11-17)
+
+* (bropat) Fixed issue #63
+
 ### 1.2.3 (2021-11-16)
 
 * (bropat) Fixed issue #64
