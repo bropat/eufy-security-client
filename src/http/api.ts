@@ -1,22 +1,27 @@
-import axios, { AxiosResponse, Method } from "axios";
+import got, { Method } from "got";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { dummyLogger, Logger } from "ts-log";
 import { isValid as isValidCountry } from "i18n-iso-countries";
 import { isValid as isValidLanguage } from "@cospired/i18n-iso-languages";
+import { createECDH, ECDH } from "crypto";
 
-import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry } from "./models"
+import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry, ApiResponse } from "./models"
 import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites } from "./interfaces";
 import { AuthResult, EventFilterType, PublicKeyType, ResponseErrorCode, StorageType, VerfyCodeTypes } from "./types";
 import { ParameterHelper } from "./parameter";
-import { getTimezoneGMTString } from "./utils";
+import { encryptPassword, getTimezoneGMTString } from "./utils";
 import { InvalidCountryCodeError, InvalidLanguageCodeError } from "./../error";
+import { md5 } from "./../utils";
 
 export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
-    private apiBase = "https://mysecurity.eufylife.com/api/v1";
+    private apiBase = "https://security-app.eufylife.com";
 
-    private username: string|null = null;
-    private password: string|null = null;
+    private username: string;
+    private password: string;
+    private userId: string|null = null;
+    private ecdh: ECDH = createECDH("prime256v1");
+    private serverPublicKey = "04c5c00c4f8d1197cc7c3167c52bf7acb054d722f0ef08dcd7e0883236e0d72a3868d9750cb47fa4619248f3d83f0f662671dadc6e2d31c2f41db0161651c7c076";
 
     private token: string|null = null;
     private tokenExpiration: Date|null = null;
@@ -28,8 +33,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     private devices: FullDevices = {};
     private hubs: Hubs = {};
 
-    private headers = {
-        app_version: "v2.8.0_887",
+    private headers: Record<string, string> = {
+        app_version: "v3.3.1_1058",
         os_type: "android",
         os_version: "30",
         phone_model: "ONEPLUS A3003",
@@ -42,7 +47,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         mcc: "262",
         sn: "75814221ee75",
         Model_type: "PHONE",
-        timezone: "GMT+01:00"
+        timezone: "GMT+01:00",
+        "Cache-Control": "no-cache",
+        "User-Agent": "okhttp/3.12.1",
     };
 
     constructor(username: string, password: string, log: Logger = dummyLogger) {
@@ -58,7 +65,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     private invalidateToken(): void {
         this.token = null;
         this.tokenExpiration = null;
-        //axios.defaults.headers.common["X-Auth-Token"] = null;
     }
 
     public setPhoneModel(model: string): void {
@@ -96,10 +102,21 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         this.log.debug("Authenticate and get an access token", { token: this.token, tokenExpiration: this.tokenExpiration });
         if (!this.token || this.tokenExpiration && (new Date()).getTime() >= this.tokenExpiration.getTime()) {
             try {
-                const response = await this.request("post", "passport/login", {
+                this.ecdh.generateKeys();
+                const response: ApiResponse = await this.request("post", "v2/passport/login", {
+                    /* TODO: Implement authentification with captcha. Example below:
+                    answer: "xEoS",
+                    captcha_id: "X1GOffz3mBa6xkVU4S3K",
+                    */
+                    client_secret_info: {
+                        public_key: this.ecdh.getPublicKey("hex")
+                    },
+                    enc: 0,
                     email: this.username,
-                    password: this.password
-                }, this.headers).catch(error => {
+                    password:  encryptPassword(this.password, this.ecdh.computeSecret(Buffer.from(this.serverPublicKey, "hex"))),
+                    time_zone: -new Date().getTimezoneOffset()*60*1000,
+                    transaction: `${new Date().getTime()}`
+                }).catch(error => {
                     this.log.error("Error:", error);
                     return error;
                 });
@@ -112,12 +129,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
                         this.token = dataresult.auth_token
                         this.tokenExpiration = new Date(dataresult.token_expires_at * 1000);
-                        //axios.defaults.headers.common["X-Auth-Token"] = this.token;
+                        this.headers = {
+                            ...this.headers,
+                            gtoken: md5(dataresult.user_id)
+                        };
+                        /*if (dataresult.server_secret_info?.public_key)
+                            this.serverPublicKey = dataresult.server_secret_info.public_key;*/
 
                         if (dataresult.domain) {
-                            if ("https://" + dataresult.domain + "/v1" != this.apiBase) {
-                                this.apiBase = "https://" + dataresult.domain + "/v1";
-                                axios.defaults.baseURL = this.apiBase;
+                            if (`https://${dataresult.domain}` != this.apiBase) {
+                                this.apiBase = `https://${dataresult.domain}`;
+                                //axios.defaults.baseURL = this.apiBase;
                                 this.log.info(`Switching to another API_BASE (${this.apiBase}) and get new token.`);
                                 this.invalidateToken();
                                 return AuthResult.RENEW;
@@ -133,7 +155,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
                         this.token = dataresult.auth_token
                         this.tokenExpiration = new Date(dataresult.token_expires_at * 1000);
-                        //axios.defaults.headers.common["X-Auth-Token"] = this.token;
 
                         this.log.debug("Token data", { token: this.token, tokenExpiration: this.tokenExpiration });
                         await this.sendVerifyCode(VerfyCodeTypes.TYPE_EMAIL);
@@ -160,9 +181,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             if (!type)
                 type = VerfyCodeTypes.TYPE_EMAIL;
 
-            const response = await this.request("post", "sms/send/verify_code", {
-                message_type: type
-            }, this.headers).catch(error => {
+            const response = await this.request("post", "v1/sms/send/verify_code", {
+                message_type: type,
+                transaction: `${new Date().getTime()}`
+            }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
@@ -186,7 +208,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async listTrustDevice(): Promise<Array<TrustDevice>> {
         try {
-            const response = await this.request("get", "app/trust_device/list", undefined, this.headers).catch(error => {
+            const response = await this.request("get", "v1/app/trust_device/list").catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
@@ -212,10 +234,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async addTrustDevice(verifyCode: string): Promise<boolean> {
         try {
-            const response = await this.request("post", "passport/login", {
+            const response = await this.request("post", "v2/passport/login", {
+                client_secret_info: {
+                    public_key: this.ecdh.getPublicKey("hex")
+                },
+                enc: 0,
+                email: this.username,
+                password:  encryptPassword(this.password, this.ecdh.computeSecret(Buffer.from(this.serverPublicKey, "hex"))),
+                time_zone: -new Date().getTimezoneOffset()*60*1000,
                 verify_code: `${verifyCode}`,
                 transaction: `${new Date().getTime()}`
-            }, this.headers).catch(error => {
+            }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
@@ -224,10 +253,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
                 if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
-                    const response2 = await this.request("post", "app/trust_device/add", {
+                    const response2 = await this.request("post", "v1/app/trust_device/add", {
                         verify_code: `${verifyCode}`,
                         transaction: `${new Date().getTime()}`
-                    }, this.headers).catch(error => {
+                    }).catch(error => {
                         this.log.error("Error:", error);
                         return error;
                     });
@@ -273,7 +302,15 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
         //Get Stations
         try {
-            const response = await this.request("post", "app/get_hub_list").catch(error => {
+            const response = await this.request("post", "v1/app/get_hub_list", {
+                device_sn: "",
+                num: 1000,
+                orderby: "",
+                page: 0,
+                station_sn: "",
+                time_zone: -new Date().getTimezoneOffset()*60*1000,
+                transaction: `${new Date().getTime()}`
+            }).catch(error => {
                 this.log.error("Stations - Error:", error);
                 return error;
             });
@@ -307,7 +344,15 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
         //Get Devices
         try {
-            const response = await this.request("post", "app/get_devs_list").catch(error => {
+            const response = await this.request("post", "v1/app/get_devs_list", {
+                device_sn: "",
+                num: 1000,
+                orderby: "",
+                page: 0,
+                station_sn: "",
+                time_zone: -new Date().getTimezoneOffset()*60*1000,
+                transaction: `${new Date().getTime()}`
+            }).catch(error => {
                 this.log.error("Devices - Error:", error);
                 return error;
             });
@@ -339,9 +384,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    public async request(method: Method, endpoint: string, data?: any, headers?: Record<string, string>): Promise<AxiosResponse<any>> {
+    public async request(method: Method, endpoint: string, data?: any, headers?: Record<string, string>): Promise<ApiResponse> {
 
-        if (!this.token && endpoint != "passport/login") {
+        if (!this.token && endpoint != "v2/passport/login") {
             //No token get one
             switch (await this.authenticate()) {
                 case AuthResult.RENEW:
@@ -357,34 +402,44 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.tokenExpiration && (new Date()).getTime() >= this.tokenExpiration.getTime()) {
             this.log.info("Access token expired; fetching a new one")
             this.invalidateToken();
-            if (endpoint != "passport/login")
+            if (endpoint != "v2/passport/login")
                 //get new token
                 await this.authenticate()
         }
-
-        this.log.debug("Request:", { method: method, endpoint: endpoint, baseUrl: this.apiBase, token: this.token, data: data, headers: this.headers });
-        if (this.token) {
-            if (headers) {
-                headers = {
-                    ...headers,
-                    "X-Auth-Token": this.token,
-                };
-            } else {
-                headers = {
-                    "X-Auth-Token": this.token,
-                };
-            }
+        if (headers) {
+            headers = {
+                ...this.headers,
+                ...headers,
+            };
+        } else {
+            headers = {
+                ...this.headers,
+            };
         }
-        const response = await axios({
+        if (this.token) {
+            headers["X-Auth-Token"] = this.token;
+        }
+
+        this.log.debug("Request:", { method: method, endpoint: endpoint, baseUrl: this.apiBase, token: this.token, data: data, headers: headers });
+
+        const internalResponse = await got(`${this.apiBase}/${endpoint}`, {
             method: method,
-            url: endpoint,
-            data: data,
             headers: headers,
-            baseURL: this.apiBase,
-            validateStatus: function (status) {
-                return status < 500; // Resolve only if the status code is less than 500
+            json: data,
+            responseType: "json",
+            http2: true,
+            throwHttpErrors: false,
+            retry: {
+                limit: 3,
+                methods: ["GET", "POST"]
             }
         });
+        const response: ApiResponse = {
+            status: internalResponse.statusCode,
+            statusText: internalResponse.statusMessage ? internalResponse.statusMessage : "",
+            headers: internalResponse.headers,
+            data: internalResponse.body,
+        };
 
         if (response.status == 401) {
             this.invalidateToken();
@@ -399,10 +454,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     public async checkPushToken(): Promise<boolean> {
         //Check push notification token
         try {
-            const response = await this.request("post", "/app/review/app_push_check", {
+            const response = await this.request("post", "v1/app/review/app_push_check", {
                 app_type: "eufySecurity",
                 transaction: `${new Date().getTime()}`
-            }, this.headers).catch(error => {
+            }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
@@ -431,11 +486,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     public async registerPushToken(token: string): Promise<boolean> {
         //Register push notification token
         try {
-            const response = await this.request("post", "/apppush/register_push_token", {
+            const response = await this.request("post", "v1/apppush/register_push_token", {
                 is_notification_enable: true,
                 token: token,
                 transaction: `${new Date().getTime().toString()}`
-            }, this.headers).catch(error => {
+            }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
@@ -468,7 +523,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         });
 
         try {
-            const response = await this.request("post", "app/upload_devs_params", {
+            const response = await this.request("post", "v1/app/upload_devs_params", {
                 device_sn: deviceSN,
                 station_sn: stationSN,
                 params: tmp_params
@@ -498,11 +553,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async getCiphers(cipherIDs: Array<number>, userID: string): Promise<Ciphers> {
         try {
-            const response = await this.request("post", "app/cipher/get_ciphers", {
+            const response = await this.request("post", "v1/app/cipher/get_ciphers", {
                 cipher_ids: cipherIDs,
                 user_id: userID,
                 transaction: `${new Date().getTime().toString()}`
-            }, this.headers).catch(error => {
+            }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
@@ -532,7 +587,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async getVoices(deviceSN: string): Promise<Voices> {
         try {
-            const response = await this.request("get", `voice/response/lists/${deviceSN}`, null, this.headers).catch(error => {
+            const response = await this.request("get", `v1/voice/response/lists/${deviceSN}`).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
@@ -590,7 +645,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public setToken(token: string): void {
         this.token = token;
-        //axios.defaults.headers.common["X-Auth-Token"] = token;
     }
 
     public setTokenExpiration(tokenExpiration: Date): void {
@@ -634,7 +688,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 station_sn: filter.stationSN !== undefined ? filter.stationSN : "",
                 storage: filter.storageType !== undefined ? filter.storageType : StorageType.NONE,
                 transaction: `${new Date().getTime().toString()}`
-            }, this.headers).catch(error => {
+            }).catch(error => {
                 this.log.error(`${functionName} - Error:`, error);
                 return error;
             });
@@ -695,13 +749,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async getInvites(): Promise<Invites> {
         try {
-            const response = await this.request("post", "family/get_invites", {
+            const response = await this.request("post", "v1/family/get_invites", {
                 num: 100,
                 orderby: "",
                 own: false,
                 page: 0,
                 transaction: `${new Date().getTime().toString()}`
-            }, this.headers).catch(error => {
+            }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
@@ -732,10 +786,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async confirmInvites(confirmInvites: Array<ConfirmInvite>): Promise<boolean> {
         try {
-            const response = await this.request("post", "family/confirm_invite", {
+            const response = await this.request("post", "v1/family/confirm_invite", {
                 invites: confirmInvites,
                 transaction: `${new Date().getTime().toString()}`
-            }, this.headers).catch(error => {
+            }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
@@ -759,7 +813,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async getPublicKey(deviceSN: string, type: PublicKeyType): Promise<string> {
         try {
-            const response = await this.request("get", `public_key/query?device_sn=${deviceSN}&type=${type}`, null, this.headers).catch(error => {
+            const response = await this.request("get", `v1/public_key/query?device_sn=${deviceSN}&type=${type}`).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
@@ -785,14 +839,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async getSensorHistory(stationSN: string, deviceSN: string): Promise<Array<SensorHistoryEntry>> {
         try {
-            const response = await this.request("post", "app/get_sensor_history", {
+            const response = await this.request("post", "v1/app/get_sensor_history", {
                 devicse_sn: deviceSN,
                 max_time: 0,  //TODO: Finish implementation
                 num: 500,     //TODO: Finish implementation
                 page: 0,      //TODO: Finish implementation
                 station_sn: stationSN,
                 transaction: `${new Date().getTime().toString()}`
-            }, this.headers).catch(error => {
+            }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });

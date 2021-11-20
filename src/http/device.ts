@@ -810,7 +810,7 @@ export class Camera extends Device {
     public async startStream(): Promise<string> {
         // Start the camera stream and return the RTSP URL.
         try {
-            const response = await this.api.request("post", "web/equipment/start_stream", {
+            const response = await this.api.request("post", "v1/web/equipment/start_stream", {
                 device_sn: this.rawDevice.device_sn,
                 station_sn: this.rawDevice.station_sn,
                 proto: 2
@@ -847,7 +847,7 @@ export class Camera extends Device {
     public async stopStream(): Promise<void> {
         // Stop the camera stream.
         try {
-            const response = await this.api.request("post", "web/equipment/stop_stream", {
+            const response = await this.api.request("post", "v1/web/equipment/stop_stream", {
                 device_sn: this.rawDevice.device_sn,
                 station_sn: this.rawDevice.station_sn,
                 proto: 2

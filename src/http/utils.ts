@@ -1,3 +1,5 @@
+import { createCipheriv } from "crypto";
+
 import { Device } from "./device";
 import { NotificationSwitchMode, DeviceType, WifiSignalLevel } from "./types";
 
@@ -127,4 +129,12 @@ export const calculateWifiSignalLevel = function(device: Device, rssi: number): 
         }
         return rssi >= -85 ? WifiSignalLevel.NORMAL : WifiSignalLevel.WEAK;
     }
+}
+
+export const encryptPassword = (password: string, key: Buffer): string => {
+    const cipher = createCipheriv("aes-256-cbc", key, key.slice(0, 16));
+    return (
+        cipher.update(password, "utf8", "base64") +
+        cipher.final("base64")
+    );
 }

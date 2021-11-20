@@ -1505,9 +1505,20 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private async getDSKKeys(): Promise<void> {
         try {
-            const response = await this.api.request("post", "app/equipment/get_dsk_keys", {
-                station_sns: [this.rawStation.station_sn]
-            }).catch(error => {
+            const data: {
+                invalid_dsks: {
+                    [index: string]: string
+                },
+                station_sns: Array<string>,
+                transaction: string
+            } = {
+                invalid_dsks: {
+                },
+                station_sns: [this.rawStation.station_sn],
+                transaction: `${new Date().getTime()}`
+            };
+            data.invalid_dsks[this.rawStation.station_sn] = "";
+            const response = await this.api.request("post", "v1/app/equipment/get_dsk_keys", data).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });

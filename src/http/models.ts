@@ -1,3 +1,10 @@
+export interface ApiResponse {
+    status: number;
+    statusText: string;
+    data: any;
+    headers: any;
+}
+
 export interface ResultResponse {
     code: number;
     msg: string;
@@ -22,7 +29,13 @@ export interface LoginResultResponse {
     privilege: number;
     phone: string;
     phone_code: string;
-    params: any;
+    server_secret_info: {
+        public_key: string
+    } | null,
+    params: Array<{
+        param_type: number;
+        param_value: string;
+    }>;
     trust_list: Array<TrustDevice>;
 }
 

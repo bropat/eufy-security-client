@@ -113,7 +113,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 this.log.debug("Handling of adapter update", { currentVersion: currentVersion, previousVersion: previousVersion });
 
                 if (previousVersion < currentVersion) {
-                    handleUpdate(previousVersion);
+                    this.persistentData = handleUpdate(this.persistentData, this.log, previousVersion);
                     this.persistentData.version = libVersion;
                     this.writePersistentData();
                 }

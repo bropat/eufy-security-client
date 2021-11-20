@@ -101,6 +101,15 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.3.0 (2021-11-20)
+
+* (bropat) Implemented new encrypted authentication mechanism (API v2)
+* (bropat) Dropped old plaintext authentication mechanism (API v1)
+* (bropat) Fixed issue #67
+* (bropat) Exchanged axios with got for HTTP/2 support
+
+**Note:** If you have 2FA enabled, you will need to authenticate again after this update.
+
 ### 1.2.4 (2021-11-17)
 
 * (bropat) Fixed issue #63

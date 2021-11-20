@@ -1,4 +1,4 @@
-import axios from "axios";
+import got from "got";
 import qs from "qs";
 import { dummyLogger, Logger } from "ts-log";
 import { TypedEmitter } from "tiny-typed-emitter";
@@ -48,11 +48,9 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
         const url = `https://firebaseinstallations.googleapis.com/v1/projects/${this.FCM_PROJECT_ID}/installations`;
 
         try {
-
-            const response = await await axios({
+            const response = await got(url, {
                 method: "post",
-                url: url,
-                data: {
+                json: {
                     fid: fid,
                     appId: `${this.APP_ID}`,
                     authVersion: `${this.AUTH_VERSION}`,
@@ -64,16 +62,19 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     "x-goog-api-key": `${this.GOOGLE_API_KEY}`,
                 },
                 responseType: "json",
-                validateStatus: function (_status) {
-                    return true;
+                http2: true,
+                throwHttpErrors: false,
+                retry: {
+                    limit: 3,
+                    methods: ["POST"]
                 }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
 
-            if (response.status == 200) {
-                const result: FidInstallationResponse = response.data;
+            if (response.statusCode == 200) {
+                const result: FidInstallationResponse = response.body;
                 return {
                     ...result,
                     authToken: {
@@ -82,8 +83,8 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     },
                 };
             } else {
-                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
-                throw new Error(`FID registration failed with error: ${response.statusText}`);
+                this.log.error("Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
+                throw new Error(`FID registration failed with error: ${response.statusMessage}`);
             }
         } catch (error) {
             this.log.error("Generic Error:", error);
@@ -96,10 +97,9 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
         try {
 
-            const response = await await axios({
+            const response = await got(url, {
                 method: "post",
-                url: url,
-                data: {
+                json: {
                     fid: fid,
                     appId: `${this.APP_ID}`,
                     authVersion: `${this.AUTH_VERSION}`,
@@ -112,23 +112,26 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     Authorization: `${this.AUTH_VERSION} ${refreshToken}`
                 },
                 responseType: "json",
-                validateStatus: function (_status) {
-                    return true;
+                http2: true,
+                throwHttpErrors: false,
+                retry: {
+                    limit: 3,
+                    methods: ["POST"]
                 }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
 
-            if (response.status == 200) {
-                const result: FidTokenResponse = response.data;
+            if (response.statusCode == 200) {
+                const result: FidTokenResponse = response.body;
                 return {
                     ...result,
                     expiresAt: this.buildExpiresAt(result.expiresIn),
                 };
             } else {
-                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
-                throw new Error(`FID Token renewal failed with error: ${response.statusText}`);
+                this.log.error("Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
+                throw new Error(`FID Token renewal failed with error: ${response.statusMessage}`);
             }
         } catch (error) {
             this.log.error("Generic Error:", error);
@@ -195,29 +198,30 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
         const url = "https://android.clients.google.com/checkin";
 
         try {
-
             const buffer = await buildCheckinRequest();
-            const response = await axios({
+            const response = await got(url, {
                 method: "post",
-                url: url,
-                data: Buffer.from(buffer),
+                body: Buffer.from(buffer),
                 headers: {
                     "Content-Type": "application/x-protobuf",
                 },
-                responseType: "arraybuffer",
-                validateStatus: function (_status) {
-                    return true;
+                responseType: "buffer",
+                http2: true,
+                throwHttpErrors: false,
+                retry: {
+                    limit: 3,
+                    methods: ["POST"]
                 }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
 
-            if (response.status == 200) {
-                return await parseCheckinResponse(response.data);
+            if (response.statusCode == 200) {
+                return await parseCheckinResponse(response.body);
             } else {
-                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
-                throw new Error(`Google checkin failed with error: ${response.statusText}`);
+                this.log.error("Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
+                throw new Error(`Google checkin failed with error: ${response.statusMessage}`);
             }
         } catch (error) {
             this.log.error("Generic Error:", error);
@@ -235,12 +239,10 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
         const retry = 5;
 
         try {
-
             for (let retry_count = 1; retry_count <= retry; retry_count++) {
-                const response = await await axios({
+                const response = await got(url, {
                     method: "post",
-                    url: url,
-                    data: qs.stringify({
+                    body: qs.stringify({
                         "X-subtype": `${this.APP_SENDER_ID}`,
                         sender: `${this.APP_SENDER_ID}`,
                         "X-app_ver": "741",
@@ -271,16 +273,19 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         "User-Agent": "Android-GCM/1.5 (OnePlus5 NMF26X)",
                         "content-type": "application/x-www-form-urlencoded",
                     },
-                    validateStatus: function (_status) {
-                        return true;
+                    http2: true,
+                    throwHttpErrors: false,
+                    retry: {
+                        limit: 3,
+                        methods: ["POST"]
                     }
                 }).catch(error => {
                     this.log.error("Error:", error);
                     return error;
                 });
 
-                if (response.status == 200) {
-                    const result = response.data.split("=");
+                if (response.statusCode == 200) {
+                    const result = response.body.split("=");
                     if (result[0] == "Error") {
                         this.log.debug("GCM register error, retry...", { retry: retry, retryCount: retry_count });
                         if (retry_count == retry)
@@ -291,8 +296,8 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         };
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
-                    throw new Error(`Google register to GCM failed with error: ${response.statusText}`);
+                    this.log.error("Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
+                    throw new Error(`Google register to GCM failed with error: ${response.statusMessage}`);
                 }
                 await sleep(10000 * retry_count);
             }
