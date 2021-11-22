@@ -131,6 +131,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.api.on("devices", (devices: FullDevices) => this.handleDevices(devices));
         this.api.on("close", () => this.onAPIClose());
         this.api.on("connect", () => this.onAPIConnect());
+        this.api.on("captcha request", (id: string, captcha: string) => this.onCaptchaRequest(id, captcha));
 
         if (this.persistentData.login_hash && this.persistentData.login_hash != "") {
             this.log.debug("Load previous login_hash:", this.persistentData.login_hash);
@@ -508,32 +509,33 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.pushService.open();
     }
 
-    public async connect(verifyCode?:string|null): Promise<boolean> {
-        if (verifyCode) {
-            return await this.api.addTrustDevice(verifyCode);
-        } else {
-            let retries = 0;
-            while (true) {
-                switch (await this.api.authenticate()) {
-                    case AuthResult.SEND_VERIFY_CODE:
-                        this.saveAPIBase();
-                        this.emit("tfa request");
-                        return false;
-                    case AuthResult.RENEW:
-                        this.log.debug("Renew token");
-                        break;
-                    case AuthResult.ERROR:
-                        this.log.error("Token error");
-                        return false;
-                    case AuthResult.OK:
-                        return true;
-                }
-                if (retries > 2) {
-                    this.log.error("Max connect attempts reached, interrupt");
+    public async connect(verifyCodeOrCaptcha?: string | null, captchaId?: string | null): Promise<boolean> {
+        let retries = 0;
+        while (true) {
+            switch (await this.api.authenticate(verifyCodeOrCaptcha, captchaId)) {
+                case AuthResult.CAPTCHA_NEEDED:
                     return false;
-                } else  {
-                    retries += 1;
-                }
+                case AuthResult.SEND_VERIFY_CODE:
+                    this.saveAPIBase();
+                    this.emit("tfa request");
+                    return false;
+                case AuthResult.RENEW:
+                    this.log.debug("Renew token");
+                    break;
+                case AuthResult.ERROR:
+                    this.log.error("Token error");
+                    return false;
+                case AuthResult.OK:
+                    if (verifyCodeOrCaptcha && !captchaId) {
+                        return await this.api.addTrustDevice(verifyCodeOrCaptcha);
+                    }
+                    return true;
+            }
+            if (retries > 2) {
+                this.log.error("Max connect attempts reached, interrupt");
+                return false;
+            } else  {
+                retries += 1;
             }
         }
     }
@@ -1247,6 +1249,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         } catch (error) {
             this.log.error(`Station wifi rssi error (station: ${station.getSerial()} channel: ${channel})`, error);
         }
+    }
+
+    private onCaptchaRequest(id: string, captcha: string): void {
+        this.emit("captcha request", id, captcha);
     }
 
 }

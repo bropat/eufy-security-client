@@ -179,7 +179,8 @@ export enum AuthResult {
     ERROR = -1,
     OK = 0,
     RENEW = 2,
-    SEND_VERIFY_CODE = 3
+    SEND_VERIFY_CODE = 3,
+    CAPTCHA_NEEDED = 4
 }
 
 export enum StorageType {

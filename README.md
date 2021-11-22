@@ -101,6 +101,11 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.4.0 (2021-11-22)
+
+* (bropat) Implemented captcha authentication mechanism (API v2)
+* (bropat) Fixed issue #69
+
 ### 1.3.0 (2021-11-20)
 
 * (bropat) Implemented new encrypted authentication mechanism (API v2)

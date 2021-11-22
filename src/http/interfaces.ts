@@ -133,6 +133,8 @@ export interface HTTPApiEvents {
     "hubs": (hubs: Hubs) => void;
     "connect": () => void;
     "close": () => void;
+    "tfa request": () => void;
+    "captcha request": (id: string, captcha: string) => void;
 }
 
 export interface StationEvents {

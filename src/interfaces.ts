@@ -68,6 +68,7 @@ export interface EufySecurityEvents {
     "connect": () => void;
     "close": () => void;
     "tfa request": () => void;
+    "captcha request": (id: string, captcha: string) => void;
     "cloud livestream start": (station: Station, device: Device, url: string) => void;
     "cloud livestream stop": (station: Station, device: Device) => void;
 }

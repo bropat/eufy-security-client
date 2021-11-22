@@ -5,7 +5,7 @@ import { isValid as isValidCountry } from "i18n-iso-countries";
 import { isValid as isValidLanguage } from "@cospired/i18n-iso-languages";
 import { createECDH, ECDH } from "crypto";
 
-import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry, ApiResponse } from "./models"
+import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry, ApiResponse, CaptchaResponse, LoginRequest } from "./models"
 import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites } from "./interfaces";
 import { AuthResult, EventFilterType, PublicKeyType, ResponseErrorCode, StorageType, VerfyCodeTypes } from "./types";
 import { ParameterHelper } from "./parameter";
@@ -97,26 +97,29 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         return this.headers.language;
     }
 
-    public async authenticate(): Promise<AuthResult> {
+    public async authenticate(verifyCodeOrCaptcha: string | null = null, captchaId: string | null = null): Promise<AuthResult> {
         //Authenticate and get an access token
         this.log.debug("Authenticate and get an access token", { token: this.token, tokenExpiration: this.tokenExpiration });
-        if (!this.token || this.tokenExpiration && (new Date()).getTime() >= this.tokenExpiration.getTime()) {
+        if (!this.token || (this.tokenExpiration && (new Date()).getTime() >= this.tokenExpiration.getTime()) || verifyCodeOrCaptcha) {
             try {
                 this.ecdh.generateKeys();
-                const response: ApiResponse = await this.request("post", "v2/passport/login", {
-                    /* TODO: Implement authentification with captcha. Example below:
-                    answer: "xEoS",
-                    captcha_id: "X1GOffz3mBa6xkVU4S3K",
-                    */
+                const data: LoginRequest = {
                     client_secret_info: {
                         public_key: this.ecdh.getPublicKey("hex")
                     },
                     enc: 0,
                     email: this.username,
                     password:  encryptPassword(this.password, this.ecdh.computeSecret(Buffer.from(this.serverPublicKey, "hex"))),
-                    time_zone: -new Date().getTimezoneOffset()*60*1000,
+                    time_zone: new Date().getTimezoneOffset() !== 0 ? -new Date().getTimezoneOffset() * 60 * 1000 : 0,
                     transaction: `${new Date().getTime()}`
-                }).catch(error => {
+                };
+                if (verifyCodeOrCaptcha && !captchaId) {
+                    data.verify_code = verifyCodeOrCaptcha;
+                } else if (verifyCodeOrCaptcha && captchaId) {
+                    data.captcha_id = captchaId;
+                    data.answer = verifyCodeOrCaptcha;
+                }
+                const response: ApiResponse = await this.request("post", "v2/passport/login", data).catch(error => {
                     this.log.error("Error:", error);
                     return error;
                 });
@@ -139,7 +142,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         if (dataresult.domain) {
                             if (`https://${dataresult.domain}` != this.apiBase) {
                                 this.apiBase = `https://${dataresult.domain}`;
-                                //axios.defaults.baseURL = this.apiBase;
                                 this.log.info(`Switching to another API_BASE (${this.apiBase}) and get new token.`);
                                 this.invalidateToken();
                                 return AuthResult.RENEW;
@@ -150,7 +152,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         this.connected = true;
                         return AuthResult.OK;
                     } else if (result.code == ResponseErrorCode.CODE_NEED_VERIFY_CODE) {
-                        this.log.debug(`${this.constructor.name}.authenticate(): Send verification code...`);
+                        this.log.debug(`Send verification code...`);
                         const dataresult: LoginResultResponse = result.data;
 
                         this.token = dataresult.auth_token
@@ -158,8 +160,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
                         this.log.debug("Token data", { token: this.token, tokenExpiration: this.tokenExpiration });
                         await this.sendVerifyCode(VerfyCodeTypes.TYPE_EMAIL);
-
+                        this.emit("tfa request");
                         return AuthResult.SEND_VERIFY_CODE;
+                    } else if (result.code == ResponseErrorCode.LOGIN_NEED_CAPTCHA || result.code == ResponseErrorCode.LOGIN_CAPTCHA_ERROR) {
+                        const dataresult: CaptchaResponse = result.data;
+                        this.log.debug("Captcha verification received", { captchaId: dataresult.captcha_id, item: dataresult.item });
+                        this.emit("captcha request", dataresult.captcha_id, dataresult.item);
+                        return AuthResult.CAPTCHA_NEEDED;
                     } else {
                         this.log.error("Response code not ok", {code: result.code, msg: result.msg });
                     }
@@ -170,9 +177,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 this.log.error("Generic Error:", error);
             }
             return AuthResult.ERROR;
+        } else if (!this.connected) {
+            this.emit("connect");
+            this.connected = true;
         }
-        this.emit("connect");
-        this.connected = true;
         return AuthResult.OK;
     }
 
@@ -234,57 +242,29 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async addTrustDevice(verifyCode: string): Promise<boolean> {
         try {
-            const response = await this.request("post", "v2/passport/login", {
-                client_secret_info: {
-                    public_key: this.ecdh.getPublicKey("hex")
-                },
-                enc: 0,
-                email: this.username,
-                password:  encryptPassword(this.password, this.ecdh.computeSecret(Buffer.from(this.serverPublicKey, "hex"))),
-                time_zone: -new Date().getTimezoneOffset()*60*1000,
+            const response = await this.request("post", "v1/app/trust_device/add", {
                 verify_code: `${verifyCode}`,
                 transaction: `${new Date().getTime()}`
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
-            this.log.debug("Response login:", response.data);
+            this.log.debug("Response trust device:", response.data);
 
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
                 if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
-                    const response2 = await this.request("post", "v1/app/trust_device/add", {
-                        verify_code: `${verifyCode}`,
-                        transaction: `${new Date().getTime()}`
-                    }).catch(error => {
-                        this.log.error("Error:", error);
-                        return error;
-                    });
-                    this.log.debug("Response trust device:", response.data);
-
-                    if (response2.status == 200) {
-                        const result: ResultResponse = response2.data;
-                        if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
-                            this.log.info(`2FA authentication successfully done. Device trusted.`);
-                            const trusted_devices = await this.listTrustDevice();
-                            trusted_devices.forEach((trusted_device: TrustDevice) => {
-                                if (trusted_device.is_current_device === 1) {
-                                    this.tokenExpiration = this.trustedTokenExpiration;
-                                    this.log.debug("This device is trusted. Token expiration extended:", { tokenExpiration: this.tokenExpiration});
-                                }
-                            });
-                            this.emit("connect");
-                            this.connected = true;
-                            return true;
-                        } else {
-                            this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                    this.log.info(`2FA authentication successfully done. Device trusted.`);
+                    const trusted_devices = await this.listTrustDevice();
+                    trusted_devices.forEach((trusted_device: TrustDevice) => {
+                        if (trusted_device.is_current_device === 1) {
+                            this.tokenExpiration = this.trustedTokenExpiration;
+                            this.log.debug("This device is trusted. Token expiration extended:", { tokenExpiration: this.tokenExpiration});
                         }
-                    } else if (response2.status == 401) {
-                        this.invalidateToken();
-                        this.log.error("Status return code 401, invalidate token", { status: response.status, statusText: response.statusText });
-                    } else {
-                        this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
-                    }
+                    });
+                    this.emit("connect");
+                    this.connected = true;
+                    return true;
                 } else {
                     this.log.error("Response code not ok", {code: result.code, msg: result.msg });
                 }
@@ -308,7 +288,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 orderby: "",
                 page: 0,
                 station_sn: "",
-                time_zone: -new Date().getTimezoneOffset()*60*1000,
+                time_zone: new Date().getTimezoneOffset() !== 0 ? -new Date().getTimezoneOffset() * 60 * 1000 : 0,
                 transaction: `${new Date().getTime()}`
             }).catch(error => {
                 this.log.error("Stations - Error:", error);
@@ -322,8 +302,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     const dataresult: Array<HubResponse> = result.data;
                     if (dataresult) {
                         dataresult.forEach(element => {
-                            this.log.debug(`${this.constructor.name}.updateDeviceInfo(): stations - element: ${JSON.stringify(element)}`);
-                            this.log.debug(`${this.constructor.name}.updateDeviceInfo(): stations - device_type: ${element.device_type}`);
+                            this.log.debug(`Stations - element: ${JSON.stringify(element)}`);
+                            this.log.debug(`Stations - device_type: ${element.device_type}`);
                             this.hubs[element.station_sn] = element;
                         });
                     } else {
@@ -350,7 +330,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 orderby: "",
                 page: 0,
                 station_sn: "",
-                time_zone: -new Date().getTimezoneOffset()*60*1000,
+                time_zone: new Date().getTimezoneOffset() !== 0 ? -new Date().getTimezoneOffset() * 60 * 1000 : 0,
                 transaction: `${new Date().getTime()}`
             }).catch(error => {
                 this.log.error("Devices - Error:", error);
@@ -471,9 +451,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 } else {
                     this.log.error("Response code not ok", {code: result.code, msg: result.msg });
                 }
-            } else if (response.status == 401) {
-                this.invalidateToken();
-                this.log.error("Status return code 401, invalidate token", { status: response.status, statusText: response.statusText });
             } else {
                 this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
             }
@@ -504,9 +481,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 } else {
                     this.log.error("Response code not ok", {code: result.code, msg: result.msg });
                 }
-            } else if (response.status == 401) {
-                this.invalidateToken();
-                this.log.error("Status return code 401, invalidate token", { status: response.status, statusText: response.statusText });
             } else {
                 this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
             }
@@ -717,15 +691,15 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
 
     public async getVideoEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        return this._getEvents("getVideoEvents", "event/app/get_all_video_record", startTime, endTime, filter, maxResults);
+        return this._getEvents("getVideoEvents", "v1/event/app/get_all_video_record", startTime, endTime, filter, maxResults);
     }
 
     public async getAlarmEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        return this._getEvents("getAlarmEvents", "event/app/get_all_alarm_record", startTime, endTime, filter, maxResults);
+        return this._getEvents("getAlarmEvents", "v1/event/app/get_all_alarm_record", startTime, endTime, filter, maxResults);
     }
 
     public async getHistoryEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        return this._getEvents("getHistoryEvents", "event/app/get_all_history_record", startTime, endTime, filter, maxResults);
+        return this._getEvents("getHistoryEvents", "v1/event/app/get_all_history_record", startTime, endTime, filter, maxResults);
     }
 
     public async getAllVideoEvents(filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {

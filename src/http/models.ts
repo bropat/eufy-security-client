@@ -39,6 +39,25 @@ export interface LoginResultResponse {
     trust_list: Array<TrustDevice>;
 }
 
+export interface CaptchaResponse {
+    captcha_id: string;
+    item: string;
+}
+
+export interface LoginRequest {
+    client_secret_info: {
+        public_key: string;
+    },
+    enc: number;
+    email: string;
+    password: string;
+    time_zone: number;
+    verify_code?: string;
+    captcha_id?: string;
+    answer?: string
+    transaction: string;
+}
+
 export interface HubResponse {
     readonly [index: string]: unknown;
     station_id: number;
