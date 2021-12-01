@@ -180,7 +180,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
     protected convertRawPropertyValue(property: PropertyMetadataAny, value: RawValue): PropertyValue {
         try {
             if (property.key === ParamType.PRIVATE_MODE || property.key === ParamType.OPEN_DEVICE || property.key === CommandType.CMD_DEVS_SWITCH) {
-                if (this.isIndoorCamera() || this.isWiredDoorbell() || this.isFloodLight()) {
+                if (this.isIndoorCamera() || this.isWiredDoorbell() /*|| this.isFloodLight()*/) {
                     return { value: value !== undefined ? (value.value === "true" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
                 }
                 return { value: value !== undefined ? (value.value === "0" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
