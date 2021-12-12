@@ -1,0 +1,84 @@
+name: Bug report
+description: Something is not working as it should
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: input
+    id: client_version
+    attributes:
+      label: Client version
+      description: Please specify the version of the client
+      placeholder: ex. 1.4.0
+    validations:
+      required: true
+  - type: input
+    id: node_version
+    attributes:
+      label: Node version
+      description: Get the version with `node -v` on the console
+      placeholder: ex. 14.15.1
+    validations:
+      required: true
+  - type: dropdown
+    id: os_type
+    attributes:
+      label: Operating System type
+      description: Which operating system type is used?
+      options:
+        - Linux
+        - Unix
+        - Windows
+        - Mac OS X
+        - Docker
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: os_version
+    attributes:
+      label: Operating system version
+      description: Please fill out the operating system name and version
+      placeholder: ex. Debian 10.10
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+  - type: textarea
+    id: how-reproduce
+    attributes:
+      label: To reproduce
+      description: Steps to reproduce the behavior
+      placeholder: Tell us how to reproduce!
+      value: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots-and-logfiles
+    attributes:
+      label: Screenshots & Logfiles
+      description: If applicable, add screenshots and logfiles to help explain your problem.
+      placeholder: Post some screenshots, logfiles, etc.
+    validations:
+      required: false
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+      placeholder: Add any other context about the problem here.
+    validations:
+      required: false
