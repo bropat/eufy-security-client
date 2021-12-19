@@ -61,39 +61,13 @@ One client instance will show all devices from one Eufy Cloud account and allows
 
 ## Documentation
 
-* WIP
+Look [here](https://bropat.github.io/eufy-security-client/).
 
 *As an example, you can look at the following projects: [ioBroker.eufy-security](https://github.com/bropat/ioBroker.eufy-security), [eufy-security-ws](https://github.com/bropat/eufy-security-ws), [eufy_security](https://github.com/fuatakgun/eufy_security)*
 
 ## Known working devices
 
-* HomeBase (T8001)
-* HomeBase E (T8002)
-* HomeBase 2 (T8010)
-* Smart Lock Wi-Fi Bridge (T8021)
-* eufyCam (T8111)
-* eufyCam E (T8112)
-* eufyCam 2 (T8114)
-* eufyCam 2C (T8113)
-* eufyCam 2 Pro (T8140)
-* eufyCam 2C Pro (T8141)
-* SoloCam E40 (T8131)
-* Floodlight Camera (T8420)
-* Floodlight Cam (T8422)
-* Floodlight Cam 2 Pro (T8423)
-* Floodlight Cam 2 (T8424)
-* Wired Doorbell 2k (T8200)
-* Wired Doorbell 1080p (T8201)
-* Battery Doorbell 2K (T8210)
-* Battery Doorbell 1080p (T8222)
-* Entry Sensor (T8900)
-* Motion sensor (T8910)
-* Indoor Cam Pan&Tilt 2K (T8410)
-* Indoor Cam 2K (T8400)
-* Indoor Cam Pan&Tilt 1080p (T8411)
-* Indoor Cam 1080p (T8401)
-* Smart Lock Front Door (T8500)
-* Keypad (T8960)
+For a list of supported devices, please see [here](https://bropat.github.io/eufy-security-client/#/supported_devices).
 
 If more devices work (or also not) please report them by opening a GitHub issue.
 
