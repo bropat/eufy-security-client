@@ -1,4 +1,4 @@
-![Logo](docs/_media/eufy-security.png)
+![logo](_media/eufy-security.png)
 
 # eufy-security-client
 
