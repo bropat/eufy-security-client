@@ -2,7 +2,7 @@ import { TypedEmitter } from "tiny-typed-emitter";
 import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
-import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, GenericDeviceProperties, ParamType, PropertyName } from "./types";
+import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName } from "./types";
 import { FullDeviceResponse, ResultResponse, StreamResponse } from "./models"
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, RawValue, PropertyMetadataNumeric, PropertyMetadataBoolean } from "./interfaces";
@@ -71,7 +71,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
                 }
                 this.updateProperty(property.name, { value: this.rawDevice[property.key], timestamp: timestamp });
             } else if (this.properties[property.name] === undefined && property.default !== undefined && !this.ready) {
-                this.updateProperty(property.name, { value: property.default, timestamp: new Date().getTime() });
+                this.updateProperty(property.name, { value: property.default, timestamp: 0 });
             }
         }
         this.rawDevice.params.forEach(param => {
@@ -119,19 +119,19 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
                 const mode = Number.parseInt(rawMode.value);
 
                 if (mode === 3 && sensitivity === 2) {
-                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 1, timestamp: newValue ? newValue.timestamp : 0 });
+                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 1, timestamp: newValue !== undefined ? newValue.timestamp : 0 });
                 } else if (mode === 1 && sensitivity === 1) {
-                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 2, timestamp: newValue ? newValue.timestamp : 0 });
+                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 2, timestamp: newValue !== undefined ? newValue.timestamp : 0 });
                 } else if (mode === 1 && sensitivity === 2) {
-                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 3, timestamp: newValue ? newValue.timestamp : 0 });
+                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 3, timestamp: newValue !== undefined ? newValue.timestamp : 0 });
                 } else if (mode === 1 && sensitivity === 3) {
-                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 4, timestamp: newValue ? newValue.timestamp : 0 });
+                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 4, timestamp: newValue !== undefined ? newValue.timestamp : 0 });
                 } else if (mode === 2 && sensitivity === 1) {
-                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 5, timestamp: newValue ? newValue.timestamp : 0 });
+                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, { value: 5, timestamp: newValue !== undefined ? newValue.timestamp : 0 });
                 }
             }
         } else if (metadata.name === PropertyName.DeviceWifiRSSI) {
-            this.updateProperty(PropertyName.DeviceWifiSignalLevel, { value: calculateWifiSignalLevel(this, newValue.value as number), timestamp: newValue ? newValue.timestamp : 0 });
+            this.updateProperty(PropertyName.DeviceWifiSignalLevel, { value: calculateWifiSignalLevel(this, newValue.value as number), timestamp: newValue !== undefined ? newValue.timestamp : 0 });
         }
     }
 
@@ -173,6 +173,23 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
                 }
             }
             return true;
+        } else if (this.rawProperties[type] !== undefined && (
+            this.rawProperties[type].value === parsedValue
+            && this.rawProperties[type].timestamp < value.timestamp)
+        ) {
+            this.rawProperties[type].timestamp = value.timestamp;
+            if (this.ready)
+                this.emit("raw property renewed", this, type, this.rawProperties[type].value, this.rawProperties[type].timestamp);
+
+            const metadata = this.getPropertiesMetadata();
+
+            for (const property of Object.values(metadata)) {
+                if (property.key === type && this.properties[property.name] !== undefined) {
+                    this.properties[property.name].timestamp = value.timestamp;
+                    if (this.ready)
+                        this.emit("property changed", this, property.name, this.properties[property.name]);
+                }
+            }
         }
         return false;
     }
@@ -180,7 +197,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
     protected convertRawPropertyValue(property: PropertyMetadataAny, value: RawValue): PropertyValue {
         try {
             if (property.key === ParamType.PRIVATE_MODE || property.key === ParamType.OPEN_DEVICE || property.key === CommandType.CMD_DEVS_SWITCH) {
-                if (this.isIndoorCamera() || this.isWiredDoorbell() || this.isFloodLight()) {
+                if (this.isIndoorCamera() || this.isWiredDoorbell() || this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8422 || this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424) {
                     return { value: value !== undefined ? (value.value === "true" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
                 }
                 return { value: value !== undefined ? (value.value === "0" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
@@ -252,18 +269,18 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
-                    return { value: value !== undefined ? Number.parseInt(value.value) : (property.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0)), timestamp: value ? value.timestamp : 0 };
+                    return { value: value !== undefined ? Number.parseInt(value.value) : (property.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0)), timestamp: value !== undefined ? value.timestamp : 0 };
                 } catch (error) {
                     this.log.warn("PropertyMetadataNumeric Convert Error:", { property: property, value: value, error: error });
-                    return { value: property.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0), timestamp: value ? value.timestamp : 0 };
+                    return { value: property.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0), timestamp: value !== undefined ? value.timestamp : 0 };
                 }
             } else if (property.type === "boolean") {
                 const booleanProperty = property as PropertyMetadataBoolean;
                 try {
-                    return { value: value !== undefined ? (value.value === "1" || value.value.toLowerCase() === "true" ? true : false) : (property.default !== undefined ? booleanProperty.default : false), timestamp: value ? value.timestamp : 0 };
+                    return { value: value !== undefined ? (value.value === "1" || value.value.toLowerCase() === "true" ? true : false) : (property.default !== undefined ? booleanProperty.default : false), timestamp: value !== undefined ? value.timestamp : 0 };
                 } catch (error) {
                     this.log.warn("PropertyMetadataBoolean Convert Error:", { property: property, value: value, error: error });
-                    return { value: property.default !== undefined ? booleanProperty.default : false, timestamp: value ? value.timestamp : 0 };
+                    return { value: property.default !== undefined ? booleanProperty.default : false, timestamp: value !== undefined ? value.timestamp : 0 };
                 }
             }
         } catch (error) {
@@ -784,7 +801,7 @@ export class Camera extends Device {
         try {
             switch (property.key) {
                 case CommandType.CMD_SET_AUDIO_MUTE_RECORD:
-                    return { value: value !== undefined ? (value.value === "0" ? true : false) : false, timestamp: value ? value.timestamp : 0 };
+                    return { value: value !== undefined ? (value.value === "0" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
             }
         } catch (error) {
             this.log.error("Convert Error:", { property: property, value: value, error: error });
@@ -1281,6 +1298,45 @@ export class FloodlightCamera extends Camera {
         return this.getPropertyValue(PropertyName.DeviceMotionDetection);
     }
 
+    protected convertRawPropertyValue(property: PropertyMetadataAny, value: RawValue): PropertyValue {
+        try {
+            switch (property.key) {
+                case CommandType.CMD_DEV_RECORD_AUTOSTOP:
+                    if (this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 || this.getDeviceType() === DeviceType.FLOODLIGHT)
+                        return { value: value !== undefined ? (value.value === "0" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
+                    break;
+                case CommandType.CMD_FLOODLIGHT_SET_AUTO_CALIBRATION:
+                    if (this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423)
+                        return { value: value !== undefined ? (value.value === "0" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
+                    break;
+                case CommandType.CMD_RECORD_AUDIO_SWITCH:
+                    return { value: value !== undefined ? (value.value === "0" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
+                case CommandType.CMD_SET_AUDIO_MUTE_RECORD:
+                    if (this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423)
+                        return { value: value !== undefined ? (value.value === "1" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
+                    return { value: value !== undefined ? (value.value === "0" ? true : false) : false, timestamp: value !== undefined ? value.timestamp : 0 };
+                case CommandType.CMD_SET_PIRSENSITIVITY:
+                    switch (Number.parseInt(value.value)) {
+                        case FloodlightMotionTriggeredDistance.MIN:
+                            return { value: 1, timestamp: value !== undefined ? value.timestamp : 0 };
+                        case FloodlightMotionTriggeredDistance.LOW:
+                            return { value: 2, timestamp: value !== undefined ? value.timestamp : 0 };
+                        case FloodlightMotionTriggeredDistance.MEDIUM:
+                            return { value: 3, timestamp: value !== undefined ? value.timestamp : 0 };
+                        case FloodlightMotionTriggeredDistance.HIGH:
+                            return { value: 4, timestamp: value !== undefined ? value.timestamp : 0 };
+                        case FloodlightMotionTriggeredDistance.MAX:
+                            return { value: 5, timestamp: value !== undefined ? value.timestamp : 0 };
+                        default:
+                            return { value: 5, timestamp: value !== undefined ? value.timestamp : 0 };
+                    }
+            }
+        } catch (error) {
+            this.log.error("Convert Error:", { property: property, value: value, error: error });
+        }
+        return super.convertRawPropertyValue(property, value);
+    }
+
 }
 
 export class Sensor extends Device {
@@ -1561,7 +1617,7 @@ export class Keypad extends Device {
         try {
             switch(property.key) {
                 case CommandType.CMD_KEYPAD_BATTERY_CHARGER_STATE:
-                    return { value: value !== undefined ? (value.value === "0" || value.value === "2"? false : true) : false, timestamp: value ? value.timestamp : 0 };
+                    return { value: value !== undefined ? (value.value === "0" || value.value === "2"? false : true) : false, timestamp: value !== undefined ? value.timestamp : 0 };
             }
         } catch (error) {
             this.log.error("Convert Error:", { property: property, value: value, error: error });

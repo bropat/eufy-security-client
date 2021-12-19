@@ -69,7 +69,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     methods: ["POST"]
                 }
             }).catch(error => {
-                this.log.error("Error:", error);
+                this.log.error("registerFid - Error:", error);
                 return error;
             });
 
@@ -83,11 +83,11 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     },
                 };
             } else {
-                this.log.error("Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
+                this.log.error("registerFid - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
                 throw new Error(`FID registration failed with error: ${response.statusMessage}`);
             }
         } catch (error) {
-            this.log.error("Generic Error:", error);
+            this.log.error("registerFid - Generic Error:", error);
             throw new Error(`FID registration failed with error: ${error}`);
         }
     }
@@ -119,7 +119,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     methods: ["POST"]
                 }
             }).catch(error => {
-                this.log.error("Error:", error);
+                this.log.error("renewFidToken - Error:", error);
                 return error;
             });
 
@@ -130,11 +130,11 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     expiresAt: this.buildExpiresAt(result.expiresIn),
                 };
             } else {
-                this.log.error("Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
+                this.log.error("renewFidToken - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
                 throw new Error(`FID Token renewal failed with error: ${response.statusMessage}`);
             }
         } catch (error) {
-            this.log.error("Generic Error:", error);
+            this.log.error("renewFidToken - Generic Error:", error);
             throw new Error(`FID Token renewal failed with error: ${error}`);
         }
     }
@@ -213,18 +213,18 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     methods: ["POST"]
                 }
             }).catch(error => {
-                this.log.error("Error:", error);
+                this.log.error("executeCheckin - Error:", error);
                 return error;
             });
 
             if (response.statusCode == 200) {
                 return await parseCheckinResponse(response.body);
             } else {
-                this.log.error("Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
+                this.log.error("executeCheckin - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
                 throw new Error(`Google checkin failed with error: ${response.statusMessage}`);
             }
         } catch (error) {
-            this.log.error("Generic Error:", error);
+            this.log.error("executeCheckin - Generic Error:", error);
             throw new Error(`Google checkin failed with error: ${error}`);
         }
     }
@@ -280,7 +280,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         methods: ["POST"]
                     }
                 }).catch(error => {
-                    this.log.error("Error:", error);
+                    this.log.error("registerGcm - Error:", error);
                     return error;
                 });
 
@@ -296,14 +296,14 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         };
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
+                    this.log.error("registerGcm - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
                     throw new Error(`Google register to GCM failed with error: ${response.statusMessage}`);
                 }
                 await sleep(10000 * retry_count);
             }
             throw new Error(`GCM-Register Error: Undefined!`);
         } catch (error) {
-            this.log.error("Generic Error:", error);
+            this.log.error("registerGcm - Generic Error:", error);
             throw new Error(`Google register to GCM failed with error: ${error}`);
         }
     }
@@ -455,7 +455,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             normalized_message.event_type = push_data.event_type;
             normalized_message.file_path = push_data.file_path;
             normalized_message.pic_url = push_data.pic_url;
-            normalized_message.push_count = push_data.push_count;
+            normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
             normalized_message.doorbell_url = push_data.url;
             normalized_message.doorbell_url_ex = push_data.url_ex;
             normalized_message.doorbell_video_url = push_data.video_url;

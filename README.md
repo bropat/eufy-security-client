@@ -1,6 +1,6 @@
 # eufy-security-client
 
-![Logo](img/eufy-security.png)
+![Logo](docs/_media/eufy-security.png)
 
 [![node](https://img.shields.io/node/v/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
 [![NPM version](http://img.shields.io/npm/v/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
@@ -80,6 +80,7 @@ One client instance will show all devices from one Eufy Cloud account and allows
 * SoloCam E40 (T8131)
 * Floodlight Camera (T8420)
 * Floodlight Cam (T8422)
+* Floodlight Cam 2 Pro (T8423)
 * Floodlight Cam 2 (T8424)
 * Wired Doorbell 2k (T8200)
 * Wired Doorbell 1080p (T8201)
@@ -101,6 +102,41 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 Please use GitHub issues for this.
 
 ## Changelog
+
+### 1.5.0 (2021-12-19)
+
+* (bropat) Added support for floodlight cam 2 pro (T8423)
+* (bropat) Added motion detection range setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion detection range standard sensitivity setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion detection range advanced left sensitivity setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion detection range advanced middle sensitivity setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion detection range advanced right sensitivity setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion detection range test mode setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion tracking sensitivity setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion auto-cruise setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion out-of-view detection setting for floodlight cam 2 pro (T8423)
+* (bropat) Added light setting color temperature manual setting for floodlight cam 2 pro (T8423)
+* (bropat) Added light setting color temperature mamotion setting for floodlight cam 2 pro (T8423)
+* (bropat) Added light setting color temperature schedule setting for floodlight cam 2 pro (T8423)
+* (bropat) Added light setting motion activation mode setting for floodlight cam 2 pro (T8423)
+* (bropat) Added video nightvision image adjustment setting for floodlight cam 2 pro (T8423)
+* (bropat) Added video color nightvision setting for floodlight cam 2 pro (T8423)
+* (bropat) Added auto calibration setting for floodlight cam 2 pro (T8423)
+* (bropat) Added start/stop rtsp livestream command for floodlight cam 2 pro (T8423)
+* (bropat) Added battery and wifi rssi properties to eufycam 1/E
+* (bropat) Implemented another p2p-keepalive mechanism found in some floodlights (e.g. T8420)
+* (bropat) Fixed support for floodlight (T8420) - tested with FW: 1.0.0.35 HW: 2.2
+* (bropat) Fixed status led setting for floodlight (T8420)
+* (bropat) Fixed motion detected setting for floodlight (T8420)
+* (bropat) Fixed motion detected sensitivity setting for floodlight (T8420)
+* (bropat) Fixed audio recording setting for floodlight (T8420)
+* (bropat) Fixed enable/disable device for floodlight (T8420)
+* (bropat) Fixed start livestream command for floodlight (T8420)
+* (bropat) Fixed issue #79
+* (bropat) Fixed issue #66
+* (bropat) Fixed some other minor issues
+* (bropat) Added docs (:construction:)
+* (bropat) Updated versions of the package dependencies
 
 ### 1.4.0 (2021-11-22)
 

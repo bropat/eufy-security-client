@@ -281,8 +281,17 @@ export enum PropertyName {
     DeviceMotionDetection = "motionDetection",
     DeviceMotionDetectionType = "motionDetectionType",
     DeviceMotionDetectionSensitivity = "motionDetectionSensitivity",
+    DeviceMotionDetectionRange = "motionDetectionRange",  // Flooglight T8423
+    DeviceMotionDetectionRangeStandardSensitivity = "motionDetectionRangeStandardSensitivity",  // Flooglight T8423
+    DeviceMotionDetectionRangeAdvancedLeftSensitivity = "motionDetectionRangeAdvancedLeftSensitivity",  // Flooglight T8423
+    DeviceMotionDetectionRangeAdvancedMiddleSensitivity = "motionDetectionRangeAdvancedMiddleSensitivity",  // Flooglight T8423
+    DeviceMotionDetectionRangeAdvancedRightSensitivity = "motionDetectionRangeAdvancedRightSensitivity",  // Flooglight T8423
+    DeviceMotionDetectionTestMode = "motionDetectionTestMode",  // Flooglight T8420, T8423
     DeviceMotionDetected = "motionDetected",
     DeviceMotionTracking = "motionTracking",
+    DeviceMotionTrackingSensitivity = "motionTrackingSensitivity",  // Flooglight T8423
+    DeviceMotionAutoCruise = "motionAutoCruise",  // Flooglight T8423
+    DeviceMotionOutOfViewDetection = "motionOutOfViewDetection",  // Flooglight T8423
     DevicePersonDetected = "personDetected",
     DevicePersonName = "personName",
     DeviceRTSPStream = "rtspStream",
@@ -320,9 +329,13 @@ export enum PropertyName {
     DeviceVideoWDR = "videoWdr",
     DeviceLightSettingsEnable = "lightSettingsEnable",
     DeviceLightSettingsBrightnessManual = "lightSettingsBrightnessManual",
+    DeviceLightSettingsColorTemperatureManual = "lightSettingsColorTemperatureManual",  // Flooglight T8423
     DeviceLightSettingsBrightnessMotion = "lightSettingsBrightnessMotion",
+    DeviceLightSettingsColorTemperatureMotion = "lightSettingsColorTemperatureMotion",  // Flooglight T8423
     DeviceLightSettingsBrightnessSchedule = "lightSettingsBrightnessSchedule",
+    DeviceLightSettingsColorTemperatureSchedule = "lightSettingsColorTemperatureSchedule",  // Flooglight T8423
     DeviceLightSettingsMotionTriggered = "lightSettingsMotionTriggered",
+    DeviceLightSettingsMotionActivationMode = "lightSettingsMotionActivationMode",  // Flooglight T8423
     DeviceLightSettingsMotionTriggeredDistance = "lightSettingsMotionTriggeredDistance",
     DeviceLightSettingsMotionTriggeredTimer = "lightSettingsMotionTriggeredTimer",
     //DeviceLightSettingsSunsetToSunrise = "lightSettingsSunsetToSunrise",
@@ -347,6 +360,9 @@ export enum PropertyName {
     DeviceVideoHDR = "videoHdr", // Wired Doorbell
     DeviceVideoDistortionCorrection = "videoDistortionCorrection", // Wired Doorbell
     DeviceVideoRingRecord = "videoRingRecord", // Wired Doorbell
+    DeviceVideoNightvisionImageAdjustment = "videoNightvisionImageAdjustment",  // Flooglight T8423
+    DeviceVideoColorNightvision = "videoColorNightvision",  // Flooglight T8423
+    DeviceAutoCalibration = "autoCalibration",  // Flooglight T8423
 
     StationLANIpAddress = "lanIpAddress",
     StationMacAddress = "macAddress",
@@ -981,11 +997,18 @@ export const DeviceMotionDetectionTypeProperty: PropertyMetadataNumeric = {
 
 export const DeviceMotionDetectionCamera1Property: PropertyMetadataNumeric = {
     ...DeviceMotionDetectionTypeProperty,
-    key: CommandType.CMD_DEV_PUSHMSG_MODE,
     states: {
         0: "Person Alerts",
         1: "Facial Alerts",
         2: "All Alerts",
+    },
+}
+
+export const DeviceMotionDetectionTypeFloodlightT8423Property: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionTypeProperty,
+    states: {
+        2: "All motions",
+        6: "Humans only",
     },
 }
 
@@ -1054,6 +1077,13 @@ export const DeviceMotionDetectionSensitivityWiredDoorbellProperty: PropertyMeta
 export const DeviceMotionDetectionSensitivitySoloProperty: PropertyMetadataNumeric = {
     ...DeviceMotionDetectionSensitivityCamera2Property,
     key: CommandType.CMD_SET_PIR_SENSITIVITY,
+}
+
+export const DeviceMotionDetectionSensitivityFloodlightT8420Property: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionSensitivityCamera2Property,
+    key: CommandType.CMD_SET_MDSENSITIVITY,
+    min: 1,
+    max: 5,
 }
 
 export const DeviceHiddenMotionDetectionSensitivityWiredDoorbellProperty: PropertyMetadataNumeric = {
@@ -1168,6 +1198,13 @@ export const DeviceFloodlightLightSettingsMotionTriggeredTimerProperty: Property
     writeable: true,
     type: "number",
     unit: "sec",
+    states: {
+        30: "30 sec.",
+        60: "1 min.",
+        180: "3 min.",
+        300: "5 min.",
+        900: "15 min.",
+    },
 }
 
 export const DeviceMicrophoneProperty: PropertyMetadataBoolean = {
@@ -1206,6 +1243,11 @@ export const DeviceAudioRecordingWiredDoorbellProperty: PropertyMetadataBoolean 
     ...DeviceAudioRecordingProperty,
     key: ParamType.DOORBELL_AUDIO_RECODE,
     commandId: ParamType.COMMAND_AUDIO_RECORDING,
+}
+
+export const DeviceAudioRecordingFloodlightT8420Property: PropertyMetadataBoolean = {
+    ...DeviceAudioRecordingProperty,
+    key: CommandType.CMD_RECORD_AUDIO_SWITCH,
 }
 
 export const DeviceMotionTrackingProperty: PropertyMetadataBoolean = {
@@ -1256,6 +1298,13 @@ export const DeviceSpeakerVolumeWiredDoorbellProperty: PropertyMetadataNumeric =
     key: ParamType.VOLUME,
     max: 169,
 }
+
+export const DeviceSpeakerVolumeFloodlightT8420Property: PropertyMetadataNumeric = {
+    ...DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
+    min: 1,
+    max: 63,
+}
+
 
 export const DeviceRingtoneVolumeBatteryDoorbellProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_BAT_DOORBELL_SET_RINGTONE_VOLUME,
@@ -1336,6 +1385,7 @@ export const DeviceRecordingClipLengthProperty: PropertyMetadataNumeric = {
     min: 5,
     max: 120,
     default: 60,
+    unit: "sec"
 }
 
 export const DeviceRecordingClipLengthFloodlightProperty: PropertyMetadataNumeric = {
@@ -1739,6 +1789,167 @@ export const DeviceVideoRingRecordWiredDoorbellProperty: PropertyMetadataNumeric
     }
 }
 
+
+export const DeviceMotionDetectionRangeProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE,
+    name: PropertyName.DeviceMotionDetectionRange,
+    label: "Motion Detection Range",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Standard",
+        1: "Advanced",
+        2: "Automatic",
+    },
+}
+
+export const DeviceMotionDetectionRangeStandardSensitivityProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_STD_SENSITIVITY,
+    name: PropertyName.DeviceMotionDetectionRangeStandardSensitivity,
+    label: "Motion Detection Range Standard Sensitivity",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Off",
+        1: "Min",
+        2: "Low",
+        3: "Medium",
+        4: "High",
+        5: "Max",
+    },
+}
+
+export const DeviceMotionDetectionRangeAdvancedLeftSensitivityProperty: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionRangeStandardSensitivityProperty,
+    key: CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_ADV_LEFT_SENSITIVITY,
+    name: PropertyName.DeviceMotionDetectionRangeAdvancedLeftSensitivity,
+    label: "Motion Detection Range Advanced Left Sensitivity",
+}
+
+export const DeviceMotionDetectionRangeAdvancedMiddleSensitivityProperty: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionRangeStandardSensitivityProperty,
+    key: CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_ADV_MIDDLE_SENSITIVITY,
+    name: PropertyName.DeviceMotionDetectionRangeAdvancedMiddleSensitivity,
+    label: "Motion Detection Range Advanced Middle Sensitivity",
+}
+
+export const DeviceMotionDetectionRangeAdvancedRightSensitivityProperty: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionRangeStandardSensitivityProperty,
+    key: CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_ADV_RIGHT_SENSITIVITY,
+    name: PropertyName.DeviceMotionDetectionRangeAdvancedRightSensitivity,
+    label: "Motion Detection Range Advanced Right Sensitivity",
+}
+
+export const DeviceMotionDetectionTestModeProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SET_PIR_TEST_MODE,
+    name: PropertyName.DeviceMotionDetectionTestMode,
+    label: "Motion Detection Test Mode",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceMotionTrackingSensitivityProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_FLOODLIGHT_SET_MOTION_TRACKING_SENSITIVITY,
+    name: PropertyName.DeviceMotionTrackingSensitivity,
+    label: "Motion Tracking Sensitivity",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        1: "Level 1",
+        2: "Level 2",
+        3: "Level 3",
+    },
+    default: 3,
+}
+
+export const DeviceMotionAutoCruiseProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_FLOODLIGHT_SET_MOTION_AUTO_CRUISE,
+    name: PropertyName.DeviceMotionAutoCruise,
+    label: "Motion Auto-Cruise",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceMotionOutOfViewDetectionProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_FLOODLIGHT_SET_MOTION_OUT_OF_VIEW_DETECTION,
+    name: PropertyName.DeviceMotionOutOfViewDetection,
+    label: "Motion Out-of-View Detection",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceLightSettingsColorTemperatureManualProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_FLOODLIGHT_SET_LIGHT_COLOR_TEMP_MANUAL,
+    name: PropertyName.DeviceLightSettingsColorTemperatureManual,
+    label: "Light Setting Color Temperature Manual",
+    readable: true,
+    writeable: true,
+    type: "number",
+    min: 1,
+    max: 100,
+    default: 50,
+}
+
+export const DeviceLightSettingsColorTemperatureMotionProperty: PropertyMetadataNumeric = {
+    ...DeviceLightSettingsColorTemperatureManualProperty,
+    key: CommandType.CMD_FLOODLIGHT_SET_LIGHT_COLOR_TEMP_MOTION,
+    name: PropertyName.DeviceLightSettingsColorTemperatureMotion,
+    label: "Light Setting Color Temperature Motion",
+}
+
+export const DeviceLightSettingsColorTemperatureScheduleProperty: PropertyMetadataNumeric = {
+    ...DeviceLightSettingsColorTemperatureManualProperty,
+    key: CommandType.CMD_FLOODLIGHT_SET_LIGHT_COLOR_TEMP_SCHEDULE,
+    name: PropertyName.DeviceLightSettingsColorTemperatureSchedule,
+    label: "Light Setting Color Temperature Schedule",
+}
+
+export const DeviceLightSettingsMotionActivationModeProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SET_FLOODLIGHT_STREET_LAMP,
+    name: PropertyName.DeviceLightSettingsMotionActivationMode,
+    label: "Light Settings Motion Activation Mode",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Smart",
+        1: "Fast",
+    },
+}
+
+export const DeviceVideoNightvisionImageAdjustmentProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_FLOODLIGHT_SET_VIDEO_NIGHTVISION_IMAGE_ADJUSTMENT,
+    name: PropertyName.DeviceVideoNightvisionImageAdjustment,
+    label: "Video Nightvision Image Adjustment",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceVideoColorNightvisionProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_FLOODLIGHT_SET_VIDEO_COLOR_NIGHTVISION,
+    name: PropertyName.DeviceVideoColorNightvision,
+    label: "Video Color Nightvision",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceAutoCalibrationProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_FLOODLIGHT_SET_AUTO_CALIBRATION,
+    name: PropertyName.DeviceAutoCalibration,
+    label: "Auto Calibration",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
 export const DeviceProperties: Properties = {
     [DeviceType.CAMERA2]: {
         ...GenericDeviceProperties,
@@ -1918,6 +2129,15 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityCamera1Property,
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionCamera1Property,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
+        [PropertyName.DeviceLastChargingFalseEvents]: DeviceLastChargingFalseEventsProperty,
+        [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
+        [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
+        [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
     },
     [DeviceType.CAMERA_E]: {
         ...GenericDeviceProperties,
@@ -1943,6 +2163,15 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityCamera1Property,
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionCamera1Property,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
+        [PropertyName.DeviceLastChargingFalseEvents]: DeviceLastChargingFalseEventsProperty,
+        [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
+        [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
+        [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
     },
     [DeviceType.DOORBELL]: {
         ...GenericDeviceProperties,
@@ -2053,7 +2282,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationRing]: DeviceNotificationRingProperty,
         [PropertyName.DeviceNotificationMotion]: DeviceNotificationMotionProperty,
     },
-    [DeviceType.FLOODLIGHT]: {
+    /*[DeviceType.FLOODLIGHT]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
@@ -2081,6 +2310,35 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
+    },*/
+    [DeviceType.FLOODLIGHT]: { // T8420 Firmware: 1.0.0.35 Hardware: 2.2 (20211219)
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkBatteryDoorbellCamera1Property,
+        [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
+        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceLightSettingsEnable]: DeviceFloodlightLightSettingsEnableProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceLightSettingsBrightnessMotion]: DeviceFloodlightLightSettingsBrightnessMotionProperty,
+        [PropertyName.DeviceLightSettingsBrightnessSchedule]: DeviceFloodlightLightSettingsBrightnessScheduleProperty,
+        [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredProperty,
+        [PropertyName.DeviceLightSettingsMotionTriggeredDistance]: DeviceFloodlightLightSettingsMotionTriggeredDistanceProperty,
+        [PropertyName.DeviceLightSettingsMotionTriggeredTimer]: DeviceFloodlightLightSettingsMotionTriggeredTimerProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityFloodlightT8420Property,
+        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
+        [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeFloodlightT8420Property,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingFloodlightT8420Property,
+        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthFloodlightProperty,
+        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalFloodlightProperty,
+        [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceMotionDetectionTestMode]: DeviceMotionDetectionTestModeProperty,
     },
     [DeviceType.FLOODLIGHT_CAMERA_8422]: {
         ...GenericDeviceProperties,
@@ -2110,15 +2368,17 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
         [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityIndoorProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
     },
-    [DeviceType.FLOODLIGHT_CAMERA_8423]: {
+    [DeviceType.FLOODLIGHT_CAMERA_8423]: { // T8423 Firmware: 1.0.7.4 (20211219)
         ...GenericDeviceProperties,
-        [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
-        [PropertyName.DeviceWatermark]: DeviceWatermarkIndoorFloodProperty,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectionIndoorSoloFloodProperty,
-        [PropertyName.DeviceStatusLed]: DeviceStatusLedIndoorFloodProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
         [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
         [PropertyName.DeviceLightSettingsEnable]: DeviceFloodlightLightSettingsEnableProperty,
@@ -2127,18 +2387,35 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLightSettingsBrightnessSchedule]: DeviceFloodlightLightSettingsBrightnessScheduleProperty,
         [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredProperty,
         [PropertyName.DeviceLightSettingsMotionTriggeredTimer]: DeviceFloodlightLightSettingsMotionTriggeredTimerProperty,
-        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
-        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingIndoorSoloFloodlightProperty,
-        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeFloodlightProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
+        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeFloodlightT8423Property,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthFloodlightProperty,
-        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalFloodlightProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
-        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualitySoloProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
-        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityIndoorProperty,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityProperty,
+        [PropertyName.DeviceMotionTracking]: DeviceMotionTrackingProperty,
+        [PropertyName.DeviceMotionDetectionRange]: DeviceMotionDetectionRangeProperty,
+        [PropertyName.DeviceMotionDetectionRangeStandardSensitivity]: DeviceMotionDetectionRangeStandardSensitivityProperty,
+        [PropertyName.DeviceMotionDetectionRangeAdvancedLeftSensitivity]: DeviceMotionDetectionRangeAdvancedLeftSensitivityProperty,
+        [PropertyName.DeviceMotionDetectionRangeAdvancedMiddleSensitivity]: DeviceMotionDetectionRangeAdvancedMiddleSensitivityProperty,
+        [PropertyName.DeviceMotionDetectionRangeAdvancedRightSensitivity]: DeviceMotionDetectionRangeAdvancedRightSensitivityProperty,
+        [PropertyName.DeviceMotionDetectionTestMode]: DeviceMotionDetectionTestModeProperty,
+        [PropertyName.DeviceMotionTrackingSensitivity]: DeviceMotionTrackingSensitivityProperty,
+        [PropertyName.DeviceMotionAutoCruise]: DeviceMotionAutoCruiseProperty,
+        [PropertyName.DeviceMotionOutOfViewDetection]: DeviceMotionOutOfViewDetectionProperty,
+        [PropertyName.DeviceLightSettingsColorTemperatureManual]: DeviceLightSettingsColorTemperatureManualProperty,
+        [PropertyName.DeviceLightSettingsColorTemperatureMotion]: DeviceLightSettingsColorTemperatureMotionProperty,
+        [PropertyName.DeviceLightSettingsColorTemperatureSchedule]: DeviceLightSettingsColorTemperatureScheduleProperty,
+        [PropertyName.DeviceLightSettingsMotionActivationMode]: DeviceLightSettingsMotionActivationModeProperty,
+        [PropertyName.DeviceVideoNightvisionImageAdjustment]: DeviceVideoNightvisionImageAdjustmentProperty,
+        [PropertyName.DeviceVideoColorNightvision]: DeviceVideoColorNightvisionProperty,
+        [PropertyName.DeviceAutoCalibration]: DeviceAutoCalibrationProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
     },
     [DeviceType.FLOODLIGHT_CAMERA_8424]: {
         ...GenericDeviceProperties,
@@ -2168,6 +2445,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
         [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityIndoorProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
     },
     [DeviceType.INDOOR_CAMERA]: {
         ...GenericDeviceProperties,
@@ -2860,7 +3139,8 @@ export const StationTimeFormatProperty: PropertyMetadataNumeric = {
     states: {
         0: "12h",
         1: "24h",
-    }
+    },
+    default: 0,
 }
 
 export const StationSwitchModeWithAccessCodeProperty: PropertyMetadataBoolean = {
@@ -3237,6 +3517,8 @@ export const DeviceCommands: Commands = {
         CommandName.DevicePanAndTilt,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartRTSPLivestream,
+        CommandName.DeviceStopRTSPLivestream,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8424]: [
         CommandName.DeviceStartLivestream,

@@ -36,7 +36,9 @@ export interface EufySecurityEvents {
     "device added": (device: Device) => void;
     "device removed": (device: Device) => void;
     "device property changed": (device: Device, name: string, value: PropertyValue) => void;
+    "device property renewed": (device: Device, name: string, value: PropertyValue) => void;
     "device raw property changed": (device: Device, type: number, value: string, modified: number) => void;
+    "device raw property renewed": (device: Device, type: number, value: string, modified: number) => void;
     "device crying detected": (device: Device, state: boolean) => void;
     "device sound detected": (device: Device, state: boolean) => void;
     "device pet detected": (device: Device, state: boolean) => void;
@@ -58,7 +60,9 @@ export interface EufySecurityEvents {
     "station guard mode": (station: Station, guardMode: number) => void;
     "station current mode": (station: Station, currentMode: number) => void;
     "station property changed": (station: Station, name: string, value: PropertyValue) => void;
+    "station property renewed": (station: Station, name: string, value: PropertyValue) => void;
     "station raw property changed": (station: Station, type: number, value: string, modified: number) => void;
+    "station raw property renewed": (station: Station, type: number, value: string, modified: number) => void;
     "station alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
     "station connect": (station: Station) => void;
     "station close": (station: Station) => void;

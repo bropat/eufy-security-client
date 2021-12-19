@@ -8,7 +8,7 @@ import { HTTPApi } from "./http/api";
 import { Devices, FullDevices, Hubs, PropertyValue, RawValues, Stations } from "./http/interfaces";
 import { Station } from "./http/station";
 import { ConfirmInvite, FullDeviceResponse, HubResponse, Invite } from "./http/models";
-import { AuthResult, CommandName, DeviceType, FloodlightMotionTriggeredDistance, NotificationSwitchMode, NotificationType, PropertyName } from "./http/types";
+import { AuthResult, CommandName, DeviceType, NotificationSwitchMode, NotificationType, PropertyName } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
 import { BatteryDoorbellCamera, Camera, Device, DoorbellCamera, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SoloCamera, UnknownDevice } from "./http/device";
@@ -16,7 +16,7 @@ import { AlarmEvent, CommandType, P2PConnectionType } from "./p2p/types";
 import { StreamMetadata } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
 import { generateSerialnumber, generateUDID, handleUpdate, md5, parseValue, removeLastChar } from "./utils";
-import { DeviceNotFoundError, DuplicateDeviceError, DuplicateStationError, StationNotFoundError, ReadOnlyPropertyError, InvalidPropertyValueError, NotSupportedError } from "./error";
+import { DeviceNotFoundError, DuplicateDeviceError, DuplicateStationError, StationNotFoundError, ReadOnlyPropertyError, NotSupportedError } from "./error";
 import { libVersion } from ".";
 import { InvalidPropertyError } from "./http/error";
 import { Readable } from "stream";
@@ -342,11 +342,14 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 station.on("rtsp livestream stop", (station: Station, channel:number) => this.onStopStationRTSPLivestream(station, channel));
                 station.on("rtsp url", (station: Station, channel:number, value: string, modified: number) => this.onStationRtspUrl(station, channel, value, modified));
                 station.on("property changed", (station: Station, name: string, value: PropertyValue) => this.onStationPropertyChanged(station, name, value));
+                station.on("property renewed", (station: Station, name: string, value: PropertyValue) => this.onStationPropertyRenewed(station, name, value));
                 station.on("raw property changed", (station: Station, type: number, value: string, modified: number) => this.onStationRawPropertyChanged(station, type, value, modified));
+                station.on("raw property renewed", (station: Station, type: number, value: string, modified: number) => this.onStationRawPropertyRenewed(station, type, value, modified));
                 station.on("alarm event", (station: Station, alarmEvent: AlarmEvent) => this.onStationAlarmEvent(station, alarmEvent));
                 station.on("runtime state", (station: Station, channel: number, batteryLevel: number, temperature: number, modified: number) => this.onStationRuntimeState(station, channel, batteryLevel, temperature, modified));
                 station.on("charging state", (station: Station, channel: number, chargeType: number, batteryLevel: number, modified: number) => this.onStationChargingState(station, channel, chargeType, batteryLevel, modified));
                 station.on("wifi rssi", (station: Station, channel: number, rssi: number, modified: number) => this.onStationWifiRssi(station, channel, rssi, modified));
+                station.on("floodlight manual switch", (station: Station, channel: number, enabled: boolean, modified: number) => this.onFloodlightManualSwitch(station, channel, enabled, modified));
 
                 this.addStation(station);
             }
@@ -425,7 +428,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
 
                 new_device.on("property changed", (device: Device, name: string, value: PropertyValue) => this.onDevicePropertyChanged(device, name, value));
+                new_device.on("property renewed", (device: Device, name: string, value: PropertyValue) => this.onDevicePropertyRenewed(device, name, value));
                 new_device.on("raw property changed", (device: Device, type: number, value: string, modified: number) => this.onDeviceRawPropertyChanged(device, type, value, modified));
+                new_device.on("raw property renewed", (device: Device, type: number, value: string, modified: number) => this.onDeviceRawPropertyRenewed(device, type, value, modified));
                 new_device.on("crying detected", (device: Device, state: boolean) => this.onDeviceCryingDetected(device, state));
                 new_device.on("sound detected", (device: Device, state: boolean) => this.onDeviceSoundDetected(device, state));
                 new_device.on("pet detected", (device: Device, state: boolean) => this.onDevicePetDetected(device, state));
@@ -865,25 +870,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 await station.setFloodlightLightSettingsMotionTriggered(device, value as boolean);
                 break;
             case PropertyName.DeviceLightSettingsMotionTriggeredDistance:
-            {
-                let newValue: FloodlightMotionTriggeredDistance;
-                switch (value as number) {
-                    case 1: newValue = FloodlightMotionTriggeredDistance.MIN;
-                        break;
-                    case 2: newValue = FloodlightMotionTriggeredDistance.LOW;
-                        break;
-                    case 3: newValue = FloodlightMotionTriggeredDistance.MEDIUM;
-                        break;
-                    case 4: newValue = FloodlightMotionTriggeredDistance.HIGH;
-                        break;
-                    case 5: newValue = FloodlightMotionTriggeredDistance.MAX;
-                        break;
-                    default:
-                        throw new InvalidPropertyValueError(`Device ${deviceSN} not supported value "${value}" for property named "${name}"`);
-                }
-                await station.setFloodlightLightSettingsMotionTriggeredDistance(device, newValue);
+                await station.setFloodlightLightSettingsMotionTriggeredDistance(device, value as number);
                 break;
-            }
             case PropertyName.DeviceLightSettingsMotionTriggeredTimer:
                 await station.setFloodlightLightSettingsMotionTriggeredTimer(device, value as number);
                 break;
@@ -991,6 +979,54 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 break;
             case PropertyName.DeviceNightvision:
                 await station.setNightVision(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionRange:
+                await station.setMotionDetectionRange(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionRangeStandardSensitivity:
+                await station.setMotionDetectionRangeStandardSensitivity(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionRangeAdvancedLeftSensitivity:
+                await station.setMotionDetectionRangeAdvancedLeftSensitivity(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionRangeAdvancedMiddleSensitivity:
+                await station.setMotionDetectionRangeAdvancedMiddleSensitivity(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionRangeAdvancedRightSensitivity:
+                await station.setMotionDetectionRangeAdvancedRightSensitivity(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionTestMode:
+                await station.setMotionDetectionTestMode(device, value as boolean);
+                break;
+            case PropertyName.DeviceMotionTrackingSensitivity:
+                await station.setMotionTrackingSensitivity(device, value as number);
+                break;
+            case PropertyName.DeviceMotionAutoCruise:
+                await station.setMotionAutoCruise(device, value as boolean);
+                break;
+            case PropertyName.DeviceMotionOutOfViewDetection:
+                await station.setMotionOutOfViewDetection(device, value as boolean);
+                break;
+            case PropertyName.DeviceLightSettingsColorTemperatureManual:
+                await station.setLightSettingsColorTemperatureManual(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsColorTemperatureMotion:
+                await station.setLightSettingsColorTemperatureMotion(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsColorTemperatureSchedule:
+                await station.setLightSettingsColorTemperatureSchedule(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsMotionActivationMode:
+                await station.setLightSettingsMotionActivationMode(device, value as number);
+                break;
+            case PropertyName.DeviceVideoNightvisionImageAdjustment:
+                await station.setVideoNightvisionImageAdjustment(device, value as boolean);
+                break;
+            case PropertyName.DeviceVideoColorNightvision:
+                await station.setVideoColorNightvision(device, value as boolean);
+                break;
+            case PropertyName.DeviceAutoCalibration:
+                await station.setAutoCalibration(device, value as boolean);
                 break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
@@ -1140,8 +1176,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.emit("station property changed", station, name, value);
     }
 
+    private onStationPropertyRenewed(station: Station, name: string, value: PropertyValue): void {
+        this.emit("station property renewed", station, name, value);
+    }
+
     private onStationRawPropertyChanged(station: Station, type: number, value: string, modified: number): void {
         this.emit("station raw property changed", station, type, value, modified);
+    }
+
+    private onStationRawPropertyRenewed(station: Station, type: number, value: string, modified: number): void {
+        this.emit("station raw property renewed", station, type, value, modified);
     }
 
     private onStationAlarmEvent(station: Station, alarmEvent: AlarmEvent): void {
@@ -1161,8 +1205,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
     }
 
+    private onDevicePropertyRenewed(device: Device, name: string, value: PropertyValue): void {
+        this.emit("device property renewed", device, name, value);
+    }
+
     private onDeviceRawPropertyChanged(device: Device, type: number, value: string, modified: number): void {
         this.emit("device raw property changed", device, type, value, modified);
+    }
+
+    private onDeviceRawPropertyRenewed(device: Device, type: number, value: string, modified: number): void {
+        this.emit("device raw property renewed", device, type, value, modified);
     }
 
     private onDeviceCryingDetected(device: Device, state: boolean): void {
@@ -1210,12 +1262,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private onStationRuntimeState(station: Station, channel: number, batteryLevel: number, temperature: number, modified: number): void {
         try {
             const device = this.getStationDevice(station.getSerial(), channel);
-            const metadataBattery = device.getPropertyMetadata(PropertyName.DeviceBattery);
-            if (metadataBattery !== undefined) {
+            if (device.hasProperty(PropertyName.DeviceBattery)) {
+                const metadataBattery = device.getPropertyMetadata(PropertyName.DeviceBattery);
                 device.updateRawProperty(metadataBattery.key as number, { value: batteryLevel.toString(), timestamp: modified});
             }
-            const metadataBatteryTemperature = device.getPropertyMetadata(PropertyName.DeviceBatteryTemp);
-            if (metadataBatteryTemperature !== undefined) {
+            if (device.hasProperty(PropertyName.DeviceBatteryTemp)) {
+                const metadataBatteryTemperature = device.getPropertyMetadata(PropertyName.DeviceBatteryTemp);
                 device.updateRawProperty(metadataBatteryTemperature.key as number, { value: temperature.toString(), timestamp: modified});
             }
         } catch (error) {
@@ -1226,12 +1278,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private onStationChargingState(station: Station, channel: number, chargeType: number, batteryLevel: number, modified: number): void {
         try {
             const device = this.getStationDevice(station.getSerial(), channel);
-            const metadataBattery = device.getPropertyMetadata(PropertyName.DeviceBattery);
-            if (metadataBattery !== undefined) {
+            if (device.hasProperty(PropertyName.DeviceBattery)) {
+                const metadataBattery = device.getPropertyMetadata(PropertyName.DeviceBattery);
                 device.updateRawProperty(metadataBattery.key as number, { value: batteryLevel.toString(), timestamp: modified});
             }
-            const metadataChargingStatus = device.getPropertyMetadata(PropertyName.DeviceChargingStatus);
-            if (metadataChargingStatus !== undefined) {
+            if (device.hasProperty(PropertyName.DeviceChargingStatus)) {
+                const metadataChargingStatus = device.getPropertyMetadata(PropertyName.DeviceChargingStatus);
                 device.updateRawProperty(metadataChargingStatus.key as number, { value: chargeType.toString(), timestamp: modified});
             }
         } catch (error) {
@@ -1253,6 +1305,18 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onCaptchaRequest(id: string, captcha: string): void {
         this.emit("captcha request", id, captcha);
+    }
+
+    private onFloodlightManualSwitch(station: Station, channel: number, enabled: boolean, modified: number): void {
+        try {
+            const device = this.getStationDevice(station.getSerial(), channel);
+            if (device.hasProperty(PropertyName.DeviceLight)) {
+                const metadataLight = device.getPropertyMetadata(PropertyName.DeviceLight);
+                device.updateRawProperty(metadataLight.key as number, { value: enabled === true ? "1" : "0", timestamp: modified});
+            }
+        } catch (error) {
+            this.log.error(`Station floodlight manual switch error (station: ${station.getSerial()} channel: ${channel})`, error);
+        }
     }
 
 }

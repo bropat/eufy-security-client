@@ -186,7 +186,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
     }
 
     private onSocketError(error: any): void {
-        this.log.error(`Error:`, error);
+        this.log.error(`onSocketError:`, error);
     }
 
     private handleParsedMessage(message: Message): void {

@@ -142,7 +142,9 @@ export interface StationEvents {
     "close": (station: Station) => void;
     "raw device property changed": (deviceSN: string, params: RawValues) => void;
     "property changed": (station: Station, name: string, value: PropertyValue) => void;
+    "property renewed": (station: Station, name: string, value: PropertyValue) => void;
     "raw property changed": (station: Station, type: number, value: string, modified: number) => void;
+    "raw property renewed": (station: Station, type: number, value: string, modified: number) => void;
     "command result": (station: Station, result: CommandResult) => void;
     "download start": (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
     "download finish": (station: Station, channel:number) => void;
@@ -158,11 +160,14 @@ export interface StationEvents {
     "runtime state": (station: Station, channel: number, batteryLevel: number, temperature: number, modified: number) => void;
     "charging state": (station: Station, channel: number, chargeType: number, batteryLevel: number, modified: number) => void;
     "wifi rssi": (station: Station, channel: number, rssi: number, modified: number) => void;
+    "floodlight manual switch": (station: Station, channel: number, enabled: boolean, modified: number) => void;
 }
 
 export interface DeviceEvents {
     "property changed": (device: Device, name: string, value: PropertyValue) => void;
+    "property renewed": (device: Device, name: string, value: PropertyValue) => void;
     "raw property changed": (device: Device, type: number, value: string, modified: number) => void;
+    "raw property renewed": (device: Device, type: number, value: string, modified: number) => void;
     "motion detected": (device: Device, state: boolean) => void;
     "person detected": (device: Device, state: boolean, person: string) => void;
     "pet detected": (device: Device, state: boolean) => void;
