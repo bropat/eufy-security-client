@@ -77,6 +77,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.6.2 (2022-02-05)
+
+* (bropat) Fixed MQTT connection issue (error: 5)
+
 ### 1.6.1 (2022-02-05)
 
 * (bropat) Fixed small issue on driver upgrade of persistence data (has no impact; error entry in log on first startup)

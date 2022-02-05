@@ -622,7 +622,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         const loginData = this.api.getPersistentData();
         if (loginData) {
-            this.mqttService.connect(loginData.user_id, this.persistentData.openudid, this.persistentData.api_base);
+            this.mqttService.connect(loginData.user_id, this.persistentData.openudid, this.persistentData.api_base, loginData.email);
         } else {
             this.log.warn("No login data recevied to initialize MQTT connection...");
         }
@@ -759,6 +759,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     public isPushConnected(): boolean {
         return this.pushService.isConnected();
+    }
+
+    public isMQTTConnected(): boolean {
+        return this.mqttService.isConnected();
     }
 
     public isConnected(): boolean {

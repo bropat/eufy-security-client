@@ -67,7 +67,7 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
         }
     }
 
-    public connect(clientID: string, androidID: string, apiBase: string): void {
+    public connect(clientID: string, androidID: string, apiBase: string, email: string): void {
         if (!this.connected && !this.connecting) {
             this.connecting = true;
             this.client = mqtt.connect(this.getMQTTBrokerUrl(apiBase), {
@@ -77,7 +77,7 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
                 resubscribe: true,
                 port: 8789,
                 username: this.USERNAME_FORMAT.replace("<user_id>", clientID),
-                password: "patrick.broetto+testing2@gmail.com",
+                password: email,
                 ca: fse.readFileSync(path.join(__dirname, "./mqtt-eufy.crt")),
                 clientId: this.CLIENT_ID_FORMAT.replace("<user_id>", clientID).replace("<android_id>", androidID)
             });
@@ -101,6 +101,8 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
             this.client.on("error", (error) => {
                 this.connecting = false;
                 this.log.error("MQTT Error", error);
+                if ((error as any).code === 5)
+                    this.client?.end();
             });
             this.client.on("message", (topic, message, _packet) => {
                 if (topic.includes("smart_lock")) {
@@ -143,6 +145,7 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
         if (this.connected) {
             this.client?.end(true);
             this.connected = false;
+            this.connecting = false;
         }
     }
 
