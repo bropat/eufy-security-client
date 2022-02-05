@@ -2,6 +2,7 @@
 
 * Connects to Eufy cloud (supports 2fa)
 * Connects to station/devices using p2p communication (supported: local and remote connectivity)
+* Connects to Eufy MQTT broker for event notification for some devices
 * Supports receiving push notification (unified push messages interface)
 * Basic P2P implementation that supports also commands not already implemented
 * Get info and parameters from stations/devices over https and/or p2p

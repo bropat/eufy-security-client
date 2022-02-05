@@ -1,12 +1,13 @@
 import { Readable } from "stream";
+import { Method } from "got";
 
 import { StreamMetadata } from "../p2p/interfaces";
 import { CommandResult } from "../p2p/models";
-import { AlarmEvent } from "../p2p/types";
+import { AlarmEvent, ChargingType } from "../p2p/types";
 import { Camera, Device } from "./device";
-import { FullDeviceResponse, HubResponse, Cipher, Voice, Invite } from "./models";
+import { Cipher, Voice, Invite, DeviceListResponse, StationListResponse } from "./models";
 import { Station } from "./station";
-import { CommandName } from "./types";
+import { CommandName, PropertyName } from "./types";
 
 export interface PropertyValue {
     value: unknown;
@@ -26,25 +27,6 @@ export interface RawValues {
     [index: number]: RawValue;
 }
 
-/*export interface StringValue {
-    value: string;
-    timestamp: number;
-}
-
-export interface BooleanValue {
-    value: boolean;
-    timestamp: number;
-}
-
-export interface NumberValue {
-    value: number;
-    timestamp: number;
-}
-
-export interface ParameterArray {
-    [index: number]: StringValue;
-}*/
-
 export interface Devices {
     [index: string]: Device;
 }
@@ -58,11 +40,11 @@ export interface Stations {
 }
 
 export interface Hubs {
-    [index: string]: HubResponse;
+    [index: string]: StationListResponse;
 }
 
 export interface FullDevices {
-    [index: string]: FullDeviceResponse;
+    [index: string]: DeviceListResponse;
 }
 
 export interface Ciphers {
@@ -77,6 +59,14 @@ export interface Invites {
     [index: number]: Invite;
 }
 
+export interface HTTPApiRequest {
+    apiBase?: string;
+    method: Method;
+    endpoint: string;
+    data?: any;
+    headers?: Record<string, string>;
+}
+
 export type PropertyMetadataType =
 	| "number"
 	| "boolean"
@@ -84,7 +74,7 @@ export type PropertyMetadataType =
 
 export interface PropertyMetadataAny {
     key: number | string;
-    name: string;
+    name: PropertyName;
     type: PropertyMetadataType;
     default?: any;
     readable: boolean;
@@ -128,6 +118,15 @@ export interface Commands {
     [index: number]: Array<CommandName>;
 }
 
+export interface HTTPApiPersistentData {
+    user_id: string;
+    email: string;
+    nick_name: string;
+    device_public_keys: {
+        [index: string]: string;
+    }
+}
+
 export interface HTTPApiEvents {
     "devices": (devices: FullDevices) => void;
     "hubs": (hubs: Hubs) => void;
@@ -158,7 +157,7 @@ export interface StationEvents {
     "alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
     "ready": (station: Station) => void;
     "runtime state": (station: Station, channel: number, batteryLevel: number, temperature: number, modified: number) => void;
-    "charging state": (station: Station, channel: number, chargeType: number, batteryLevel: number, modified: number) => void;
+    "charging state": (station: Station, channel: number, chargeType: ChargingType, batteryLevel: number, modified: number) => void;
     "wifi rssi": (station: Station, channel: number, rssi: number, modified: number) => void;
     "floodlight manual switch": (station: Station, channel: number, enabled: boolean, modified: number) => void;
 }

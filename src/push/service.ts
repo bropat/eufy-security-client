@@ -4,7 +4,7 @@ import { dummyLogger, Logger } from "ts-log";
 import { TypedEmitter } from "tiny-typed-emitter";
 
 import { buildCheckinRequest, convertTimestampMs, generateFid, parseCheckinResponse, sleep } from "./utils";
-import { CheckinResponse, Credentials, CusPushData, DoorbellPushData, FidInstallationResponse, FidTokenResponse, GcmRegisterResponse, IndoorPushData, RawPushMessage, PushMessage, BatteryDoorbellPushData } from "./models";
+import { CheckinResponse, Credentials, CusPushData, DoorbellPushData, FidInstallationResponse, FidTokenResponse, GcmRegisterResponse, IndoorPushData, RawPushMessage, PushMessage, BatteryDoorbellPushData, LockPushData } from "./models";
 import { PushClient } from "./client";
 import { PushNotificationServiceEvents } from "./interfaces";
 import { Device, DeviceType } from "../http";
@@ -29,6 +29,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
     private log: Logger;
     private connected = false;
+    private connecting = false;
 
     constructor(log: Logger = dummyLogger) {
         super();
@@ -62,7 +63,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     "x-goog-api-key": `${this.GOOGLE_API_KEY}`,
                 },
                 responseType: "json",
-                http2: true,
+                http2: false,
                 throwHttpErrors: false,
                 retry: {
                     limit: 3,
@@ -112,7 +113,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     Authorization: `${this.AUTH_VERSION} ${refreshToken}`
                 },
                 responseType: "json",
-                http2: true,
+                http2: false,
                 throwHttpErrors: false,
                 retry: {
                     limit: 3,
@@ -206,7 +207,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     "Content-Type": "application/x-protobuf",
                 },
                 responseType: "buffer",
-                http2: true,
+                http2: false,
                 throwHttpErrors: false,
                 retry: {
                     limit: 3,
@@ -273,7 +274,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         "User-Agent": "Android-GCM/1.5 (OnePlus5 NMF26X)",
                         "content-type": "application/x-www-form-urlencoded",
                     },
-                    http2: true,
+                    http2: false,
                     throwHttpErrors: false,
                     retry: {
                         limit: 3,
@@ -378,6 +379,27 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 normalized_message.tfcard_status = push_data.tfcard_status;
                 normalized_message.storage_type = push_data.storage_type !== undefined ? push_data.storage_type : 1;
                 normalized_message.unique_id = push_data.unique_id;
+            } else if (Device.isLock(normalized_message.type)) {
+                const push_data = message.payload.payload as LockPushData;
+
+                try {
+                    normalized_message.event_time = message.payload.event_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.event_time)) : Number.parseInt(message.payload.event_time);
+                } catch (error) {
+                    this.log.error(`Type ${DeviceType[normalized_message.type]} BatteryDoorbellPushData - event_time - Error:`, error);
+                }
+                normalized_message.station_sn = message.payload.station_sn;
+                normalized_message.device_sn = message.payload.device_sn;
+                normalized_message.title = message.payload.title;
+                normalized_message.content = message.payload.content;
+                try {
+                    normalized_message.push_time = message.payload.push_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.push_time)) : Number.parseInt(message.payload.push_time);
+                } catch (error) {
+                    this.log.error(`Type ${DeviceType[normalized_message.type]} BatteryDoorbellPushData - push_time - Error:`, error);
+                }
+                normalized_message.event_type = push_data.event_type;
+                normalized_message.short_user_id = push_data.short_user_id !== undefined ? push_data.short_user_id : "";
+                normalized_message.user_id = push_data.user_id !== undefined ? push_data.user_id : "";
+                normalized_message.name = push_data.device_name !== undefined ? push_data.device_name : "";
             } else {
                 const push_data = message.payload.payload as CusPushData;
 
@@ -547,39 +569,44 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             this.pushClient.on("connect", () => {
                 this.emit("connect", token);
                 this.connected = true;
+                this.connecting = false;
             });
             this.pushClient.on("close", () => {
                 this.emit("close");
                 this.connected = false;
+                this.connecting = false;
             });
             this.pushClient.on("message", (msg: RawPushMessage) => this.onMessage(msg));
             this.pushClient.connect();
         } else {
             this.emit("close");
             this.connected = false;
+            this.connecting = false;
             this.log.error("Push notifications are disabled, because the registration failed!");
         }
     }
 
     public async open(): Promise<Credentials | undefined> {
-        await this._open().catch((error) => {
-            this.log.error(`Got exception trying to initialize push notifications`, error);
-        });
+        if (!this.connecting && !this.connected) {
+            this.connecting = true;
+            await this._open().catch((error) => {
+                this.log.error(`Got exception trying to initialize push notifications`, error);
+            });
 
-        if (!this.credentials) {
-            this.clearRetryTimeout();
+            if (!this.credentials) {
+                this.clearRetryTimeout();
 
-            const delay = this.getCurrentPushRetryDelay();
-            this.log.info(`Retry to register/login for push notification in ${delay / 1000} seconds...`);
-            this.retryTimeout = setTimeout(async () => {
-                this.log.info(`Retry to register/login for push notification`);
-                await this.open();
-            }, delay);
-        } else {
-            this.resetRetryTimeout();
-            this.emit("credential", this.credentials);
+                const delay = this.getCurrentPushRetryDelay();
+                this.log.info(`Retry to register/login for push notification in ${delay / 1000} seconds...`);
+                this.retryTimeout = setTimeout(async () => {
+                    this.log.info(`Retry to register/login for push notification`);
+                    await this.open();
+                }, delay);
+            } else {
+                this.resetRetryTimeout();
+                this.emit("credential", this.credentials);
+            }
         }
-
         return this.credentials;
     }
 

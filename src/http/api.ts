@@ -1,12 +1,12 @@
-import got, { Method } from "got";
+import got from "got";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { dummyLogger, Logger } from "ts-log";
 import { isValid as isValidCountry } from "i18n-iso-countries";
 import { isValid as isValidLanguage } from "@cospired/i18n-iso-languages";
 import { createECDH, ECDH } from "crypto";
 
-import { ResultResponse, FullDeviceResponse, HubResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry, ApiResponse, CaptchaResponse, LoginRequest } from "./models"
-import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites } from "./interfaces";
+import { ResultResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry, ApiResponse, CaptchaResponse, LoginRequest, HouseDetail, DeviceListResponse, StationListResponse, HouseInviteListResponse, HouseListResponse, PassportProfileResponse } from "./models"
+import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites, HTTPApiRequest, HTTPApiPersistentData } from "./interfaces";
 import { AuthResult, EventFilterType, PublicKeyType, ResponseErrorCode, StorageType, VerfyCodeTypes } from "./types";
 import { ParameterHelper } from "./parameter";
 import { encryptPassword, getTimezoneGMTString } from "./utils";
@@ -15,6 +15,7 @@ import { md5 } from "./../utils";
 
 export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
+    private apiDomainBase = "https://extend.eufylife.com";
     private apiBase = "https://security-app.eufylife.com";
 
     private username: string;
@@ -33,10 +34,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     private devices: FullDevices = {};
     private hubs: Hubs = {};
 
+    private persistentData: HTTPApiPersistentData = {
+        user_id: "",
+        email: "",
+        nick_name: "",
+        device_public_keys: {}
+    };
+
     private headers: Record<string, string> = {
-        app_version: "v3.3.1_1058",
+        app_version: "v4.0.0_1197",
         os_type: "android",
-        os_version: "30",
+        os_version: "31",
         phone_model: "ONEPLUS A3003",
         country: "DE",
         language: "en",
@@ -51,12 +59,15 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         "Cache-Control": "no-cache",
     };
 
-    constructor(username: string, password: string, log: Logger = dummyLogger) {
+    constructor(username: string, password: string, log: Logger = dummyLogger, persistentData?: HTTPApiPersistentData) {
         super();
 
         this.username = username;
         this.password = password;
         this.log = log;
+
+        if (persistentData)
+            this.persistentData = persistentData;
 
         this.headers.timezone = getTimezoneGMTString();
     }
@@ -75,9 +86,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
 
     public setCountry(country: string): void {
-        if (isValidCountry(country) && country.length === 2)
+        if (isValidCountry(country) && country.length === 2) {
             this.headers.country = country;
-        else
+        } else
             throw new InvalidCountryCodeError("Invalid ISO 3166-1 Alpha-2 country code");
     }
 
@@ -96,11 +107,45 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         return this.headers.language;
     }
 
+    public async getApiBase(country: string): Promise<string> {
+        try {
+            const response = await this.request({
+                apiBase: this.apiDomainBase,
+                method: "get",
+                endpoint: `/domain/${country}`
+            }).catch(error => {
+                this.log.error("Error:", error);
+                return error;
+            });
+            this.log.debug("Response:", response.data);
+
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.data && result.data.domain) {
+                        return `https://${result.data.domain}`;
+                    }
+                } else {
+                    this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                }
+            } else {
+                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+            }
+        } catch (error) {
+            this.log.error("Generic Error:", error);
+        }
+        return "";
+    }
+
     public async authenticate(verifyCodeOrCaptcha: string | null = null, captchaId: string | null = null): Promise<AuthResult> {
         //Authenticate and get an access token
         this.log.debug("Authenticate and get an access token", { token: this.token, tokenExpiration: this.tokenExpiration });
         if (!this.token || (this.tokenExpiration && (new Date()).getTime() >= this.tokenExpiration.getTime()) || verifyCodeOrCaptcha) {
             try {
+                const apiBase = await this.getAPIBase();
+                if (apiBase !== "")
+                    this.apiBase = apiBase;
+
                 this.ecdh.generateKeys();
                 const data: LoginRequest = {
                     client_secret_info: {
@@ -118,7 +163,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     data.captcha_id = captchaId;
                     data.answer = verifyCodeOrCaptcha;
                 }
-                const response: ApiResponse = await this.request("post", "v2/passport/login", data).catch(error => {
+                const response: ApiResponse = await this.request({
+                    method: "post",
+                    endpoint: "v2/passport/login",
+                    data: data
+                }).catch(error => {
                     this.log.error("Error:", error);
                     return error;
                 });
@@ -128,6 +177,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     const result: ResultResponse = response.data;
                     if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                         const dataresult: LoginResultResponse = result.data;
+
+                        this.persistentData.user_id = dataresult.user_id;
+                        this.persistentData.email = dataresult.email;
+                        this.persistentData.nick_name = dataresult.nick_name;
 
                         this.token = dataresult.auth_token
                         this.tokenExpiration = new Date(dataresult.token_expires_at * 1000);
@@ -177,6 +230,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             }
             return AuthResult.ERROR;
         } else if (!this.connected) {
+            await this.getPassportProfile().catch((error) => {
+                this.log.error("getPassportProfile Error", error);
+            });
             this.emit("connect");
             this.connected = true;
         }
@@ -188,9 +244,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             if (!type)
                 type = VerfyCodeTypes.TYPE_EMAIL;
 
-            const response = await this.request("post", "v1/sms/send/verify_code", {
-                message_type: type,
-                transaction: `${new Date().getTime()}`
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/sms/send/verify_code",
+                data: {
+                    message_type: type,
+                    transaction: `${new Date().getTime()}`
+                }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
@@ -215,7 +275,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async listTrustDevice(): Promise<Array<TrustDevice>> {
         try {
-            const response = await this.request("get", "v1/app/trust_device/list").catch(error => {
+            const response = await this.request({
+                method: "get",
+                endpoint: "v1/app/trust_device/list"
+            }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
@@ -241,9 +304,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async addTrustDevice(verifyCode: string): Promise<boolean> {
         try {
-            const response = await this.request("post", "v1/app/trust_device/add", {
-                verify_code: `${verifyCode}`,
-                transaction: `${new Date().getTime()}`
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/app/trust_device/add",
+                data: {
+                    verify_code: verifyCode,
+                    transaction: `${new Date().getTime()}`
+                }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
@@ -276,19 +343,20 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         return false;
     }
 
-    public async updateDeviceInfo(): Promise<void> {
-        //Get the latest device info
-
-        //Get Stations
+    public async getStationList(): Promise<Array<StationListResponse>> {
         try {
-            const response = await this.request("post", "v1/app/get_hub_list", {
-                device_sn: "",
-                num: 1000,
-                orderby: "",
-                page: 0,
-                station_sn: "",
-                time_zone: new Date().getTimezoneOffset() !== 0 ? -new Date().getTimezoneOffset() * 60 * 1000 : 0,
-                transaction: `${new Date().getTime()}`
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/house/station_list",
+                data: {
+                    device_sn: "",
+                    num: 1000,
+                    orderby: "",
+                    page: 0,
+                    station_sn: "",
+                    time_zone: new Date().getTimezoneOffset() !== 0 ? -new Date().getTimezoneOffset() * 60 * 1000 : 0,
+                    transaction: `${new Date().getTime()}`
+                }
             }).catch(error => {
                 this.log.error("Stations - Error:", error);
                 return error;
@@ -298,19 +366,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
                 if (result.code == 0) {
-                    const dataresult: Array<HubResponse> = result.data;
-                    if (dataresult) {
-                        dataresult.forEach(element => {
-                            this.log.debug(`Stations - element: ${JSON.stringify(element)}`);
-                            this.log.debug(`Stations - device_type: ${element.device_type}`);
-                            this.hubs[element.station_sn] = element;
-                        });
-                    } else {
-                        this.log.info("No stations found.");
-                    }
-
-                    if (Object.keys(this.hubs).length > 0)
-                        this.emit("hubs", this.hubs);
+                    return result.data as Array<StationListResponse>;
                 } else {
                     this.log.error("Response code not ok", {code: result.code, msg: result.msg });
                 }
@@ -320,17 +376,23 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         } catch (error) {
             this.log.error("Stations - Generic Error:", error);
         }
+        return [];
+    }
 
-        //Get Devices
+    public async getDeviceList(): Promise<Array<DeviceListResponse>> {
         try {
-            const response = await this.request("post", "v1/app/get_devs_list", {
-                device_sn: "",
-                num: 1000,
-                orderby: "",
-                page: 0,
-                station_sn: "",
-                time_zone: new Date().getTimezoneOffset() !== 0 ? -new Date().getTimezoneOffset() * 60 * 1000 : 0,
-                transaction: `${new Date().getTime()}`
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/house/device_list",
+                data: {
+                    device_sn: "",
+                    num: 1000,
+                    orderby: "",
+                    page: 0,
+                    station_sn: "",
+                    time_zone: new Date().getTimezoneOffset() !== 0 ? -new Date().getTimezoneOffset() * 60 * 1000 : 0,
+                    transaction: `${new Date().getTime()}`
+                }
             }).catch(error => {
                 this.log.error("Devices - Error:", error);
                 return error;
@@ -340,17 +402,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
                 if (result.code == 0) {
-                    const dataresult: Array<FullDeviceResponse> = result.data;
-                    if (dataresult) {
-                        dataresult.forEach(element => {
-                            this.devices[element.device_sn] = element;
-                        });
-                    } else {
-                        this.log.info("No devices found.");
-                    }
-
-                    if (Object.keys(this.devices).length > 0)
-                        this.emit("devices", this.devices);
+                    return result.data as Array<DeviceListResponse>;
                 } else {
                     this.log.error("Response code not ok", {code: result.code, msg: result.msg });
                 }
@@ -360,20 +412,51 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         } catch (error) {
             this.log.error("Devices - Generic Error:", error);
         }
+        return [];
+    }
+
+    public async updateDeviceInfo(): Promise<void> {
+        //Get the latest device info
+
+        //Get Stations
+        const stations = await this.getStationList();
+        if (stations && stations.length > 0) {
+            stations.forEach(element => {
+                this.log.debug(`Stations - element: ${JSON.stringify(element)}`);
+                this.log.debug(`Stations - device_type: ${element.device_type}`);
+                this.hubs[element.station_sn] = element;
+            });
+            if (Object.keys(this.hubs).length > 0)
+                this.emit("hubs", this.hubs);
+        } else {
+            this.log.info("No stations found.");
+        }
+
+        //Get Devices
+        const devices = await this.getDeviceList();
+        if (devices && devices.length > 0) {
+            devices.forEach(element => {
+                this.devices[element.device_sn] = element;
+            });
+            if (Object.keys(this.devices).length > 0)
+                this.emit("devices", this.devices);
+        } else {
+            this.log.info("No devices found.");
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    public async request(method: Method, endpoint: string, data?: any, headers?: Record<string, string>): Promise<ApiResponse> {
+    public async request(request: HTTPApiRequest): Promise<ApiResponse> {
 
-        if (!this.token && endpoint != "v2/passport/login") {
+        if (!this.token && request.endpoint != "v2/passport/login") {
             //No token get one
             switch (await this.authenticate()) {
                 case AuthResult.RENEW:
-                    this.log.debug("Renew token", { method: method, endpoint: endpoint });
+                    this.log.debug("Renew token", { method: request.method, endpoint: request.endpoint });
                     await this.authenticate();
                     break;
                 case AuthResult.ERROR:
-                    this.log.error("Token error", { method: method, endpoint: endpoint });
+                    this.log.error("Token error", { method: request.method, endpoint: request.endpoint });
                     break;
                 default: break;
             }
@@ -381,32 +464,35 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.tokenExpiration && (new Date()).getTime() >= this.tokenExpiration.getTime()) {
             this.log.info("Access token expired; fetching a new one")
             this.invalidateToken();
-            if (endpoint != "v2/passport/login")
+            if (request.endpoint != "v2/passport/login")
                 //get new token
                 await this.authenticate()
         }
-        if (headers) {
-            headers = {
+        if (request.headers) {
+            request.headers = {
                 ...this.headers,
-                ...headers,
+                ...request.headers,
             };
         } else {
-            headers = {
+            request.headers = {
                 ...this.headers,
             };
         }
         if (this.token) {
-            headers["X-Auth-Token"] = this.token;
+            request.headers["X-Auth-Token"] = this.token;
+        }
+        if (request.apiBase == undefined) {
+            request.apiBase = this.apiBase;
         }
 
-        this.log.debug("Request:", { method: method, endpoint: endpoint, baseUrl: this.apiBase, token: this.token, data: data, headers: headers });
+        this.log.debug("Request:", { method: request.method, endpoint: request.endpoint, baseUrl: request.apiBase, token: this.token, data: request.data, headers: request.headers });
 
-        const internalResponse = await got(`${this.apiBase}/${endpoint}`, {
-            method: method,
-            headers: headers,
-            json: data,
+        const internalResponse = await got(`${request.apiBase}/${request.endpoint}`, {
+            method: request.method,
+            headers: request.headers,
+            json: request.data,
             responseType: "json",
-            http2: true,
+            http2: false,
             throwHttpErrors: false,
             retry: {
                 limit: 3,
@@ -433,9 +519,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     public async checkPushToken(): Promise<boolean> {
         //Check push notification token
         try {
-            const response = await this.request("post", "v1/app/review/app_push_check", {
-                app_type: "eufySecurity",
-                transaction: `${new Date().getTime()}`
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/app/review/app_push_check",
+                data: {
+                    app_type: "eufySecurity",
+                    transaction: `${new Date().getTime()}`
+                }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
@@ -462,10 +552,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     public async registerPushToken(token: string): Promise<boolean> {
         //Register push notification token
         try {
-            const response = await this.request("post", "v1/apppush/register_push_token", {
-                is_notification_enable: true,
-                token: token,
-                transaction: `${new Date().getTime().toString()}`
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/apppush/register_push_token",
+                data: {
+                    is_notification_enable: true,
+                    token: token,
+                    transaction: `${new Date().getTime().toString()}`
+                }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
@@ -496,10 +590,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         });
 
         try {
-            const response = await this.request("post", "v1/app/upload_devs_params", {
-                device_sn: deviceSN,
-                station_sn: stationSN,
-                params: tmp_params
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/app/upload_devs_params",
+                data: {
+                    device_sn: deviceSN,
+                    station_sn: stationSN,
+                    params: tmp_params
+                }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
@@ -526,10 +624,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async getCiphers(cipherIDs: Array<number>, userID: string): Promise<Ciphers> {
         try {
-            const response = await this.request("post", "v1/app/cipher/get_ciphers", {
-                cipher_ids: cipherIDs,
-                user_id: userID,
-                transaction: `${new Date().getTime().toString()}`
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/app/cipher/get_ciphers",
+                data: {
+                    cipher_ids: cipherIDs,
+                    user_id: userID,
+                    transaction: `${new Date().getTime().toString()}`
+                }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
@@ -560,7 +662,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async getVoices(deviceSN: string): Promise<Voices> {
         try {
-            const response = await this.request("get", `v1/voice/response/lists/${deviceSN}`).catch(error => {
+            const response = await this.request({
+                method: "get",
+                endpoint: `v1/voice/response/lists/${deviceSN}`
+            }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
             });
@@ -648,19 +753,25 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             if (maxResults === undefined)
                 maxResults = 1000;
 
-            const response = await this.request("post", endpoint, {
-                device_sn: filter.deviceSN !== undefined ? filter.deviceSN : "",
-                end_time: Math.trunc(endTime.getTime() / 1000),
-                id: 0,
-                id_type: 1,
-                is_favorite: false,
-                num: maxResults,
-                pullup: true,
-                shared: true,
-                start_time: Math.trunc(startTime.getTime() / 1000),
-                station_sn: filter.stationSN !== undefined ? filter.stationSN : "",
-                storage: filter.storageType !== undefined ? filter.storageType : StorageType.NONE,
-                transaction: `${new Date().getTime().toString()}`
+            const response = await this.request({
+                method: "post",
+                endpoint: endpoint,
+                data: {
+                    device_sn: filter.deviceSN !== undefined ? filter.deviceSN : "",
+                    end_time: Math.trunc(endTime.getTime() / 1000),
+                    //exclude_guest:false,
+                    //house_id:"shared.devices",
+                    id: 0,
+                    id_type: 1,
+                    is_favorite: false,
+                    num: maxResults,
+                    pullup: true,
+                    shared: true,
+                    start_time: Math.trunc(startTime.getTime() / 1000),
+                    station_sn: filter.stationSN !== undefined ? filter.stationSN : "",
+                    storage: filter.storageType !== undefined ? filter.storageType : StorageType.NONE,
+                    transaction: `${new Date().getTime().toString()}`
+                }
             }).catch(error => {
                 this.log.error(`${functionName} - Error:`, error);
                 return error;
@@ -690,15 +801,15 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
 
     public async getVideoEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        return this._getEvents("getVideoEvents", "v1/event/app/get_all_video_record", startTime, endTime, filter, maxResults);
+        return this._getEvents("getVideoEvents", "v1/house/event/video_list", startTime, endTime, filter, maxResults);
     }
 
     public async getAlarmEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        return this._getEvents("getAlarmEvents", "v1/event/app/get_all_alarm_record", startTime, endTime, filter, maxResults);
+        return this._getEvents("getAlarmEvents", "v1/house/event/alarm_list", startTime, endTime, filter, maxResults);
     }
 
     public async getHistoryEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        return this._getEvents("getHistoryEvents", "v1/event/app/get_all_history_record", startTime, endTime, filter, maxResults);
+        return this._getEvents("getHistoryEvents", "v1/house/event/list", startTime, endTime, filter, maxResults);
     }
 
     public async getAllVideoEvents(filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
@@ -722,12 +833,16 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async getInvites(): Promise<Invites> {
         try {
-            const response = await this.request("post", "v1/family/get_invites", {
-                num: 100,
-                orderby: "",
-                own: false,
-                page: 0,
-                transaction: `${new Date().getTime().toString()}`
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/family/get_invites",
+                data: {
+                    num: 100,
+                    orderby: "",
+                    own: false,
+                    page: 0,
+                    transaction: `${new Date().getTime().toString()}`
+                }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
@@ -759,9 +874,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async confirmInvites(confirmInvites: Array<ConfirmInvite>): Promise<boolean> {
         try {
-            const response = await this.request("post", "v1/family/confirm_invite", {
-                invites: confirmInvites,
-                transaction: `${new Date().getTime().toString()}`
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/family/confirm_invite",
+                data: {
+                    invites: confirmInvites,
+                    transaction: `${new Date().getTime().toString()}`
+                }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
@@ -786,23 +905,32 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async getPublicKey(deviceSN: string, type: PublicKeyType): Promise<string> {
         try {
-            const response = await this.request("get", `v1/public_key/query?device_sn=${deviceSN}&type=${type}`).catch(error => {
-                this.log.error("Error:", error);
-                return error;
-            });
-            this.log.debug("Response:", response.data);
+            if (this.persistentData.device_public_keys[deviceSN] !== undefined) {
+                this.log.debug("return cached public key", this.persistentData.device_public_keys[deviceSN]);
+                return this.persistentData.device_public_keys[deviceSN];
+            } else {
+                const response = await this.request({
+                    method: "get",
+                    endpoint: `v1/app/public_key/query?device_sn=${deviceSN}&type=${type}`
+                }).catch(error => {
+                    this.log.error("Error:", error);
+                    return error;
+                });
+                this.log.debug("Response:", response.data);
 
-            if (response.status == 200) {
-                const result: ResultResponse = response.data;
-                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
-                    if (result.data) {
-                        return result.data.public_key;
+                if (response.status == 200) {
+                    const result: ResultResponse = response.data;
+                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                        if (result.data) {
+                            this.persistentData.device_public_keys[deviceSN] = result.data.public_key;
+                            return result.data.public_key;
+                        }
+                    } else {
+                        this.log.error("Response code not ok", {code: result.code, msg: result.msg });
                     }
                 } else {
-                    this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
                 }
-            } else {
-                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
             }
         } catch (error) {
             this.log.error("Generic Error:", error);
@@ -812,13 +940,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async getSensorHistory(stationSN: string, deviceSN: string): Promise<Array<SensorHistoryEntry>> {
         try {
-            const response = await this.request("post", "v1/app/get_sensor_history", {
-                devicse_sn: deviceSN,
-                max_time: 0,  //TODO: Finish implementation
-                num: 500,     //TODO: Finish implementation
-                page: 0,      //TODO: Finish implementation
-                station_sn: stationSN,
-                transaction: `${new Date().getTime().toString()}`
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/app/get_sensor_history",
+                data: {
+                    devicse_sn: deviceSN,
+                    max_time: 0,  //TODO: Finish implementation
+                    num: 500,     //TODO: Finish implementation
+                    page: 0,      //TODO: Finish implementation
+                    station_sn: stationSN,
+                    transaction: `${new Date().getTime().toString()}`
+                }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
@@ -842,6 +974,176 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             this.log.error("Generic Error:", error);
         }
         return [];
+    }
+
+    public async getHouseDetail(houseID: string): Promise<HouseDetail|null> {
+        try {
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/house/detail",
+                data: {
+                    house_id: houseID,
+                    transaction: `${new Date().getTime().toString()}`
+                }
+            }).catch(error => {
+                this.log.error("Error:", error);
+                return error;
+            });
+            this.log.debug("Response:", response.data);
+
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.data) {
+                        return result.data as HouseDetail;
+                    }
+                } else {
+                    this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                }
+            } else {
+                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+            }
+        } catch (error) {
+            this.log.error("Generic Error:", error);
+        }
+        return null;
+    }
+
+    public async getHouseList(): Promise<Array<HouseListResponse>> {
+        try {
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/house/list",
+                data: {
+                    transaction: `${new Date().getTime().toString()}`
+                }
+            }).catch(error => {
+                this.log.error("Error:", error);
+                return error;
+            });
+            this.log.debug("Response:", response.data);
+
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.data) {
+                        return result.data as Array<HouseListResponse>;
+                    }
+                } else {
+                    this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                }
+            } else {
+                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+            }
+        } catch (error) {
+            this.log.error("Generic Error:", error);
+        }
+        return [];
+    }
+
+    public async getHouseInviteList(isInviter = 1): Promise<Array<HouseInviteListResponse>> {
+        //TODO: Understand the other values of isInviter and document it
+        try {
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/house/invite_list",
+                data: {
+                    is_inviter: isInviter,
+                    transaction: `${new Date().getTime().toString()}`
+                }
+            }).catch(error => {
+                this.log.error("Error:", error);
+                return error;
+            });
+            this.log.debug("Response:", response.data);
+
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.data) {
+                        return result.data as Array<HouseInviteListResponse>;
+                    }
+                } else {
+                    this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                }
+            } else {
+                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+            }
+        } catch (error) {
+            this.log.error("Generic Error:", error);
+        }
+        return [];
+    }
+
+    public async confirmHouseInvite(houseID: string, inviteID: number): Promise<boolean> {
+        try {
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/house/confirm_invite",
+                data: {
+                    house_id: houseID,
+                    invite_id: inviteID,
+                    is_inviter: 1, // 1 = true, 0 = false
+                    //user_id: "",
+                    transaction: `${new Date().getTime().toString()}`
+                }
+            }).catch(error => {
+                this.log.error("Error:", error);
+                return error;
+            });
+            this.log.debug("Response:", response.data);
+
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    return true;
+                } else {
+                    this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                }
+            } else {
+                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+            }
+        } catch (error) {
+            this.log.error("Generic Error:", error);
+        }
+        return false;
+    }
+
+    public getPersistentData(): HTTPApiPersistentData | undefined {
+        return this.persistentData;
+    }
+
+    public async getPassportProfile(): Promise<PassportProfileResponse|null> {
+        try {
+            const response = await this.request({
+                method: "get",
+                endpoint: "v1/passport/profile"
+            }).catch(error => {
+                this.log.error("Error:", error);
+                return error;
+            });
+            this.log.debug("Response:", response.data);
+
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.data) {
+                        const profile = result.data as PassportProfileResponse;
+                        this.persistentData.user_id = profile.user_id;
+                        this.persistentData.nick_name = profile.nick_name;
+                        this.persistentData.email = profile.email;
+                        return profile;
+                    }
+                } else {
+                    this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                }
+            } else {
+                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+            }
+        } catch (error) {
+            this.log.error("Generic Error:", error);
+        }
+        return null;
     }
 
 }

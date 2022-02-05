@@ -77,6 +77,35 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.6.0 (2022-02-05)
+
+* (bropat) Supports new [Home Management](https://communitysecurity.eufylife.com/t/tips-for-eufy-security-app-v4-0/2420747) feature of Eufy Security 4.0
+* (bropat) Added support for Smart Lock Touch & Wifi (T8520; #89)
+* (bropat) Implemented Eufy MQTT notification subscription for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added auto lock setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added auto lock schedule setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added auto lock schedule start time setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added auto lock schedule end time setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added auto lock timer setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added notification setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added notification locked setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added notification unlocked setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added one touch locking setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added scramble passcode setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added sound setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added wrong try protection setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added wrong try attempts setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added wrong try lockdown time setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added lock/unlock command for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added lock calibration command for Smart Lock Touch & Wifi (T8520)
+* (bropat) Improved p2p communication with energy saving devices
+* (bropat) Added new HTTPApi methods supporting Eufy Security 4.0
+* (bropat) Some small improvements were made to the HTTPApi
+* (bropat) Fixed issue #97
+* (bropat) Fixed issue #102
+* (bropat) Fixed issue #109
+* (bropat) Updated versions of the package dependencies
+
 ### 1.5.0 (2021-12-19)
 
 * (bropat) Added support for floodlight cam 2 pro (T8423)

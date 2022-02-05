@@ -1,7 +1,8 @@
 import { Readable } from "stream";
 import { Device } from "./http/device";
-import { PropertyValue } from "./http/interfaces";
+import { HTTPApiPersistentData, PropertyValue } from "./http/interfaces";
 import { Station } from "./http/station";
+import { DeviceSmartLockMessage } from "./mqtt/model";
 import { StreamMetadata } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
 import { AlarmEvent } from "./p2p/types";
@@ -30,6 +31,7 @@ export interface EufySecurityPersistentData {
     push_credentials: Credentials | undefined;
     push_persistentIds: string[];
     version: string;
+    httpApi?: HTTPApiPersistentData;
 }
 
 export interface EufySecurityEvents {
@@ -75,4 +77,7 @@ export interface EufySecurityEvents {
     "captcha request": (id: string, captcha: string) => void;
     "cloud livestream start": (station: Station, device: Device, url: string) => void;
     "cloud livestream stop": (station: Station, device: Device) => void;
+    "mqtt connect": () => void;
+    "mqtt close": () => void;
+    "mqtt lock message": (message: DeviceSmartLockMessage) => void;
 }

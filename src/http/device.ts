@@ -3,7 +3,7 @@ import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
 import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName } from "./types";
-import { FullDeviceResponse, ResultResponse, StreamResponse } from "./models"
+import { ResultResponse, StreamResponse, DeviceListResponse } from "./models"
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, RawValue, PropertyMetadataNumeric, PropertyMetadataBoolean } from "./interfaces";
 import { CommandType, ESLAnkerBleConstant } from "../p2p/types";
@@ -13,11 +13,12 @@ import { eslTimestamp } from "../p2p/utils";
 import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, PushMessage } from "../push";
 import { isEmpty } from "../utils";
 import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
+import { DeviceSmartLockNotifyData } from "../mqtt/model";
 
 export abstract class Device extends TypedEmitter<DeviceEvents> {
 
     protected api: HTTPApi;
-    protected rawDevice: FullDeviceResponse;
+    protected rawDevice: DeviceListResponse;
     protected log: Logger;
     protected eventTimeouts = new Map<DeviceEvent, NodeJS.Timeout>();
 
@@ -25,7 +26,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
     private rawProperties: RawValues = {};
     private ready = false;
 
-    constructor(api: HTTPApi, device: FullDeviceResponse) {
+    constructor(api: HTTPApi, device: DeviceListResponse) {
         super();
         this.api = api;
         this.rawDevice = device;
@@ -37,11 +38,11 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         });
     }
 
-    public getRawDevice(): FullDeviceResponse {
+    public getRawDevice(): DeviceListResponse {
         return this.rawDevice;
     }
 
-    public update(device: FullDeviceResponse): void {
+    public update(device: DeviceListResponse): void {
         this.rawDevice = device;
         const metadata = this.getPropertiesMetadata();
         for (const property of Object.values(metadata)) {
@@ -80,7 +81,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         this.log.debug("Normalized Properties", { deviceSN: this.getSerial(), properties: this.properties });
     }
 
-    protected updateProperty(name: string, value: PropertyValue): boolean {
+    public updateProperty(name: string, value: PropertyValue): boolean {
         if (
             (this.properties[name] !== undefined
                 && (
@@ -266,6 +267,9 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
                     this.log.error("Convert CMD_SET_PIRSENSITIVITY Error:", { property: property, value: value, error: error });
                     return value;
                 }
+            } else if (property.key === CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_STARTTIME || property.key === CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_ENDTIME) {
+                const tmpBuffer = Buffer.from(value.value, "hex")
+                return { value: `${tmpBuffer.slice(0, 1).readInt8().toString().padStart(2, "0")}:${tmpBuffer.slice(1).readInt8().toString().padStart(2, "0")}`, timestamp: value.timestamp };
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
@@ -408,7 +412,9 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_PRO ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_2K ||
-            type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR)
+            type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
+            type == DeviceType.LOCK_ADVANCED ||
+            type == DeviceType.LOCK_ADVANCED_NO_FINGER)
             //TODO: Add other battery devices
             return true;
         return false;
@@ -785,7 +791,7 @@ export class Camera extends Device {
 
     private _isStreaming = false;
 
-    constructor(api: HTTPApi, device: FullDeviceResponse) {
+    constructor(api: HTTPApi, device: DeviceListResponse) {
         super(api, device);
 
         this.properties[PropertyName.DeviceMotionDetected] = { value: false, timestamp: 0 };
@@ -827,10 +833,14 @@ export class Camera extends Device {
     public async startStream(): Promise<string> {
         // Start the camera stream and return the RTSP URL.
         try {
-            const response = await this.api.request("post", "v1/web/equipment/start_stream", {
-                device_sn: this.rawDevice.device_sn,
-                station_sn: this.rawDevice.station_sn,
-                proto: 2
+            const response = await this.api.request({
+                method: "post",
+                endpoint: "v1/web/equipment/start_stream",
+                data: {
+                    device_sn: this.rawDevice.device_sn,
+                    station_sn: this.rawDevice.station_sn,
+                    proto: 2
+                }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
@@ -864,10 +874,14 @@ export class Camera extends Device {
     public async stopStream(): Promise<void> {
         // Stop the camera stream.
         try {
-            const response = await this.api.request("post", "v1/web/equipment/stop_stream", {
-                device_sn: this.rawDevice.device_sn,
-                station_sn: this.rawDevice.station_sn,
-                proto: 2
+            const response = await this.api.request({
+                method: "post",
+                endpoint: "v1/web/equipment/stop_stream",
+                data: {
+                    device_sn: this.rawDevice.device_sn,
+                    station_sn: this.rawDevice.station_sn,
+                    proto: 2
+                }
             }).catch(error => {
                 this.log.error("Error:", error);
                 return error;
@@ -1069,7 +1083,7 @@ export class SoloCamera extends Camera {
 
 export class IndoorCamera extends Camera {
 
-    constructor(api: HTTPApi, device: FullDeviceResponse) {
+    constructor(api: HTTPApi, device: DeviceListResponse) {
         super(api, device);
 
         this.properties[PropertyName.DevicePetDetected] = { value: false, timestamp: 0 };
@@ -1194,7 +1208,7 @@ export class IndoorCamera extends Camera {
 
 export class DoorbellCamera extends Camera {
 
-    constructor(api: HTTPApi, device: FullDeviceResponse) {
+    constructor(api: HTTPApi, device: DeviceListResponse) {
         super(api, device);
 
         this.properties[PropertyName.DeviceRinging] = { value: false, timestamp: 0 };
@@ -1406,7 +1420,7 @@ export class MotionSensor extends Sensor {
         return MotionSensor.isMotionDetected(this.getMotionSensorPIREvent().value);
     }*/
 
-    constructor(api: HTTPApi, device: FullDeviceResponse) {
+    constructor(api: HTTPApi, device: DeviceListResponse) {
         super(api, device);
 
         this.properties[PropertyName.DeviceMotionDetected] = { value: false, timestamp: 0 };
@@ -1455,7 +1469,7 @@ export class Lock extends Device {
 
     protected processCustomParameterChanged(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
         super.processCustomParameterChanged(metadata, oldValue, newValue);
-        if (metadata.key === CommandType.CMD_DOORLOCK_GET_STATE && oldValue !== undefined && ((oldValue.value === 4 && newValue.value !== 4) || (oldValue.value !== 4 && newValue.value === 4))) {
+        if ((metadata.key === CommandType.CMD_DOORLOCK_GET_STATE || metadata.key === CommandType.CMD_SMARTLOCK_QUERY_STATUS) && ((oldValue !== undefined && ((oldValue.value === 4 && newValue.value !== 4) || (oldValue.value !== 4 && newValue.value === 4))) || oldValue === undefined)) {
             if (this.updateProperty(PropertyName.DeviceLocked, { value: newValue.value === 4 ? true : false, timestamp: newValue.timestamp}))
                 this.emit("locked", this as unknown as Lock, newValue.value === 4 ? true : false);
         }
@@ -1523,46 +1537,73 @@ export class Lock extends Device {
 
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined) {
-            if (message.device_sn === this.getSerial()) {
-                try {
-                    switch (message.event_type) {
-                        case LockPushEvent.APP_LOCK:
-                        case LockPushEvent.AUTO_LOCK:
-                        case LockPushEvent.FINGER_LOCK:
-                        case LockPushEvent.KEYPAD_LOCK:
-                        case LockPushEvent.MANUAL_LOCK:
-                        case LockPushEvent.PW_LOCK:
-                            this.updateRawProperty(CommandType.CMD_DOORLOCK_GET_STATE, { value: "4", timestamp: convertTimestampMs(message.event_time) });
-                            this.emit("locked", this, this.getPropertyValue(PropertyName.DeviceLocked).value as boolean);
-                            break;
-                        case LockPushEvent.APP_UNLOCK:
-                        case LockPushEvent.AUTO_UNLOCK:
-                        case LockPushEvent.FINGER_UNLOCK:
-                        case LockPushEvent.MANUAL_UNLOCK:
-                        case LockPushEvent.PW_UNLOCK:
-                            this.updateRawProperty(CommandType.CMD_DOORLOCK_GET_STATE, { value: "3", timestamp: convertTimestampMs(message.event_time) });
-                            this.emit("locked", this, this.getPropertyValue(PropertyName.DeviceLocked).value as boolean);
-                            break;
-                        case LockPushEvent.LOCK_MECHANICAL_ANOMALY:
-                        case LockPushEvent.MECHANICAL_ANOMALY:
-                        case LockPushEvent.VIOLENT_DESTRUCTION:
-                        case LockPushEvent.MULTIPLE_ERRORS:
-                            this.updateRawProperty(CommandType.CMD_DOORLOCK_GET_STATE, { value: "5", timestamp: convertTimestampMs(message.event_time) });
-                            break;
-                        // case LockPushEvent.LOW_POWE:
-                        //     this.updateRawProperty(CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL, { value: "10", timestamp: convertTimestampMs(message.event_time) });
-                        //     break;
-                        // case LockPushEvent.VERY_LOW_POWE:
-                        //     this.updateRawProperty(CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL, { value: "5", timestamp: convertTimestampMs(message.event_time) });
-                        //     break;
-                        default:
-                            this.log.debug("Unhandled lock push event", message);
-                            break;
+        if (message.event_type !== undefined) {
+            this.processNotification(message.event_type, message.event_time, message.device_sn);
+        }
+    }
+
+    public processMQTTNotification(message: DeviceSmartLockNotifyData): void {
+        if (message.eventType === LockPushEvent.STATUS_CHANGE) {
+            // Lock state event
+            const cmdType = this.isLockBasic() || this.isLockBasicNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+            this.updateRawProperty(cmdType, { value: message.lockState, timestamp: convertTimestampMs(message.eventTime) });
+        } else if (message.eventType === LockPushEvent.OTA_STATUS) {
+            // OTA Status - ignore event
+        } else {
+            this.processNotification(message.eventType, message.eventTime, this.getSerial());
+        }
+    }
+
+    private processNotification(eventType: number, eventTime: number, deviceSN: string): void {
+        if (deviceSN === this.getSerial()) {
+            try {
+                switch (eventType) {
+                    case LockPushEvent.APP_LOCK:
+                    case LockPushEvent.AUTO_LOCK:
+                    case LockPushEvent.FINGER_LOCK:
+                    case LockPushEvent.KEYPAD_LOCK:
+                    case LockPushEvent.MANUAL_LOCK:
+                    case LockPushEvent.PW_LOCK:
+                    case LockPushEvent.TEMPORARY_PW_LOCK:
+                    {
+                        const cmdType = this.isLockBasic() || this.isLockBasicNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        this.updateRawProperty(cmdType, { value: "4", timestamp: convertTimestampMs(eventTime) });
+                        this.emit("locked", this, this.getPropertyValue(PropertyName.DeviceLocked).value as boolean);
+                        break;
                     }
-                } catch (error) {
-                    this.log.debug(`LockPushEvent - Device: ${message.device_sn} Error:`, error);
+                    case LockPushEvent.APP_UNLOCK:
+                    case LockPushEvent.AUTO_UNLOCK:
+                    case LockPushEvent.FINGERPRINT_UNLOCK:
+                    case LockPushEvent.MANUAL_UNLOCK:
+                    case LockPushEvent.PW_UNLOCK:
+                    case LockPushEvent.TEMPORARY_PW_UNLOCK:
+                    {
+                        const cmdType = this.isLockBasic() || this.isLockBasicNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        this.updateRawProperty(cmdType, { value: "3", timestamp: convertTimestampMs(eventTime) });
+                        this.emit("locked", this, this.getPropertyValue(PropertyName.DeviceLocked).value as boolean);
+                        break;
+                    }
+                    case LockPushEvent.LOCK_MECHANICAL_ANOMALY:
+                    case LockPushEvent.MECHANICAL_ANOMALY:
+                    case LockPushEvent.VIOLENT_DESTRUCTION:
+                    case LockPushEvent.MULTIPLE_ERRORS:
+                    {
+                        const cmdType = this.isLockBasic() || this.isLockBasicNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        this.updateRawProperty(cmdType, { value: "5", timestamp: convertTimestampMs(eventTime) });
+                        break;
+                    }
+                    // case LockPushEvent.LOW_POWE:
+                    //     this.updateRawProperty(CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL, { value: "10", timestamp: convertTimestampMs(eventTime) });
+                    //     break;
+                    // case LockPushEvent.VERY_LOW_POWE:
+                    //     this.updateRawProperty(CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL, { value: "5", timestamp: convertTimestampMs(eventTime) });
+                    //     break;
+                    default:
+                        this.log.debug("Unhandled lock notification event", eventType, eventTime, deviceSN);
+                        break;
                 }
+            } catch (error) {
+                this.log.debug(`LockEvent - Device: ${deviceSN} Error:`, error);
             }
         }
     }

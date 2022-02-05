@@ -1,0 +1,33 @@
+// Copyright: (c) 2022, Patrick Broetto <patrick.broetto@gmail.com>
+// MIT License
+
+syntax = "proto3";
+
+package eufy_security_client.lock;
+
+message DeviceSmartLockMessage {
+    optional uint32 event_type = 1;
+    optional string user_id = 2;
+    optional DeviceSmartLockNotify data = 3;
+}
+
+message DeviceSmartLockNotify {
+    optional uint64 timestamp = 1;
+    optional string uuid = 2;
+    optional DeviceSmartLockNotifyData data = 3;
+}
+
+message DeviceSmartLockNotifyData {
+    optional string station_sn = 1;
+    optional string device_sn = 2;
+    optional uint32 event_type = 3;
+    optional uint64 event_time = 4;
+    optional string short_user_id = 5;
+    optional string unknown1 = 6;
+    optional string nick_name = 7;
+    optional string user_id = 8;
+    optional string unknown2 = 9;
+    optional string device_name = 10;
+    optional string unknown3 = 11;
+    optional string lock_state = 12;
+}

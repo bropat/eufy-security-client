@@ -3,8 +3,8 @@ import { Readable } from "stream";
 import { SortedMap } from "sweet-collections";
 
 import { AlarmMode } from "../http/types";
-import { Address, CmdCameraInfoResponse, CommandResult } from "./models";
-import { AudioCodec, CommandType, P2PDataType, VideoCodec } from "./types";
+import { Address, CmdCameraInfoResponse, CommandResult, PropertyData } from "./models";
+import { AudioCodec, ChargingType, CommandType, P2PDataType, VideoCodec } from "./types";
 
 export interface P2PClientProtocolEvents {
     "alarm mode": (mode: AlarmMode) => void;
@@ -21,7 +21,7 @@ export interface P2PClientProtocolEvents {
     "esl parameter": (channel: number, param: number, value: string) => void;
     "timeout": () => void;
     "runtime state": (channel: number, batteryLevel: number, temperature: number) => void;
-    "charging state": (channel: number, chargeType: number, batteryLevel: number) => void;
+    "charging state": (channel: number, chargeType: ChargingType, batteryLevel: number) => void;
     "rtsp livestream started": (channel: number) => void;
     "rtsp livestream stopped": (channel: number) => void;
     "floodlight manual switch": (channel: number, enabled: boolean) => void;
@@ -33,6 +33,7 @@ export interface P2PQueueMessage {
     channel: number;
     payload: Buffer;
     timestamp: number;
+    property?: PropertyData;
 }
 
 export interface P2PMessageState {
@@ -45,6 +46,7 @@ export interface P2PMessageState {
     acknowledged: boolean;
     returnCode: number;
     timeout?: NodeJS.Timeout;
+    property?: PropertyData;
 }
 
 export interface P2PMessageParts {
@@ -131,4 +133,13 @@ export interface DeviceSerial {
         sn: string;
         adminUserId: string;
     };
+}
+
+export interface P2PCommand {
+    commandType: CommandType;
+    value?: number | string;
+    valueSub?: number;
+    strValue?: string;
+    strValueSub?: string;
+    channel?: number;
 }

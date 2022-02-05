@@ -31,7 +31,7 @@
 | ![T8500 with Wi-Fi Bridge image](_media/smartlock_t8500_wifibridge_small.jpg) | Smart Lock (T8500) with Wi-Fi Bridge | :heavy_check_mark: :wrench: |  |
 | ![T8510 image](_media/smartlock_touch_t8510_small.jpg) | Smart Lock Touch (T8510) | :x: |  |
 | ![T8510 with Wi-Fi Bridge image](_media/smartlock_touch_t8510_wifibridge_small.jpg) | Smart Lock Touch (T8510) with Wi-Fi Bridge | :heavy_check_mark: :wrench: |  |
-  ![T8520 image](_media/smartlock_touch_and_wifi_t8520_small.jpg) | Smart Lock Touch & Wifi (T8520) | :x: |  |
+  ![T8520 image](_media/smartlock_touch_and_wifi_t8520_small.jpg) | Smart Lock Touch & Wifi (T8520) | :heavy_check_mark: :wrench: | Firmware: 1.3.6.8 (20220205) |
 | ![T8960 image](_media/keypad_small.jpg) | Keypad (T8960) | :heavy_check_mark: |  |
 
 ## Legend
