@@ -77,6 +77,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.6.1 (2022-02-05)
+
+* (bropat) Fixed small issue on driver upgrade of persistence data (has no impact; error entry in log on first startup)
+
 ### 1.6.0 (2022-02-05)
 
 * (bropat) Supports new [Home Management](https://communitysecurity.eufylife.com/t/tips-for-eufy-security-app-v4-0/2420747) feature of Eufy Security 4.0

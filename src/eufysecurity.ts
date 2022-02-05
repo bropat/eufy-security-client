@@ -113,7 +113,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             if (this.persistentData.version !== libVersion) {
                 const currentVersion = Number.parseFloat(removeLastChar(libVersion, "."));
                 const previousVersion = this.persistentData.version !== "" && this.persistentData.version !== undefined ? Number.parseFloat(removeLastChar(this.persistentData.version, ".")) : 0;
-                this.log.debug("Handling of adapter update", { currentVersion: currentVersion, previousVersion: previousVersion });
+                this.log.debug("Handling of driver update", { currentVersion: currentVersion, previousVersion: previousVersion });
 
                 if (previousVersion < currentVersion) {
                     this.persistentData = handleUpdate(this.persistentData, this.log, previousVersion);
@@ -716,7 +716,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private writePersistentData(): void {
         this.persistentData.login_hash = md5(`${this.config.username}:${this.config.password}`);
-        this.persistentData.httpApi = this.api.getPersistentData();
+        this.persistentData.httpApi = this.api?.getPersistentData();
         try {
             fse.writeFileSync(this.persistentFile, JSON.stringify(this.persistentData));
         } catch (error) {
