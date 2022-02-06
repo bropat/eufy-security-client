@@ -280,6 +280,7 @@ export enum PropertyName {
     DeviceMotionDetection = "motionDetection",
     DeviceMotionDetectionType = "motionDetectionType",
     DeviceMotionDetectionSensitivity = "motionDetectionSensitivity",
+    DeviceMotionZone = "motionZone",
     DeviceMotionDetected = "motionDetected",
     DeviceMotionTracking = "motionTracking",
     DevicePersonDetected = "personDetected",
@@ -1061,6 +1062,15 @@ export const DeviceHiddenMotionDetectionModeWiredDoorbellProperty: PropertyMetad
     type: "number",
     min: 1,
     max: 3,
+}
+
+export const DeviceMotionZoneProperty: PropertyMetadataString = {
+    key: CommandType.CMD_INDOOR_DET_SET_ACTIVE_ZONE,
+    name: PropertyName.DeviceMotionZone,
+    label: "Motion Detection Zone",
+    readable: true,
+    writeable: true,
+    type: "string",
 }
 
 export const DeviceFloodlightLightProperty: PropertyMetadataBoolean = {
@@ -2230,6 +2240,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionProperty,
         [PropertyName.DeviceNotificationAllSound]: DeviceNotificationAllSoundProperty,
         [PropertyName.DeviceNotificationCrying]: DeviceNotificationCryingProperty,
+        [PropertyName.DeviceMotionZone]: DeviceMotionZoneProperty,
     },
     [DeviceType.INDOOR_PT_CAMERA_1080]: {
         ...GenericDeviceProperties,
