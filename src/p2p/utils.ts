@@ -1,11 +1,14 @@
 import { Socket } from "dgram";
 import NodeRSA from "node-rsa";
 import CryptoJS from "crypto-js"
-import { randomBytes } from "crypto";
+import { randomBytes, createCipheriv, createECDH, ECDH, createHmac } from "crypto";
+import os from "os";
 
-import { P2PMessageParts } from "./interfaces";
+import { P2PMessageParts, P2PMessageState, P2PQueueMessage } from "./interfaces";
 import { CommandType, P2PDataTypeHeader, VideoCodec } from "./types";
 import { Address } from "./models";
+import { DeviceType } from "../http/types";
+import { Device } from "../http/device";
 
 export const MAGIC_WORD = "XZYH";
 
@@ -26,6 +29,22 @@ const stringWithLength = (input: string, targetByteLength = 128): Buffer => {
     return Buffer.concat([stringAsBuffer, postZeros]);
 };
 
+export const getLocalIpAddress = (init = ""): string => {
+    const ifaces = os.networkInterfaces();
+    let localAddress = init;
+    for (const name in ifaces) {
+        const iface = ifaces[name]!.filter(function(details) {
+            return details.family === "IPv4" && details.internal === false;
+        });
+
+        if(iface.length > 0) {
+            localAddress = iface[0].address;
+            break;
+        }
+    }
+    return localAddress;
+}
+
 const p2pDidToBuffer = (p2pDid: string): Buffer => {
     const p2pArray = p2pDid.split("-");
     const buf1 = stringWithLength(p2pArray[0], 8);
@@ -38,10 +57,12 @@ const p2pDidToBuffer = (p2pDid: string): Buffer => {
 export const buildLookupWithKeyPayload = (socket: Socket, p2pDid: string, dskKey: string): Buffer => {
     const p2pDidBuffer = p2pDidToBuffer(p2pDid);
 
-    const port = socket.address().port;
+    const addressInfo = socket.address();
+    const port = addressInfo.port;
     const portAsBuffer = Buffer.allocUnsafe(2);
     portAsBuffer.writeUInt16LE(port, 0);
-    const ip = socket.address().address;
+    //const ip = socket.address().address;
+    const ip = getLocalIpAddress(addressInfo.address);
     const temp_buff: number[] = [];
     ip.split(".").reverse().forEach(element => {
         temp_buff.push(Number.parseInt(element));
@@ -306,7 +327,7 @@ export const encryptLockAESData = (key: string, iv: string, data: Buffer): Buffe
     return Buffer.from(CryptoJS.enc.Hex.stringify(encrypted.ciphertext), "hex");
 }
 
-export const generateLockAESKey = (adminID: string, stationSN: string): string => {
+export const generateBasicLockAESKey = (adminID: string, stationSN: string): string => {
 
     const encoder = new TextEncoder();
     const encOwnerID = encoder.encode(adminID);
@@ -320,7 +341,9 @@ export const generateLockAESKey = (adminID: string, stationSN: string): string =
     return Buffer.from(array).toString("hex");
 }
 
-export const generateLockSequence = (): number => {
+export const generateLockSequence = (deviceType: DeviceType): number => {
+    if (Device.isLockAdvanced(deviceType) || Device.isLockAdvanced(deviceType))
+        return Math.trunc(Math.random() * 1000);
     return Math.trunc(new Date().getTime() / 1000); //ESLBridgeSeqNumManager
 }
 
@@ -371,7 +394,7 @@ export const eslTimestamp = function(timestamp_in_sec = new Date().getTime() / 1
     return array;
 }
 
-export const generateLockBasicAESKey = (): string => {
+export const generateAdvancedLockAESKey = (): string => {
     const randomBytesArray = [...randomBytes(16)];
     let result = "";
     for(let pos = 0; pos < randomBytesArray.length; pos++) {
@@ -379,35 +402,6 @@ export const generateLockBasicAESKey = (): string => {
         result += "0123456789ABCDEF".charAt(randomBytesArray[pos] & 15);
     }
     return result;
-}
-
-export const encryptLockBasicPublicKey = (key: string, data: Buffer): Buffer => {
-    const ekey = CryptoJS.enc.Hex.parse(key);
-    const encrypted = CryptoJS.AES.encrypt(CryptoJS.enc.Hex.parse(data.toString("hex")), ekey, {
-        mode: CryptoJS.mode.ECB,
-        padding: CryptoJS.pad.NoPadding
-    });
-    return Buffer.from(CryptoJS.enc.Hex.stringify(encrypted.ciphertext), "hex");
-}
-
-export const generateLockBasicSequence = (): number => {
-    return Math.trunc(Math.random() * 1000);
-}
-
-export const generateLockBasicPublicKeyAESKey = (userID: string): string => {
-    if (userID === undefined || userID === "") {
-        return "00000000000000000000000000000000";
-    }
-    if (userID.length > 32) {
-        return userID.substring(0, 32);
-    }
-    if (userID.length === 32) {
-        return userID;
-    }
-    for (let length = userID.length; length < 32; length++) {
-        userID += "0";
-    }
-    return userID;
 }
 
 export const getVideoCodec = (data: Buffer): VideoCodec => {
@@ -432,4 +426,65 @@ export const checkT8420 = (serialNumber: string): boolean => {
         return false;
     }
     return true;
+}
+
+export const buildVoidCommandPayload = (channel = 255): Buffer => {
+    const headerBuffer = Buffer.from([0x00, 0x00]);
+    const emptyBuffer = Buffer.from([0x00, 0x00]);
+    const magicBuffer = Buffer.from([0x01, 0x00]);
+    const channelBuffer = Buffer.from([channel, 0x00]);
+
+    return Buffer.concat([
+        headerBuffer,
+        emptyBuffer,
+        magicBuffer,
+        channelBuffer,
+        emptyBuffer
+    ]);
+};
+
+export function isP2PQueueMessage(type: P2PQueueMessage | P2PMessageState): type is P2PQueueMessage {
+    return (type as P2PQueueMessage).payload !== undefined;
+}
+
+export const encryptAdvancedLockData = (data: string, key: Buffer, iv: Buffer): Buffer => {
+    const cipher = createCipheriv("aes-128-cbc", key, iv);
+    return Buffer.concat([
+        cipher.update(data),
+        cipher.final()]
+    );
+}
+
+export const eufyKDF = (key: Buffer): Buffer => {
+    const hash_length = 32;
+    const digest_length = 48;
+    const staticBuffer = Buffer.from("ECIES");
+    const steps = Math.ceil(digest_length / hash_length);
+    const buffer = Buffer.alloc(hash_length * steps);
+
+    let tmpBuffer = staticBuffer;
+    for (let step = 0; step < steps; ++step) {
+        tmpBuffer = createHmac("sha256", key).update(tmpBuffer).digest();
+        const digest = createHmac("sha256", key).update(Buffer.concat([tmpBuffer, staticBuffer])).digest();
+        digest.copy(buffer, hash_length * step);
+    }
+
+    return buffer.slice(0, digest_length);
+}
+
+export const getAdvancedLockKey = (key: string, publicKey: string): string => {
+    const ecdh: ECDH = createECDH("prime256v1");
+    ecdh.generateKeys();
+    const secret = ecdh.computeSecret(Buffer.concat([Buffer.from("04", "hex"), Buffer.from(publicKey, "hex")]));
+    const randomValue = randomBytes(16);
+
+    const derivedKey = eufyKDF(secret);
+    const encryptedData = encryptAdvancedLockData(key, derivedKey.slice(0, 16), randomValue);
+
+    const hmac = createHmac("sha256", derivedKey.slice(16));
+    hmac.update(randomValue);
+    hmac.update(encryptedData);
+    const hmacDigest = hmac.digest();
+
+    return Buffer.concat([Buffer.from(ecdh.getPublicKey("hex", "compressed"), "hex"), randomValue, encryptedData, hmacDigest]).toString("hex");
 }

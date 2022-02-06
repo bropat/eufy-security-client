@@ -27,3 +27,6 @@ tsconfig.*.json
 # npm package files
 *.tgz
 package-lock.json
+
+# Exclude documentation
+docs

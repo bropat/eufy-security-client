@@ -1,3 +1,10 @@
+export interface ApiResponse {
+    status: number;
+    statusText: string;
+    data: any;
+    headers: any;
+}
+
 export interface ResultResponse {
     code: number;
     msg: string;
@@ -22,11 +29,95 @@ export interface LoginResultResponse {
     privilege: number;
     phone: string;
     phone_code: string;
-    params: any;
+    server_secret_info: {
+        public_key: string
+    } | null,
+    params: Array<{
+        param_type: number;
+        param_value: string;
+    }> | null;
     trust_list: Array<TrustDevice>;
 }
 
-export interface HubResponse {
+export interface CaptchaResponse {
+    captcha_id: string;
+    item: string;
+}
+
+export interface LoginRequest {
+    client_secret_info: {
+        public_key: string;
+    },
+    enc: number;
+    email: string;
+    password: string;
+    time_zone: number;
+    verify_code?: string;
+    captcha_id?: string;
+    answer?: string
+    transaction: string;
+}
+
+export interface Member {
+    family_id: number;
+    station_sn: string;
+    admin_user_id: string;
+    member_user_id: string;
+    short_user_id: string;
+    member_type: number;
+    permissions: number;
+    member_nick: string;
+    action_user_id: string;
+    fence_state: number;
+    extra: string;
+    member_avatar: string;
+    house_id: string;
+    create_time: number;
+    update_time: number;
+    status: number;
+    email: string;
+    nick_name: string;
+    avatar: string;
+    action_user_email: string;
+    action_user_name: string;
+}
+
+export interface StationListDevice {
+    device_id: number;
+    is_init_complete: boolean;
+    device_sn: string;
+    device_name: string;
+    device_model: string;
+    time_zone: string;
+    device_type: number;
+    device_channel: number;
+    station_sn: string;
+    schedule: string;
+    schedulex: string;
+    wifi_mac: string;
+    sub1g_mac: string;
+    main_sw_version: string;
+    main_hw_version: string;
+    sec_sw_version: string;
+    sec_hw_version: string;
+    sector_id: number;
+    event_num: number;
+    wifi_ssid: string;
+    ip_addr: string;
+    main_sw_time: number;
+    sec_sw_time: number;
+    bind_time: number;
+    local_ip: string;
+    language: string;
+    sku_number: string;
+    lot_number: string;
+    cpu_id: string;
+    create_time: number;
+    update_time: number;
+    status: number;
+}
+
+export interface StationListResponse {
     readonly [index: string]: unknown;
     station_id: number;
     station_sn: string;
@@ -44,6 +135,7 @@ export interface HubResponse {
     volume: string;
     main_sw_time: number;
     sec_sw_time: number;
+    bt_mac: string;
     setup_code: string;
     setup_id: string;
     device_type: number;
@@ -69,66 +161,13 @@ export interface HubResponse {
     query_server_did: string;
     prefix: string;
     wakeup_key: string;
-    member: {
-        family_id: number;
-        station_sn: string;
-        admin_user_id: string;
-        member_user_id: string;
-        short_user_id: string;
-        member_type: number;
-        permissions: number;
-        member_nick: string;
-        action_user_id: string;
-        fence_state: number;
-        extra: string;
-        member_avatar: string;
-        create_time: number;
-        update_time: number;
-        status: number;
-        email: string;
-        nick_name: string;
-        avatar: string;
-        action_user_email: string;
-        action_user_name: string;
-    };
+    member: Member;
     params: Array<ParameterResponse>;
-    devices: Array<HubDeviceResponse>;
+    devices: Array<StationListDevice>;
     sensor_info: null;
     is_init_complete: boolean;
-}
-
-export interface HubDeviceResponse {
-    device_id: number,
-    is_init_complete: boolean,
-    device_sn: string,
-    device_name: string,
-    device_model: string,
-    time_zone: string,
-    device_type: number,
-    device_channel: number,
-    station_sn: string,
-    schedule: string,
-    schedulex: string,
-    wifi_mac: string,
-    sub1g_mac: string,
-    main_sw_version: string,
-    main_hw_version: string,
-    sec_sw_version: string,
-    sec_hw_version: string,
-    sector_id: number,
-    event_num: number,
-    wifi_ssid: string,
-    ip_addr: string,
-    main_sw_time: number,
-    sec_sw_time: number,
-    bind_time: number,
-    local_ip: string,
-    language: string,
-    sku_number: string,
-    lot_number: string,
-    create_time: number,
-    update_time: number,
-    status: number
+    virtual_version: string;
+    house_id?: string;
 }
 
 export interface ParameterResponse {
@@ -185,7 +224,7 @@ export interface DeviceRequest {
     station_sn: string;
 }
 
-export interface FullDeviceResponse {
+export interface DeviceListResponse {
     readonly [index: string]: unknown;
     device_id: number;
     is_init_complete: boolean;
@@ -208,15 +247,18 @@ export interface FullDeviceResponse {
     event_num: number;
     wifi_ssid: string;
     ip_addr: string;
+    volume: string;
     main_sw_time: number;
     sec_sw_time: number;
     bind_time: number;
+    bt_mac: string;
     cover_path: string;
     cover_time: number;
     local_ip: string;
     language: string;
     sku_number: string;
     lot_number: string;
+    cpu_id: string;
     create_time: number;
     update_time: number;
     status: number;
@@ -236,32 +278,14 @@ export interface FullDeviceResponse {
         binded: false;
         setup_code: string;
         setup_id: string;
+        bt_mac: string;
         wifi_mac: string;
+        dsk_key: string;
+        expiration: number;
     };
     family_num: number;
-    member: {
-        family_id: number;
-        station_sn: string;
-        admin_user_id: string;
-        member_user_id: string;
-        short_user_id: string;
-        member_type: number;
-        permissions: number;
-        member_nick: string;
-        action_user_id: string;
-        fence_state: number;
-        extra: string;
-        member_avatar: string;
-        create_time: number;
-        update_time: number;
-        status: number;
-        email: string;
-        nick_name: string;
-        avatar: string;
-        action_user_email: string;
-        action_user_name: string;
-    };
-    permission: null;
+    member: Member;
+    permission: any;
     params: Array<ParameterResponse>;
     pir_total: number;
     pir_none: number;
@@ -275,6 +299,9 @@ export interface FullDeviceResponse {
     charging_reserve: number;
     charging_missing: number;
     battery_usage_last_week: number;
+    virtual_version: string;
+    relate_devices: any;
+    house_id?: string;
 }
 
 export interface DskKeyResponse {
@@ -417,4 +444,88 @@ export interface SensorHistoryEntry {
     trigger_time: number;
     create_time: number;
     status: string;
+}
+
+export interface HouseUser {
+    id: number;
+    house_id: string;
+    email: string;
+    avatar: string;
+    user_id: string;
+    admin_user_id: string;
+    state: string;
+    role_type: number;
+}
+
+export interface HouseDetail {
+    house_id: string;
+    house_name: string;
+    is_default: number;
+    id: number;
+    geofence_id: number;
+    address: string;
+    latitude: number;
+    longitude: number;
+    radius_range: number;
+    away_mode: number;
+    home_mode: number;
+    location_msg: number;
+    create_time: number;
+    house_users: Array<HouseUser>;
+    //TODO: Finish definition of house_stations
+    house_stations: any;
+}
+
+export interface HouseListResponse {
+    readonly [index: string]: unknown;
+    house_id: string;
+    user_id: string;
+    admin_user_id: string;
+    role_type: number;
+    house_name: string;
+    is_default: number;
+    geofence_id: number;
+    address: string;
+    latitude: number
+    longitude: number;
+    radius_range: number;
+    location_msg: number;
+    create_time: number;
+    away_mode: number;
+    home_mode: number;
+}
+
+export interface HouseInviteListResponse {
+    readonly [index: string]: unknown;
+    id: number;
+    house_name: string;
+    action_user_nick: string;
+    action_user_email: string;
+    house_id: string;
+    email: string;
+    user_id: string;
+    role_type: string;
+}
+
+export interface ConfirmHouseInvite {
+    house_id: string;
+    invite_id: number;
+    is_inviter: number;
+    user_id: string;
+}
+
+export interface PassportProfileResponse {
+    user_id: string;
+    email: string;
+    nick_name: string;
+    avatar: string;
+    invitation_code: string;
+    inviter_code: string;
+    verify_code_url: string;
+    mac_addr: string;
+    country: {
+        id: number;
+        name: string;
+        code: string;
+    }
 }

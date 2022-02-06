@@ -1,12 +1,13 @@
 import { Readable } from "stream";
+import { Method } from "got";
 
 import { StreamMetadata } from "../p2p/interfaces";
 import { CommandResult } from "../p2p/models";
-import { AlarmEvent } from "../p2p/types";
+import { AlarmEvent, ChargingType } from "../p2p/types";
 import { Camera, Device } from "./device";
-import { FullDeviceResponse, HubResponse, Cipher, Voice, Invite } from "./models";
+import { Cipher, Voice, Invite, DeviceListResponse, StationListResponse } from "./models";
 import { Station } from "./station";
-import { CommandName } from "./types";
+import { CommandName, PropertyName } from "./types";
 
 export interface PropertyValue {
     value: unknown;
@@ -26,25 +27,6 @@ export interface RawValues {
     [index: number]: RawValue;
 }
 
-/*export interface StringValue {
-    value: string;
-    timestamp: number;
-}
-
-export interface BooleanValue {
-    value: boolean;
-    timestamp: number;
-}
-
-export interface NumberValue {
-    value: number;
-    timestamp: number;
-}
-
-export interface ParameterArray {
-    [index: number]: StringValue;
-}*/
-
 export interface Devices {
     [index: string]: Device;
 }
@@ -58,11 +40,11 @@ export interface Stations {
 }
 
 export interface Hubs {
-    [index: string]: HubResponse;
+    [index: string]: StationListResponse;
 }
 
 export interface FullDevices {
-    [index: string]: FullDeviceResponse;
+    [index: string]: DeviceListResponse;
 }
 
 export interface Ciphers {
@@ -77,6 +59,14 @@ export interface Invites {
     [index: number]: Invite;
 }
 
+export interface HTTPApiRequest {
+    apiBase?: string;
+    method: Method;
+    endpoint: string;
+    data?: any;
+    headers?: Record<string, string>;
+}
+
 export type PropertyMetadataType =
 	| "number"
 	| "boolean"
@@ -84,7 +74,7 @@ export type PropertyMetadataType =
 
 export interface PropertyMetadataAny {
     key: number | string;
-    name: string;
+    name: PropertyName;
     type: PropertyMetadataType;
     default?: any;
     readable: boolean;
@@ -128,11 +118,22 @@ export interface Commands {
     [index: number]: Array<CommandName>;
 }
 
+export interface HTTPApiPersistentData {
+    user_id: string;
+    email: string;
+    nick_name: string;
+    device_public_keys: {
+        [index: string]: string;
+    }
+}
+
 export interface HTTPApiEvents {
     "devices": (devices: FullDevices) => void;
     "hubs": (hubs: Hubs) => void;
     "connect": () => void;
     "close": () => void;
+    "tfa request": () => void;
+    "captcha request": (id: string, captcha: string) => void;
 }
 
 export interface StationEvents {
@@ -140,25 +141,32 @@ export interface StationEvents {
     "close": (station: Station) => void;
     "raw device property changed": (deviceSN: string, params: RawValues) => void;
     "property changed": (station: Station, name: string, value: PropertyValue) => void;
+    "property renewed": (station: Station, name: string, value: PropertyValue) => void;
     "raw property changed": (station: Station, type: number, value: string, modified: number) => void;
+    "raw property renewed": (station: Station, type: number, value: string, modified: number) => void;
     "command result": (station: Station, result: CommandResult) => void;
     "download start": (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
     "download finish": (station: Station, channel:number) => void;
     "livestream start": (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
     "livestream stop": (station: Station, channel:number) => void;
+    "rtsp livestream start": (station: Station, channel:number) => void;
+    "rtsp livestream stop": (station: Station, channel:number) => void;
     "rtsp url": (station: Station, channel:number, value: string, modified: number) => void;
     "guard mode": (station: Station, guardMode: number) => void;
     "current mode": (station: Station, currentMode: number) => void;
     "alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
     "ready": (station: Station) => void;
     "runtime state": (station: Station, channel: number, batteryLevel: number, temperature: number, modified: number) => void;
-    "charging state": (station: Station, channel: number, chargeType: number, batteryLevel: number, modified: number) => void;
+    "charging state": (station: Station, channel: number, chargeType: ChargingType, batteryLevel: number, modified: number) => void;
     "wifi rssi": (station: Station, channel: number, rssi: number, modified: number) => void;
+    "floodlight manual switch": (station: Station, channel: number, enabled: boolean, modified: number) => void;
 }
 
 export interface DeviceEvents {
     "property changed": (device: Device, name: string, value: PropertyValue) => void;
+    "property renewed": (device: Device, name: string, value: PropertyValue) => void;
     "raw property changed": (device: Device, type: number, value: string, modified: number) => void;
+    "raw property renewed": (device: Device, type: number, value: string, modified: number) => void;
     "motion detected": (device: Device, state: boolean) => void;
     "person detected": (device: Device, state: boolean, person: string) => void;
     "pet detected": (device: Device, state: boolean) => void;

@@ -48,13 +48,23 @@ export interface EufyPushMessage {
     content: string;
     device_sn: string;
     event_time: string;
-    payload?: CusPushData | IndoorPushData | ServerPushData | BatteryDoorbellPushData;
+    payload?: CusPushData | IndoorPushData | ServerPushData | BatteryDoorbellPushData | LockPushData;
     push_time: string;
     station_sn: string;
     title: string;
     type: string;
     doorbell?: string;
     "google.c.sender.id": string;
+}
+
+export interface LockPushData {
+    event_type: number;
+    event_time: number;
+    short_user_id: string;
+    nick_name: string;
+    user_id: string;
+    device_name: string;
+    device_sn: string;
 }
 
 export interface BatteryDoorbellPushData {

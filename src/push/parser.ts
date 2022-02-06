@@ -105,10 +105,10 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
         try {
             this.messageSize = reader.int32();
         } catch (error) {
-            if (error.message.startsWith("index out of range:")) {
+            if (error instanceof Error && error.message.startsWith("index out of range:")) {
                 incompleteSizePacket = true;
             } else {
-                throw new Error(error);
+                throw new Error(error as string);
             }
         }
 

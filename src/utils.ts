@@ -1,4 +1,6 @@
 import * as crypto from "crypto";
+import { Logger } from "ts-log";
+import { EufySecurityPersistentData } from ".";
 import { InvalidPropertyValueError } from "./error";
 import { PropertyMetadataAny, PropertyMetadataNumeric } from "./http";
 
@@ -19,8 +21,13 @@ export const generateSerialnumber = function(length: number): string {
 export const md5 = (contents: string): string => crypto.createHash("md5").update(contents).digest("hex");
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const handleUpdate = function(oldVersion: number): void {
-    // for future updates
+export const handleUpdate = function(config: EufySecurityPersistentData, log: Logger, oldVersion: number): EufySecurityPersistentData {
+    if (oldVersion <= 1.24) {
+        config.api_base = "";
+        config.cloud_token = "";
+        config.cloud_token_expiration = 0;
+    }
+    return config;
 };
 
 export const isEmpty = function(str: string | null | undefined): boolean {

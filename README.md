@@ -1,11 +1,11 @@
 # eufy-security-client
 
-![Logo](img/eufy-security.png)
+![Logo](docs/_media/eufy-security.png)
 
 [![node](https://img.shields.io/node/v/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
 [![NPM version](http://img.shields.io/npm/v/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
 [![Downloads](https://img.shields.io/npm/dm/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
-[![Dependency Status](https://img.shields.io/david/bropat/eufy-security-client.svg)](https://david-dm.org/bropat/eufy-security-client)
+[![Dependency Status](https://img.shields.io/librariesio/release/npm/eufy-security-client)](https://libraries.io/npm/eufy-security-client)
 [![Known Vulnerabilities](https://snyk.io/test/github/bropat/eufy-security-client/badge.svg)](https://snyk.io/test/github/bropat/eufy-security-client)
 
 [![NPM](https://nodei.co/npm/eufy-security-client.png?downloads=true)](https://nodei.co/npm/eufy-security-client/)
@@ -21,6 +21,9 @@ Credits go to them as well.
 If you appreciate my work and progress and want to support me, you can do it here:
 
 [![ko-fi](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/E1E332Q6Z)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://www.paypal.me/pbroetto)
+
+**This project is not affiliated with Anker and Eufy (Eufy Security). It is a personal project that is maintained in spare time.**
 
 ## Description
 
@@ -60,35 +63,13 @@ One client instance will show all devices from one Eufy Cloud account and allows
 
 ## Documentation
 
-* WIP
+Look [here](https://bropat.github.io/eufy-security-client/).
 
 *As an example, you can look at the following projects: [ioBroker.eufy-security](https://github.com/bropat/ioBroker.eufy-security), [eufy-security-ws](https://github.com/bropat/eufy-security-ws), [eufy_security](https://github.com/fuatakgun/eufy_security)*
 
 ## Known working devices
 
-* HomeBase (T8001)
-* HomeBase E (T8002)
-* HomeBase 2 (T8010)
-* Smart Lock Wi-Fi Bridge (T8021)
-* eufyCam (T8111)
-* eufyCam E (T8112)
-* eufyCam 2 (T8114)
-* eufyCam 2C (T8113)
-* eufyCam 2 Pro (T8140)
-* eufyCam 2C Pro (T8141)
-* Floodlight (T8420)
-* Wired Doorbell 2k (T8200)
-* Wired Doorbell 1080p (T8201)
-* Battery Doorbell 2K (T8210)
-* Battery Doorbell 1080p (T8222)
-* Entry Sensor (T8900)
-* Motion sensor (T8910)
-* Indoor Cam Pan&Tilt 2K (T8410)
-* Indoor Cam 2K (T8400)
-* Indoor Cam Pan&Tilt 1080p (T8411)
-* Indoor Cam 1080p (T8401)
-* Smart Lock Front Door (T8500)
-* Keypad (T8960)
+For a list of supported devices, please see [here](https://bropat.github.io/eufy-security-client/#/supported_devices).
 
 If more devices work (or also not) please report them by opening a GitHub issue.
 
@@ -97,6 +78,130 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 Please use GitHub issues for this.
 
 ## Changelog
+
+### 1.6.2 (2022-02-05)
+
+* (bropat) Fixed MQTT connection issue (error: 5)
+
+### 1.6.1 (2022-02-05)
+
+* (bropat) Fixed small issue on driver upgrade of persistence data (has no impact; error entry in log on first startup)
+
+### 1.6.0 (2022-02-05)
+
+* (bropat) Supports new [Home Management](https://communitysecurity.eufylife.com/t/tips-for-eufy-security-app-v4-0/2420747) feature of Eufy Security 4.0
+* (bropat) Added support for Smart Lock Touch & Wifi (T8520; #89)
+* (bropat) Implemented Eufy MQTT notification subscription for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added auto lock setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added auto lock schedule setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added auto lock schedule start time setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added auto lock schedule end time setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added auto lock timer setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added notification setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added notification locked setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added notification unlocked setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added one touch locking setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added scramble passcode setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added sound setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added wrong try protection setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added wrong try attempts setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added wrong try lockdown time setting for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added lock/unlock command for Smart Lock Touch & Wifi (T8520)
+* (bropat) Added lock calibration command for Smart Lock Touch & Wifi (T8520)
+* (bropat) Improved p2p communication with energy saving devices
+* (bropat) Added new HTTPApi methods supporting Eufy Security 4.0
+* (bropat) Some small improvements were made to the HTTPApi
+* (bropat) Fixed issue #97
+* (bropat) Fixed issue #102
+* (bropat) Fixed issue #109
+* (bropat) Updated versions of the package dependencies
+
+### 1.5.0 (2021-12-19)
+
+* (bropat) Added support for floodlight cam 2 pro (T8423)
+* (bropat) Added motion detection range setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion detection range standard sensitivity setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion detection range advanced left sensitivity setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion detection range advanced middle sensitivity setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion detection range advanced right sensitivity setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion detection range test mode setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion tracking sensitivity setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion auto-cruise setting for floodlight cam 2 pro (T8423)
+* (bropat) Added motion out-of-view detection setting for floodlight cam 2 pro (T8423)
+* (bropat) Added light setting color temperature manual setting for floodlight cam 2 pro (T8423)
+* (bropat) Added light setting color temperature mamotion setting for floodlight cam 2 pro (T8423)
+* (bropat) Added light setting color temperature schedule setting for floodlight cam 2 pro (T8423)
+* (bropat) Added light setting motion activation mode setting for floodlight cam 2 pro (T8423)
+* (bropat) Added video nightvision image adjustment setting for floodlight cam 2 pro (T8423)
+* (bropat) Added video color nightvision setting for floodlight cam 2 pro (T8423)
+* (bropat) Added auto calibration setting for floodlight cam 2 pro (T8423)
+* (bropat) Added start/stop rtsp livestream command for floodlight cam 2 pro (T8423)
+* (bropat) Added battery and wifi rssi properties to eufycam 1/E
+* (bropat) Implemented another p2p-keepalive mechanism found in some floodlights (e.g. T8420)
+* (bropat) Fixed support for floodlight (T8420) - tested with FW: 1.0.0.35 HW: 2.2
+* (bropat) Fixed status led setting for floodlight (T8420)
+* (bropat) Fixed motion detected setting for floodlight (T8420)
+* (bropat) Fixed motion detected sensitivity setting for floodlight (T8420)
+* (bropat) Fixed audio recording setting for floodlight (T8420)
+* (bropat) Fixed enable/disable device for floodlight (T8420)
+* (bropat) Fixed start livestream command for floodlight (T8420)
+* (bropat) Fixed issue #79
+* (bropat) Fixed issue #66
+* (bropat) Fixed some other minor issues
+* (bropat) Added docs (:construction:)
+* (bropat) Updated versions of the package dependencies
+
+### 1.4.0 (2021-11-22)
+
+* (bropat) Implemented captcha authentication mechanism (API v2)
+* (bropat) Fixed issue #69
+
+### 1.3.0 (2021-11-20)
+
+* (bropat) Implemented new encrypted authentication mechanism (API v2)
+* (bropat) Dropped old plaintext authentication mechanism (API v1)
+* (bropat) Fixed issue #67
+* (bropat) Exchanged axios with got for HTTP/2 support
+
+**Note:** If you have 2FA enabled, you will need to authenticate again after this update.
+
+### 1.2.4 (2021-11-17)
+
+* (bropat) Fixed issue #63
+
+### 1.2.3 (2021-11-16)
+
+* (bropat) Fixed issue #64
+* (bropat) Fixed issue #65
+* (bropat) Updated versions of the package dependencies
+
+### 1.2.2 (2021-11-06)
+
+* (bropat) Fixed issue of wrong channel value on event rtsp livestream stopped
+* (bropat) Updated versions of the package dependencies
+
+### 1.2.1 (2021-10-23)
+
+* (bropat) Changed event detection for start/stop local RTSP streaming
+* (bropat) Fixed regression introduced by fixing issue #51
+* (bropat) Fixed new implementation that detects interrupted p2p streams
+* (bropat) Fixed missing start/stop local RTSP streaming commands to hasCommand and getCommands
+
+### 1.2.0 (2021-10-17)
+
+* (bropat) Extended p2p implementation to better support solo cameras and other battery powered devices
+* (bropat) Revised p2p implementation to send commands sequentially
+* (bropat) Added support for Floodlight T8422
+* (bropat) Added support for SoloCam E40 (T8131)
+* (bropat) Added experimental feature for supported devices: start/stop local RTSP streaming
+* (bropat) Added new properties for solo cameras: battery, batteryTemperature, wifiSignalLevel, state, chargingStatus, lastChargingDays, lastChargingRecordedEvents, lastChargingTotalEvents, batteryUsageLastWeek
+* (bropat) Implemented interrupted p2p stream detection
+* (bropat) Fixed issue #51
+* (bropat) Fixed push notifications for solo cameras (motion and person detection)
+* (bropat) Fixed "livestream stopped" if live stream is started for multiple devices of the same station (1 p2p session could start only 1 live stream at a time)
+* (bropat) Fixed "download finished" if download is started for multiple devices of the same station (1 p2p session could start only 1 download at a time)
+* (bropat) Fixed an issue where the P2P connection type PREFER_LOCAL did not attempt to connect if no local IP address was found
+* (bropat) Updated versions of the package dependencies
 
 ### 1.1.2 (2021-08-19)
 

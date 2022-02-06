@@ -3,8 +3,8 @@ import { Readable } from "stream";
 import { SortedMap } from "sweet-collections";
 
 import { AlarmMode } from "../http/types";
-import { Address, CmdCameraInfoResponse, CommandResult } from "./models";
-import { AudioCodec, CommandType, P2PDataType, VideoCodec } from "./types";
+import { Address, CmdCameraInfoResponse, CommandResult, PropertyData } from "./models";
+import { AudioCodec, ChargingType, CommandType, P2PDataType, VideoCodec } from "./types";
 
 export interface P2PClientProtocolEvents {
     "alarm mode": (mode: AlarmMode) => void;
@@ -21,19 +21,32 @@ export interface P2PClientProtocolEvents {
     "esl parameter": (channel: number, param: number, value: string) => void;
     "timeout": () => void;
     "runtime state": (channel: number, batteryLevel: number, temperature: number) => void;
-    "charging state": (channel: number, chargeType: number, batteryLevel: number) => void;
+    "charging state": (channel: number, chargeType: ChargingType, batteryLevel: number) => void;
+    "rtsp livestream started": (channel: number) => void;
+    "rtsp livestream stopped": (channel: number) => void;
+    "floodlight manual switch": (channel: number, enabled: boolean) => void;
+}
+
+export interface P2PQueueMessage {
+    commandType: CommandType;
+    nestedCommandType?: CommandType;
+    channel: number;
+    payload: Buffer;
+    timestamp: number;
+    property?: PropertyData;
 }
 
 export interface P2PMessageState {
     sequence: number;
-    command_type: CommandType;
-    nested_command_type?: CommandType;
+    commandType: CommandType;
+    nestedCommandType?: CommandType;
     channel: number;
     data: Buffer;
     retries: number;
     acknowledged: boolean;
-    return_code: number;
+    returnCode: number;
     timeout?: NodeJS.Timeout;
+    property?: PropertyData;
 }
 
 export interface P2PMessageParts {
@@ -74,12 +87,15 @@ export interface P2PDataMessageState {
     videoStream: Readable | null;
     audioStream: Readable | null;
     invalidStream: boolean;
-    streaming: boolean;
-    streamNotStarted: boolean;
-    streamChannel: number;
-    streamFirstAudioDataReceived: boolean;
-    streamFirstVideoDataReceived: boolean;
-    streamMetadata: StreamMetadata;
+    p2pStreaming: boolean;
+    p2pStreamNotStarted: boolean;
+    p2pStreamChannel: number;
+    p2pStreamFirstAudioDataReceived: boolean;
+    p2pStreamFirstVideoDataReceived: boolean;
+    p2pStreamMetadata: StreamMetadata;
+    p2pStreamingTimeout?: NodeJS.Timeout;
+    rtspStream: { [index: number]: boolean };
+    rtspStreaming: { [index: number]: boolean };
     waitForSeqNoTimeout?: NodeJS.Timeout;
     waitForAudioData?: NodeJS.Timeout;
     receivedFirstIFrame: boolean;
@@ -115,6 +131,15 @@ export interface StreamMetadata {
 export interface DeviceSerial {
     [index: number]: {
         sn: string;
-        admin_user_id: string;
+        adminUserId: string;
     };
+}
+
+export interface P2PCommand {
+    commandType: CommandType;
+    value?: number | string;
+    valueSub?: number;
+    strValue?: string;
+    strValueSub?: string;
+    channel?: number;
 }
