@@ -354,7 +354,9 @@ export enum PropertyName {
     DeviceNotificationIntervalTime = "notificationIntervalTime",  //Indoor
     DeviceNotificationRing = "notificationRing",  //BatteryDoorbell
     DeviceNotificationMotion = "notificationMotion",  //BatteryDoorbell
-    //DeviceContinuosRecording = "continousRecording",
+    DeviceContinuousRecording = "continuousRecording",
+    DeviceContinuousRecordingType = "continuousRecordingType",
+    DeviceContinuousRecordingSchedule = "continuousRecordingSchedule",
     DeviceChirpVolume = "chirpVolume",
     DeviceChirpTone = "chirpTone",
     DeviceVideoHDR = "videoHdr", // Wired Doorbell
@@ -1752,6 +1754,37 @@ export const DeviceNotificationMotionWiredDoorbellProperty: PropertyMetadataBool
     commandId: ParamType.COMMAND_NOTIFICATION_RING,
 }
 
+export const DeviceContinuousRecordingProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_INDOOR_SET_CONTINUE_ENABLE,
+    name: PropertyName.DeviceContinuousRecording,
+    label: "Continuos Recording",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceContinuousRecordingTypeProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_INDOOR_SET_CONTINUE_TYPE,
+    name: PropertyName.DeviceContinuousRecordingType,
+    label: "Continuos Recording Mode",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Always",
+        1: "Schedule"
+    }
+}
+
+export const DeviceContinuousRecordingScheduleProperty: PropertyMetadataString = {
+    key: CommandType.CMD_INDOOR_CONTINUE_RECORD_SCHEDULE,
+    name: PropertyName.DeviceContinuousRecordingSchedule,
+    label: "Continuos Recording Schedule",
+    readable: true,
+    writeable: true,
+    type: "string",
+}
+
 export const DeviceChirpVolumeEntrySensorProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_SENSOR_SET_CHIRP_VOLUME,
     name: PropertyName.DeviceChirpVolume,
@@ -2731,6 +2764,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionProperty,
         [PropertyName.DeviceNotificationAllSound]: DeviceNotificationAllSoundProperty,
         [PropertyName.DeviceNotificationCrying]: DeviceNotificationCryingProperty,
+        [PropertyName.DeviceContinuousRecording]: DeviceContinuousRecordingProperty,
+        [PropertyName.DeviceContinuousRecordingType]: DeviceContinuousRecordingTypeProperty,
     },
     [DeviceType.INDOOR_PT_CAMERA_1080]: {
         ...GenericDeviceProperties,

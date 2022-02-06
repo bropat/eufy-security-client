@@ -1039,6 +1039,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             case PropertyName.DeviceNotificationRing:
                 await station.setNotificationRing(device, value as boolean);
                 break;
+            case PropertyName.DeviceContinuousRecording:
+                await station.setContinuousRecording(device, value as boolean);
+                break;
+            // case PropertyName.DeviceContinuousRecordingType:
+            //     await station.setContinuousRecordingType(device, value as number);
+            //     break;
             case PropertyName.DeviceChirpVolume:
                 await station.setChirpVolume(device, value as number);
                 break;
