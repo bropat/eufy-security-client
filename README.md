@@ -23,6 +23,8 @@ If you appreciate my work and progress and want to support me, you can do it her
 [![ko-fi](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/E1E332Q6Z)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://www.paypal.me/pbroetto)
 
+**This project is not affiliated with Anker and Eufy (Eufy Security). It is a personal project that is maintained in spare time.**
+
 ## Description
 
 This shared library allows to control [Eufy security devices](https://us.eufylife.com/collections/security) by connecting to the Eufy cloud servers and local/remote stations over p2p.
