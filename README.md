@@ -79,6 +79,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.6.3 (2022-02-06)
+
+* (bropat) Initialize MQTT connection only if supported devices are found
+
 ### 1.6.2 (2022-02-05)
 
 * (bropat) Fixed MQTT connection issue (error: 5)
