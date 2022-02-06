@@ -23,6 +23,11 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
     private client: mqtt.MqttClient | null = null;
     private connecting = false;
 
+    private clientID?: string;
+    private androidID?: string;
+    private apiBase?: string;
+    private email?: string;
+
     private subscribeLocks: Array<string> = [];
 
     private deviceSmartLockMessageModel: any;
@@ -68,7 +73,11 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
     }
 
     public connect(clientID: string, androidID: string, apiBase: string, email: string): void {
-        if (!this.connected && !this.connecting) {
+        this.clientID = clientID;
+        this.androidID = androidID;
+        this.apiBase = apiBase;
+        this.email = email;
+        if (!this.connected && !this.connecting && this.clientID && this.androidID && this.apiBase && this.email && this.subscribeLocks.length > 0) {
             this.connecting = true;
             this.client = mqtt.connect(this.getMQTTBrokerUrl(apiBase), {
                 keepalive: 60,
@@ -101,7 +110,7 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
             this.client.on("error", (error) => {
                 this.connecting = false;
                 this.log.error("MQTT Error", error);
-                if ((error as any).code === 5)
+                if ((error as any).code === 1 || (error as any).code === 2 || (error as any).code === 4 || (error as any).code === 5)
                     this.client?.end();
             });
             this.client.on("message", (topic, message, _packet) => {
@@ -128,12 +137,14 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
     }
 
     public subscribeLock(deviceSN: string): void {
-        if (!this.connected) {
+        if (this.connected) {
+            this._subscribeLock(deviceSN);
+        } else {
             if (!this.subscribeLocks.includes(deviceSN)) {
                 this.subscribeLocks.push(deviceSN);
             }
-        } else {
-            this._subscribeLock(deviceSN);
+            if (this.clientID && this.androidID && this.apiBase && this.email)
+                this.connect(this.clientID, this.androidID, this.apiBase, this.email);
         }
     }
 
