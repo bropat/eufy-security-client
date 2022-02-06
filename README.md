@@ -1,6 +1,6 @@
 # eufy-security-client
 
-![Logo](docs/_media/eufy-security.png)
+![Logo](docs/_media/eufy-security-client.png)
 
 [![node](https://img.shields.io/node/v/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
 [![NPM version](http://img.shields.io/npm/v/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
