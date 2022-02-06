@@ -3531,6 +3531,7 @@ export enum CommandName {
     DeviceStopLivestream = "deviceStopLivestream",
     DeviceQuickResponse = "deviceQuickResponse",
     DevicePanAndTilt = "devicePanAndTilt",
+    DeviceCalibrate = "deviceCalibrate",
     DeviceTriggerAlarmSound = "deviceTriggerAlarmSound",
     DeviceStartDownload = "deviceStartDownload",
     DeviceCancelDownload = "deviceCancelDownload",
@@ -3665,6 +3666,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceCalibrate,
     ],
     [DeviceType.INDOOR_PT_CAMERA_1080]: [
         CommandName.DeviceStartLivestream,

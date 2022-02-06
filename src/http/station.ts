@@ -1059,6 +1059,25 @@ export class Station extends TypedEmitter<StationEvents> {
         }, propertyData);
     }
 
+    public async calibrate(device: Device): Promise<void> {
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasCommand(CommandName.DeviceCalibrate)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending calibrate command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.getDeviceType() === DeviceType.INDOOR_PT_CAMERA) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_INDOOR_PAN_CALIBRATION
+                }),
+                channel: device.getChannel()
+            });
+        }
+    }
+
     public async panAndTilt(device: Device, direction: PanTiltDirection, command = 1): Promise<void> {
         //TODO: A Floodlight model seems to support this feature
         if (device.getStationSerial() !== this.getSerial()) {
