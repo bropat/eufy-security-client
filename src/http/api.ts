@@ -107,7 +107,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         return this.headers.language;
     }
 
-    public async getApiBase(country: string): Promise<string> {
+    public async getApiBaseFromCloud(country: string): Promise<string> {
         try {
             const response = await this.request({
                 apiBase: this.apiDomainBase,
@@ -140,12 +140,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     public async authenticate(verifyCodeOrCaptcha: string | null = null, captchaId: string | null = null): Promise<AuthResult> {
         //Authenticate and get an access token
         this.log.debug("Authenticate and get an access token", { token: this.token, tokenExpiration: this.tokenExpiration });
+        const apiBase = await this.getApiBaseFromCloud(this.getCountry());
+        if (apiBase !== this.apiBase) {
+            this.log.debug(`Found wrong API_BASE (${this.apiBase}), switching to correct one (${apiBase})`);
+            this.apiBase = apiBase;
+            this.invalidateToken();
+        }
         if (!this.token || (this.tokenExpiration && (new Date()).getTime() >= this.tokenExpiration.getTime()) || verifyCodeOrCaptcha) {
             try {
-                const apiBase = await this.getAPIBase();
-                if (apiBase !== "")
-                    this.apiBase = apiBase;
-
                 this.ecdh.generateKeys();
                 const data: LoginRequest = {
                     client_secret_info: {
