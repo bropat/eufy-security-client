@@ -79,6 +79,12 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.6.4 (2022-02-07)
+
+* (bropat) Fixed issue #116 (choosing the correct country as in the Eufy App is esentially)
+
+**Note:** Selecting the correct country is essential for the devices to be found (should match the setting in the Eufy app).
+
 ### 1.6.3 (2022-02-06)
 
 * (bropat) Initialize MQTT connection only if supported devices are found
