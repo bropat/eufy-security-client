@@ -72,6 +72,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         this.headers.timezone = getTimezoneGMTString();
     }
 
+    public async loadApiBase(): Promise<void> {
+        const apiBase = await this.getApiBaseFromCloud(this.getCountry());
+        if (apiBase !== this.apiBase) {
+            this.log.debug(`Detected correct API_BASE: ${apiBase} (before: ${this.apiBase})`);
+            this.apiBase = apiBase;
+        }
+    }
+
     private invalidateToken(): void {
         this.token = null;
         this.tokenExpiration = null;
@@ -140,12 +148,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     public async authenticate(verifyCodeOrCaptcha: string | null = null, captchaId: string | null = null): Promise<AuthResult> {
         //Authenticate and get an access token
         this.log.debug("Authenticate and get an access token", { token: this.token, tokenExpiration: this.tokenExpiration });
-        const apiBase = await this.getApiBaseFromCloud(this.getCountry());
-        if (apiBase !== this.apiBase) {
-            this.log.debug(`Found wrong API_BASE (${this.apiBase}), switching to correct one (${apiBase})`);
-            this.apiBase = apiBase;
-            this.invalidateToken();
-        }
         if (!this.token || (this.tokenExpiration && (new Date()).getTime() >= this.tokenExpiration.getTime()) || verifyCodeOrCaptcha) {
             try {
                 this.ecdh.generateKeys();
@@ -450,20 +452,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     public async request(request: HTTPApiRequest): Promise<ApiResponse> {
 
-        if (!this.token && request.endpoint != "v2/passport/login") {
-            //No token get one
-            switch (await this.authenticate()) {
-                case AuthResult.RENEW:
-                    this.log.debug("Renew token", { method: request.method, endpoint: request.endpoint });
-                    await this.authenticate();
-                    break;
-                case AuthResult.ERROR:
-                    this.log.error("Token error", { method: request.method, endpoint: request.endpoint });
-                    break;
-                default: break;
-            }
-        }
-        if (this.tokenExpiration && (new Date()).getTime() >= this.tokenExpiration.getTime()) {
+        if (this.token && this.tokenExpiration && (new Date()).getTime() >= this.tokenExpiration.getTime()) {
             this.log.info("Access token expired; fetching a new one")
             this.invalidateToken();
             if (request.endpoint != "v2/passport/login")

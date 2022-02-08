@@ -79,6 +79,11 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.6.5 (2022-02-08)
+
+* (bropat) Fixed regression in authentication flow introduced when fixing issue #116
+* (bropat) Updated versions of the package dependencies
+
 ### 1.6.4 (2022-02-07)
 
 * (bropat) Fixed issue #116 (choosing the correct country as in the Eufy App is esentially)
