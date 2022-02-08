@@ -550,6 +550,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     public async connect(verifyCodeOrCaptcha?: string | null, captchaId?: string | null): Promise<boolean> {
         let retries = 0;
+        await this.api.loadApiBase().catch((error) => {
+            this.log.error("Load Api base Error", error);
+        });
         while (true) {
             switch (await this.api.authenticate(verifyCodeOrCaptcha, captchaId)) {
                 case AuthResult.CAPTCHA_NEEDED:
@@ -570,7 +573,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     }
                     return true;
             }
-            if (retries > 2) {
+            if (retries > 4) {
                 this.log.error("Max connect attempts reached, interrupt");
                 return false;
             } else  {
