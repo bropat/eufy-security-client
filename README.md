@@ -79,6 +79,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 1.6.6 (2022-02-12)
+
+* (bropat) Fixed issue where no devices/stations are found (#116)
+
 ### 1.6.5 (2022-02-08)
 
 * (bropat) Fixed regression in authentication flow introduced when fixing issue #116

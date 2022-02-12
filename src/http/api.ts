@@ -6,7 +6,7 @@ import { isValid as isValidLanguage } from "@cospired/i18n-iso-languages";
 import { createECDH, ECDH } from "crypto";
 
 import { ResultResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry, ApiResponse, CaptchaResponse, LoginRequest, HouseDetail, DeviceListResponse, StationListResponse, HouseInviteListResponse, HouseListResponse, PassportProfileResponse } from "./models"
-import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites, HTTPApiRequest, HTTPApiPersistentData } from "./interfaces";
+import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites, HTTPApiRequest, HTTPApiPersistentData, Houses } from "./interfaces";
 import { AuthResult, EventFilterType, PublicKeyType, ResponseErrorCode, StorageType, VerfyCodeTypes } from "./types";
 import { ParameterHelper } from "./parameter";
 import { encryptPassword, getTimezoneGMTString } from "./utils";
@@ -33,6 +33,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     private devices: FullDevices = {};
     private hubs: Hubs = {};
+    private houses: Houses = {};
 
     private persistentData: HTTPApiPersistentData = {
         user_id: "",
@@ -421,6 +422,20 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async updateDeviceInfo(): Promise<void> {
         //Get the latest device info
+
+        //Get Houses
+        const houses = await this.getHouseList();
+        if (houses && houses.length > 0) {
+            houses.forEach(element => {
+                this.log.debug(`Houses - element: ${JSON.stringify(element)}`);
+                this.log.debug(`Houses - house name: ${element.house_name}`);
+                this.houses[element.house_id] = element;
+            });
+            if (Object.keys(this.houses).length > 0)
+                this.emit("houses", this.houses);
+        } else {
+            this.log.info("No houses found.");
+        }
 
         //Get Stations
         const stations = await this.getStationList();

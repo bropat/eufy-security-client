@@ -5,7 +5,7 @@ import { StreamMetadata } from "../p2p/interfaces";
 import { CommandResult } from "../p2p/models";
 import { AlarmEvent, ChargingType } from "../p2p/types";
 import { Camera, Device } from "./device";
-import { Cipher, Voice, Invite, DeviceListResponse, StationListResponse } from "./models";
+import { Cipher, Voice, Invite, DeviceListResponse, StationListResponse, HouseListResponse } from "./models";
 import { Station } from "./station";
 import { CommandName, PropertyName } from "./types";
 
@@ -37,6 +37,10 @@ export interface Cameras {
 
 export interface Stations {
     [index: string]: Station;
+}
+
+export interface Houses {
+    [index: string]: HouseListResponse;
 }
 
 export interface Hubs {
@@ -130,6 +134,7 @@ export interface HTTPApiPersistentData {
 export interface HTTPApiEvents {
     "devices": (devices: FullDevices) => void;
     "hubs": (hubs: Hubs) => void;
+    "houses": (houses: Houses) => void;
     "connect": () => void;
     "close": () => void;
     "tfa request": () => void;

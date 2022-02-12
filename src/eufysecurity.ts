@@ -5,7 +5,7 @@ import path from "path";
 
 import { EufySecurityEvents, EufySecurityConfig, EufySecurityPersistentData } from "./interfaces";
 import { HTTPApi } from "./http/api";
-import { Devices, FullDevices, Hubs, PropertyValue, RawValues, Stations } from "./http/interfaces";
+import { Devices, FullDevices, Hubs, PropertyValue, RawValues, Stations, Houses } from "./http/interfaces";
 import { Station } from "./http/station";
 import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, StationListResponse } from "./http/models";
 import { AuthResult, CommandName, NotificationSwitchMode, NotificationType, PropertyName } from "./http/types";
@@ -31,6 +31,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private api: HTTPApi;
 
+    private houses: Houses = {};
     private stations: Stations = {};
     private devices: Devices = {};
 
@@ -130,6 +131,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.api.setLanguage(this.config.language);
         this.api.setPhoneModel(this.config.trustedDeviceName);
 
+        this.api.on("houses", (houses: Houses) => this.handleHouses(houses));
         this.api.on("hubs", (hubs: Hubs) => this.handleHubs(hubs));
         this.api.on("devices", (devices: FullDevices) => this.handleDevices(devices));
         this.api.on("close", () => this.onAPIClose());
@@ -350,6 +352,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (Object.keys(this.stations).includes(stationSN))
             return this.stations[stationSN].isEnergySavingDevice();
         throw new StationNotFoundError(`No station with this serial number: ${stationSN}!`);
+    }
+
+    private handleHouses(houses: Houses): void {
+        this.log.debug("Got houses:", houses);
+        //TODO: Finish implementation
+        this.houses = houses;
     }
 
     private handleHubs(hubs: Hubs): void {
