@@ -5,6 +5,7 @@
 [![node](https://img.shields.io/node/v/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
 [![NPM version](http://img.shields.io/npm/v/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
 [![Downloads](https://img.shields.io/npm/dm/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
+[![Total Downloads](https://img.shields.io/npm/dt/eufy-security-client.svg)](https://www.npmjs.com/package/eufy-security-client)
 [![Dependency Status](https://img.shields.io/librariesio/release/npm/eufy-security-client)](https://libraries.io/npm/eufy-security-client)
 [![Known Vulnerabilities](https://snyk.io/test/github/bropat/eufy-security-client/badge.svg)](https://snyk.io/test/github/bropat/eufy-security-client)
 
