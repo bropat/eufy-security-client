@@ -321,7 +321,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             // CusPush
             normalized_message.type = Number.parseInt(message.payload.type);
 
-            if (Device.isBatteryDoorbell(normalized_message.type) || Device.isBatteryDoorbell2(normalized_message.type)) {
+            if (Device.isABatteryDoorbell(normalized_message.type)) {
                 const push_data = message.payload.payload as BatteryDoorbellPushData;
 
                 normalized_message.name = push_data.name ? push_data.name : "";

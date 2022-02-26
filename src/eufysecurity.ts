@@ -440,7 +440,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     new_device = new IndoorCamera(this.api, device);
                 } else if (Device.isSoloCameras(device.device_type)) {
                     new_device = new SoloCamera(this.api, device);
-                } else if (Device.isBatteryDoorbell(device.device_type) || Device.isBatteryDoorbell2(device.device_type)) {
+                } else if (Device.isABatteryDoorbell(device.device_type)) {
                     new_device = new BatteryDoorbellCamera(this.api, device);
                 } else if (Device.isWiredDoorbell(device.device_type)) {
                     new_device = new DoorbellCamera(this.api, device);

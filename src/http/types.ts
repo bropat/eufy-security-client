@@ -37,6 +37,7 @@ export enum DeviceType {
     SOLO_CAMERA_SPOTLIGHT_1080 = 60,
     SOLO_CAMERA_SPOTLIGHT_2K = 61,
     SOLO_CAMERA_SPOTLIGHT_SOLAR = 62,
+    BATTERY_DOORBELL_DUAL = 91,
 }
 
 export enum ParamType {
@@ -347,6 +348,7 @@ export enum PropertyName {
     DeviceChimeHomebaseRingtoneType = "chimeHomebaseRingtoneType",  //BatteryDoorbell
     DeviceNotificationType = "notificationType",
     DeviceRotationSpeed = "rotationSpeed",
+    DeviceImageMirrored = "imageMirrored",
     DeviceNotificationPerson = "notificationPerson",  //Indoor
     DeviceNotificationPet = "notificationPet",  //Indoor
     DeviceNotificationAllOtherMotion = "notificationAllOtherMotion",  //Indoor
@@ -1658,6 +1660,15 @@ export const DeviceRotationSpeedProperty: PropertyMetadataNumeric = {
     },
 }
 
+export const DeviceImageMirroredProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SET_MIRRORMODE,
+    name: PropertyName.DeviceImageMirrored,
+    label: "Image vertically mirrored",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
 export const DeviceSoundDetectionTypeProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_INDOOR_DET_SET_SOUND_DETECT_TYPE,
     name: PropertyName.DeviceSoundDetectionType,
@@ -2473,6 +2484,47 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationRing]: DeviceNotificationRingProperty,
         [PropertyName.DeviceNotificationMotion]: DeviceNotificationMotionProperty,
     },
+    [DeviceType.BATTERY_DOORBELL_DUAL]: { //T8213 2K Battery Dual Doorbell
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        // [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedBatteryDoorbellProperty,
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkBatteryDoorbellCamera1Property,
+        [PropertyName.DeviceState]: DeviceStateProperty,
+        [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
+        [PropertyName.DeviceLastChargingFalseEvents]: DeviceLastChargingFalseEventsProperty,
+        [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
+        [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
+        [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
+        [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+        [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+        [PropertyName.DeviceRinging]: DeviceRingingProperty,
+        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
+        [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeBatteryDoorbellProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
+        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
+        [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeBatteryDoorbellProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
+        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalBatteryDoorbellProperty,
+        [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityBatteryDoorbellProperty,
+        [PropertyName.DeviceVideoHDR]: DeviceWDRProperty,
+        [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
+        [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty,
+        [PropertyName.DeviceChimeHomebaseRingtoneVolume]: DeviceChimeHomebaseRingtoneVolumeBatteryDoorbellProperty,
+        [PropertyName.DeviceChimeHomebaseRingtoneType]: DeviceChimeHomebaseRingtoneTypeBatteryDoorbellProperty,
+        [PropertyName.DeviceNotificationType]: DeviceNotificationTypeBatteryDoorbellProperty,
+        [PropertyName.DeviceNotificationRing]: DeviceNotificationRingProperty,
+        [PropertyName.DeviceNotificationMotion]: DeviceNotificationMotionProperty,
+    },
     /*[DeviceType.FLOODLIGHT]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
@@ -2742,6 +2794,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationAllSound]: DeviceNotificationAllSoundProperty,
         [PropertyName.DeviceNotificationCrying]: DeviceNotificationCryingProperty,
         [PropertyName.DeviceMotionZone]: DeviceMotionZoneProperty,
+        [PropertyName.DeviceImageMirrored]: DeviceImageMirroredProperty,
     },
     [DeviceType.INDOOR_PT_CAMERA_1080]: {
         ...GenericDeviceProperties,
@@ -3542,6 +3595,7 @@ export enum CommandName {
     DeviceStopLivestream = "deviceStopLivestream",
     DeviceQuickResponse = "deviceQuickResponse",
     DevicePanAndTilt = "devicePanAndTilt",
+    DeviceCalibrate = "deviceCalibrate",
     DeviceTriggerAlarmSound = "deviceTriggerAlarmSound",
     DeviceStartDownload = "deviceStartDownload",
     DeviceCancelDownload = "deviceCancelDownload",
@@ -3628,6 +3682,13 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
     ],
+    [DeviceType.BATTERY_DOORBELL_DUAL]: [
+        CommandName.DeviceStartLivestream,
+        CommandName.DeviceStopLivestream,
+        CommandName.DeviceQuickResponse,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
+    ],
     [DeviceType.INDOOR_CAMERA]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
@@ -3676,6 +3737,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceCalibrate,
     ],
     [DeviceType.INDOOR_PT_CAMERA_1080]: [
         CommandName.DeviceStartLivestream,
@@ -3685,6 +3747,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceCalibrate,
     ],
     [DeviceType.SOLO_CAMERA]: [
         CommandName.DeviceStartLivestream,

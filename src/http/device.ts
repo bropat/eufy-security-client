@@ -380,6 +380,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
+            type == DeviceType.BATTERY_DOORBELL_DUAL ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.INDOOR_CAMERA_1080 ||
@@ -406,6 +407,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA2C ||
             type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
+            type == DeviceType.BATTERY_DOORBELL_DUAL ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.SOLO_CAMERA ||
@@ -440,7 +442,8 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
     static isDoorbell(type: number): boolean {
         if (type == DeviceType.DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL ||
-            type == DeviceType.BATTERY_DOORBELL_2)
+            type == DeviceType.BATTERY_DOORBELL_2 ||
+            type == DeviceType.BATTERY_DOORBELL_DUAL)
             return true;
         return false;
     }
@@ -492,12 +495,24 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.LOCK_ADVANCED_NO_FINGER == type;
     }
 
+    static isABatteryDoorbell(type: number): boolean {
+        if (type == DeviceType.BATTERY_DOORBELL ||
+            type == DeviceType.BATTERY_DOORBELL_2 ||
+            type == DeviceType.BATTERY_DOORBELL_DUAL)
+            return true;
+        return false;
+    }
+
     static isBatteryDoorbell(type: number): boolean {
         return DeviceType.BATTERY_DOORBELL == type;
     }
 
     static isBatteryDoorbell2(type: number): boolean {
         return DeviceType.BATTERY_DOORBELL_2 == type;
+    }
+
+    static isBatteryDoorbellDual(type: number): boolean {
+        return DeviceType.BATTERY_DOORBELL_DUAL == type;
     }
 
     static isSoloCamera(type: number): boolean {
