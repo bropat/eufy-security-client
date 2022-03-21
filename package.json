@@ -44,7 +44,7 @@
     "ts-log": "^2.2.4",
     "tiny-typed-emitter": "^2.1.0",
     "i18n-iso-countries": "^7.3.0",
-    "@cospired/i18n-iso-languages": "^3.1.1",
+    "@cospired/i18n-iso-languages": "^4.0.0",
     "fs-extra": "^10.0.0",
     "sweet-collections": "^1.1.0",
     "mqtt": "^4.3.5"
