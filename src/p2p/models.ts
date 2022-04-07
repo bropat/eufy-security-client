@@ -1,4 +1,4 @@
-import { PropertyName } from "..";
+import { PropertyName } from "../http/types";
 import { CommandType } from "./types";
 
 export interface Address {

@@ -108,7 +108,7 @@ export const calculateWifiSignalLevel = function(device: Device, rssi: number): 
         }
         return rssi >= -80 ? WifiSignalLevel.NORMAL : WifiSignalLevel.WEAK;
 
-    } else if (device.isBatteryDoorbell() || device.isBatteryDoorbell2()) {
+    } else if (device.isBatteryDoorbell()) {
         if (rssi >= -65) {
             return WifiSignalLevel.FULL;
         }

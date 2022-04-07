@@ -1,4 +1,5 @@
 import { Readable } from "stream";
+
 import { Device } from "./http/device";
 import { HTTPApiPersistentData, PropertyValue } from "./http/interfaces";
 import { Station } from "./http/station";
@@ -22,12 +23,12 @@ export interface EufySecurityConfig {
 }
 
 export interface EufySecurityPersistentData {
+    country: string;
     login_hash: string;
     openudid: string;
     serial_number: string;
-    api_base: string;
-    cloud_token: string;
-    cloud_token_expiration: number;
+    cloud_token?: string;
+    cloud_token_expiration?: number;
     push_credentials: Credentials | undefined;
     push_persistentIds: string[];
     version: string;

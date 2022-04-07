@@ -1,6 +1,5 @@
-import { Commands } from ".";
-import { CommandType } from "../p2p";
-import { IndexedProperty, Properties, PropertyMetadataBoolean, PropertyMetadataNumeric, PropertyMetadataString } from "./interfaces";
+import { CommandType } from "../p2p/types";
+import { Commands, IndexedProperty, Properties, PropertyMetadataBoolean, PropertyMetadataNumeric, PropertyMetadataString } from "./interfaces";
 
 export enum DeviceType {
     //List retrieved from com.oceanwing.battery.cam.binder.model.QueryDeviceData
@@ -34,9 +33,17 @@ export enum DeviceType {
     LOCK_ADVANCED = 51,
     LOCK_BASIC_NO_FINGER = 52,
     LOCK_ADVANCED_NO_FINGER = 53,
+    LOCK_8503 = 54, //Smart Lock R10
+    LOCK_8530 = 55,
+    LOCK_85A3 = 56,
+    LOCK_8592 = 57,
+    LOCK_8504 = 58, //Smart Lock R20
     SOLO_CAMERA_SPOTLIGHT_1080 = 60,
     SOLO_CAMERA_SPOTLIGHT_2K = 61,
     SOLO_CAMERA_SPOTLIGHT_SOLAR = 62,
+    SMART_DROP = 90,
+    BATTERY_DOORBELL_PLUS = 91,
+    INDOOR_COST_DOWN_CAMERA = 100,
 }
 
 export enum ParamType {
@@ -173,14 +180,6 @@ export enum VerfyCodeTypes {
     TYPE_SMS = 0,
     TYPE_PUSH = 1,
     TYPE_EMAIL = 2
-}
-
-export enum AuthResult {
-    ERROR = -1,
-    OK = 0,
-    RENEW = 2,
-    SEND_VERIFY_CODE = 3,
-    CAPTCHA_NEEDED = 4
 }
 
 export enum StorageType {
@@ -1387,6 +1386,7 @@ export const DeviceChargingStatusProperty: PropertyMetadataNumeric = {
         1: "Charging",
         2: "Unplugged",
         3: "Plugged",
+        4: "Solar charging"
     },
 }
 
@@ -2455,6 +2455,47 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityBatteryDoorbellProperty,
         [PropertyName.DeviceVideoWDR]: DeviceWDRProperty,
+        [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
+        [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty,
+        [PropertyName.DeviceChimeHomebaseRingtoneVolume]: DeviceChimeHomebaseRingtoneVolumeBatteryDoorbellProperty,
+        [PropertyName.DeviceChimeHomebaseRingtoneType]: DeviceChimeHomebaseRingtoneTypeBatteryDoorbellProperty,
+        [PropertyName.DeviceNotificationType]: DeviceNotificationTypeBatteryDoorbellProperty,
+        [PropertyName.DeviceNotificationRing]: DeviceNotificationRingProperty,
+        [PropertyName.DeviceNotificationMotion]: DeviceNotificationMotionProperty,
+    },
+    [DeviceType.BATTERY_DOORBELL_PLUS]: { //T8213 2K Battery Dual Doorbell
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedBatteryDoorbellProperty,
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkBatteryDoorbellCamera1Property,
+        [PropertyName.DeviceState]: DeviceStateProperty,
+        [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
+        [PropertyName.DeviceLastChargingFalseEvents]: DeviceLastChargingFalseEventsProperty,
+        [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
+        [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
+        [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
+        [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+        [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+        [PropertyName.DeviceRinging]: DeviceRingingProperty,
+        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
+        [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeBatteryDoorbellProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
+        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
+        [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeBatteryDoorbellProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
+        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalBatteryDoorbellProperty,
+        [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityBatteryDoorbellProperty,
+        [PropertyName.DeviceVideoHDR]: DeviceWDRProperty,
         [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebaseRingtoneVolume]: DeviceChimeHomebaseRingtoneVolumeBatteryDoorbellProperty,
@@ -3611,6 +3652,13 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
     ],
     [DeviceType.BATTERY_DOORBELL_2]: [
+        CommandName.DeviceStartLivestream,
+        CommandName.DeviceStopLivestream,
+        CommandName.DeviceQuickResponse,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
+    ],
+    [DeviceType.BATTERY_DOORBELL_PLUS]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceQuickResponse,

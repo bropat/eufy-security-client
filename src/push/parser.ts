@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import path from "path";
+import * as path from "path";
 import { dummyLogger, Logger } from "ts-log";
 import { BufferReader, load, Root } from "protobuf-typescript";
 import { TypedEmitter } from "tiny-typed-emitter";

@@ -733,7 +733,6 @@ export enum ESLAnkerBleConstant {
 }
 
 export enum P2PConnectionType {
-    PREFER_LOCAL = 0,
     ONLY_LOCAL = 1,
     QUICKEST = 2
 }

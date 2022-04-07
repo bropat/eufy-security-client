@@ -1,6 +1,6 @@
 import { createSocket, Socket, RemoteInfo } from "dgram";
 import { TypedEmitter } from "tiny-typed-emitter";
-import NodeRSA from "node-rsa";
+import * as NodeRSA from "node-rsa";
 import { Readable } from "stream";
 import { Logger } from "ts-log";
 import { SortedMap } from "sweet-collections";
@@ -81,8 +81,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private esdDisconnectTimeout?: NodeJS.Timeout;
     private connectTime: number | null = null;
     private lastPong: number | null = null;
-    private connectionType: P2PConnectionType = P2PConnectionType.PREFER_LOCAL;
-    private fallbackAddresses: Array<Address> = [];
+    private connectionType: P2PConnectionType = P2PConnectionType.QUICKEST;
 
     private energySavingDevice = false;
     private energySavingDeviceP2PSeqMapping: Map<number, number> = new Map<number, number>();
@@ -280,7 +279,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
 
     public lookup(): void {
-        this.fallbackAddresses = [];
         this.cloudAddresses.map((address) => this.lookupByAddress(address));
         this.cloudAddresses.map((address) => this.lookupByAddress2(address));
 
@@ -332,18 +330,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private _startConnectTimeout(): void {
         if (this.connectTimeout === undefined)
             this.connectTimeout = setTimeout(() => {
-                if (this.connectionType === P2PConnectionType.PREFER_LOCAL) {
-                    if (this.fallbackAddresses.length > 0) {
-                        this.connectTimeout = undefined;
-                        const tmp_addresses = this.fallbackAddresses;
-                        this.fallbackAddresses = [];
-                        for(const addr of tmp_addresses) {
-                            this.log.debug(`Station ${this.rawStation.station_sn} - PREFER_LOCAL - Try to connect to remote address ${addr.host}:${addr.port}...`);
-                            this._connect({ host: addr.host, port: addr.port });
-                        }
-                        return;
-                    }
-                }
                 this.log.warn(`Station ${this.rawStation.station_sn} - Tried all hosts, no connection could be established`);
                 this._disconnected();
             }, this.MAX_AKNOWLEDGE_TIMEOUT);
@@ -639,19 +625,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 return;
             }
             if (!this.connected) {
-                if (this.connectionType === P2PConnectionType.PREFER_LOCAL) {
-                    this._clearLookupTimeout();
-                    this._clearLookupRetryTimeout();
-                    if (isPrivateIp(ip)) {
-                        this.log.debug(`Station ${this.rawStation.station_sn} - PREFER_LOCAL - Try to connect to ${ip}:${port}...`);
-                        this._connect({ host: ip, port: port });
-                    } else {
-                        this.log.debug(`Station ${this.rawStation.station_sn} - PREFER_LOCAL - Got public IP, remember ${ip}:${port}...`);
-                        if (!this.fallbackAddresses.includes({ host: ip, port: port }))
-                            this.fallbackAddresses.push({ host: ip, port: port });
-                        this._startConnectTimeout();
-                    }
-                } else if (this.connectionType === P2PConnectionType.ONLY_LOCAL) {
+                if (this.connectionType === P2PConnectionType.ONLY_LOCAL) {
                     if (isPrivateIp(ip)) {
                         this._clearLookupTimeout();
                         this._clearLookupRetryTimeout();

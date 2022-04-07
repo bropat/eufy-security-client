@@ -1,8 +1,9 @@
 import * as crypto from "crypto";
 import { Logger } from "ts-log";
-import { EufySecurityPersistentData } from ".";
+
+import { EufySecurityPersistentData } from "./interfaces";
 import { InvalidPropertyValueError } from "./error";
-import { PropertyMetadataAny, PropertyMetadataNumeric } from "./http";
+import { PropertyMetadataAny, PropertyMetadataNumeric } from "./http/interfaces";
 
 export const removeLastChar = function(text: string, char: string): string {
     const strArr = [...text];
@@ -23,7 +24,6 @@ export const md5 = (contents: string): string => crypto.createHash("md5").update
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const handleUpdate = function(config: EufySecurityPersistentData, log: Logger, oldVersion: number): EufySecurityPersistentData {
     if (oldVersion <= 1.24) {
-        config.api_base = "";
         config.cloud_token = "";
         config.cloud_token_expiration = 0;
     }
@@ -106,7 +106,6 @@ export const parseValue = function(metadata: PropertyMetadataAny, value: unknown
     return value;
 };
 
-
 export const validValue = function(metadata: PropertyMetadataAny, value: unknown): void {
     if (metadata.type === "number") {
         const numberMetadata = metadata as PropertyMetadataNumeric;
@@ -115,4 +114,22 @@ export const validValue = function(metadata: PropertyMetadataAny, value: unknown
             throw new InvalidPropertyValueError(`Value "${numericValue}" isn't a valid value for property "${numberMetadata.name}"`);
         }
     }
+}
+
+export const mergeDeep = function (target: Record<string, any> | undefined,	source: Record<string, any>): Record<string, any> {
+    target = target || {};
+    for (const [key, value] of Object.entries(source)) {
+        if (!(key in target)) {
+            target[key] = value;
+        } else {
+            if (typeof value === "object") {
+                // merge objects
+                target[key] = mergeDeep(target[key], value);
+            } else if (typeof target[key] === "undefined") {
+                // don't override single keys
+                target[key] = value;
+            }
+        }
+    }
+    return target;
 }

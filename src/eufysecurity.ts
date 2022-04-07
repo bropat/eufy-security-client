@@ -1,14 +1,15 @@
 import { TypedEmitter } from "tiny-typed-emitter";
 import { dummyLogger, Logger } from "ts-log";
-import fse from "fs-extra";
-import path from "path";
+import * as fse from "fs-extra";
+import * as path from "path";
+import { Readable } from "stream";
 
 import { EufySecurityEvents, EufySecurityConfig, EufySecurityPersistentData } from "./interfaces";
 import { HTTPApi } from "./http/api";
-import { Devices, FullDevices, Hubs, PropertyValue, RawValues, Stations, Houses } from "./http/interfaces";
+import { Devices, FullDevices, Hubs, PropertyValue, RawValues, Stations, Houses, LoginOptions } from "./http/interfaces";
 import { Station } from "./http/station";
 import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, StationListResponse } from "./http/models";
-import { AuthResult, CommandName, NotificationSwitchMode, NotificationType, PropertyName } from "./http/types";
+import { CommandName, NotificationSwitchMode, NotificationType, PropertyName } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
 import { BatteryDoorbellCamera, Camera, Device, DoorbellCamera, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SoloCamera, UnknownDevice } from "./http/device";
@@ -19,8 +20,7 @@ import { generateSerialnumber, generateUDID, handleUpdate, md5, parseValue, remo
 import { DeviceNotFoundError, DuplicateDeviceError, DuplicateStationError, StationNotFoundError, ReadOnlyPropertyError, NotSupportedError } from "./error";
 import { libVersion } from ".";
 import { InvalidPropertyError } from "./http/error";
-import { Readable } from "stream";
-import { ServerPushEvent } from "./push";
+import { ServerPushEvent } from "./push/types";
 import { MQTTService } from "./mqtt/service";
 
 export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
@@ -29,7 +29,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private log: Logger;
 
-    private api: HTTPApi;
+    private api!: HTTPApi;
 
     private houses: Houses = {};
     private stations: Stations = {};
@@ -41,15 +41,13 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private cameraStationLivestreamTimeout: Map<string, NodeJS.Timeout> = new Map<string, NodeJS.Timeout>();
     private cameraCloudLivestreamTimeout: Map<string, NodeJS.Timeout> = new Map<string, NodeJS.Timeout>();
 
-    private pushService: PushNotificationService;
+    private pushService!: PushNotificationService;
     private mqttService!: MQTTService;
     private pushCloudRegistered = false;
     private pushCloudChecked = false;
-    private persistentFile: string;
+    private persistentFile!: string;
     private persistentData: EufySecurityPersistentData = {
-        api_base: "",
-        cloud_token: "",
-        cloud_token_expiration: 0,
+        country: "",
         openudid: "",
         serial_number: "",
         push_credentials: undefined,
@@ -59,20 +57,31 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         httpApi: undefined
     };
     private connected = false;
+    private retries = 0;
 
     private refreshEufySecurityCloudTimeout?: NodeJS.Timeout;
     private refreshEufySecurityP2PTimeout: {
         [dataType: string]: NodeJS.Timeout;
     } = {};
 
-    constructor(config: EufySecurityConfig, log: Logger = dummyLogger) {
+    private constructor(config: EufySecurityConfig, log: Logger = dummyLogger) {
         super();
 
         this.config = config;
         this.log = log;
+    }
 
+    static async initialize(config: EufySecurityConfig, log: Logger = dummyLogger): Promise<EufySecurity> {
+        const eufySecurity = new EufySecurity(config, log);
+        await eufySecurity._initializeInternals();
+        return eufySecurity;
+    }
+
+    public async _initializeInternals(): Promise<void> {
         if (this.config.country === undefined) {
             this.config.country = "US";
+        } else {
+            this.config.country = this.config.country.toUpperCase();
         }
         if (this.config.language === undefined) {
             this.config.language = "en";
@@ -84,9 +93,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.config.eventDurationSeconds = 10;
         }
         if (this.config.p2pConnectionSetup === undefined) {
-            this.config.p2pConnectionSetup = P2PConnectionType.PREFER_LOCAL;
+            this.config.p2pConnectionSetup = P2PConnectionType.QUICKEST;
         } else if (!Object.values(P2PConnectionType).includes(this.config.p2pConnectionSetup)) {
-            this.config.p2pConnectionSetup = P2PConnectionType.PREFER_LOCAL;
+            this.config.p2pConnectionSetup = P2PConnectionType.QUICKEST;
         }
         if (this.config.pollingIntervalMinutes === undefined) {
             this.config.pollingIntervalMinutes = 10;
@@ -126,8 +135,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.log.error("Handling update - Error:", error);
         }
 
-        this.api = new HTTPApi(this.config.username, this.config.password, this.log, this.persistentData.httpApi);
-        this.api.setCountry(this.config.country);
+        this.api = await HTTPApi.initialize(this.config.country, this.config.username, this.config.password, this.log, this.persistentData.httpApi);
         this.api.setLanguage(this.config.language);
         this.api.setPhoneModel(this.config.trustedDeviceName);
 
@@ -137,6 +145,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.api.on("close", () => this.onAPIClose());
         this.api.on("connect", () => this.onAPIConnect());
         this.api.on("captcha request", (id: string, captcha: string) => this.onCaptchaRequest(id, captcha));
+        this.api.on("auth token invalidated", () => this.onAuthTokenInvalidated());
+        this.api.on("tfa request", () => this.onTfaRequest());
 
         if (this.persistentData.login_hash && this.persistentData.login_hash != "") {
             this.log.debug("Load previous login_hash:", this.persistentData.login_hash);
@@ -144,18 +154,19 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 this.log.info("Authentication properties changed, invalidate saved cloud token.");
                 this.persistentData.cloud_token = "";
                 this.persistentData.cloud_token_expiration = 0;
-                this.persistentData.api_base = "";
                 this.persistentData.httpApi = undefined;
             }
         } else {
             this.persistentData.cloud_token = "";
             this.persistentData.cloud_token_expiration = 0;
         }
-        if (this.persistentData.api_base && this.persistentData.api_base != "") {
-            this.log.debug("Load previous api_base:", this.persistentData.api_base);
-            this.api.setAPIBase(this.persistentData.api_base);
+        if (this.persistentData.country !== undefined && this.persistentData.country !== "" && this.persistentData.country !== this.config.country) {
+            this.log.info("Country property changed, invalidate saved cloud token.");
+            this.persistentData.cloud_token = "";
+            this.persistentData.cloud_token_expiration = 0;
+            this.persistentData.httpApi = undefined;
         }
-        if (this.persistentData.cloud_token && this.persistentData.cloud_token != "") {
+        if (this.persistentData.cloud_token && this.persistentData.cloud_token != "" && this.persistentData.cloud_token_expiration) {
             this.log.debug("Load previous token:", { token: this.persistentData.cloud_token, tokenExpiration: this.persistentData.cloud_token_expiration });
             this.api.setToken(this.persistentData.cloud_token);
             this.api.setTokenExpiration(new Date(this.persistentData.cloud_token_expiration));
@@ -194,7 +205,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.emit("push close");
         });
 
-        this.initMQTT();
+        await this.initMQTT();
+
+        await this.connect();
     }
 
     private async initMQTT(): Promise<void> {
@@ -334,7 +347,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         return this.api;
     }
 
-    public async connectToStation(stationSN: string, p2pConnectionType: P2PConnectionType = P2PConnectionType.PREFER_LOCAL): Promise<void> {
+    public async connectToStation(stationSN: string, p2pConnectionType: P2PConnectionType = P2PConnectionType.QUICKEST): Promise<void> {
         if (Object.keys(this.stations).includes(stationSN)) {
             this.stations[stationSN].setConnectionType(p2pConnectionType);
             this.stations[stationSN].connect();
@@ -448,7 +461,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     new_device = new IndoorCamera(this.api, device);
                 } else if (Device.isSoloCameras(device.device_type)) {
                     new_device = new SoloCamera(this.api, device);
-                } else if (Device.isBatteryDoorbell(device.device_type) || Device.isBatteryDoorbell2(device.device_type)) {
+                } else if (Device.isBatteryDoorbell(device.device_type)) {
                     new_device = new BatteryDoorbellCamera(this.api, device);
                 } else if (Device.isWiredDoorbell(device.device_type)) {
                     new_device = new DoorbellCamera(this.api, device);
@@ -556,38 +569,24 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.pushService.open();
     }
 
-    public async connect(verifyCodeOrCaptcha?: string | null, captchaId?: string | null): Promise<boolean> {
-        let retries = 0;
-        await this.api.loadApiBase().catch((error) => {
-            this.log.error("Load Api base Error", error);
-        });
-        while (true) {
-            switch (await this.api.authenticate(verifyCodeOrCaptcha, captchaId)) {
-                case AuthResult.CAPTCHA_NEEDED:
-                    return false;
-                case AuthResult.SEND_VERIFY_CODE:
-                    this.saveAPIBase();
-                    this.emit("tfa request");
-                    return false;
-                case AuthResult.RENEW:
-                    this.log.debug("Renew token");
-                    break;
-                case AuthResult.ERROR:
-                    this.log.error("Token error");
-                    return false;
-                case AuthResult.OK:
-                    if (verifyCodeOrCaptcha && !captchaId) {
-                        return await this.api.addTrustDevice(verifyCodeOrCaptcha);
-                    }
-                    return true;
-            }
-            if (retries > 4) {
-                this.log.error("Max connect attempts reached, interrupt");
-                return false;
-            } else  {
-                retries += 1;
-            }
-        }
+    public async connect(options?: LoginOptions): Promise<void> {
+        await this.api.login(options)
+            .then(async () => {
+                if (options?.verifyCode) {
+                    /*let trusted = false;
+                    const trusted_devices = await this.api.listTrustDevice();
+                    trusted_devices.forEach(trusted_device => {
+                        if (trusted_device.is_current_device === 1) {
+                            trusted = true;
+                        }
+                    });
+                    if (!trusted)*/
+                    return await this.api.addTrustDevice(options?.verifyCode);
+                }
+            })
+            .catch((error) => {
+                this.log.error("Connect Error", error);
+            });
     }
 
     public getPushPersistentIds(): string[] {
@@ -599,41 +598,35 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         device.updateRawProperties(values);
     }
 
-    private onAPIClose(): void {
+    private async onAPIClose(): Promise<void> {
+        if (this.refreshEufySecurityCloudTimeout !== undefined)
+            clearTimeout(this.refreshEufySecurityCloudTimeout);
+
         this.connected = false;
         this.emit("close");
+
+        if (this.retries < 1) {
+            this.retries++;
+            await this.connect()
+        } else {
+            this.log.error(`Tried to re-authenticate to Eufy cloud, but failed in the process. Manual intervention is required!`);
+        }
     }
 
     private async onAPIConnect(): Promise<void> {
         this.connected = true;
+        this.retries = 0;
         this.emit("connect");
-        this.saveAPIBase();
-
-        try {
-            const token_expiration = this.api.getTokenExpiration();
-            const trusted_token_expiration = this.api.getTrustedTokenExpiration();
-            if (token_expiration?.getTime() !== trusted_token_expiration.getTime()) {
-                const trusted_devices = await this.api.listTrustDevice();
-                trusted_devices.forEach(trusted_device => {
-                    if (trusted_device.is_current_device === 1) {
-                        this.api.setTokenExpiration(trusted_token_expiration);
-                        this.log.debug(`This device is trusted. Token expiration extended to ${trusted_token_expiration})`);
-                    }
-                });
-            }
-        } catch (error) {
-            this.log.error("Trusted devices - Error:", error);
-        }
 
         this.saveCloudToken();
 
-        this.registerPushNotifications(this.persistentData.push_credentials, this.persistentData.push_persistentIds);
+        await this.refreshCloudData();
 
-        this.refreshCloudData();
+        this.registerPushNotifications(this.persistentData.push_credentials, this.persistentData.push_persistentIds);
 
         const loginData = this.api.getPersistentData();
         if (loginData) {
-            this.mqttService.connect(loginData.user_id, this.persistentData.openudid, this.persistentData.api_base, loginData.email);
+            this.mqttService.connect(loginData.user_id, this.persistentData.openudid, this.api.getAPIBase(), loginData.email);
         } else {
             this.log.warn("No login data recevied to initialize MQTT connection...");
         }
@@ -728,17 +721,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private writePersistentData(): void {
         this.persistentData.login_hash = md5(`${this.config.username}:${this.config.password}`);
         this.persistentData.httpApi = this.api?.getPersistentData();
+        this.persistentData.country = this.api?.getCountry();
         try {
             fse.writeFileSync(this.persistentFile, JSON.stringify(this.persistentData));
         } catch (error) {
             this.log.error("Error:", error);
-        }
-    }
-
-    private saveAPIBase(): void {
-        if (this.persistentData.api_base !== this.api.getAPIBase()) {
-            this.persistentData.api_base = this.api.getAPIBase();
-            this.writePersistentData();
         }
     }
 
@@ -841,14 +828,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.log.debug("Received push message", message);
             try {
                 if ((message.type === ServerPushEvent.INVITE_DEVICE || message.type === ServerPushEvent.HOUSE_INVITE) && this.config.acceptInvitations) {
-                    this.processInvitations();
+                    if (this.isConnected())
+                        this.processInvitations();
                 }
             } catch (error) {
                 this.log.error(`Error processing server push notification for device invitation`, error);
             }
             try {
                 if (message.type === ServerPushEvent.REMOVE_DEVICE || message.type === ServerPushEvent.REMOVE_HOMEBASE || message.type === ServerPushEvent.HOUSE_REMOVE) {
-                    this.refreshCloudData();
+                    if (this.isConnected())
+                        this.refreshCloudData();
                 }
             } catch (error) {
                 this.log.error(`Error processing server push notification for device/station/house removal`, error);
@@ -1433,7 +1422,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             const device = this.getStationDevice(station.getSerial(), channel);
             if (device.hasProperty(PropertyName.DeviceBattery)) {
                 const metadataBattery = device.getPropertyMetadata(PropertyName.DeviceBattery);
-                if (chargeType !== ChargingType.PLUGGED)
+                if (chargeType !== ChargingType.PLUGGED && batteryLevel > 0)
                     device.updateRawProperty(metadataBattery.key as number, { value: batteryLevel.toString(), timestamp: modified});
             }
             if (device.hasProperty(PropertyName.DeviceChargingStatus)) {
@@ -1471,6 +1460,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         } catch (error) {
             this.log.error(`Station floodlight manual switch error (station: ${station.getSerial()} channel: ${channel})`, error);
         }
+    }
+
+    private onAuthTokenInvalidated(): void {
+        this.persistentData.cloud_token = undefined;
+        this.persistentData.cloud_token_expiration = undefined;
+        this.writePersistentData();
+    }
+
+    private onTfaRequest(): void {
+        this.emit("tfa request");
     }
 
 }

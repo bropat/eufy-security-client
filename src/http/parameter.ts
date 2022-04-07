@@ -1,4 +1,4 @@
-import { CommandType } from "../p2p";
+import { CommandType } from "../p2p/types";
 import { ParamType } from "./types";
 
 export class ParameterHelper {

@@ -64,11 +64,9 @@ export interface Invites {
 }
 
 export interface HTTPApiRequest {
-    apiBase?: string;
     method: Method;
     endpoint: string;
     data?: any;
-    headers?: Record<string, string>;
 }
 
 export type PropertyMetadataType =
@@ -131,6 +129,17 @@ export interface HTTPApiPersistentData {
     }
 }
 
+export interface CaptchaOptions {
+    captchaCode: string;
+    captchaId: string;
+}
+
+export interface LoginOptions {
+    verifyCode?: string;
+    captcha?: CaptchaOptions;
+    force: boolean;
+}
+
 export interface HTTPApiEvents {
     "devices": (devices: FullDevices) => void;
     "hubs": (hubs: Hubs) => void;
@@ -139,6 +148,7 @@ export interface HTTPApiEvents {
     "close": () => void;
     "tfa request": () => void;
     "captcha request": (id: string, captcha: string) => void;
+    "auth token invalidated": () => void;
 }
 
 export interface StationEvents {

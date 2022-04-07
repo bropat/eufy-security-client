@@ -80,6 +80,19 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.0.0 (2022-04-xx)
+
+* (bropat) **Breaking Change** Requires node version >= 14.17
+* (bropat) **Breaking Change** HTTPApi and EufySecurity class instantiation changed
+* (bropat) Added support for Battery Doorbell Dual (T8213; #126) **WIP**
+* (bropat) Removed PREFER_LOCAL P2P connectivity mode. Default mode is now QUICKEST.
+* (bropat) Added new charging status "solar charging" (value: 4)
+* (bropat) Fixed Eufy cloud authentication token renewal
+* (bropat) Fixed some Eufy cloud authentication issues
+* (bropat) Fixed authentication issues when changing country setting
+* (bropat) Fixed possible wrong battery values on some devices
+* (bropat) Updated versions of the package dependencies
+
 ### 1.6.6 (2022-02-12)
 
 * (bropat) Fixed issue where no devices/stations are found (#116)

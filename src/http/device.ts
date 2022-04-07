@@ -10,7 +10,8 @@ import { CommandType, ESLAnkerBleConstant } from "../p2p/types";
 import { calculateWifiSignalLevel, getAbsoluteFilePath } from "./utils";
 import { convertTimestampMs } from "../push/utils";
 import { eslTimestamp } from "../p2p/utils";
-import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, PushMessage } from "../push";
+import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent } from "../push/types";
+import { PushMessage } from "../push/models";
 import { isEmpty } from "../utils";
 import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
 import { DeviceSmartLockNotifyData } from "../mqtt/model";
@@ -380,6 +381,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
+            type == DeviceType.BATTERY_DOORBELL_PLUS ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.INDOOR_CAMERA_1080 ||
@@ -406,6 +408,7 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA2C ||
             type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
+            type == DeviceType.BATTERY_DOORBELL_PLUS ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.SOLO_CAMERA ||
@@ -440,7 +443,8 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
     static isDoorbell(type: number): boolean {
         if (type == DeviceType.DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL ||
-            type == DeviceType.BATTERY_DOORBELL_2)
+            type == DeviceType.BATTERY_DOORBELL_2 ||
+            type == DeviceType.BATTERY_DOORBELL_PLUS)
             return true;
         return false;
     }
@@ -492,12 +496,24 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.LOCK_ADVANCED_NO_FINGER == type;
     }
 
-    static isBatteryDoorbell(type: number): boolean {
+    static isBatteryDoorbell1(type: number): boolean {
         return DeviceType.BATTERY_DOORBELL == type;
     }
 
     static isBatteryDoorbell2(type: number): boolean {
         return DeviceType.BATTERY_DOORBELL_2 == type;
+    }
+
+    static isBatteryDoorbellDual(type: number): boolean {
+        return DeviceType.BATTERY_DOORBELL_PLUS == type;
+    }
+
+    static isBatteryDoorbell(type: number): boolean {
+        if (type == DeviceType.BATTERY_DOORBELL ||
+            type == DeviceType.BATTERY_DOORBELL_2 ||
+            type == DeviceType.BATTERY_DOORBELL_PLUS)
+            return true;
+        return false;
     }
 
     static isSoloCamera(type: number): boolean {
@@ -573,6 +589,10 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.MOTION_SENSOR == type;
     }
 
+    static isSmartDrop(type: number): boolean {
+        return DeviceType.SMART_DROP == type;
+    }
+
     static isIntegratedDeviceBySn(sn: string): boolean {
         return sn.startsWith("T8420") ||
             sn.startsWith("T820") ||
@@ -634,12 +654,20 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
         return Device.isLockAdvancedNoFinger(this.rawDevice.device_type);
     }
 
-    public isBatteryDoorbell(): boolean {
-        return Device.isBatteryDoorbell(this.rawDevice.device_type);
+    public isBatteryDoorbell1(): boolean {
+        return Device.isBatteryDoorbell1(this.rawDevice.device_type);
     }
 
     public isBatteryDoorbell2(): boolean {
         return Device.isBatteryDoorbell2(this.rawDevice.device_type);
+    }
+
+    public isBatteryDoorbellDual(): boolean {
+        return Device.isBatteryDoorbellDual(this.rawDevice.device_type);
+    }
+
+    public isBatteryDoorbell(): boolean {
+        return Device.isBatteryDoorbell(this.rawDevice.device_type);
     }
 
     public isSoloCamera(): boolean {
@@ -712,6 +740,10 @@ export abstract class Device extends TypedEmitter<DeviceEvents> {
 
     public isIndoorCamera(): boolean {
         return Device.isIndoorCamera(this.rawDevice.device_type);
+    }
+
+    public isSmartDrop(): boolean {
+        return Device.isSmartDrop(this.rawDevice.device_type);
     }
 
     public hasBattery(): boolean {
