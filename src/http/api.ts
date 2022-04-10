@@ -298,48 +298,45 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 this.log.error("Generic Error:", error);
             }
         } else if (!this.connected) {
-            await this.getPassportProfile()
-                .then((result) => {
-                    if (result !== null) {
-                        this.emit("connect");
-                        this.connected = true;
-                        this.scheduleRenewAuthToken();
-                    }
-                })
-                .catch((error) => {
-                    this.log.error("getPassportProfile Error", error);
-                });
+            try {
+                const profile = await this.getPassportProfile();
+                if (profile !== null) {
+                    this.emit("connect");
+                    this.connected = true;
+                    this.scheduleRenewAuthToken();
+                }
+            } catch (error) {
+                this.log.error("getPassportProfile Error", error);
+            }
         }
     }
 
     public async sendVerifyCode(type?: VerfyCodeTypes): Promise<boolean> {
-        if (this.connected) {
-            try {
-                if (!type)
-                    type = VerfyCodeTypes.TYPE_EMAIL;
+        try {
+            if (!type)
+                type = VerfyCodeTypes.TYPE_EMAIL;
 
-                const response = await this.request({
-                    method: "post",
-                    endpoint: "v1/sms/send/verify_code",
-                    data: {
-                        message_type: type,
-                        transaction: `${new Date().getTime()}`
-                    }
-                });
-                if (response.status == 200) {
-                    const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
-                        this.log.info(`Requested verification code for 2FA`);
-                        return true;
-                    } else {
-                        this.log.error("Response code not ok", {code: result.code, msg: result.msg });
-                    }
-                } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+            const response = await this.request({
+                method: "post",
+                endpoint: "v1/sms/send/verify_code",
+                data: {
+                    message_type: type,
+                    transaction: `${new Date().getTime()}`
                 }
-            } catch (error) {
-                this.log.error("Generic Error:", error);
+            });
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    this.log.info(`Requested verification code for 2FA`);
+                    return true;
+                } else {
+                    this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                }
+            } else {
+                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
             }
+        } catch (error) {
+            this.log.error("Generic Error:", error);
         }
         return false;
     }
@@ -390,7 +387,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         const trusted_devices = await this.listTrustDevice();
                         trusted_devices.forEach((trusted_device: TrustDevice) => {
                             if (trusted_device.is_current_device === 1) {
-                                //this.tokenExpiration = this.trustedTokenExpiration;
                                 this.log.debug("This device is trusted. Token expiration extended:", { tokenExpiration: this.tokenExpiration});
                             }
                         });

@@ -84,6 +84,7 @@ Please use GitHub issues for this.
 
 * (bropat) **Breaking Change** Requires node version >= 14.17
 * (bropat) **Breaking Change** HTTPApi and EufySecurity class instantiation changed
+* (bropat) **Breaking Change** Timestamp for device and station properties has been removed
 * (bropat) Added support for Battery Doorbell Dual (T8213; #126) **WIP**
 * (bropat) Removed PREFER_LOCAL P2P connectivity mode. Default mode is now QUICKEST.
 * (bropat) Added new charging status "solar charging" (value: 4)

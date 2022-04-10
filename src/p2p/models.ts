@@ -1,3 +1,4 @@
+import { PropertyValue } from "../http";
 import { PropertyName } from "../http/types";
 import { CommandType } from "./types";
 
@@ -18,7 +19,7 @@ export interface CmdCameraInfoResponse {
 
 export interface PropertyData {
     name: PropertyName;
-    value: unknown;
+    value: PropertyValue;
 }
 
 export interface CommandResult {
