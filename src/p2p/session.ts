@@ -39,7 +39,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private readonly MAX_SEQUENCE_NUMBER = 65535;
 
-    //TODO: Handle ERR_SOCKET_DGRAM_NOT_RUNNING
     private socket: Socket;
     private binded = false;
     private connected = false;
@@ -68,6 +67,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         { host: "18.223.127.200", port: 32100 },    // USA Columbus
         { host: "54.223.148.206", port: 32100 },    // China Beijing
         { host: "13.251.222.7", port: 32100 },      // Singapore
+        { host: "54.167.31.60", port: 32100 },      // USA Ashburn
+        { host: "204.236.133.68", port: 32100 },    // USA San Jose
+        { host: "3.131.209.36", port: 32100 },      // USA Columbus
     ];
 
     private messageStates: SortedMap<number, P2PMessageState> = new SortedMap<number, P2PMessageState>((a: number, b: number) => a - b);
@@ -344,7 +346,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
 
     public async connect(): Promise<void> {
-        if (!this.connected && !this.connecting) {
+        if (!this.connected && !this.connecting && this.rawStation.p2p_did !== undefined) {
             this.connecting = true;
             this.terminating = false;
             await this.renewDSKKey();
@@ -1610,49 +1612,48 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
 
     private async getDSKKeys(): Promise<void> {
-        try {
-            const data: {
-                invalid_dsks: {
-                    [index: string]: string
-                },
-                station_sns: Array<string>,
-                transaction: string
-            } = {
-                invalid_dsks: {
-                },
-                station_sns: [this.rawStation.station_sn],
-                transaction: `${new Date().getTime()}`
-            };
-            data.invalid_dsks[this.rawStation.station_sn] = "";
-            const response = await this.api.request({
-                method: "post",
-                endpoint: "v1/app/equipment/get_dsk_keys",
-                data: data
-            }).catch(error => {
-                this.log.error("Error:", error);
-                return error;
-            });
-            this.log.debug(`Station ${this.rawStation.station_sn} - Response:`, response.data);
+        if (this.api.isConnected()) {
+            try {
+                const data: {
+                    invalid_dsks: {
+                        [index: string]: string
+                    },
+                    station_sns: Array<string>,
+                    transaction: string
+                } = {
+                    invalid_dsks: {
+                    },
+                    station_sns: [this.rawStation.station_sn],
+                    transaction: `${new Date().getTime()}`
+                };
+                data.invalid_dsks[this.rawStation.station_sn] = "";
+                const response = await this.api.request({
+                    method: "post",
+                    endpoint: "v1/app/equipment/get_dsk_keys",
+                    data: data
+                });
+                this.log.debug(`Station ${this.rawStation.station_sn} - Response:`, response.data);
 
-            if (response.status == 200) {
-                const result: ResultResponse = response.data;
-                if (result.code == 0) {
-                    const dataresult: DskKeyResponse = result.data;
-                    dataresult.dsk_keys.forEach(key => {
-                        if (key.station_sn == this.rawStation.station_sn) {
-                            this.dskKey = key.dsk_key;
-                            this.dskExpiration = new Date(key.expiration * 1000);
-                            this.log.debug(`${this.constructor.name}.getDSKKeys(): dskKey: ${this.dskKey} dskExpiration: ${this.dskExpiration}`);
-                        }
-                    });
+                if (response.status == 200) {
+                    const result: ResultResponse = response.data;
+                    if (result.code == 0) {
+                        const dataresult: DskKeyResponse = result.data;
+                        dataresult.dsk_keys.forEach(key => {
+                            if (key.station_sn == this.rawStation.station_sn) {
+                                this.dskKey = key.dsk_key;
+                                this.dskExpiration = new Date(key.expiration * 1000);
+                                this.log.debug(`${this.constructor.name}.getDSKKeys(): dskKey: ${this.dskKey} dskExpiration: ${this.dskExpiration}`);
+                            }
+                        });
+                    } else {
+                        this.log.error(`Station ${this.rawStation.station_sn} - Response code not ok`, { code: result.code, msg: result.msg });
+                    }
                 } else {
-                    this.log.error(`Station ${this.rawStation.station_sn} - Response code not ok`, { code: result.code, msg: result.msg });
+                    this.log.error(`Station ${this.rawStation.station_sn} - Status return code not 200`, { status: response.status, statusText: response.statusText });
                 }
-            } else {
-                this.log.error(`Station ${this.rawStation.station_sn} - Status return code not 200`, { status: response.status, statusText: response.statusText });
+            } catch (error) {
+                this.log.error(`Station ${this.rawStation.station_sn} - Generic Error:`, error);
             }
-        } catch (error) {
-            this.log.error(`Station ${this.rawStation.station_sn} - Generic Error:`, error);
         }
     }
 

@@ -80,18 +80,31 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 2.0.0 (2022-04-xx)
+### 2.0.0 (2022-04-30)
 
 * (bropat) **Breaking Change** Requires node version >= 14.17
-* (bropat) **Breaking Change** HTTPApi and EufySecurity class instantiation changed
+* (bropat) **Breaking Change** HTTPApi class, EufySecurity class and Device classes instantiation changed
 * (bropat) **Breaking Change** Timestamp for device and station properties has been removed
-* (bropat) Added support for Battery Doorbell Dual (T8213; #126) **WIP**
+* (bropat) Added support for Battery Doorbell Dual (T8213; #126)
+* (bropat) Added support for Video Doorbell Dual (T8203; #141)
+* (bropat) Added support for IndoorCam Mini (T8414; #143)
+* (bropat) Added continuos recording setting for some supported cameras
+* (bropat) Added continuos recording type setting for some supported cameras
+* (bropat) Added default angle setting for IndoorCam Mini (T8414)
+* (bropat) Added default angle idle time setting for IndoorCam Mini (T8414)
+* (bropat) Added notification interval time setting for some supported cameras
+* (bropat) Added calibrate command for some supported cameras
+* (bropat) Added set default angle command for IndoorCam Mini (T8414
+* (bropat) Added set privacy angle command for IndoorCam Mini (T8414)
 * (bropat) Removed PREFER_LOCAL P2P connectivity mode. Default mode is now QUICKEST.
-* (bropat) Added new charging status "solar charging" (value: 4)
+* (bropat) Added new charging status "solar charging" (value: 4; issue #127)
 * (bropat) Fixed Eufy cloud authentication token renewal
 * (bropat) Fixed some Eufy cloud authentication issues
 * (bropat) Fixed authentication issues when changing country setting
 * (bropat) Fixed possible wrong battery values on some devices
+* (bropat) Fixed issue if device doesn't support P2P communication
+* (bropat) Fixed issue #136
+* (bropat) Fixed issue #122
 * (bropat) Updated versions of the package dependencies
 
 ### 1.6.6 (2022-02-12)

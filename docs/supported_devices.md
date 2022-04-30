@@ -19,7 +19,9 @@
 | ![T8424 image](_media/floodlight2_small.jpg) | Floodlight Cam 2 (T8424) | :heavy_check_mark: |  |
 | ![T8200 image](_media/wireddoorbell2k_small.jpg) | Wired Doorbell 2k (T8200) | :heavy_check_mark: |  |
 | ![T8201 image](_media/wireddoorbell1080p_small.jpg) | Wired Doorbell 1080p (T8201) | :heavy_check_mark: |  |
+| ![T8203 image](_media/wireddoorbelldual_small.jpg) | Video Doorbell Dual (T8203) | :heavy_check_mark: | Firmware: 2.0.4.6 (20220417) |
 | ![T8210 image](_media/batterydoorbell2k_small.jpg) | Battery Doorbell 2K (T8210) | :heavy_check_mark: |  |
+| ![T8213 image](_media/batterydoorbell2kdual_small.jpg) | Battery Doorbell 2K Dual (T8213) | :heavy_check_mark: | Firmware: 0.1.2.5 (20220331) |
 | ![T8222 image](_media/batterydoorbell1080p_small.jpg) | Battery Doorbell 1080p (T8222) | :heavy_check_mark: |  |
 | ![T8900 image](_media/sensor_small.jpg) | Entry Sensor (T8900) | :heavy_check_mark: |  |
 | ![T8910 image](_media/motionsensor_small.jpg) | Motion sensor (T8910) | :heavy_check_mark: |  |
@@ -27,6 +29,7 @@
 | ![T8400 image](_media/soloindoorcamc24_small.jpg) | Indoor Cam 2K (T8400) | :heavy_check_mark: |  |
 | ![T8411 image](_media/indoorcamp24_small.jpg) | Indoor Cam Pan&Tilt 1080p (T8411) |:heavy_check_mark:  |  |
 | ![T8401 image](_media/soloindoorcamc24_small.jpg) | Indoor Cam 1080p (T8401) | :heavy_check_mark: |  |
+| ![T8414 image](_media/indoorcammini_small.jpg) | Indoor Cam Mini (T8414) | :heavy_check_mark: | Firmware: 3.1.1.7 (20220427) |
 | ![T8500 image](_media/smartlock_t8500_small.jpg) | Smart Lock (T8500) | :x: |  |
 | ![T8500 with Wi-Fi Bridge image](_media/smartlock_t8500_wifibridge_small.jpg) | Smart Lock (T8500) with Wi-Fi Bridge | :heavy_check_mark: :wrench: |  |
 | ![T8510 image](_media/smartlock_touch_t8510_small.jpg) | Smart Lock Touch (T8510) | :x: |  |

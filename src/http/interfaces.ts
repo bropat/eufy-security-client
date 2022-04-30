@@ -98,6 +98,7 @@ export interface PropertyMetadataString extends PropertyMetadataAny {
     minLength?: number;
     maxLength?: number;
     default?: string;
+    format?: RegExp;
 }
 
 export interface IndexedProperty {

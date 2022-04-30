@@ -12,8 +12,8 @@ import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, Sta
 import { CommandName, NotificationSwitchMode, NotificationType, PropertyName } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
-import { BatteryDoorbellCamera, Camera, Device, DoorbellCamera, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SoloCamera, UnknownDevice } from "./http/device";
-import { AlarmEvent, ChargingType, CommandType, P2PConnectionType } from "./p2p/types";
+import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SoloCamera, UnknownDevice, WiredDoorbellCamera } from "./http/device";
+import { AlarmEvent, ChargingType, P2PConnectionType } from "./p2p/types";
 import { StreamMetadata } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
 import { generateSerialnumber, generateUDID, handleUpdate, md5, parseValue, removeLastChar } from "./utils";
@@ -442,7 +442,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
     }
 
-    private handleDevices(devices: FullDevices): void {
+    private async handleDevices(devices: FullDevices): Promise<void> {
         this.log.debug("Got devices:", devices);
         const deviceSNs: string[] = Object.keys(this.devices);
         const newDeviceSNs = Object.keys(devices);
@@ -454,27 +454,27 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 let new_device: Device;
 
                 if (Device.isIndoorCamera(device.device_type)) {
-                    new_device = new IndoorCamera(this.api, device);
+                    new_device = await IndoorCamera.initialize(this.api, device);
                 } else if (Device.isSoloCameras(device.device_type)) {
-                    new_device = new SoloCamera(this.api, device);
+                    new_device = await SoloCamera.initialize(this.api, device);
                 } else if (Device.isBatteryDoorbell(device.device_type)) {
-                    new_device = new BatteryDoorbellCamera(this.api, device);
-                } else if (Device.isWiredDoorbell(device.device_type)) {
-                    new_device = new DoorbellCamera(this.api, device);
+                    new_device = await BatteryDoorbellCamera.initialize(this.api, device);
+                } else if (Device.isWiredDoorbell(device.device_type) || Device.isWiredDoorbellDual(device.device_type)) {
+                    new_device = await WiredDoorbellCamera.initialize(this.api, device);
                 } else if (Device.isFloodLight(device.device_type)) {
-                    new_device = new FloodlightCamera(this.api, device);
+                    new_device = await FloodlightCamera.initialize(this.api, device);
                 } else if (Device.isCamera(device.device_type)) {
-                    new_device = new Camera(this.api, device);
+                    new_device = await Camera.initialize(this.api, device);
                 } else if (Device.isLock(device.device_type)) {
-                    new_device = new Lock(this.api, device);
+                    new_device = await Lock.initialize(this.api, device);
                 } else if (Device.isMotionSensor(device.device_type)) {
-                    new_device = new MotionSensor(this.api, device);
+                    new_device = await MotionSensor.initialize(this.api, device);
                 } else if (Device.isEntrySensor(device.device_type)) {
-                    new_device = new EntrySensor(this.api, device);
+                    new_device = await EntrySensor.initialize(this.api, device);
                 } else if (Device.isKeyPad(device.device_type)) {
-                    new_device = new Keypad(this.api, device);
+                    new_device = await Keypad.initialize(this.api, device);
                 } else {
-                    new_device = new UnknownDevice(this.api, device);
+                    new_device = await UnknownDevice.initialize(this.api, device);
                 }
 
                 new_device.on("property changed", (device: Device, name: string, value: PropertyValue) => this.onDevicePropertyChanged(device, name, value));
@@ -504,7 +504,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 this.log.error("Error in processing invitations", error);
             });
         }
-        await this.api.updateDeviceInfo().catch(error => {
+        await this.api.refreshAllData().catch(error => {
             this.log.error("Error during API data refreshing", error);
         });
         if (this.refreshEufySecurityCloudTimeout !== undefined)
@@ -1144,6 +1144,129 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             case PropertyName.DeviceLockSettingsWrongTryLockdownTime:
                 await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsWrongTryLockdownTime, value as PropertyValue);
                 break;
+            case PropertyName.DeviceLoiteringDetection:
+                await station.setLoiteringDetection(device, value as boolean);
+                break;
+            case PropertyName.DeviceLoiteringDetectionRange:
+                await station.setLoiteringDetectionRange(device, value as number);
+                break;
+            case PropertyName.DeviceLoiteringDetectionLength:
+                await station.setLoiteringDetectionLength(device, value as number);
+                break;
+            case PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponse:
+                await station.setLoiteringCustomResponseAutoVoiceResponse(device, value as boolean);
+                break;
+            case PropertyName.DeviceLoiteringCustomResponseHomeBaseNotification:
+                await station.setLoiteringCustomResponseHomeBaseNotification(device, value as boolean);
+                break;
+            case PropertyName.DeviceLoiteringCustomResponsePhoneNotification:
+                await station.setLoiteringCustomResponsePhoneNotification(device, value as boolean);
+                break;
+            case PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponseVoice:
+                await station.setLoiteringCustomResponseAutoVoiceResponseVoice(device, value as number);
+                break;
+            case PropertyName.DeviceLoiteringCustomResponseTimeFrom:
+                await station.setLoiteringCustomResponseTimeFrom(device, value as string);
+                break;
+            case PropertyName.DeviceLoiteringCustomResponseTimeTo:
+                await station.setLoiteringCustomResponseTimeTo(device, value as string);
+                break;
+            case PropertyName.DeviceMotionDetectionSensitivityMode:
+                await station.setMotionDetectionSensitivityMode(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionSensitivityStandard:
+                await station.setMotionDetectionSensitivityStandard(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionSensitivityAdvancedA:
+                await station.setMotionDetectionSensitivityAdvancedA(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionSensitivityAdvancedB:
+                await station.setMotionDetectionSensitivityAdvancedB(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionSensitivityAdvancedC:
+                await station.setMotionDetectionSensitivityAdvancedC(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionSensitivityAdvancedD:
+                await station.setMotionDetectionSensitivityAdvancedD(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionSensitivityAdvancedE:
+                await station.setMotionDetectionSensitivityAdvancedE(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionSensitivityAdvancedF:
+                await station.setMotionDetectionSensitivityAdvancedF(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionSensitivityAdvancedG:
+                await station.setMotionDetectionSensitivityAdvancedG(device, value as number);
+                break;
+            case PropertyName.DeviceMotionDetectionSensitivityAdvancedH:
+                await station.setMotionDetectionSensitivityAdvancedH(device, value as number);
+                break;
+            case PropertyName.DeviceDeliveryGuard:
+                await station.setDeliveryGuard(device, value as boolean);
+                break;
+            case PropertyName.DeviceDeliveryGuardPackageGuarding:
+                await station.setDeliveryGuardPackageGuarding(device, value as boolean);
+                break;
+            case PropertyName.DeviceDeliveryGuardPackageGuardingVoiceResponseVoice:
+                await station.setDeliveryGuardPackageGuardingVoiceResponseVoice(device, value as number);
+                break;
+            case PropertyName.DeviceDeliveryGuardPackageGuardingActivatedTimeFrom:
+                await station.setDeliveryGuardPackageGuardingActivatedTimeFrom(device, value as string);
+                break;
+            case PropertyName.DeviceDeliveryGuardPackageGuardingActivatedTimeTo:
+                await station.setDeliveryGuardPackageGuardingActivatedTimeTo(device, value as string);
+                break;
+            case PropertyName.DeviceDeliveryGuardUncollectedPackageAlert:
+                await station.setDeliveryGuardUncollectedPackageAlert(device, value as boolean);
+                break;
+            case PropertyName.DeviceDeliveryGuardPackageLiveCheckAssistance:
+                await station.setDeliveryGuardPackageLiveCheckAssistance(device, value as boolean);
+                break;
+            case PropertyName.DeviceDualCamWatchViewMode:
+                await station.setDualCamWatchViewMode(device, value as number);
+                break;
+            case PropertyName.DeviceRingAutoResponse:
+                await station.setRingAutoResponse(device, value as boolean);
+                break;
+            case PropertyName.DeviceRingAutoResponseVoiceResponse:
+                await station.setRingAutoResponseVoiceResponse(device, value as boolean);
+                break;
+            case PropertyName.DeviceRingAutoResponseVoiceResponseVoice:
+                await station.setRingAutoResponseVoiceResponseVoice(device, value as number);
+                break;
+            case PropertyName.DeviceRingAutoResponseTimeFrom:
+                await station.setRingAutoResponseTimeFrom(device, value as string);
+                break;
+            case PropertyName.DeviceRingAutoResponseTimeTo:
+                await station.setRingAutoResponseTimeTo(device, value as string);
+                break;
+            case PropertyName.DeviceNotificationRadarDetector:
+                await station.setNotificationRadarDetector(device, value as boolean);
+                break;
+            case PropertyName.DeviceSoundDetectionSensitivity:
+                await station.setSoundDetectionSensitivity(device, value as number);
+                break;
+            case PropertyName.DeviceContinuousRecording:
+                await station.setContinuousRecording(device, value as boolean);
+                break;
+            case PropertyName.DeviceContinuousRecordingType:
+                await station.setContinuousRecordingType(device, value as number);
+                break;
+            case PropertyName.DeviceDefaultAngle:
+                await station.enableDefaultAngle(device, value as boolean);
+                break;
+            case PropertyName.DeviceDefaultAngleIdleTime:
+                await station.setDefaultAngleIdleTime(device, value as number);
+                break;
+            case PropertyName.DeviceNotificationIntervalTime:
+                await station.setNotificationIntervalTime(device, value as number);
+                break;
+            case PropertyName.DeviceSoundDetectionRoundLook:
+                await station.setSoundDetectionRoundLook(device, value as boolean);
+                break;
+            case PropertyName.DeviceDeliveryGuardUncollectedPackageAlertTimeToCheck:
+                await station.setDeliveryGuardUncollectedPackageAlertTimeToCheck(device, value as string);
+                break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
                     throw new ReadOnlyPropertyError(`Property ${name} is read only`);
@@ -1264,7 +1387,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 try {
                     const device = this.getStationDevice(station.getSerial(), result.channel);
                     if (result.property !== undefined) {
-                        device.updateProperty(result.property.name, result.property.value);
+                        if (device.hasProperty(result.property.name))
+                            device.updateProperty(result.property.name, result.property.value);
+                        else if (station.hasProperty(result.property.name)) {
+                            station.updateProperty(result.property.name, result.property.value);
+                        }
                     }
                 } catch (error) {
                     if (error instanceof DeviceNotFoundError) {
@@ -1274,11 +1401,15 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     }
                 }
             }
-            if (result.return_code === 0 && result.command_type !== CommandType.CMD_CAMERA_INFO && result.command_type !== CommandType.CMD_PING) {
-                await this.api.updateDeviceInfo();
-                if (station.isConnected() && Device.isCamera(station.getDeviceType()) && !Device.isWiredDoorbell(station.getDeviceType()))
+            //TODO: Check if needed (only needed for raw property value refresh?)
+            /*if (result.return_code === 0 && result.command_type !== CommandType.CMD_CAMERA_INFO && result.command_type !== CommandType.CMD_PING && result.command_type !== CommandType.CMD_GET_DEVICE_PING) {
+                if (station.isConnected() && Device.isCamera(station.getDeviceType()) && !Device.isWiredDoorbell(station.getDeviceType())) {
                     await station.getCameraInfo();
-            }
+                } else {
+                    await this.api.refreshStationData();
+                    await this.api.refreshDeviceData();
+                }
+            }*/
         } catch (error) {
             this.log.error(`Station command result error (station: ${station.getSerial()})`, error);
         }

@@ -45,7 +45,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     };
 
     private headers: Record<string, string> = {
-        app_version: "v4.0.0_1197",
+        app_version: "v4.2.1_1280",
         os_type: "android",
         os_version: "31",
         phone_model: "ONEPLUS A3003",
@@ -133,6 +133,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             const result = (response.body as ResultResponse);
                             error.name = "EufyError";
                             error.message = `Code: ${result.code} Message: ${result.msg} (HTTP Code: ${response.statusCode})`;
+                            this.log.error(`${error.name} - ${error.message} - requestUrl: ${error.request?.requestUrl}`);
                         }
 
                         return error;
@@ -474,9 +475,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         return [];
     }
 
-    public async updateDeviceInfo(): Promise<void> {
-        //Get the latest device info
-
+    public async refreshHouseData(): Promise<void> {
         //Get Houses
         const houses = await this.getHouseList();
         if (houses && houses.length > 0) {
@@ -490,7 +489,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         } else {
             this.log.info("No houses found.");
         }
+    }
 
+    public async refreshStationData(): Promise<void> {
         //Get Stations
         const stations = await this.getStationList();
         if (stations && stations.length > 0) {
@@ -504,7 +505,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         } else {
             this.log.info("No stations found.");
         }
+    }
 
+    public async refreshDeviceData(): Promise<void> {
         //Get Devices
         const devices = await this.getDeviceList();
         if (devices && devices.length > 0) {
@@ -516,6 +519,19 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         } else {
             this.log.info("No devices found.");
         }
+    }
+
+    public async refreshAllData(): Promise<void> {
+        //Get the latest info
+
+        //Get Houses
+        await this.refreshHouseData();
+
+        //Get Stations
+        await this.refreshStationData();
+
+        //Get Devices
+        await this.refreshDeviceData();
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -532,7 +548,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 headers: internalResponse.headers,
                 data: internalResponse.body,
             };
-            this.log.debug("Response:", response.data);
+            this.log.debug("Response:", { response: response.data });
 
             return response;
         } catch (error) {

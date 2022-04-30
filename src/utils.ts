@@ -3,7 +3,7 @@ import { Logger } from "ts-log";
 
 import { EufySecurityPersistentData } from "./interfaces";
 import { InvalidPropertyValueError } from "./error";
-import { PropertyMetadataAny, PropertyMetadataNumeric } from "./http/interfaces";
+import { PropertyMetadataAny, PropertyMetadataNumeric, PropertyMetadataString } from "./http/interfaces";
 
 export const removeLastChar = function(text: string, char: string): string {
     const strArr = [...text];
@@ -112,6 +112,12 @@ export const validValue = function(metadata: PropertyMetadataAny, value: unknown
         const numericValue = value as number;
         if ((numberMetadata.min !== undefined && numberMetadata.min > numericValue) || (numberMetadata.max !== undefined && numberMetadata.max < numericValue) || (numberMetadata.states !== undefined && numberMetadata.states[numericValue] === undefined)) {
             throw new InvalidPropertyValueError(`Value "${numericValue}" isn't a valid value for property "${numberMetadata.name}"`);
+        }
+    } else if (metadata.type === "string") {
+        const stringMetadata = metadata as PropertyMetadataString;
+        const stringValue = value as string;
+        if ((stringMetadata.format !== undefined && stringValue.match(stringMetadata.format) === null) || (stringMetadata.minLength !== undefined && stringMetadata.minLength > stringValue.length) || (stringMetadata.maxLength !== undefined && stringMetadata.maxLength < stringValue.length)) {
+            throw new InvalidPropertyValueError(`Value "${stringValue}" isn't a valid value for property "${stringMetadata.name}"`);
         }
     }
 }
