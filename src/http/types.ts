@@ -3195,6 +3195,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceAutoCalibration]: DeviceAutoCalibrationProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
     },
     [DeviceType.FLOODLIGHT_CAMERA_8424]: {
         ...GenericDeviceProperties,
