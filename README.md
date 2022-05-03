@@ -80,6 +80,11 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.0.1 (2022-05-03)
+
+* (bropat) **Breaking Change** Fixed regression in device data loading
+* (bropat) Target set back to ES2019
+
 ### 2.0.0 (2022-04-30)
 
 * (bropat) **Breaking Change** Requires node version >= 14.17

@@ -64,6 +64,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         [dataType: string]: NodeJS.Timeout;
     } = {};
 
+    private loadingDevices?: Promise<unknown>;
+
     private constructor(config: EufySecurityConfig, log: Logger = dummyLogger) {
         super();
 
@@ -77,7 +79,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         return eufySecurity;
     }
 
-    public async _initializeInternals(): Promise<void> {
+    protected async _initializeInternals(): Promise<void> {
         if (this.config.country === undefined) {
             this.config.country = "US";
         } else {
@@ -219,16 +221,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.emit("mqtt close");
         });
         this.mqttService.on("lock message", (message) => {
-            try {
-                const device = this.getDevice(message.data.data.deviceSn) as Lock;
-                device.processMQTTNotification(message.data.data);
-            } catch (error) {
+            this.getDevice(message.data.data.deviceSn).then((device: Device) => {
+                (device as Lock).processMQTTNotification(message.data.data);
+            }).catch((error) => {
                 if (error instanceof DeviceNotFoundError) {
                 } else {
                     this.log.error("Lock MQTT Message Error", error);
                 }
-            }
-            this.emit("mqtt lock message", message);
+            }).finally(() => {
+                this.emit("mqtt lock message", message);
+            });
         });
     }
 
@@ -241,8 +243,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (serial && !Object.keys(this.stations).includes(serial)) {
             this.stations[serial] = station;
             this.emit("station added", station);
-            station.setConnectionType(this.config.p2pConnectionSetup);
-            station.connect();
         } else {
             throw new DuplicateStationError(`Station with this serial ${station.getSerial()} exists already and couldn't be added again!`);
         }
@@ -297,14 +297,18 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
     }
 
-    private updateDevice(device: DeviceListResponse): void {
+    private async updateDevice(device: DeviceListResponse): Promise<void> {
+        if (this.loadingDevices !== undefined)
+            await this.loadingDevices;
         if (Object.keys(this.devices).includes(device.device_sn))
             this.devices[device.device_sn].update(device, this.stations[device.station_sn] !== undefined && this.stations[device.station_sn].isConnected())
         else
             throw new DeviceNotFoundError(`Device with this serial ${device.device_sn} doesn't exists and couldn't be updated!`);
     }
 
-    public getDevices(): Array<Device> {
+    public async getDevices(): Promise<Array<Device>> {
+        if (this.loadingDevices !== undefined)
+            await this.loadingDevices;
         const arr: Array<Device> = [];
         Object.keys(this.devices).forEach((serialNumber: string) => {
             arr.push(this.devices[serialNumber]);
@@ -312,13 +316,17 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         return arr;
     }
 
-    public getDevice(deviceSN: string): Device {
+    public async getDevice(deviceSN: string): Promise<Device> {
+        if (this.loadingDevices !== undefined)
+            await this.loadingDevices;
         if (Object.keys(this.devices).includes(deviceSN))
             return this.devices[deviceSN];
         throw new DeviceNotFoundError(`Device with this serial ${deviceSN} doesn't exists!`);
     }
 
-    public getStationDevice(stationSN: string, channel: number): Device {
+    public async getStationDevice(stationSN: string, channel: number): Promise<Device> {
+        if (this.loadingDevices !== undefined)
+            await this.loadingDevices;
         for (const device of Object.values(this.devices)) {
             if ((device.getStationSerial() === stationSN && device.getChannel() === channel) || (device.getStationSerial() === stationSN && device.getSerial() === stationSN)) {
                 return device;
@@ -429,71 +437,88 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onStationClose(station: Station): void {
         this.emit("station close", station);
-        try {
-            for (const device_sn of this.cameraStationLivestreamTimeout.keys()) {
-                const device = this.getDevice(device_sn);
+        for (const device_sn of this.cameraStationLivestreamTimeout.keys()) {
+            this.getDevice(device_sn).then((device: Device) => {
                 if (device !== null && device.getStationSerial() === station.getSerial()) {
                     clearTimeout(this.cameraStationLivestreamTimeout.get(device_sn)!);
                     this.cameraStationLivestreamTimeout.delete(device_sn);
                 }
-            }
-        } catch (error) {
-            this.log.error(`Station ${station.getSerial()} - Error:`, error);
+            }).catch((error) => {
+                this.log.error(`Station ${station.getSerial()} - Error:`, error);
+            });
         }
     }
 
-    private async handleDevices(devices: FullDevices): Promise<void> {
+    private handleDevices(devices: FullDevices): void {
         this.log.debug("Got devices:", devices);
         const deviceSNs: string[] = Object.keys(this.devices);
         const newDeviceSNs = Object.keys(devices);
+        const promises: Array<Promise<Device>> = [];
         for (const device of Object.values(devices)) {
 
             if (deviceSNs.includes(device.device_sn)) {
                 this.updateDevice(device);
             } else {
-                let new_device: Device;
+                let new_device: Promise<Device>;
 
                 if (Device.isIndoorCamera(device.device_type)) {
-                    new_device = await IndoorCamera.initialize(this.api, device);
+                    new_device = IndoorCamera.initialize(this.api, device);
                 } else if (Device.isSoloCameras(device.device_type)) {
-                    new_device = await SoloCamera.initialize(this.api, device);
+                    new_device = SoloCamera.initialize(this.api, device);
                 } else if (Device.isBatteryDoorbell(device.device_type)) {
-                    new_device = await BatteryDoorbellCamera.initialize(this.api, device);
+                    new_device = BatteryDoorbellCamera.initialize(this.api, device);
                 } else if (Device.isWiredDoorbell(device.device_type) || Device.isWiredDoorbellDual(device.device_type)) {
-                    new_device = await WiredDoorbellCamera.initialize(this.api, device);
+                    new_device = WiredDoorbellCamera.initialize(this.api, device);
                 } else if (Device.isFloodLight(device.device_type)) {
-                    new_device = await FloodlightCamera.initialize(this.api, device);
+                    new_device = FloodlightCamera.initialize(this.api, device);
                 } else if (Device.isCamera(device.device_type)) {
-                    new_device = await Camera.initialize(this.api, device);
+                    new_device = Camera.initialize(this.api, device);
                 } else if (Device.isLock(device.device_type)) {
-                    new_device = await Lock.initialize(this.api, device);
+                    new_device = Lock.initialize(this.api, device);
                 } else if (Device.isMotionSensor(device.device_type)) {
-                    new_device = await MotionSensor.initialize(this.api, device);
+                    new_device = MotionSensor.initialize(this.api, device);
                 } else if (Device.isEntrySensor(device.device_type)) {
-                    new_device = await EntrySensor.initialize(this.api, device);
+                    new_device = EntrySensor.initialize(this.api, device);
                 } else if (Device.isKeyPad(device.device_type)) {
-                    new_device = await Keypad.initialize(this.api, device);
+                    new_device = Keypad.initialize(this.api, device);
                 } else {
-                    new_device = await UnknownDevice.initialize(this.api, device);
+                    new_device = UnknownDevice.initialize(this.api, device);
                 }
 
-                new_device.on("property changed", (device: Device, name: string, value: PropertyValue) => this.onDevicePropertyChanged(device, name, value));
-                new_device.on("raw property changed", (device: Device, type: number, value: string) => this.onDeviceRawPropertyChanged(device, type, value));
-                new_device.on("crying detected", (device: Device, state: boolean) => this.onDeviceCryingDetected(device, state));
-                new_device.on("sound detected", (device: Device, state: boolean) => this.onDeviceSoundDetected(device, state));
-                new_device.on("pet detected", (device: Device, state: boolean) => this.onDevicePetDetected(device, state));
-                new_device.on("motion detected", (device: Device, state: boolean) => this.onDeviceMotionDetected(device, state));
-                new_device.on("person detected", (device: Device, state: boolean, person: string) => this.onDevicePersonDetected(device, state, person));
-                new_device.on("rings", (device: Device, state: boolean) => this.onDeviceRings(device, state));
-                new_device.on("locked", (device: Device, state: boolean) => this.onDeviceLocked(device, state));
-                new_device.on("open", (device: Device, state: boolean) => this.onDeviceOpen(device, state));
-                new_device.on("ready", (device: Device) => this.onDeviceReady(device));
-                this.addDevice(new_device);
+                promises.push(new_device.then((device: Device) => {
+                    device.on("property changed", (device: Device, name: string, value: PropertyValue) => this.onDevicePropertyChanged(device, name, value));
+                    device.on("raw property changed", (device: Device, type: number, value: string) => this.onDeviceRawPropertyChanged(device, type, value));
+                    device.on("crying detected", (device: Device, state: boolean) => this.onDeviceCryingDetected(device, state));
+                    device.on("sound detected", (device: Device, state: boolean) => this.onDeviceSoundDetected(device, state));
+                    device.on("pet detected", (device: Device, state: boolean) => this.onDevicePetDetected(device, state));
+                    device.on("motion detected", (device: Device, state: boolean) => this.onDeviceMotionDetected(device, state));
+                    device.on("person detected", (device: Device, state: boolean, person: string) => this.onDevicePersonDetected(device, state, person));
+                    device.on("rings", (device: Device, state: boolean) => this.onDeviceRings(device, state));
+                    device.on("locked", (device: Device, state: boolean) => this.onDeviceLocked(device, state));
+                    device.on("open", (device: Device, state: boolean) => this.onDeviceOpen(device, state));
+                    device.on("ready", (device: Device) => this.onDeviceReady(device));
+                    this.addDevice(device);
+                    return device;
+                }).catch((device: Device) => {
+                    this.log.error("Error", device);
+                    return device;
+                }));
             }
         }
+        this.loadingDevices = Promise.all(promises).then(() => {
+            this.getStations().forEach((station) => {
+                station.setConnectionType(this.config.p2pConnectionSetup);
+                station.connect();
+            });
+            this.loadingDevices = undefined;
+        });
         for (const deviceSN of deviceSNs) {
             if (!newDeviceSNs.includes(deviceSN)) {
-                this.removeDevice(this.getDevice(deviceSN));
+                this.getDevice(deviceSN).then((device: Device) => {
+                    this.removeDevice(device);
+                }).catch((error) => {
+                    this.log.error("Error removing device", error);
+                });
             }
         }
     }
@@ -588,8 +613,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private updateDeviceProperties(deviceSN: string, values: RawValues): void {
-        const device = this.getDevice(deviceSN);
-        device.updateRawProperties(values);
+        this.getDevice(deviceSN).then((device: Device) => {
+            device.updateRawProperties(values);
+        }).catch((error) => {
+            this.log.error(`Update device ${deviceSN} properties error`, error);
+        });
     }
 
     private async onAPIClose(): Promise<void> {
@@ -627,7 +655,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async startStationLivestream(deviceSN: string): Promise<void> {
-        const device = this.getDevice(deviceSN);
+        const device = await this.getDevice(deviceSN);
         const station = this.getStation(device.getStationSerial());
 
         if (!device.hasCommand(CommandName.DeviceStartLivestream))
@@ -647,7 +675,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async startCloudLivestream(deviceSN: string): Promise<void> {
-        const device = this.getDevice(deviceSN);
+        const device = await this.getDevice(deviceSN);
         const station = this.getStation(device.getStationSerial());
 
         if (!device.hasCommand(CommandName.DeviceStartLivestream))
@@ -671,7 +699,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async stopStationLivestream(deviceSN: string): Promise<void> {
-        const device = this.getDevice(deviceSN);
+        const device = await this.getDevice(deviceSN);
         const station = this.getStation(device.getStationSerial());
 
         if (!device.hasCommand(CommandName.DeviceStopLivestream))
@@ -691,7 +719,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async stopCloudLivestream(deviceSN: string): Promise<void> {
-        const device = this.getDevice(deviceSN);
+        const device = await this.getDevice(deviceSN);
         const station = this.getStation(device.getStationSerial());
 
         if (!device.hasCommand(CommandName.DeviceStopLivestream))
@@ -815,7 +843,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.refreshCloudData();
     }
 
-    private async onPushMessage(message: PushMessage): Promise<void> {
+    private onPushMessage(message: PushMessage): void {
         this.emit("push message", message);
 
         try {
@@ -843,12 +871,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     this.log.error(`Error processing push notification for station ${station.getSerial()}`, error);
                 }
             });
-            this.getDevices().forEach(device => {
-                try {
-                    device.processPushNotification(message, this.config.eventDurationSeconds);
-                } catch (error) {
-                    this.log.error(`Error processing push notification for device ${device.getSerial()}`, error);
-                }
+            this.getDevices().then((devices: Device[]) => {
+                devices.forEach(device => {
+                    try {
+                        device.processPushNotification(message, this.config.eventDurationSeconds);
+                    } catch (error) {
+                        this.log.error(`Error processing push notification for device ${device.getSerial()}`, error);
+                    }
+                });
+            }).catch((error) => {
+                this.log.error("Process push notification for devices", error);
             });
         } catch (error) {
             this.log.error("Generic Error:", error);
@@ -856,7 +888,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async startStationDownload(deviceSN: string, path: string, cipherID: number): Promise<void> {
-        const device = this.getDevice(deviceSN);
+        const device = await this.getDevice(deviceSN);
         const station = this.getStation(device.getStationSerial());
 
         if (!device.isCamera())
@@ -870,7 +902,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async cancelStationDownload(deviceSN: string): Promise<void> {
-        const device = this.getDevice(deviceSN);
+        const device = await this.getDevice(deviceSN);
         const station = this.getStation(device.getStationSerial());
 
         if (!device.isCamera())
@@ -888,7 +920,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async setDeviceProperty(deviceSN: string, name: string, value: unknown): Promise<void> {
-        const device = this.getDevice(deviceSN);
+        const device = await this.getDevice(deviceSN);
         const station = this.getStation(device.getStationSerial());
         const metadata = device.getPropertyMetadata(name);
 
@@ -1327,102 +1359,92 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private onStartStationLivestream(station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable): void {
-        try {
-            const device = this.getStationDevice(station.getSerial(), channel);
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             this.emit("station livestream start", station, device, metadata, videostream, audiostream);
-        } catch (error) {
+        }).catch((error) => {
             this.log.error(`Station start livestream error (station: ${station.getSerial()} channel: ${channel})`, error);
-        }
+        });
     }
 
     private onStopStationLivestream(station: Station, channel:number): void {
-        try {
-            const device = this.getStationDevice(station.getSerial(), channel);
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             this.emit("station livestream stop", station, device);
-        } catch (error) {
+        }).catch((error) => {
             this.log.error(`Station stop livestream error (station: ${station.getSerial()} channel: ${channel})`, error);
-        }
+        });
     }
 
     private onStartStationRTSPLivestream(station: Station, channel:number): void {
-        try {
-            const device = this.getStationDevice(station.getSerial(), channel);
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             this.emit("station rtsp livestream start", station, device);
-        } catch (error) {
+        }).catch((error) => {
             this.log.error(`Station start rtsp livestream error (station: ${station.getSerial()} channel: ${channel})`, error);
-        }
+        });
     }
 
     private onStopStationRTSPLivestream(station: Station, channel:number): void {
-        try {
-            const device = this.getStationDevice(station.getSerial(), channel);
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             this.emit("station rtsp livestream stop", station, device);
-        } catch (error) {
+        }).catch((error) => {
             this.log.error(`Station stop rtsp livestream error (station: ${station.getSerial()} channel: ${channel})`, error);
-        }
+        });
     }
 
     private onStationStartDownload(station: Station, channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable): void {
-        try {
-            const device = this.getStationDevice(station.getSerial(), channel);
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             this.emit("station download start", station, device, metadata, videoStream, audioStream);
-        } catch (error) {
+        }).catch((error) => {
             this.log.error(`Station start download error (station: ${station.getSerial()} channel: ${channel})`, error);
-        }
+        });
     }
 
     private onStationFinishDownload(station: Station, channel: number): void {
-        try {
-            const device = this.getStationDevice(station.getSerial(), channel);
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             this.emit("station download finish", station, device);
-        } catch (error) {
+        }).catch((error) => {
             this.log.error(`Station finish download error (station: ${station.getSerial()} channel: ${channel})`, error);
-        }
+        });
     }
 
-    private async onStationCommandResult(station: Station, result: CommandResult): Promise<void> {
-        try {
-            this.emit("station command result", station, result);
-            if (result.return_code === 0) {
-                try {
-                    const device = this.getStationDevice(station.getSerial(), result.channel);
+    private onStationCommandResult(station: Station, result: CommandResult): void {
+        this.emit("station command result", station, result);
+        if (result.return_code === 0) {
+            this.getStationDevice(station.getSerial(), result.channel).then((device: Device) => {
+                if (result.property !== undefined) {
+                    if (device.hasProperty(result.property.name))
+                        device.updateProperty(result.property.name, result.property.value);
+                    else if (station.hasProperty(result.property.name)) {
+                        station.updateProperty(result.property.name, result.property.value);
+                    }
+                }
+            }).catch((error) => {
+                if (error instanceof DeviceNotFoundError) {
                     if (result.property !== undefined) {
-                        if (device.hasProperty(result.property.name))
-                            device.updateProperty(result.property.name, result.property.value);
-                        else if (station.hasProperty(result.property.name)) {
-                            station.updateProperty(result.property.name, result.property.value);
-                        }
+                        station.updateProperty(result.property.name, result.property.value);
                     }
-                } catch (error) {
-                    if (error instanceof DeviceNotFoundError) {
-                        if (result.property !== undefined) {
-                            station.updateProperty(result.property.name, result.property.value);
-                        }
-                    }
-                }
-            }
-            //TODO: Check if needed (only needed for raw property value refresh?)
-            /*if (result.return_code === 0 && result.command_type !== CommandType.CMD_CAMERA_INFO && result.command_type !== CommandType.CMD_PING && result.command_type !== CommandType.CMD_GET_DEVICE_PING) {
-                if (station.isConnected() && Device.isCamera(station.getDeviceType()) && !Device.isWiredDoorbell(station.getDeviceType())) {
-                    await station.getCameraInfo();
                 } else {
-                    await this.api.refreshStationData();
-                    await this.api.refreshDeviceData();
+                    this.log.error(`Station command result error (station: ${station.getSerial()})`, error);
                 }
-            }*/
-        } catch (error) {
-            this.log.error(`Station command result error (station: ${station.getSerial()})`, error);
+            });
         }
+        //TODO: Check if needed (only needed for raw property value refresh?)
+        /*if (result.return_code === 0 && result.command_type !== CommandType.CMD_CAMERA_INFO && result.command_type !== CommandType.CMD_PING && result.command_type !== CommandType.CMD_GET_DEVICE_PING) {
+            if (station.isConnected() && Device.isCamera(station.getDeviceType()) && !Device.isWiredDoorbell(station.getDeviceType())) {
+                await station.getCameraInfo();
+            } else {
+                await this.api.refreshStationData();
+                await this.api.refreshDeviceData();
+            }
+        }*/
     }
 
     private onStationRtspUrl(station: Station, channel:number, value: string): void {
-        try {
-            const device = this.getStationDevice(station.getSerial(), channel);
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             this.emit("station rtsp url", station, device, value);
             device.setCustomPropertyValue(PropertyName.DeviceRTSPStreamUrl, value);
-        } catch (error) {
+        }).catch((error) => {
             this.log.error(`Station rtsp url error (station: ${station.getSerial()} channel: ${channel})`, error);
-        }
+        });
     }
 
     private onStationGuardMode(station: Station, guardMode: number): void {
@@ -1440,6 +1462,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private onStationRawPropertyChanged(station: Station, type: number, value: string): void {
         this.emit("station raw property changed", station, type, value);
     }
+
     private onStationAlarmEvent(station: Station, alarmEvent: AlarmEvent): void {
         this.emit("station alarm event", station, alarmEvent);
     }
@@ -1504,8 +1527,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private onStationRuntimeState(station: Station, channel: number, batteryLevel: number, temperature: number): void {
-        try {
-            const device = this.getStationDevice(station.getSerial(), channel);
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             if (device.hasProperty(PropertyName.DeviceBattery)) {
                 const metadataBattery = device.getPropertyMetadata(PropertyName.DeviceBattery);
                 device.updateRawProperty(metadataBattery.key as number, batteryLevel.toString());
@@ -1514,14 +1536,13 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 const metadataBatteryTemperature = device.getPropertyMetadata(PropertyName.DeviceBatteryTemp);
                 device.updateRawProperty(metadataBatteryTemperature.key as number, temperature.toString());
             }
-        } catch (error) {
+        }).catch((error) => {
             this.log.error(`Station runtime state error (station: ${station.getSerial()} channel: ${channel})`, error);
-        }
+        });
     }
 
     private onStationChargingState(station: Station, channel: number, chargeType: ChargingType, batteryLevel: number): void {
-        try {
-            const device = this.getStationDevice(station.getSerial(), channel);
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             if (device.hasProperty(PropertyName.DeviceBattery)) {
                 const metadataBattery = device.getPropertyMetadata(PropertyName.DeviceBattery);
                 if (chargeType !== ChargingType.PLUGGED && batteryLevel > 0)
@@ -1531,21 +1552,20 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 const metadataChargingStatus = device.getPropertyMetadata(PropertyName.DeviceChargingStatus);
                 device.updateRawProperty(metadataChargingStatus.key as number, chargeType.toString());
             }
-        } catch (error) {
+        }).catch((error) => {
             this.log.error(`Station charging state error (station: ${station.getSerial()} channel: ${channel})`, error);
-        }
+        });
     }
 
     private onStationWifiRssi(station: Station, channel: number, rssi: number): void {
-        try {
-            const device = this.getStationDevice(station.getSerial(), channel);
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             if (device.hasProperty(PropertyName.DeviceWifiRSSI)) {
                 const metadataWifiRssi = device.getPropertyMetadata(PropertyName.DeviceWifiRSSI);
                 device.updateRawProperty(metadataWifiRssi.key as number, rssi.toString());
             }
-        } catch (error) {
+        }).catch((error) => {
             this.log.error(`Station wifi rssi error (station: ${station.getSerial()} channel: ${channel})`, error);
-        }
+        });
     }
 
     private onCaptchaRequest(id: string, captcha: string): void {
@@ -1553,15 +1573,14 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private onFloodlightManualSwitch(station: Station, channel: number, enabled: boolean): void {
-        try {
-            const device = this.getStationDevice(station.getSerial(), channel);
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             if (device.hasProperty(PropertyName.DeviceLight)) {
                 const metadataLight = device.getPropertyMetadata(PropertyName.DeviceLight);
                 device.updateRawProperty(metadataLight.key as number, enabled === true ? "1" : "0");
             }
-        } catch (error) {
+        }).catch((error) => {
             this.log.error(`Station floodlight manual switch error (station: ${station.getSerial()} channel: ${channel})`, error);
-        }
+        });
     }
 
     private onAuthTokenInvalidated(): void {
