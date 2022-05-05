@@ -25,6 +25,7 @@ export interface P2PClientProtocolEvents {
     "rtsp livestream started": (channel: number) => void;
     "rtsp livestream stopped": (channel: number) => void;
     "floodlight manual switch": (channel: number, enabled: boolean) => void;
+    "indoor camera alarm": (data: string) => void;
 }
 
 export interface P2PQueueMessage {
