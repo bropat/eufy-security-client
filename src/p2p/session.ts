@@ -1377,7 +1377,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             case CommandType.CMD_GET_DELAY_ALARM:
                 try {
                     this.log.debug(`Station ${this.rawStation.station_sn} - CMD_GET_DELAY_ALARM :`, { payload: message.data.toString("hex") });
-                    //When the alarm is activated, CMD_GET_DELAY_ALARM is called with 0 data, so ignore it
+                    //When the alarm is armed, CMD_GET_DELAY_ALARM is called with event data 0, so ignore it
                     if (message.data.readUIntBE(0, 1) !== 0) {
                         this.emit("alarm delay", message.data.readUIntBE(0, 1) as AlarmEvent, message.data.readUIntBE(4, 1));
                     }
