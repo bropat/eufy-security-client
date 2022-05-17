@@ -309,7 +309,6 @@ export enum PropertyName {
     DeviceMotionDetection = "motionDetection",
     DeviceMotionDetectionType = "motionDetectionType",
     DeviceMotionDetectionSensitivity = "motionDetectionSensitivity",
-    DeviceMotionZone = "motionZone",
     DeviceMotionDetectionRange = "motionDetectionRange",  // Flooglight T8423
     DeviceMotionDetectionRangeStandardSensitivity = "motionDetectionRangeStandardSensitivity",  // Flooglight T8423
     DeviceMotionDetectionRangeAdvancedLeftSensitivity = "motionDetectionRangeAdvancedLeftSensitivity",  // Flooglight T8423
@@ -374,7 +373,6 @@ export enum PropertyName {
     DeviceChimeHomebaseRingtoneType = "chimeHomebaseRingtoneType",  //BatteryDoorbell
     DeviceNotificationType = "notificationType",
     DeviceRotationSpeed = "rotationSpeed",
-    DeviceImageMirrored = "imageMirrored",
     DeviceNotificationPerson = "notificationPerson",  //Indoor
     DeviceNotificationPet = "notificationPet",  //Indoor
     DeviceNotificationAllOtherMotion = "notificationAllOtherMotion",  //Indoor
@@ -1205,15 +1203,6 @@ export const DeviceHiddenMotionDetectionModeWiredDoorbellProperty: PropertyMetad
     max: 3,
 }
 
-export const DeviceMotionZoneProperty: PropertyMetadataString = {
-    key: CommandType.CMD_INDOOR_DET_SET_ACTIVE_ZONE,
-    name: PropertyName.DeviceMotionZone,
-    label: "Motion Detection Zone",
-    readable: true,
-    writeable: true,
-    type: "string",
-}
-
 export const DeviceFloodlightLightProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
     name: PropertyName.DeviceLight,
@@ -1739,15 +1728,6 @@ export const DeviceRotationSpeedProperty: PropertyMetadataNumeric = {
         5: "Max",
     },
     default: 3
-}
-
-export const DeviceImageMirroredProperty: PropertyMetadataBoolean = {
-    key: CommandType.CMD_SET_MIRRORMODE,
-    name: PropertyName.DeviceImageMirrored,
-    label: "Image vertically mirrored",
-    readable: true,
-    writeable: true,
-    type: "boolean",
 }
 
 export const DeviceSoundDetectionTypeProperty: PropertyMetadataNumeric = {
@@ -3389,8 +3369,6 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionProperty,
         [PropertyName.DeviceNotificationAllSound]: DeviceNotificationAllSoundProperty,
         [PropertyName.DeviceNotificationCrying]: DeviceNotificationCryingProperty,
-        [PropertyName.DeviceMotionZone]: DeviceMotionZoneProperty,
-        [PropertyName.DeviceImageMirrored]: DeviceImageMirroredProperty,
         [PropertyName.DeviceContinuousRecording]: DeviceContinuousRecordingProperty,
         [PropertyName.DeviceContinuousRecordingType]: DeviceContinuousRecordingTypeProperty,
     },

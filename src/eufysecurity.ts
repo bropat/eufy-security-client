@@ -404,7 +404,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 station.on("property changed", (station: Station, name: string, value: PropertyValue) => this.onStationPropertyChanged(station, name, value));
                 station.on("raw property changed", (station: Station, type: number, value: string) => this.onStationRawPropertyChanged(station, type, value));
                 station.on("alarm event", (station: Station, alarmEvent: AlarmEvent) => this.onStationAlarmEvent(station, alarmEvent));
-                station.on("alarm delay event", (station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number) => this.onStationAlarmEvent(station, alarmDelayEvent, alarmDelay));
                 station.on("runtime state", (station: Station, channel: number, batteryLevel: number, temperature: number) => this.onStationRuntimeState(station, channel, batteryLevel, temperature,));
                 station.on("charging state", (station: Station, channel: number, chargeType: ChargingType, batteryLevel: number) => this.onStationChargingState(station, channel, chargeType, batteryLevel));
                 station.on("wifi rssi", (station: Station, channel: number, rssi: number) => this.onStationWifiRssi(station, channel, rssi));
@@ -1024,9 +1023,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             case PropertyName.DeviceMotionDetectionType:
                 await station.setMotionDetectionType(device, value as number);
                 break;
-            case PropertyName.DeviceMotionZone:
-                await station.setMotionZone(device, value as string);
-                break;
             case PropertyName.DeviceVideoWDR:
                 await station.setWDR(device, value as boolean);
                 break;
@@ -1471,10 +1467,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.emit("station alarm event", station, alarmEvent);
     }
 
-    private onStationAlarmDelayEvent(station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number): void {
-        this.emit("station alarm delay event", station, alarmDelayEvent, alarmDelay);
-    }
-    
     private onDevicePropertyChanged(device: Device, name: string, value: PropertyValue): void {
         try {
             this.emit("device property changed", device, name, value);

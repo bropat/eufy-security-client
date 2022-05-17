@@ -63,7 +63,6 @@ export interface EufySecurityEvents {
     "station property changed": (station: Station, name: string, value: PropertyValue) => void;
     "station raw property changed": (station: Station, type: number, value: string) => void;
     "station alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
-    "station alarm delay event": (station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
     "station connect": (station: Station) => void;
     "station close": (station: Station) => void;
     "push connect": () => void;
