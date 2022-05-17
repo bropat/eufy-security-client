@@ -1024,6 +1024,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             case PropertyName.DeviceMotionDetectionType:
                 await station.setMotionDetectionType(device, value as number);
                 break;
+            case PropertyName.DeviceMotionZone:
+                await station.setMotionZone(device, value as string);
+                break;
             case PropertyName.DeviceVideoWDR:
                 await station.setWDR(device, value as boolean);
                 break;
