@@ -191,14 +191,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         }
     }
 
-    public async loadApiBase(): Promise<void> {
-        const apiBase = await this.getApiBaseFromCloud(this.getCountry());
-        if (apiBase !== this.apiBase) {
-            this.log.debug(`Detected correct API_BASE: ${apiBase} (before: ${this.apiBase})`);
-            this.apiBase = apiBase;
-        }
-    }
-
     private invalidateToken(): void {
         this.token = null;
         this.requestEufyCloud.defaults.options.headers["X-Auth-Token"] = undefined;

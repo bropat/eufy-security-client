@@ -4227,7 +4227,6 @@ export enum CommandName {
     DeviceStopLivestream = "deviceStopLivestream",
     DeviceQuickResponse = "deviceQuickResponse",
     DevicePanAndTilt = "devicePanAndTilt",
-    DeviceCalibrate = "deviceCalibrate",
     DeviceTriggerAlarmSound = "deviceTriggerAlarmSound",
     DeviceStartDownload = "deviceStartDownload",
     DeviceCancelDownload = "deviceCancelDownload",
