@@ -166,6 +166,7 @@ export interface StationEvents {
     "charging state": (station: Station, channel: number, chargeType: ChargingType, batteryLevel: number) => void;
     "wifi rssi": (station: Station, channel: number, rssi: number) => void;
     "floodlight manual switch": (station: Station, channel: number, enabled: boolean) => void;
+    "alarm delay event": (station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
 }
 
 export interface DeviceEvents {
