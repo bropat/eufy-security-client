@@ -4,7 +4,7 @@ import { SortedMap } from "sweet-collections";
 
 import { AlarmMode } from "../http/types";
 import { Address, CmdCameraInfoResponse, CommandResult, PropertyData } from "./models";
-import { AudioCodec, ChargingType, CommandType, P2PDataType, VideoCodec } from "./types";
+import { AlarmEvent, AudioCodec, ChargingType, CommandType, P2PDataType, VideoCodec } from "./types";
 
 export interface P2PClientProtocolEvents {
     "alarm mode": (mode: AlarmMode) => void;
@@ -25,6 +25,7 @@ export interface P2PClientProtocolEvents {
     "rtsp livestream started": (channel: number) => void;
     "rtsp livestream stopped": (channel: number) => void;
     "floodlight manual switch": (channel: number, enabled: boolean) => void;
+    "alarm delay": (alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
 }
 
 export interface P2PQueueMessage {

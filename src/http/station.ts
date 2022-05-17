@@ -10,7 +10,7 @@ import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, Ra
 import { getBlocklist, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
 import { StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
-import { ChargingType, CommandType, ErrorCode, ESLInnerCommand, P2PConnectionType, PanTiltDirection, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
+import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLInnerCommand, P2PConnectionType, PanTiltDirection, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
 import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData } from "../p2p/models";
 import { Device, DoorbellCamera, Lock } from "./device";
 import { getAdvancedLockKey, encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, generateAdvancedLockAESKey, getLockVectorBytes, isPrivateIp } from "../p2p/utils";
@@ -64,6 +64,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("runtime state", (channel: number, batteryLevel: number, temperature: number) => this.onRuntimeState(channel, batteryLevel, temperature));
         this.p2pSession.on("charging state", (channel: number, chargeType: ChargingType, batteryLevel: number) => this.onChargingState(channel, chargeType, batteryLevel));
         this.p2pSession.on("floodlight manual switch", (channel: number, enabled: boolean) => this.onFloodlightManualSwitch(channel, enabled));
+        this.p2pSession.on("alarm delay", (alarmDelayEvent: AlarmEvent, alarmDelay: number) => this.onAlarmDelay(alarmDelayEvent, alarmDelay));
         this.update(this.rawStation);
         this.ready = true;
         setImmediate(() => {
@@ -404,10 +405,6 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.log.info("Received push notification for alarm event", { stationSN: message.station_sn, alarmType: message.alarm_type });
                 if (message.alarm_type !== undefined)
                     this.emit("alarm event", this, message.alarm_type);
-            } else if (message.event_type === CusPushEvent.ALARM_DELAY && message.station_sn === this.getSerial()) {
-                this.log.info("Received push notification for alarm delay event", { stationSN: message.station_sn });
-                if (message.alarm_delay !== undefined && message.alarm_delay_type !== undefined)
-                    this.emit("alarm delay event", this, message.alarm_delay_type, message.alarm_delay);
             }
         }
     }
@@ -474,6 +471,10 @@ export class Station extends TypedEmitter<StationEvents> {
         const params: RawValues = {};
         params[param] = ParameterHelper.readValue(param, value, this.log);
         this.emit("raw device property changed", this._getDeviceSerial(channel), params);
+    }
+
+    private onAlarmDelay(alarmDelayEvent: AlarmEvent, alarmDelay: number): void {
+        this.emit("alarm delay event", this, alarmDelayEvent, alarmDelay);
     }
 
     public async setGuardMode(mode: GuardMode): Promise<void> {
