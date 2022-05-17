@@ -404,6 +404,10 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.log.info("Received push notification for alarm event", { stationSN: message.station_sn, alarmType: message.alarm_type });
                 if (message.alarm_type !== undefined)
                     this.emit("alarm event", this, message.alarm_type);
+            } else if (message.event_type === CusPushEvent.ALARM_DELAY && message.station_sn === this.getSerial()) {
+                this.log.info("Received push notification for alarm delay event", { stationSN: message.station_sn });
+                if (message.alarm_delay !== undefined && message.alarm_delay_type !== undefined)
+                    this.emit("alarm delay event", this, message.alarm_delay_type, message.alarm_delay);
             }
         }
     }
