@@ -161,7 +161,6 @@ export interface StationEvents {
     "guard mode": (station: Station, guardMode: number) => void;
     "current mode": (station: Station, currentMode: number) => void;
     "alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
-    "alarm delay event": (station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
     "ready": (station: Station) => void;
     "runtime state": (station: Station, channel: number, batteryLevel: number, temperature: number) => void;
     "charging state": (station: Station, channel: number, chargeType: ChargingType, batteryLevel: number) => void;

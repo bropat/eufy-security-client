@@ -405,10 +405,6 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.log.info("Received push notification for alarm event", { stationSN: message.station_sn, alarmType: message.alarm_type });
                 if (message.alarm_type !== undefined)
                     this.emit("alarm event", this, message.alarm_type);
-            } else if (message.event_type === CusPushEvent.ALARM_DELAY && message.station_sn === this.getSerial()) {
-                this.log.info("Received push notification for alarm delay event", { stationSN: message.station_sn });
-                if (message.alarm_delay !== undefined && message.alarm_delay_type !== undefined)
-                    this.emit("alarm delay event", this, message.alarm_delay_type, message.alarm_delay);
             }
         }
     }
@@ -1285,29 +1281,6 @@ export class Station extends TypedEmitter<StationEvents> {
                 channel: device.getChannel()
             }, propertyData);
         }
-    }
-
-    public async setMotionZone(device: Device, value: string): Promise<void> {
-        const propertyData: PropertyData = {
-            name: PropertyName.DeviceMotionZone,
-            value: value
-        };
-        if (device.getStationSerial() !== this.getSerial()) {
-            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
-        }
-        if (!device.hasProperty(propertyData.name)) {
-            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
-        }
-        this.log.debug(`Sending motion zone command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-
-        await this.p2pSession.sendCommandWithStringPayload({
-            commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
-            value: JSON.stringify({
-                "commandType": CommandType.CMD_INDOOR_DET_SET_ACTIVE_ZONE,
-                "data": JSON.parse(value)
-            }),
-            channel: device.getChannel()
-        });
     }
 
     public async setMotionTracking(device: Device, value: boolean): Promise<void> {
