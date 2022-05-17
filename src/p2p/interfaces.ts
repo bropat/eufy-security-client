@@ -1,4 +1,4 @@
-import NodeRSA from "node-rsa";
+import * as NodeRSA from "node-rsa";
 import { Readable } from "stream";
 import { SortedMap } from "sweet-collections";
 

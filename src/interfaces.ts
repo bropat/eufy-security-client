@@ -1,4 +1,5 @@
 import { Readable } from "stream";
+
 import { Device } from "./http/device";
 import { HTTPApiPersistentData, PropertyValue } from "./http/interfaces";
 import { Station } from "./http/station";
@@ -22,12 +23,12 @@ export interface EufySecurityConfig {
 }
 
 export interface EufySecurityPersistentData {
+    country: string;
     login_hash: string;
     openudid: string;
     serial_number: string;
-    api_base: string;
-    cloud_token: string;
-    cloud_token_expiration: number;
+    cloud_token?: string;
+    cloud_token_expiration?: number;
     push_credentials: Credentials | undefined;
     push_persistentIds: string[];
     version: string;
@@ -38,9 +39,7 @@ export interface EufySecurityEvents {
     "device added": (device: Device) => void;
     "device removed": (device: Device) => void;
     "device property changed": (device: Device, name: string, value: PropertyValue) => void;
-    "device property renewed": (device: Device, name: string, value: PropertyValue) => void;
-    "device raw property changed": (device: Device, type: number, value: string, modified: number) => void;
-    "device raw property renewed": (device: Device, type: number, value: string, modified: number) => void;
+    "device raw property changed": (device: Device, type: number, value: string) => void;
     "device crying detected": (device: Device, state: boolean) => void;
     "device sound detected": (device: Device, state: boolean) => void;
     "device pet detected": (device: Device, state: boolean) => void;
@@ -58,13 +57,11 @@ export interface EufySecurityEvents {
     "station command result": (station: Station, result: CommandResult) => void;
     "station rtsp livestream start": (station: Station, device: Device) => void;
     "station rtsp livestream stop": (station: Station, device: Device) => void;
-    "station rtsp url": (station: Station, device: Device, value: string, modified: number) => void;
+    "station rtsp url": (station: Station, device: Device, value: string) => void;
     "station guard mode": (station: Station, guardMode: number) => void;
     "station current mode": (station: Station, currentMode: number) => void;
     "station property changed": (station: Station, name: string, value: PropertyValue) => void;
-    "station property renewed": (station: Station, name: string, value: PropertyValue) => void;
-    "station raw property changed": (station: Station, type: number, value: string, modified: number) => void;
-    "station raw property renewed": (station: Station, type: number, value: string, modified: number) => void;
+    "station raw property changed": (station: Station, type: number, value: string) => void;
     "station alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
     "station connect": (station: Station) => void;
     "station close": (station: Station) => void;

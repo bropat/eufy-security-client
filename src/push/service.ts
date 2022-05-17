@@ -1,5 +1,5 @@
 import got from "got";
-import qs from "qs";
+import * as qs from "qs";
 import { dummyLogger, Logger } from "ts-log";
 import { TypedEmitter } from "tiny-typed-emitter";
 
@@ -7,7 +7,8 @@ import { buildCheckinRequest, convertTimestampMs, generateFid, parseCheckinRespo
 import { CheckinResponse, Credentials, CusPushData, DoorbellPushData, FidInstallationResponse, FidTokenResponse, GcmRegisterResponse, IndoorPushData, RawPushMessage, PushMessage, BatteryDoorbellPushData, LockPushData } from "./models";
 import { PushClient } from "./client";
 import { PushNotificationServiceEvents } from "./interfaces";
-import { Device, DeviceType } from "../http";
+import { Device } from "../http/device";
+import { DeviceType } from "../http/types";
 import { getAbsoluteFilePath } from "../http/utils";
 
 export class PushNotificationService extends TypedEmitter<PushNotificationServiceEvents> {
@@ -321,7 +322,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             // CusPush
             normalized_message.type = Number.parseInt(message.payload.type);
 
-            if (Device.isABatteryDoorbell(normalized_message.type)) {
+            if (Device.isBatteryDoorbell(normalized_message.type) || Device.isWiredDoorbellDual(normalized_message.type)) {
                 const push_data = message.payload.payload as BatteryDoorbellPushData;
 
                 normalized_message.name = push_data.name ? push_data.name : "";

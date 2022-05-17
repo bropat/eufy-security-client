@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import path from "path";
+import * as path from "path";
 import { load } from "protobuf-typescript";
 
 import { CheckinResponse } from "./models";

@@ -1,4 +1,5 @@
-import { PropertyName } from "..";
+import { PropertyValue } from "../http";
+import { PropertyName } from "../http/types";
 import { CommandType } from "./types";
 
 export interface Address {
@@ -18,7 +19,7 @@ export interface CmdCameraInfoResponse {
 
 export interface PropertyData {
     name: PropertyName;
-    value: unknown;
+    value: PropertyValue;
 }
 
 export interface CommandResult {

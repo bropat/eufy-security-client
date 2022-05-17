@@ -9,22 +9,14 @@ import { Cipher, Voice, Invite, DeviceListResponse, StationListResponse, HouseLi
 import { Station } from "./station";
 import { CommandName, PropertyName } from "./types";
 
-export interface PropertyValue {
-    value: unknown;
-    timestamp: number;
-}
+export type PropertyValue = number | boolean | string;
 
 export interface PropertyValues {
     [index: string]: PropertyValue;
 }
 
-export interface RawValue {
-    value: string;
-    timestamp: number;
-}
-
 export interface RawValues {
-    [index: number]: RawValue;
+    [index: number]: string;
 }
 
 export interface Devices {
@@ -64,11 +56,9 @@ export interface Invites {
 }
 
 export interface HTTPApiRequest {
-    apiBase?: string;
     method: Method;
     endpoint: string;
     data?: any;
-    headers?: Record<string, string>;
 }
 
 export type PropertyMetadataType =
@@ -108,6 +98,7 @@ export interface PropertyMetadataString extends PropertyMetadataAny {
     minLength?: number;
     maxLength?: number;
     default?: string;
+    format?: RegExp;
 }
 
 export interface IndexedProperty {
@@ -131,6 +122,17 @@ export interface HTTPApiPersistentData {
     }
 }
 
+export interface CaptchaOptions {
+    captchaCode: string;
+    captchaId: string;
+}
+
+export interface LoginOptions {
+    verifyCode?: string;
+    captcha?: CaptchaOptions;
+    force: boolean;
+}
+
 export interface HTTPApiEvents {
     "devices": (devices: FullDevices) => void;
     "hubs": (hubs: Hubs) => void;
@@ -139,6 +141,7 @@ export interface HTTPApiEvents {
     "close": () => void;
     "tfa request": () => void;
     "captcha request": (id: string, captcha: string) => void;
+    "auth token invalidated": () => void;
 }
 
 export interface StationEvents {
@@ -146,9 +149,7 @@ export interface StationEvents {
     "close": (station: Station) => void;
     "raw device property changed": (deviceSN: string, params: RawValues) => void;
     "property changed": (station: Station, name: string, value: PropertyValue) => void;
-    "property renewed": (station: Station, name: string, value: PropertyValue) => void;
-    "raw property changed": (station: Station, type: number, value: string, modified: number) => void;
-    "raw property renewed": (station: Station, type: number, value: string, modified: number) => void;
+    "raw property changed": (station: Station, type: number, value: string) => void;
     "command result": (station: Station, result: CommandResult) => void;
     "download start": (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
     "download finish": (station: Station, channel:number) => void;
@@ -156,22 +157,20 @@ export interface StationEvents {
     "livestream stop": (station: Station, channel:number) => void;
     "rtsp livestream start": (station: Station, channel:number) => void;
     "rtsp livestream stop": (station: Station, channel:number) => void;
-    "rtsp url": (station: Station, channel:number, value: string, modified: number) => void;
+    "rtsp url": (station: Station, channel:number, value: string) => void;
     "guard mode": (station: Station, guardMode: number) => void;
     "current mode": (station: Station, currentMode: number) => void;
     "alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
     "ready": (station: Station) => void;
-    "runtime state": (station: Station, channel: number, batteryLevel: number, temperature: number, modified: number) => void;
-    "charging state": (station: Station, channel: number, chargeType: ChargingType, batteryLevel: number, modified: number) => void;
-    "wifi rssi": (station: Station, channel: number, rssi: number, modified: number) => void;
-    "floodlight manual switch": (station: Station, channel: number, enabled: boolean, modified: number) => void;
+    "runtime state": (station: Station, channel: number, batteryLevel: number, temperature: number) => void;
+    "charging state": (station: Station, channel: number, chargeType: ChargingType, batteryLevel: number) => void;
+    "wifi rssi": (station: Station, channel: number, rssi: number) => void;
+    "floodlight manual switch": (station: Station, channel: number, enabled: boolean) => void;
 }
 
 export interface DeviceEvents {
     "property changed": (device: Device, name: string, value: PropertyValue) => void;
-    "property renewed": (device: Device, name: string, value: PropertyValue) => void;
-    "raw property changed": (device: Device, type: number, value: string, modified: number) => void;
-    "raw property renewed": (device: Device, type: number, value: string, modified: number) => void;
+    "raw property changed": (device: Device, type: number, value: string) => void;
     "motion detected": (device: Device, state: boolean) => void;
     "person detected": (device: Device, state: boolean, person: string) => void;
     "pet detected": (device: Device, state: boolean) => void;

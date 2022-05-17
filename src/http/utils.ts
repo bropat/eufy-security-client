@@ -108,7 +108,7 @@ export const calculateWifiSignalLevel = function(device: Device, rssi: number): 
         }
         return rssi >= -80 ? WifiSignalLevel.NORMAL : WifiSignalLevel.WEAK;
 
-    } else if (device.isBatteryDoorbell() || device.isBatteryDoorbell2()) {
+    } else if (device.isBatteryDoorbell()) {
         if (rssi >= -65) {
             return WifiSignalLevel.FULL;
         }
@@ -137,6 +137,48 @@ export const encryptPassword = (password: string, key: Buffer): string => {
         cipher.update(password, "utf8", "base64") +
         cipher.final("base64")
     );
+}
+
+export const getBlocklist = function(directions: Array<number>): Array<number> {
+    const result = [];
+    for (let distance = 1; distance <= 5; distance++) {
+        let i = 0;
+        let j = 0;
+        let k = 1;
+        for (const directionDistance of directions) {
+            if (directionDistance >= distance) {
+                j += k;
+            }
+            k <<= 1;
+        }
+        if (j == 0) {
+            i = 65535;
+        } else if (!(j == 255 || j == 65535)) {
+            i = (j ^ 255) + 65280;
+        }
+        result.push(65535 & i);
+    }
+    return result;
+}
+
+
+export const getDistances = function(blocklist: Array<number>): Array<number> {
+    const result = [3, 3, 3, 3, 3, 3, 3, 3];
+    let calcDistance = 0;
+    for (const blockElement of blocklist) {
+        let valueOf = blockElement ^ 65535;
+        calcDistance++;
+        if (valueOf !== 0) {
+            for (let i = 0; i < result.length; i++) {
+                const intValue = valueOf & 1;
+                if (intValue > 0) {
+                    result[i] = calcDistance;
+                }
+                valueOf = valueOf >> 1;
+            }
+        }
+    }
+    return result;
 }
 
 export interface EufyTimezone {

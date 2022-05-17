@@ -1,8 +1,8 @@
 import { Socket } from "dgram";
-import NodeRSA from "node-rsa";
-import CryptoJS from "crypto-js"
+import * as NodeRSA from "node-rsa";
+import * as CryptoJS from "crypto-js"
 import { randomBytes, createCipheriv, createECDH, ECDH, createHmac } from "crypto";
-import os from "os";
+import * as os from "os";
 
 import { P2PMessageParts, P2PMessageState, P2PQueueMessage } from "./interfaces";
 import { CommandType, P2PDataTypeHeader, VideoCodec } from "./types";
@@ -23,10 +23,12 @@ export const isPrivateIp = (ip: string): boolean =>
     /^::1$/.test(ip) ||
     /^::$/.test(ip);
 
-const stringWithLength = (input: string, targetByteLength = 128): Buffer => {
+const stringWithLength = (input: string, chunkLength = 128): Buffer => {
     const stringAsBuffer = Buffer.from(input);
-    const postZeros = Buffer.alloc(targetByteLength - stringAsBuffer.byteLength);
-    return Buffer.concat([stringAsBuffer, postZeros]);
+    const bufferSize = stringAsBuffer.byteLength < chunkLength ? chunkLength : Math.ceil(stringAsBuffer.byteLength / chunkLength) * chunkLength
+    const result = Buffer.alloc(bufferSize);
+    stringAsBuffer.copy(result);
+    return result;
 };
 
 export const getLocalIpAddress = (init = ""): string => {
