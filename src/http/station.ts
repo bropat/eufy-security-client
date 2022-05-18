@@ -1283,6 +1283,29 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
+    public async setMotionZone(device: Device, value: string): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceMotionZone,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending motion zone command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
+
+        await this.p2pSession.sendCommandWithStringPayload({
+            commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+            value: JSON.stringify({
+                "commandType": CommandType.CMD_INDOOR_DET_SET_ACTIVE_ZONE,
+                "data": JSON.parse(value)
+            }),
+            channel: device.getChannel()
+        });
+    }
+
     public async setMotionTracking(device: Device, value: boolean): Promise<void> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionTracking,
