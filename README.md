@@ -80,6 +80,12 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.1.0 (2022-05-xx)
+
+* (fabianluque) Added missing RTSP properties for Floodlight T8423 (#146)
+* (Palmke) Add alarm delay event (#155)
+* (Palmke) P&T T8410: Set motion zone and image mirror (#156)
+
 ### 2.0.1 (2022-05-03)
 
 * (bropat) **Breaking Change** Fixed regression in device data loading
