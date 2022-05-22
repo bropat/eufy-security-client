@@ -3534,6 +3534,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionProperty,
         [PropertyName.DeviceNotificationAllSound]: DeviceNotificationAllSoundProperty,
         [PropertyName.DeviceNotificationCrying]: DeviceNotificationCryingProperty,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
     },
     [DeviceType.SOLO_CAMERA]: {
         ...GenericDeviceProperties,
