@@ -7,7 +7,7 @@ import { SortedMap } from "sweet-collections";
 
 import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, PropertyData, ESLStationP2PThroughData } from "./models";
 import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateBasicLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildVoidCommandPayload, isP2PQueueMessage } from "./utils";
-import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, ESLInnerCommand, P2PConnectionType, ChargingType } from "./types";
+import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, ESLInnerCommand, P2PConnectionType, ChargingType, AlarmEvent } from "./types";
 import { AlarmMode } from "../http/types";
 import { P2PDataMessage, P2PDataMessageAudio, P2PDataMessageBuilder, P2PMessageState, P2PDataMessageVideo, P2PMessage, P2PDataHeader, P2PDataMessageState, P2PClientProtocolEvents, DeviceSerial, P2PQueueMessage, P2PCommand } from "./interfaces";
 import { DskKeyResponse, ResultResponse, StationListResponse } from "../http/models";
@@ -1372,6 +1372,17 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     }
                 } catch (error) {
                     this.log.error(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD Error:`, { error: error, payload: message.data.toString() });
+                }
+                break;
+            case CommandType.CMD_GET_DELAY_ALARM:
+                try {
+                    this.log.debug(`Station ${this.rawStation.station_sn} - CMD_GET_DELAY_ALARM :`, { payload: message.data.toString("hex") });
+                    //When the alarm is activated, CMD_GET_DELAY_ALARM is called with 0 data, so ignore it
+                    if (message.data.readUIntBE(0, 1) !== 0) {
+                        this.emit("alarm delay", message.data.readUIntBE(0, 1) as AlarmEvent, message.data.readUIntBE(4, 1));
+                    }
+                } catch (error) {
+                    this.log.error(`Station ${this.rawStation.station_sn} - CMD_GET_DELAY_ALARM - Error:`, { error: error, payload: message.data.toString("hex") });
                 }
                 break;
             case CommandType.CMD_PING:
