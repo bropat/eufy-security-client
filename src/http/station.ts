@@ -65,6 +65,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("charging state", (channel: number, chargeType: ChargingType, batteryLevel: number) => this.onChargingState(channel, chargeType, batteryLevel));
         this.p2pSession.on("floodlight manual switch", (channel: number, enabled: boolean) => this.onFloodlightManualSwitch(channel, enabled));
         this.p2pSession.on("alarm delay", (alarmDelayEvent: AlarmEvent, alarmDelay: number) => this.onAlarmDelay(alarmDelayEvent, alarmDelay));
+        this.p2pSession.on("alarm armed", () => this.onAlarmArmed());
         this.update(this.rawStation);
         this.ready = true;
         setImmediate(() => {
@@ -475,6 +476,10 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onAlarmDelay(alarmDelayEvent: AlarmEvent, alarmDelay: number): void {
         this.emit("alarm delay event", this, alarmDelayEvent, alarmDelay);
+    }
+
+    private onAlarmArmed(): void {
+        this.emit("alarm armed event", this);
     }
 
     public async setGuardMode(mode: GuardMode): Promise<void> {

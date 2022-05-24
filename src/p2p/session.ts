@@ -1385,6 +1385,16 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     this.log.error(`Station ${this.rawStation.station_sn} - CMD_GET_DELAY_ALARM - Error:`, { error: error, payload: message.data.toString("hex") });
                 }
                 break;
+            case CommandType.CMD_SET_TONE_FILE:
+                try {
+                    this.log.debug(`Station ${this.rawStation.station_sn} - CMD_SET_TONE_FILE :`, { payload: message.data.toString("hex") });
+                    if (message.data.readUIntBE(0, 1) === 0) {
+                        this.emit("alarm armed");
+                    }
+                } catch (error) {
+                    this.log.error(`Station ${this.rawStation.station_sn} - CMD_SET_TONE_FILE - Error:`, { error: error, payload: message.data.toString("hex") });
+                }
+                break;
             case CommandType.CMD_PING:
                 // Ignore
                 break;
