@@ -27,6 +27,7 @@ export interface P2PClientProtocolEvents {
     "floodlight manual switch": (channel: number, enabled: boolean) => void;
     "alarm delay": (alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
     "alarm armed": () => void;
+    "alarm event": (alarmEvent: AlarmEvent) => void;
 }
 
 export interface P2PQueueMessage {

@@ -1378,8 +1378,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 try {
                     this.log.debug(`Station ${this.rawStation.station_sn} - CMD_GET_DELAY_ALARM :`, { payload: message.data.toString("hex") });
                     //When the alarm is armed, CMD_GET_DELAY_ALARM is called with event data 0, so ignore it
-                    if (message.data.readUIntBE(0, 1) !== 0) {
-                        this.emit("alarm delay", message.data.readUIntBE(0, 1) as AlarmEvent, message.data.readUIntBE(4, 1));
+                    const alarmEventNumber = message.data.slice(0, 4).readUInt32LE();
+                    const alarmDelay = message.data.slice(4, 8).readUInt32LE();
+                    if (alarmEventNumber !== 0) {
+                        this.emit("alarm delay", alarmEventNumber as AlarmEvent, alarmDelay);
                     }
                 } catch (error) {
                     this.log.error(`Station ${this.rawStation.station_sn} - CMD_GET_DELAY_ALARM - Error:`, { error: error, payload: message.data.toString("hex") });
@@ -1388,8 +1390,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             case CommandType.CMD_SET_TONE_FILE:
                 try {
                     this.log.debug(`Station ${this.rawStation.station_sn} - CMD_SET_TONE_FILE :`, { payload: message.data.toString("hex") });
-                    if (message.data.readUIntBE(0, 1) === 0) {
+                    const alarmEventNumber = message.data.slice(0, 4).readUInt32LE();
+                    if (alarmEventNumber === 0 || alarmEventNumber === 1) {
                         this.emit("alarm armed");
+                    } else {
+                        this.emit("alarm event", alarmEventNumber as AlarmEvent);
                     }
                 } catch (error) {
                     this.log.error(`Station ${this.rawStation.station_sn} - CMD_SET_TONE_FILE - Error:`, { error: error, payload: message.data.toString("hex") });

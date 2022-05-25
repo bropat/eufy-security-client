@@ -66,6 +66,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("floodlight manual switch", (channel: number, enabled: boolean) => this.onFloodlightManualSwitch(channel, enabled));
         this.p2pSession.on("alarm delay", (alarmDelayEvent: AlarmEvent, alarmDelay: number) => this.onAlarmDelay(alarmDelayEvent, alarmDelay));
         this.p2pSession.on("alarm armed", () => this.onAlarmArmed());
+        this.p2pSession.on("alarm event", (alarmEvent: AlarmEvent) => this.onAlarmEvent(alarmEvent));
         this.update(this.rawStation);
         this.ready = true;
         setImmediate(() => {
@@ -402,10 +403,6 @@ export class Station extends TypedEmitter<StationEvents> {
                 } catch (error) {
                     this.log.debug(`Station ${message.station_sn} MODE_SWITCH event (${message.event_type}) - Error:`, error);
                 }
-            } else if (message.event_type === CusPushEvent.ALARM && message.station_sn === this.getSerial()) {
-                this.log.info("Received push notification for alarm event", { stationSN: message.station_sn, alarmType: message.alarm_type });
-                if (message.alarm_type !== undefined)
-                    this.emit("alarm event", this, message.alarm_type);
             }
         }
     }
@@ -480,6 +477,10 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onAlarmArmed(): void {
         this.emit("alarm armed event", this);
+    }
+
+    private onAlarmEvent(alarmEvent: AlarmEvent): void {
+        this.emit("alarm event", this, alarmEvent);
     }
 
     public async setGuardMode(mode: GuardMode): Promise<void> {
