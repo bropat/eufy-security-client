@@ -204,8 +204,15 @@ export const hasHeader = (msg: Buffer, searchedType: Buffer): boolean => {
     return Buffer.compare(header, searchedType) === 0;
 };
 
-export const buildCommandHeader = (seqNumber: number, commandType: CommandType): Buffer => {
-    const dataTypeBuffer = P2PDataTypeHeader.DATA;
+export const buildCommandHeader = (seqNumber: number, commandType: CommandType, p2pDataTypeHeader: Buffer | null = null): Buffer => {
+    let dataTypeBuffer = P2PDataTypeHeader.DATA;
+    if (p2pDataTypeHeader !== null &&
+        (Buffer.compare(p2pDataTypeHeader, P2PDataTypeHeader.DATA) === 0 ||
+        Buffer.compare(p2pDataTypeHeader, P2PDataTypeHeader.BINARY) === 0 ||
+        Buffer.compare(p2pDataTypeHeader, P2PDataTypeHeader.CONTROL) === 0 ||
+        Buffer.compare(p2pDataTypeHeader, P2PDataTypeHeader.VIDEO) === 0)) {
+        dataTypeBuffer = p2pDataTypeHeader;
+    }
     const seqAsBuffer = Buffer.allocUnsafe(2);
     seqAsBuffer.writeUInt16BE(seqNumber, 0);
     const magicString = Buffer.from(MAGIC_WORD);
@@ -344,7 +351,7 @@ export const generateBasicLockAESKey = (adminID: string, stationSN: string): str
 }
 
 export const generateLockSequence = (deviceType: DeviceType): number => {
-    if (Device.isLockAdvanced(deviceType) || Device.isLockAdvanced(deviceType))
+    if (Device.isLockWifi(deviceType) || Device.isLockWifiNoFinger(deviceType))
         return Math.trunc(Math.random() * 1000);
     return Math.trunc(new Date().getTime() / 1000); //ESLBridgeSeqNumManager
 }
@@ -489,4 +496,26 @@ export const getAdvancedLockKey = (key: string, publicKey: string): string => {
     const hmacDigest = hmac.digest();
 
     return Buffer.concat([Buffer.from(ecdh.getPublicKey("hex", "compressed"), "hex"), randomValue, encryptedData, hmacDigest]).toString("hex");
+}
+
+export const buildTalkbackAudioFrameHeader = (audioData: Buffer, channel = 0): Buffer => {
+    const audioDataLength = Buffer.allocUnsafe(4);
+    audioDataLength.writeUInt32LE(audioData.length);
+    const unknown1 = Buffer.alloc(1);
+    const audioType = Buffer.alloc(1);
+    const audioSeq = Buffer.alloc(2);
+    const audioTimestamp = Buffer.alloc(8);
+    const audioDataHeader = Buffer.concat([audioDataLength, unknown1, audioType, audioSeq, audioTimestamp]);
+    const bytesToRead = Buffer.allocUnsafe(4);
+    bytesToRead.writeUInt32LE(audioData.length + audioDataHeader.length);
+    const magicBuffer = Buffer.from([0x01, 0x00]);
+    const channelBuffer = Buffer.from([channel, 0x00]);
+    const emptyBuffer = Buffer.from([0x00, 0x00]);
+    return Buffer.concat([
+        bytesToRead,
+        magicBuffer,
+        channelBuffer,
+        emptyBuffer,
+        audioDataHeader
+    ]);
 }

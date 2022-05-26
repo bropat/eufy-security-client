@@ -83,6 +83,7 @@ Please use GitHub issues for this.
 ### 2.1.0 (2022-05-xx)
 
 * (bropat) Added toggle for Spotlight for Outdoor Cam Pro (T8441; #123)
+* (bropat) Added talkback commands for supported devices (#38, #153; thanks @thieren)
 * (fabianluque) Added missing RTSP properties for Floodlight T8423 (#146)
 * (Palmke) Add alarm delay event (#155)
 * (Palmke) P&T T8410: Set motion zone and image mirror (#156)

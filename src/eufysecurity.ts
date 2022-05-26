@@ -22,6 +22,7 @@ import { libVersion } from ".";
 import { InvalidPropertyError } from "./http/error";
 import { ServerPushEvent } from "./push/types";
 import { MQTTService } from "./mqtt/service";
+import { TalkbackStream } from "./p2p/talkback";
 
 export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
@@ -393,6 +394,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 station.on("raw device property changed", (deviceSN: string, params: RawValues) => this.updateDeviceProperties(deviceSN, params));
                 station.on("livestream start", (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => this.onStartStationLivestream(station, channel, metadata, videostream, audiostream));
                 station.on("livestream stop", (station: Station, channel:number) => this.onStopStationLivestream(station, channel));
+                station.on("livestream error", (station: Station, channel:number, error: Error) => this.onErrorStationLivestream(station, channel, error));
                 station.on("download start", (station: Station, channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => this.onStationStartDownload(station, channel, metadata, videoStream, audioStream));
                 station.on("download finish", (station: Station, channel: number) => this.onStationFinishDownload(station, channel));
                 station.on("command result", (station: Station, result: CommandResult) => this.onStationCommandResult(station, result));
@@ -408,6 +410,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 station.on("charging state", (station: Station, channel: number, chargeType: ChargingType, batteryLevel: number) => this.onStationChargingState(station, channel, chargeType, batteryLevel));
                 station.on("wifi rssi", (station: Station, channel: number, rssi: number) => this.onStationWifiRssi(station, channel, rssi));
                 station.on("floodlight manual switch", (station: Station, channel: number, enabled: boolean) => this.onFloodlightManualSwitch(station, channel, enabled));
+                station.on("alarm delay event", (station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number) => this.onStationAlarmDelayEvent(station, alarmDelayEvent, alarmDelay));
+                station.on("talkback started", (station: Station, channel: number, talkbackStream: TalkbackStream) => this.onStationTalkbackStart(station, channel, talkbackStream));
+                station.on("talkback stopped", (station: Station, channel: number) => this.onStationTalkbackStop(station, channel));
+                station.on("talkback error", (station: Station, channel: number, error: Error) => this.onStationTalkbackError(station, channel, error));
 
                 this.addStation(station);
             }
@@ -1377,6 +1383,14 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         });
     }
 
+    private onErrorStationLivestream(station: Station, channel:number, _error: Error): void {
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
+            station.stopLivestream(device);
+        }).catch((error) => {
+            this.log.error(`Station livestream error (station: ${station.getSerial()} channel: ${channel} error: ${_error}})`, error);
+        });
+    }
+
     private onStartStationRTSPLivestream(station: Station, channel:number): void {
         this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             this.emit("station rtsp livestream start", station, device);
@@ -1468,6 +1482,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onStationAlarmEvent(station: Station, alarmEvent: AlarmEvent): void {
         this.emit("station alarm event", station, alarmEvent);
+    }
+
+    private onStationAlarmDelayEvent(station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number): void {
+        this.emit("station alarm delay event", station, alarmDelayEvent, alarmDelay);
     }
 
     private onDevicePropertyChanged(device: Device, name: string, value: PropertyValue): void {
@@ -1594,6 +1612,66 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onTfaRequest(): void {
         this.emit("tfa request");
+    }
+
+    private onStationTalkbackStart(station: Station, channel: number, talkbackStream: TalkbackStream): void {
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
+            this.emit("station talkback start", station, device, talkbackStream);
+        }).catch((error) => {
+            this.log.error(`Station talkback start error (station: ${station.getSerial()} channel: ${channel})`, error);
+        });
+    }
+
+    private onStationTalkbackStop(station: Station, channel: number): void {
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
+            this.emit("station talkback stop", station, device);
+        }).catch((error) => {
+            this.log.error(`Station talkback stop error (station: ${station.getSerial()} channel: ${channel})`, error);
+        });
+    }
+
+    private onStationTalkbackError(station: Station, channel:number, _error: Error): void {
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
+            station.stopTalkback(device);
+        }).catch((error) => {
+            this.log.error(`Station talkback error (station: ${station.getSerial()} channel: ${channel} error: ${_error}})`, error);
+        });
+    }
+
+    public async startStationTalkback(deviceSN: string): Promise<void> {
+        const device = await this.getDevice(deviceSN);
+        const station = this.getStation(device.getStationSerial());
+
+        if (!device.hasCommand(CommandName.DeviceStartTalkback))
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+
+        if (station.isLiveStreaming(device)) {
+            if (!station.isTalkbackOngoing(device)) {
+                station.startTalkback(device);
+            } else {
+                this.log.warn(`The station talkback for the device ${deviceSN} cannot be started, because it is ongoing!`);
+            }
+        } else {
+            this.log.warn(`The station talkback for the device ${deviceSN} cannot be started, because it isn't live streaming!`);
+        }
+    }
+
+    public async stopStationTalkback(deviceSN: string): Promise<void> {
+        const device = await this.getDevice(deviceSN);
+        const station = this.getStation(device.getStationSerial());
+
+        if (!device.hasCommand(CommandName.DeviceStopTalkback))
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+
+        if (station.isLiveStreaming(device)) {
+            if (station.isTalkbackOngoing(device)) {
+                station.stopTalkback(device);
+            } else {
+                this.log.warn(`The station talkback for the device ${deviceSN} cannot be stopped, because it isn't ongoing!`);
+            }
+        } else {
+            this.log.warn(`The station talkback for the device ${deviceSN} cannot be stopped, because it isn't live streaming!`);
+        }
     }
 
 }

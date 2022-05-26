@@ -10,7 +10,7 @@ import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, Ra
 import { getBlocklist, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
 import { StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
-import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLInnerCommand, P2PConnectionType, PanTiltDirection, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
+import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLInnerCommand, IndoorSoloSmartdropCommandType, P2PConnectionType, PanTiltDirection, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
 import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData } from "../p2p/models";
 import { Device, DoorbellCamera, Lock } from "./device";
 import { getAdvancedLockKey, encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, generateAdvancedLockAESKey, getLockVectorBytes, isPrivateIp } from "../p2p/utils";
@@ -19,6 +19,7 @@ import { PushMessage } from "../push/models";
 import { CusPushEvent } from "../push/types";
 import { InvalidPropertyError, LivestreamAlreadyRunningError, LivestreamNotRunningError, PropertyNotSupportedError } from "./error";
 import { validValue } from "../utils";
+import { TalkbackStream } from "../p2p/talkback";
 
 export class Station extends TypedEmitter<StationEvents> {
 
@@ -56,6 +57,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("download finished", (channel: number) => this.onFinishDownload(channel));
         this.p2pSession.on("livestream started", (channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => this.onStartLivestream(channel, metadata, videoStream, audioStream));
         this.p2pSession.on("livestream stopped", (channel: number) => this.onStopLivestream(channel));
+        this.p2pSession.on("livestream error", (channel: number, error: Error) => this.onErrorLivestream(channel, error));
         this.p2pSession.on("wifi rssi", (channel: number, rssi: number) => this.onWifiRssiChanged(channel, rssi));
         this.p2pSession.on("rtsp livestream started", (channel: number) => this.onStartRTSPLivestream(channel));
         this.p2pSession.on("rtsp livestream stopped", (channel: number) => this.onStopRTSPLivestream(channel));
@@ -65,6 +67,9 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("charging state", (channel: number, chargeType: ChargingType, batteryLevel: number) => this.onChargingState(channel, chargeType, batteryLevel));
         this.p2pSession.on("floodlight manual switch", (channel: number, enabled: boolean) => this.onFloodlightManualSwitch(channel, enabled));
         this.p2pSession.on("alarm delay", (alarmDelayEvent: AlarmEvent, alarmDelay: number) => this.onAlarmDelay(alarmDelayEvent, alarmDelay));
+        this.p2pSession.on("talkback started", (channel: number, talkbackStream: TalkbackStream) => this.onTalkbackStarted(channel, talkbackStream));
+        this.p2pSession.on("talkback stopped", (channel: number) => this.onTalkbackStopped(channel));
+        this.p2pSession.on("talkback error", (channel: number, error: Error) => this.onTalkbackError(channel, error));
         this.update(this.rawStation);
         this.ready = true;
         setImmediate(() => {
@@ -445,6 +450,10 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onStopLivestream(channel: number): void {
         this.emit("livestream stop", this, channel);
+    }
+
+    private onErrorLivestream(channel: number, error: Error): void {
+        this.emit("livestream error", this, channel, error);
     }
 
     private onStartLivestream(channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable): void {
@@ -3141,7 +3150,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
         this.log.debug(`Sending lock device command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if (device.isLockBasicNoFinger() || device.isLockBasic()) {
+        if (device.isLockBleNoFinger() || device.isLockBle()) {
             const key = generateBasicLockAESKey(this.rawStation.member.admin_user_id, this.getSerial());
             const iv = getLockVectorBytes(this.getSerial());
             const lockCmd = Lock.encodeESLCmdOnOff(Number.parseInt(this.rawStation.member.short_user_id), this.rawStation.member.nick_name, value);
@@ -3167,7 +3176,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 }),
                 channel: device.getChannel()
             }, propertyData);
-        } else if (device.isLockAdvanced()) {
+        } else if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             const publicKey = await this.api.getPublicKey(device.getSerial(), PublicKeyType.LOCK);
 
             const key = generateAdvancedLockAESKey();
@@ -3836,7 +3845,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
         this.log.debug(`Sending calibrate lock command to station ${this.getSerial()} for device ${device.getSerial()}`);
-        if (device.isLockAdvanced()) {
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             const publicKey = await this.api.getPublicKey(device.getSerial(), PublicKeyType.LOCK);
 
             const key = generateAdvancedLockAESKey();
@@ -3960,7 +3969,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
         this.log.debug(`Sending set advanced lock settings command to station ${this.getSerial()} for device ${device.getSerial()} property ${property}`);
-        if (device.isLockAdvanced()) {
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             const publicKey = await this.api.getPublicKey(device.getSerial(), PublicKeyType.LOCK);
 
             const key = generateAdvancedLockAESKey();
@@ -5026,6 +5035,80 @@ export class Station extends TypedEmitter<StationEvents> {
             }),
             channel: device.getChannel()
         }, propertyData);
+    }
+
+    public async startTalkback(device: Device): Promise<void> {
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!this.hasCommand(CommandName.DeviceStartTalkback)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        if (!this.isLiveStreaming(device)) {
+            throw new LivestreamNotRunningError(`Livestream for device ${device.getSerial()} is not running`);
+        }
+        this.log.debug(`Sending start talkback command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isBatteryDoorbell() || device.isWiredDoorbellDual() || device.isWiredDoorbell() || device.isSmartDrop()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": IndoorSoloSmartdropCommandType.CMD_START_SPEAK,
+                }),
+                channel: device.getChannel()
+            });
+        } else {
+            await this.p2pSession.sendCommandWithInt({
+                commandType: CommandType.CMD_START_TALKBACK,
+                value: 0,
+                channel: device.getChannel()
+            });
+        }
+    }
+
+    public async stopTalkback(device: Device): Promise<void> {
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!this.hasCommand(CommandName.DeviceStopTalkback)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        if (!this.isLiveStreaming(device)) {
+            throw new LivestreamNotRunningError(`Livestream for device ${device.getSerial()} is not running`);
+        }
+        this.log.debug(`Sending stop talkback command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isBatteryDoorbell() || device.isWiredDoorbellDual() || device.isWiredDoorbell() || device.isSmartDrop()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": IndoorSoloSmartdropCommandType.CMD_END_SPEAK,
+                }),
+                channel: device.getChannel()
+            });
+        } else {
+            await this.p2pSession.sendCommandWithInt({
+                commandType: CommandType.CMD_STOP_TALKBACK,
+                value: 0,
+                channel: device.getChannel()
+            });
+        }
+    }
+
+    private onTalkbackStarted(channel: number, talkbackStream: TalkbackStream): void {
+        this.emit("talkback started", this, channel, talkbackStream);
+    }
+
+    private onTalkbackStopped(channel: number): void {
+        this.emit("talkback stopped", this, channel);
+    }
+
+    private onTalkbackError(channel: number, error: Error): void {
+        this.emit("talkback error", this, channel, error);
+    }
+
+    public isTalkbackOngoing(device: Device): boolean {
+        if (device.getStationSerial() !== this.getSerial())
+            return false;
+        return this.p2pSession.isTalkbackOngoing(device.getChannel());
     }
 
 }

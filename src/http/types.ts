@@ -29,10 +29,10 @@ export enum DeviceType {
     INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT = 44,
     INDOOR_OUTDOOR_CAMERA_2K = 45,
     INDOOR_OUTDOOR_CAMERA_1080P = 46,
-    LOCK_BASIC = 50,
-    LOCK_ADVANCED = 51,
-    LOCK_BASIC_NO_FINGER = 52,
-    LOCK_ADVANCED_NO_FINGER = 53,
+    LOCK_BLE = 50,
+    LOCK_WIFI = 51,
+    LOCK_BLE_NO_FINGER = 52,
+    LOCK_WIFI_NO_FINGER = 53,
     LOCK_8503 = 54, //Smart Lock R10
     LOCK_8530 = 55,
     LOCK_85A3 = 56,
@@ -45,6 +45,9 @@ export enum DeviceType {
     BATTERY_DOORBELL_PLUS = 91,
     DOORBELL_SOLO = 93,
     INDOOR_COST_DOWN_CAMERA = 100,
+    CAMERA_GUN = 101,
+    CAMERA_SNAIL = 102,
+    CAMERA_FG = 110,
     SMART_SAFE_7400 = 140,
     SMART_SAFE_7401 = 141,
     SMART_SAFE_7402 = 142,
@@ -3721,7 +3724,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIKeypadProperty,
         [PropertyName.DeviceBatteryIsCharging]: DeviceBatteryIsChargingKeypadProperty,
     },
-    [DeviceType.LOCK_ADVANCED]: {
+    [DeviceType.LOCK_WIFI]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceBattery]: DeviceBatteryLockProperty,
         [PropertyName.DeviceLocked]: DeviceLockedProperty,
@@ -3741,7 +3744,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLockSettingsNotificationUnlocked]: DeviceLockSettingsNotificationUnlockedProperty,
         [PropertyName.DeviceLockSettingsNotificationLocked]: DeviceLockSettingsNotificationLockedProperty,
     },
-    [DeviceType.LOCK_ADVANCED_NO_FINGER]: {
+    [DeviceType.LOCK_WIFI_NO_FINGER]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceBattery]: DeviceBatteryLockProperty,
         [PropertyName.DeviceLocked]: DeviceLockedProperty,
@@ -3761,7 +3764,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLockSettingsNotificationUnlocked]: DeviceLockSettingsNotificationUnlockedProperty,
         [PropertyName.DeviceLockSettingsNotificationLocked]: DeviceLockSettingsNotificationLockedProperty,
     },
-    [DeviceType.LOCK_BASIC]: {
+    [DeviceType.LOCK_BLE]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceState]: DeviceStateLockProperty,
         [PropertyName.DeviceBattery]: DeviceBatteryLockProperty,
@@ -3769,7 +3772,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLocked]: DeviceLockedProperty,
         [PropertyName.DeviceLockStatus]: DeviceBasicLockStatusProperty,
     },
-    [DeviceType.LOCK_BASIC_NO_FINGER]: {
+    [DeviceType.LOCK_BLE_NO_FINGER]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceState]: DeviceStateLockProperty,
         [PropertyName.DeviceBattery]: DeviceBatteryLockProperty,
@@ -4210,16 +4213,16 @@ export const StationProperties: Properties = {
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
     },
-    [DeviceType.LOCK_ADVANCED]: {
+    [DeviceType.LOCK_WIFI]: {
         ...BaseStationProperties,
     },
-    [DeviceType.LOCK_ADVANCED_NO_FINGER]: {
+    [DeviceType.LOCK_WIFI_NO_FINGER]: {
         ...BaseStationProperties,
     },
-    [DeviceType.LOCK_BASIC]: {
+    [DeviceType.LOCK_BLE]: {
         ...BaseStationProperties,
     },
-    [DeviceType.LOCK_BASIC_NO_FINGER]: {
+    [DeviceType.LOCK_BLE_NO_FINGER]: {
         ...BaseStationProperties,
     },
 }
@@ -4240,6 +4243,8 @@ export enum CommandName {
     DeviceCalibrate = "deviceCalibrate",
     DeviceSetDefaultAngle = "deviceSetDefaultAngle",
     DeviceSetPrivacyAngle = "deviceSetPrivacyAngle",
+    DeviceStartTalkback = "deviceStartTalkback",
+    DeviceStopTalkback = "deviceStopTalkback",
 }
 
 export const DeviceCommands: Commands = {
@@ -4260,6 +4265,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.CAMERA2C]: [
         CommandName.DeviceStartLivestream,
@@ -4269,6 +4276,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.CAMERA2C_PRO]: [
         CommandName.DeviceStartLivestream,
@@ -4278,6 +4287,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.CAMERA2_PRO]: [
         CommandName.DeviceStartLivestream,
@@ -4287,6 +4298,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.CAMERA_E]: [
         CommandName.DeviceStartLivestream,
@@ -4303,6 +4316,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceQuickResponse,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.BATTERY_DOORBELL]: [
         CommandName.DeviceStartLivestream,
@@ -4310,6 +4325,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceQuickResponse,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.BATTERY_DOORBELL_2]: [
         CommandName.DeviceStartLivestream,
@@ -4317,6 +4334,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceQuickResponse,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.BATTERY_DOORBELL_PLUS]: [
         CommandName.DeviceStartLivestream,
@@ -4324,6 +4343,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceQuickResponse,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.DOORBELL_SOLO]: [
         CommandName.DeviceStartLivestream,
@@ -4331,6 +4352,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceQuickResponse,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.INDOOR_CAMERA]: [
         CommandName.DeviceStartLivestream,
@@ -4339,6 +4362,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.INDOOR_CAMERA_1080]: [
         CommandName.DeviceStartLivestream,
@@ -4347,6 +4372,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P]: [
         CommandName.DeviceStartLivestream,
@@ -4355,6 +4382,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT]: [
         CommandName.DeviceStartLivestream,
@@ -4363,6 +4392,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.INDOOR_OUTDOOR_CAMERA_2K]: [
         CommandName.DeviceStartLivestream,
@@ -4371,6 +4402,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.INDOOR_PT_CAMERA]: [
         CommandName.DeviceStartLivestream,
@@ -4381,6 +4414,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceCalibrate,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.INDOOR_PT_CAMERA_1080]: [
         CommandName.DeviceStartLivestream,
@@ -4391,6 +4426,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceCalibrate,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.INDOOR_COST_DOWN_CAMERA]: [
         CommandName.DeviceStartLivestream,
@@ -4403,48 +4440,64 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCalibrate,
         CommandName.DeviceSetDefaultAngle,
         CommandName.DeviceSetPrivacyAngle,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.SOLO_CAMERA]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.SOLO_CAMERA_PRO]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_1080]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_2K]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.FLOODLIGHT]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8422]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8423]: [
         CommandName.DeviceStartLivestream,
@@ -4455,20 +4508,24 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStartRTSPLivestream,
         CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceCalibrate,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8424]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
     ],
     [DeviceType.KEYPAD]: [],
-    [DeviceType.LOCK_BASIC]: [],
-    [DeviceType.LOCK_BASIC_NO_FINGER]: [],
-    [DeviceType.LOCK_ADVANCED]: [
+    [DeviceType.LOCK_BLE]: [],
+    [DeviceType.LOCK_BLE_NO_FINGER]: [],
+    [DeviceType.LOCK_WIFI]: [
         CommandName.DeviceLockCalibration,
     ],
-    [DeviceType.LOCK_ADVANCED_NO_FINGER]: [
+    [DeviceType.LOCK_WIFI_NO_FINGER]: [
         CommandName.DeviceLockCalibration,
     ],
     [DeviceType.MOTION_SENSOR]: [],
@@ -4555,8 +4612,8 @@ export const StationCommands: Commands = {
         CommandName.StationTriggerAlarmSound,
     ],
     [DeviceType.KEYPAD]: [],
-    [DeviceType.LOCK_BASIC]: [],
-    [DeviceType.LOCK_BASIC_NO_FINGER]: [],
-    [DeviceType.LOCK_ADVANCED]: [],
-    [DeviceType.LOCK_ADVANCED_NO_FINGER]: [],
+    [DeviceType.LOCK_BLE]: [],
+    [DeviceType.LOCK_BLE_NO_FINGER]: [],
+    [DeviceType.LOCK_WIFI]: [],
+    [DeviceType.LOCK_WIFI_NO_FINGER]: [],
 }
