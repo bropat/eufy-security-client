@@ -5048,7 +5048,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new LivestreamNotRunningError(`Livestream for device ${device.getSerial()} is not running`);
         }
         this.log.debug(`Sending start talkback command to station ${this.getSerial()} for device ${device.getSerial()}`);
-        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isBatteryDoorbell() || device.isWiredDoorbellDual() || device.isWiredDoorbell() || device.isSmartDrop()) {
+        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isWiredDoorbell() || device.isSmartDrop()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -5076,7 +5076,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new LivestreamNotRunningError(`Livestream for device ${device.getSerial()} is not running`);
         }
         this.log.debug(`Sending stop talkback command to station ${this.getSerial()} for device ${device.getSerial()}`);
-        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isBatteryDoorbell() || device.isWiredDoorbellDual() || device.isWiredDoorbell() || device.isSmartDrop()) {
+        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isWiredDoorbell() || device.isSmartDrop()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
