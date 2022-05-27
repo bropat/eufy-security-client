@@ -585,8 +585,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_2K ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
-            type == DeviceType.LOCK_ADVANCED ||
-            type == DeviceType.LOCK_ADVANCED_NO_FINGER)
+            type == DeviceType.LOCK_WIFI ||
+            type == DeviceType.LOCK_WIFI_NO_FINGER)
             //TODO: Add other battery devices
             return true;
         return false;
@@ -663,23 +663,23 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isLock(type: number): boolean {
-        return Device.isLockBasic(type) || Device.isLockAdvanced(type) || Device.isLockBasicNoFinger(type) || Device.isLockAdvancedNoFinger(type);
+        return Device.isLockBle(type) || Device.isLockWifi(type) || Device.isLockBleNoFinger(type) || Device.isLockWifiNoFinger(type);
     }
 
-    static isLockBasic(type: number): boolean {
-        return DeviceType.LOCK_BASIC == type;
+    static isLockBle(type: number): boolean {
+        return DeviceType.LOCK_BLE == type;
     }
 
-    static isLockBasicNoFinger(type: number): boolean {
-        return DeviceType.LOCK_BASIC_NO_FINGER == type;
+    static isLockBleNoFinger(type: number): boolean {
+        return DeviceType.LOCK_BLE_NO_FINGER == type;
     }
 
-    static isLockAdvanced(type: number): boolean {
-        return DeviceType.LOCK_ADVANCED == type;
+    static isLockWifi(type: number): boolean {
+        return DeviceType.LOCK_WIFI == type;
     }
 
-    static isLockAdvancedNoFinger(type: number): boolean {
-        return DeviceType.LOCK_ADVANCED_NO_FINGER == type;
+    static isLockWifiNoFinger(type: number): boolean {
+        return DeviceType.LOCK_WIFI_NO_FINGER == type;
     }
 
     static isBatteryDoorbell1(type: number): boolean {
@@ -837,20 +837,20 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return Device.isLock(this.rawDevice.device_type);
     }
 
-    public isLockBasic(): boolean {
-        return Device.isLockBasic(this.rawDevice.device_type);
+    public isLockBle(): boolean {
+        return Device.isLockBle(this.rawDevice.device_type);
     }
 
-    public isLockBasicNoFinger(): boolean {
-        return Device.isLockBasicNoFinger(this.rawDevice.device_type);
+    public isLockBleNoFinger(): boolean {
+        return Device.isLockBleNoFinger(this.rawDevice.device_type);
     }
 
-    public isLockAdvanced(): boolean {
-        return Device.isLockAdvanced(this.rawDevice.device_type);
+    public isLockWifi(): boolean {
+        return Device.isLockWifi(this.rawDevice.device_type);
     }
 
-    public isLockAdvancedNoFinger(): boolean {
-        return Device.isLockAdvancedNoFinger(this.rawDevice.device_type);
+    public isLockWifiNoFinger(): boolean {
+        return Device.isLockWifiNoFinger(this.rawDevice.device_type);
     }
 
     public isBatteryDoorbell1(): boolean {
@@ -1894,7 +1894,7 @@ export class Lock extends Device {
     public processMQTTNotification(message: DeviceSmartLockNotifyData): void {
         if (message.eventType === LockPushEvent.STATUS_CHANGE) {
             // Lock state event
-            const cmdType = this.isLockBasic() || this.isLockBasicNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+            const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
             this.updateRawProperty(cmdType, message.lockState);
         } else if (message.eventType === LockPushEvent.OTA_STATUS) {
             // OTA Status - ignore event
@@ -1915,7 +1915,7 @@ export class Lock extends Device {
                     case LockPushEvent.PW_LOCK:
                     case LockPushEvent.TEMPORARY_PW_LOCK:
                     {
-                        const cmdType = this.isLockBasic() || this.isLockBasicNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
                         this.updateRawProperty(cmdType, "4");
                         this.emit("locked", this, this.getPropertyValue(PropertyName.DeviceLocked) as boolean);
                         break;
@@ -1927,7 +1927,7 @@ export class Lock extends Device {
                     case LockPushEvent.PW_UNLOCK:
                     case LockPushEvent.TEMPORARY_PW_UNLOCK:
                     {
-                        const cmdType = this.isLockBasic() || this.isLockBasicNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
                         this.updateRawProperty(cmdType, "3");
                         this.emit("locked", this, this.getPropertyValue(PropertyName.DeviceLocked) as boolean);
                         break;
@@ -1937,7 +1937,7 @@ export class Lock extends Device {
                     case LockPushEvent.VIOLENT_DESTRUCTION:
                     case LockPushEvent.MULTIPLE_ERRORS:
                     {
-                        const cmdType = this.isLockBasic() || this.isLockBasicNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
                         this.updateRawProperty(cmdType, "5");
                         break;
                     }

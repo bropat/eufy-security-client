@@ -6,6 +6,7 @@ import { Station } from "./http/station";
 import { DeviceSmartLockMessage } from "./mqtt/model";
 import { StreamMetadata } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
+import { TalkbackStream } from "./p2p/talkback";
 import { AlarmEvent } from "./p2p/types";
 import { Credentials, PushMessage } from "./push/models";
 
@@ -63,8 +64,11 @@ export interface EufySecurityEvents {
     "station property changed": (station: Station, name: string, value: PropertyValue) => void;
     "station raw property changed": (station: Station, type: number, value: string) => void;
     "station alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
+    "station alarm delay event": (station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
     "station connect": (station: Station) => void;
     "station close": (station: Station) => void;
+    "station talkback start": (station: Station, device: Device, talkbackStream: TalkbackStream) => void;
+    "station talkback stop": (station: Station, device: Device) => void;
     "push connect": () => void;
     "push close": () => void;
     "push message": (message: PushMessage) => void;

@@ -94,3 +94,19 @@ export class ReadOnlyPropertyError extends Error {
         this.name = ReadOnlyPropertyError.name;
     }
 }
+
+export class LivestreamError extends Error {
+    constructor(message?: string) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = LivestreamError.name;
+    }
+}
+
+export class TalkbackError extends Error {
+    constructor(message?: string) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = TalkbackError.name;
+    }
+}

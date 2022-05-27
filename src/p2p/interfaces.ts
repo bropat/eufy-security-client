@@ -4,7 +4,8 @@ import { SortedMap } from "sweet-collections";
 
 import { AlarmMode } from "../http/types";
 import { Address, CmdCameraInfoResponse, CommandResult, PropertyData } from "./models";
-import { AlarmEvent, AudioCodec, ChargingType, CommandType, P2PDataType, VideoCodec } from "./types";
+import { TalkbackStream } from "./talkback";
+import { AlarmEvent, AudioCodec, ChargingType, CommandType, IndoorSoloSmartdropCommandType, P2PDataType, VideoCodec } from "./types";
 
 export interface P2PClientProtocolEvents {
     "alarm mode": (mode: AlarmMode) => void;
@@ -16,6 +17,7 @@ export interface P2PClientProtocolEvents {
     "download finished": (channel: number) => void;
     "livestream started": (channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => void;
     "livestream stopped": (channel: number) => void;
+    "livestream error": (channel: number, error: Error) => void;
     "wifi rssi": (channel: number, rssi: number) => void;
     "rtsp url": (channel: number, rtspUrl: string) => void;
     "esl parameter": (channel: number, param: number, value: string) => void;
@@ -28,6 +30,9 @@ export interface P2PClientProtocolEvents {
     "alarm delay": (alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
     "alarm armed": () => void;
     "alarm event": (alarmEvent: AlarmEvent) => void;
+    "talkback started": (channel: number, talkbackStream: TalkbackStream) => void;
+    "talkback stopped": (channel: number) => void;
+    "talkback error": (channel: number, error: Error) => void;
 }
 
 export interface P2PQueueMessage {
@@ -42,7 +47,7 @@ export interface P2PQueueMessage {
 export interface P2PMessageState {
     sequence: number;
     commandType: CommandType;
-    nestedCommandType?: CommandType;
+    nestedCommandType?: CommandType | IndoorSoloSmartdropCommandType;
     channel: number;
     data: Buffer;
     retries: number;
@@ -103,6 +108,8 @@ export interface P2PDataMessageState {
     waitForAudioData?: NodeJS.Timeout;
     receivedFirstIFrame: boolean;
     preFrameVideoData: Buffer;
+    p2pTalkback: boolean;
+    p2pTalkbackChannel: number;
 }
 
 export interface P2PDataMessageVideo {
@@ -145,4 +152,12 @@ export interface P2PCommand {
     strValue?: string;
     strValueSub?: string;
     channel?: number;
+}
+
+export interface P2PVideoMessageState {
+    sequence: number;
+    channel: number;
+    data: Buffer;
+    retries: number;
+    timeout?: NodeJS.Timeout;
 }
