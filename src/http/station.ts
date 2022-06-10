@@ -5041,7 +5041,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
-        if (!this.hasCommand(CommandName.DeviceStartTalkback)) {
+        if (!device.hasCommand(CommandName.DeviceStartTalkback)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
         if (!this.isLiveStreaming(device)) {
@@ -5069,7 +5069,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
-        if (!this.hasCommand(CommandName.DeviceStopTalkback)) {
+        if (!device.hasCommand(CommandName.DeviceStopTalkback)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
         if (!this.isLiveStreaming(device)) {

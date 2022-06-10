@@ -1039,8 +1039,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 this.waitForStreamData(P2PDataType.BINARY);
                             } else if (msg_state.commandType === CommandType.CMD_START_TALKBACK || (msg_state.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD && msg_state.nestedCommandType === IndoorSoloSmartdropCommandType.CMD_START_SPEAK)) {
                                 if (return_code === ErrorCode.ERROR_PPCS_SUCCESSFUL) {
-                                    this.currentMessageState[message.dataType].p2pTalkback = true;
-                                    this.currentMessageState[message.dataType].p2pTalkbackChannel = msg_state.channel;
+                                    this.currentMessageState[P2PDataType.VIDEO].p2pTalkback = true;
+                                    this.currentMessageState[P2PDataType.VIDEO].p2pTalkbackChannel = msg_state.channel;
                                     this.talkbackStream.startTalkback();
                                     this.emit("talkback started", msg_state.channel, this.talkbackStream);
                                 } else if (return_code === ErrorCode.ERROR_NOT_FIND_DEV) {
@@ -1051,8 +1051,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     this.emit("talkback error", msg_state.channel, new TalkbackError(`Station ${this.rawStation.station_sn} channel ${msg_state.channel} connect failed please try again later.`));
                                 }
                             } else if (msg_state.commandType === CommandType.CMD_STOP_TALKBACK || (msg_state.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD && msg_state.nestedCommandType === IndoorSoloSmartdropCommandType.CMD_END_SPEAK)) {
-                                this.currentMessageState[message.dataType].p2pTalkback = false;
-                                this.currentMessageState[message.dataType].p2pTalkbackChannel = -1;
+                                this.currentMessageState[P2PDataType.VIDEO].p2pTalkback = false;
+                                this.currentMessageState[P2PDataType.VIDEO].p2pTalkbackChannel = -1;
                                 this.talkbackStream.stopTalkback();
                                 this.emit("talkback stopped", msg_state.channel);
                             }
@@ -1744,7 +1744,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private sendTalkbackAudioFrame(audioData: Buffer): void {
         //TODO: Pass channel information to buildTalkbackAudioFrameHeader
-        this.videoSeqNumber = this._incrementSequence(this.videoSeqNumber);
         const messageHeader = buildCommandHeader(this.videoSeqNumber, CommandType.CMD_AUDIO_FRAME, P2PDataTypeHeader.VIDEO);
         const messageAudioHeader = buildTalkbackAudioFrameHeader(audioData);
         const messageData = Buffer.concat([messageHeader, messageAudioHeader, audioData]);
@@ -1756,6 +1755,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             retries: 0
         };
 
+        this.videoSeqNumber = this._incrementSequence(this.videoSeqNumber);
         this._sendVideoData(message);
     }
 
