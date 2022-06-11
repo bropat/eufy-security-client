@@ -414,6 +414,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 station.on("talkback started", (station: Station, channel: number, talkbackStream: TalkbackStream) => this.onStationTalkbackStart(station, channel, talkbackStream));
                 station.on("talkback stopped", (station: Station, channel: number) => this.onStationTalkbackStop(station, channel));
                 station.on("talkback error", (station: Station, channel: number, error: Error) => this.onStationTalkbackError(station, channel, error));
+                station.on("alarm armed event", (station: Station) => this.onStationAlarmArmedEvent(station));
 
                 this.addStation(station);
             }
@@ -1486,6 +1487,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onStationAlarmDelayEvent(station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number): void {
         this.emit("station alarm delay event", station, alarmDelayEvent, alarmDelay);
+    }
+
+    private onStationAlarmArmedEvent(station: Station): void {
+        this.emit("station alarm armed", station);
     }
 
     private onDevicePropertyChanged(device: Device, name: string, value: PropertyValue): void {
