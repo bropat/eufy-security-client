@@ -102,10 +102,10 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             const response = await got(url, {
                 method: "post",
                 json: {
-                    fid: fid,
-                    appId: `${this.APP_ID}`,
-                    authVersion: `${this.AUTH_VERSION}`,
-                    sdkVersion: "a:16.3.1",
+                    installation: {
+                        appId: `${this.APP_ID}`,
+                        sdkVersion: "a:16.3.1",
+                    }
                 },
                 headers: {
                     "X-Android-Package": `${this.APP_PACKAGE}`,
