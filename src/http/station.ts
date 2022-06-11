@@ -67,6 +67,8 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("charging state", (channel: number, chargeType: ChargingType, batteryLevel: number) => this.onChargingState(channel, chargeType, batteryLevel));
         this.p2pSession.on("floodlight manual switch", (channel: number, enabled: boolean) => this.onFloodlightManualSwitch(channel, enabled));
         this.p2pSession.on("alarm delay", (alarmDelayEvent: AlarmEvent, alarmDelay: number) => this.onAlarmDelay(alarmDelayEvent, alarmDelay));
+        this.p2pSession.on("alarm armed", () => this.onAlarmArmed());
+        this.p2pSession.on("alarm event", (alarmEvent: AlarmEvent) => this.onAlarmEvent(alarmEvent));
         this.p2pSession.on("talkback started", (channel: number, talkbackStream: TalkbackStream) => this.onTalkbackStarted(channel, talkbackStream));
         this.p2pSession.on("talkback stopped", (channel: number) => this.onTalkbackStopped(channel));
         this.p2pSession.on("talkback error", (channel: number, error: Error) => this.onTalkbackError(channel, error));
@@ -484,6 +486,14 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onAlarmDelay(alarmDelayEvent: AlarmEvent, alarmDelay: number): void {
         this.emit("alarm delay event", this, alarmDelayEvent, alarmDelay);
+    }
+
+    private onAlarmArmed(): void {
+        this.emit("alarm armed event", this);
+    }
+
+    private onAlarmEvent(alarmEvent: AlarmEvent): void {
+        this.emit("alarm event", this, alarmEvent);
     }
 
     public async setGuardMode(mode: GuardMode): Promise<void> {

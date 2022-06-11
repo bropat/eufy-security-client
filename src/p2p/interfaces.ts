@@ -28,6 +28,8 @@ export interface P2PClientProtocolEvents {
     "rtsp livestream stopped": (channel: number) => void;
     "floodlight manual switch": (channel: number, enabled: boolean) => void;
     "alarm delay": (alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
+    "alarm armed": () => void;
+    "alarm event": (alarmEvent: AlarmEvent) => void;
     "talkback started": (channel: number, talkbackStream: TalkbackStream) => void;
     "talkback stopped": (channel: number) => void;
     "talkback error": (channel: number, error: Error) => void;
