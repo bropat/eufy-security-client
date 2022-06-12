@@ -1,6 +1,6 @@
 {
   "name": "eufy-security-client",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Client to comunicate with Eufy-Security devices",
   "author": {
     "name": "bropat",
@@ -39,7 +39,7 @@
   "dependencies": {
     "got": "~11.8",
     "protobuf-typescript": "^6.8.8",
-    "qs": "^6.10.3",
+    "qs": "^6.10.5",
     "node-rsa": "^1.1.1",
     "crypto-js": "^4.1.1",
     "ts-log": "^2.2.4",
@@ -49,19 +49,20 @@
     "fs-extra": "^10.1.0",
     "sweet-collections": "^1.1.0",
     "mqtt": "^4.3.7",
-    "node-schedule": "^2.1.0"
+    "node-schedule": "^2.1.0",
+    "p-throttle": "~4.1.1"
   },
   "devDependencies": {
-    "@types/node": "^16.11.32",
+    "@types/node": "^16.11.39",
     "@types/qs": "^6.9.7",
     "@types/node-rsa": "^1.1.1",
     "@types/crypto-js": "^4.1.1",
     "@types/fs-extra": "^9.0.13",
     "@types/node-schedule": "^2.1.0",
-    "@typescript-eslint/eslint-plugin": "^5.22.0",
-    "@typescript-eslint/parser": "^5.22.0",
-    "eslint": "^8.14.0",
-    "typescript": "4.6.4"
+    "@typescript-eslint/eslint-plugin": "^5.27.1",
+    "@typescript-eslint/parser": "^5.27.1",
+    "eslint": "^8.17.0",
+    "typescript": "4.7.3"
   },
   "bugs": {
     "url": "https://github.com/bropat/eufy-security-client/issues"
