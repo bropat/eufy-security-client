@@ -80,13 +80,17 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 2.1.0 (2022-05-xx)
+### 2.1.0 (2022-06-12)
 
 * (bropat) Added toggle for Spotlight for Outdoor Cam Pro (T8441; #123)
-* (bropat) Added talkback commands for supported devices (#38, #153; thanks @thieren)
+* (bropat & thieren) Added talkback commands for supported devices (#38, #153; thanks @thieren)
 * (fabianluque) Added missing RTSP properties for Floodlight T8423 (#146)
-* (Palmke) Add alarm delay event (#155)
+* (Palmke) Add alarm delay event (#88, #155)
 * (Palmke) P&T T8410: Set motion zone and image mirror (#156)
+* (Palmke) Send an event when the alarm is armed and alarm events from p2p (#105, #157)
+* (bropat) Implemented simple request throttling for Eufy Cloud
+* (bropat) Fixed push notification token renewal
+* (bropat) Fixed issue #161
 
 ### 2.0.1 (2022-05-03)
 

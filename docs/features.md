@@ -13,6 +13,8 @@
   * Devices:
     * Start livestream (local/remote p2p or rtmp over cloud)
     * Stop livestream (local/remote p2p or rtmp over cloud)
+    * Start talkback
+    * Stop talkback
     * Enable/disable device
     * Enable/disable auto night vision (only camera products)
     * Enable/disable led (only camera 2 products, indoor cameras, floodlight camera, solo cameras and doorbells)
