@@ -581,13 +581,12 @@ export class Station extends TypedEmitter<StationEvents> {
         this.log.debug("Got camera infos", { station: this.getSerial(), cameraInfo: cameraInfo });
         const devices: { [index: string]: RawValues; } = {};
         cameraInfo.params.forEach(param => {
-            if (param.dev_type === Station.CHANNEL || this.isIntegratedDevice()) {
-                if (this.updateRawProperty(param.param_type, param.param_value)) {
-                    if (param.param_type === CommandType.CMD_GET_ALARM_MODE) {
-                        if (this.getDeviceType() !== DeviceType.STATION)
-                            // Trigger refresh Guard Mode
-                            this.api.refreshStationData();
-                    }
+            if (param.dev_type === Station.CHANNEL || param.dev_type === Station.CHANNEL_INDOOR || this.isIntegratedDevice()) {
+                this.updateRawProperty(param.param_type, param.param_value);
+                if (param.param_type === CommandType.CMD_GET_ALARM_MODE) {
+                    if (this.getDeviceType() !== DeviceType.STATION)
+                        // Trigger refresh Guard Mode
+                        this.api.refreshStationData();
                 }
                 if (this.isIntegratedDevice()) {
                     const device_sn = this.getSerial();

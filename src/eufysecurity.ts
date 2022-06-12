@@ -264,7 +264,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private updateStation(hub: StationListResponse): void {
         if (Object.keys(this.stations).includes(hub.station_sn)) {
-            this.stations[hub.station_sn].update(hub, this.stations[hub.station_sn] !== undefined && this.stations[hub.station_sn].isConnected());
+            this.stations[hub.station_sn].update(hub, this.stations[hub.station_sn] !== undefined && !this.stations[hub.station_sn].isIntegratedDevice() && this.stations[hub.station_sn].isConnected());
             if (!this.stations[hub.station_sn].isConnected() && !this.stations[hub.station_sn].isEnergySavingDevice()) {
                 this.stations[hub.station_sn].setConnectionType(this.config.p2pConnectionSetup);
                 this.stations[hub.station_sn].connect();
@@ -302,7 +302,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (this.loadingDevices !== undefined)
             await this.loadingDevices;
         if (Object.keys(this.devices).includes(device.device_sn))
-            this.devices[device.device_sn].update(device, this.stations[device.station_sn] !== undefined && this.stations[device.station_sn].isConnected())
+            this.devices[device.device_sn].update(device, this.stations[device.station_sn] !== undefined && !this.stations[device.station_sn].isIntegratedDevice() && this.stations[device.station_sn].isConnected())
         else
             throw new DeviceNotFoundError(`Device with this serial ${device.device_sn} doesn't exists and couldn't be updated!`);
     }
@@ -512,10 +512,13 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }));
             }
         }
-        this.loadingDevices = Promise.all(promises).then(() => {
-            this.getStations().forEach((station) => {
-                station.setConnectionType(this.config.p2pConnectionSetup);
-                station.connect();
+        this.loadingDevices = Promise.all(promises).then((devices) => {
+            devices.forEach((device) => {
+                const station = this.getStation(device.getStationSerial());
+                if (!station.isConnected()) {
+                    station.setConnectionType(this.config.p2pConnectionSetup);
+                    station.connect();
+                }
             });
             this.loadingDevices = undefined;
         });
@@ -1445,15 +1448,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
             });
         }
-        //TODO: Check if needed (only needed for raw property value refresh?)
-        /*if (result.return_code === 0 && result.command_type !== CommandType.CMD_CAMERA_INFO && result.command_type !== CommandType.CMD_PING && result.command_type !== CommandType.CMD_GET_DEVICE_PING) {
-            if (station.isConnected() && Device.isCamera(station.getDeviceType()) && !Device.isWiredDoorbell(station.getDeviceType())) {
-                await station.getCameraInfo();
-            } else {
-                await this.api.refreshStationData();
-                await this.api.refreshDeviceData();
-            }
-        }*/
     }
 
     private onStationRtspUrl(station: Station, channel:number, value: string): void {
