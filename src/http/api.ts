@@ -5,6 +5,7 @@ import { isValid as isValidCountry } from "i18n-iso-countries";
 import { isValid as isValidLanguage } from "@cospired/i18n-iso-languages";
 import { createECDH, ECDH } from "crypto";
 import * as schedule from "node-schedule";
+import * as pThrottle from "p-throttle";
 
 import { ResultResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry, ApiResponse, CaptchaResponse, LoginRequest, HouseDetail, DeviceListResponse, StationListResponse, HouseInviteListResponse, HouseListResponse, PassportProfileResponse } from "./models"
 import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites, HTTPApiRequest, HTTPApiPersistentData, Houses, LoginOptions } from "./interfaces";
@@ -32,6 +33,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     private log: Logger;
     private connected = false;
     private requestEufyCloud: Got;
+
+    private throttle = pThrottle({
+        limit: 6,
+        interval: 10000,
+    });
 
     private devices: FullDevices = {};
     private hubs: Hubs = {};
@@ -84,8 +90,24 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             responseType: "json",
             //throwHttpErrors: false,
             retry: {
-                limit: 1,
-                methods: ["GET", "POST"]
+                limit: 3,
+                methods: ["GET", "POST"],
+                statusCodes: [
+                    408,
+                    413,
+                    423,
+                    429,
+                    500,
+                    502,
+                    503,
+                    504,
+                    521,
+                    522,
+                    524
+                ],
+                calculateDelay: ({ computedValue }) => {
+                    return computedValue * 3;
+                }
             },
             hooks: {
                 afterResponse: [
@@ -137,6 +159,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         }
 
                         return error;
+                    }
+                ],
+                beforeRequest: [
+                    async _options => {
+                        await this.throttle(async () => { return; })();
                     }
                 ]
             },
