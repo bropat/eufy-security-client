@@ -50,7 +50,7 @@
     "sweet-collections": "^1.1.0",
     "mqtt": "^4.3.7",
     "node-schedule": "^2.1.0",
-    "p-throttle": "~4.1.1"
+    "p-throttle": "~5.0.0"
   },
   "devDependencies": {
     "@types/node": "^16.11.39",
