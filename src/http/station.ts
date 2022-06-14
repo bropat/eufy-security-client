@@ -408,7 +408,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 } catch (error) {
                     this.log.debug(`Station ${message.station_sn} MODE_SWITCH event (${message.event_type}) - Error:`, error);
                 }
-            } else if (message.event_type === CusPushEvent.ALARM && message.station_sn === this.getSerial()) {
+            } else if (message.event_type === CusPushEvent.ALARM && message.station_sn === this.getSerial() && !this.isStation()) {
                 this.log.info("Received push notification for alarm event", { stationSN: message.station_sn, alarmType: message.alarm_type });
                 if (message.alarm_type !== undefined)
                     this.emit("alarm event", this, message.alarm_type);
