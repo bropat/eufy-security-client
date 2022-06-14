@@ -1432,8 +1432,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     const alarmEventNumber = message.data.slice(0, 4).readUInt32LE();
                     if (alarmEventNumber === 0 || alarmEventNumber === 1) {
                         this.emit("alarm armed");
+                    } else {
+                        this.emit("alarm event", alarmEventNumber as AlarmEvent);
                     }
-                    this.emit("alarm event", alarmEventNumber as AlarmEvent);
                 } catch (error) {
                     this.log.error(`Station ${this.rawStation.station_sn} - CMD_SET_TONE_FILE - Error:`, { error: error, payload: message.data.toString("hex") });
                 }
