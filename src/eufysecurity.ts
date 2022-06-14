@@ -17,7 +17,7 @@ import { AlarmEvent, ChargingType, P2PConnectionType } from "./p2p/types";
 import { StreamMetadata } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
 import { generateSerialnumber, generateUDID, handleUpdate, md5, parseValue, removeLastChar } from "./utils";
-import { DeviceNotFoundError, DuplicateDeviceError, DuplicateStationError, StationNotFoundError, ReadOnlyPropertyError, NotSupportedError } from "./error";
+import { DeviceNotFoundError, StationNotFoundError, ReadOnlyPropertyError, NotSupportedError } from "./error";
 import { libVersion } from ".";
 import { InvalidPropertyError } from "./http/error";
 import { ServerPushEvent } from "./push/types";
@@ -245,7 +245,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.stations[serial] = station;
             this.emit("station added", station);
         } else {
-            throw new DuplicateStationError(`Station with this serial ${station.getSerial()} exists already and couldn't be added again!`);
+            this.log.debug(`Station with this serial ${station.getSerial()} exists already and couldn't be added again!`);
         }
     }
 
@@ -258,7 +258,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 station.close();
             this.emit("station removed", station);
         } else {
-            throw new StationNotFoundError(`Station with this serial ${station.getSerial()} doesn't exists and couldn't be removed!`);
+            this.log.debug(`Station with this serial ${station.getSerial()} doesn't exists and couldn't be removed!`);
         }
     }
 
@@ -270,7 +270,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 this.stations[hub.station_sn].connect();
             }
         } else {
-            throw new StationNotFoundError(`Station with this serial ${hub.station_sn} doesn't exists and couldn't be updated!`);
+            this.log.debug(`Station with this serial ${hub.station_sn} doesn't exists and couldn't be updated!`);
         }
     }
 
@@ -283,7 +283,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             if (device.isLock())
                 this.mqttService.subscribeLock(device.getSerial());
         } else {
-            throw new DuplicateDeviceError(`Device with this serial ${device.getSerial()} exists already and couldn't be added again!`);
+            this.log.debug(`Device with this serial ${device.getSerial()} exists already and couldn't be added again!`);
         }
     }
 
@@ -294,7 +294,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             device.removeAllListeners();
             this.emit("device removed", device);
         } else {
-            throw new DuplicateDeviceError(`Device with this serial ${device.getSerial()} doesn't exists and couldn't be removed!`);
+            this.log.debug(`Device with this serial ${device.getSerial()} doesn't exists and couldn't be removed!`);
         }
     }
 
@@ -304,7 +304,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (Object.keys(this.devices).includes(device.device_sn))
             this.devices[device.device_sn].update(device, this.stations[device.station_sn] !== undefined && !this.stations[device.station_sn].isIntegratedDevice() && this.stations[device.station_sn].isConnected())
         else
-            throw new DeviceNotFoundError(`Device with this serial ${device.device_sn} doesn't exists and couldn't be updated!`);
+            this.log.debug(`Device with this serial ${device.device_sn} doesn't exists and couldn't be updated!`);
     }
 
     public async getDevices(): Promise<Array<Device>> {
@@ -355,23 +355,19 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async connectToStation(stationSN: string, p2pConnectionType: P2PConnectionType = P2PConnectionType.QUICKEST): Promise<void> {
-        if (Object.keys(this.stations).includes(stationSN)) {
-            this.stations[stationSN].setConnectionType(p2pConnectionType);
-            this.stations[stationSN].connect();
-        } else
-            throw new StationNotFoundError(`No station with this serial number: ${stationSN}!`);
+        const station = this.getStation(stationSN);
+        station.setConnectionType(p2pConnectionType);
+        station.connect();
     }
 
     public isStationConnected(stationSN: string): boolean {
-        if (Object.keys(this.stations).includes(stationSN))
-            return this.stations[stationSN].isConnected();
-        throw new StationNotFoundError(`No station with this serial number: ${stationSN}!`);
+        const station = this.getStation(stationSN);
+        return station.isConnected();
     }
 
     public isStationEnergySavingDevice(stationSN: string): boolean {
-        if (Object.keys(this.stations).includes(stationSN))
-            return this.stations[stationSN].isEnergySavingDevice();
-        throw new StationNotFoundError(`No station with this serial number: ${stationSN}!`);
+        const station = this.getStation(stationSN);
+        return station.isEnergySavingDevice();
     }
 
     private handleHouses(houses: Houses): void {
@@ -493,21 +489,22 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
 
                 promises.push(new_device.then((device: Device) => {
-                    device.on("property changed", (device: Device, name: string, value: PropertyValue) => this.onDevicePropertyChanged(device, name, value));
-                    device.on("raw property changed", (device: Device, type: number, value: string) => this.onDeviceRawPropertyChanged(device, type, value));
-                    device.on("crying detected", (device: Device, state: boolean) => this.onDeviceCryingDetected(device, state));
-                    device.on("sound detected", (device: Device, state: boolean) => this.onDeviceSoundDetected(device, state));
-                    device.on("pet detected", (device: Device, state: boolean) => this.onDevicePetDetected(device, state));
-                    device.on("motion detected", (device: Device, state: boolean) => this.onDeviceMotionDetected(device, state));
-                    device.on("person detected", (device: Device, state: boolean, person: string) => this.onDevicePersonDetected(device, state, person));
-                    device.on("rings", (device: Device, state: boolean) => this.onDeviceRings(device, state));
-                    device.on("locked", (device: Device, state: boolean) => this.onDeviceLocked(device, state));
-                    device.on("open", (device: Device, state: boolean) => this.onDeviceOpen(device, state));
-                    device.on("ready", (device: Device) => this.onDeviceReady(device));
-                    this.addDevice(device);
-                    return device;
-                }).catch((device: Device) => {
-                    this.log.error("Error", device);
+                    try {
+                        device.on("property changed", (device: Device, name: string, value: PropertyValue) => this.onDevicePropertyChanged(device, name, value));
+                        device.on("raw property changed", (device: Device, type: number, value: string) => this.onDeviceRawPropertyChanged(device, type, value));
+                        device.on("crying detected", (device: Device, state: boolean) => this.onDeviceCryingDetected(device, state));
+                        device.on("sound detected", (device: Device, state: boolean) => this.onDeviceSoundDetected(device, state));
+                        device.on("pet detected", (device: Device, state: boolean) => this.onDevicePetDetected(device, state));
+                        device.on("motion detected", (device: Device, state: boolean) => this.onDeviceMotionDetected(device, state));
+                        device.on("person detected", (device: Device, state: boolean, person: string) => this.onDevicePersonDetected(device, state, person));
+                        device.on("rings", (device: Device, state: boolean) => this.onDeviceRings(device, state));
+                        device.on("locked", (device: Device, state: boolean) => this.onDeviceLocked(device, state));
+                        device.on("open", (device: Device, state: boolean) => this.onDeviceOpen(device, state));
+                        device.on("ready", (device: Device) => this.onDeviceReady(device));
+                        this.addDevice(device);
+                    } catch (error) {
+                        this.log.error("Error", error);
+                    }
                     return device;
                 }));
             }
@@ -648,11 +645,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private async onAPIConnect(): Promise<void> {
         this.connected = true;
         this.retries = 0;
-        this.emit("connect");
 
         this.saveCloudToken();
-
         await this.refreshCloudData();
+
+        this.emit("connect");
 
         this.registerPushNotifications(this.persistentData.push_credentials, this.persistentData.push_persistentIds);
 

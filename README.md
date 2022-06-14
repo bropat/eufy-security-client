@@ -80,6 +80,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.1.1 (2022-06-xx)
+
+* (bropat) Fixed issue #167
+
 ### 2.1.0 (2022-06-12)
 
 * (bropat) Added toggle for Spotlight for Outdoor Cam Pro (T8441; #123)

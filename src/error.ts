@@ -23,27 +23,11 @@ export class StationNotFoundError extends Error {
     }
 }
 
-export class DuplicateStationError extends Error {
-    constructor(message?: string) {
-        super(message);
-        Object.setPrototypeOf(this, new.target.prototype);
-        this.name = DuplicateStationError.name;
-    }
-}
-
 export class DeviceNotFoundError extends Error {
     constructor(message?: string) {
         super(message);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = DeviceNotFoundError.name;
-    }
-}
-
-export class DuplicateDeviceError extends Error {
-    constructor(message?: string) {
-        super(message);
-        Object.setPrototypeOf(this, new.target.prototype);
-        this.name = DuplicateDeviceError.name;
     }
 }
 
