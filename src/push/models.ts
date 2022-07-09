@@ -79,6 +79,11 @@ export interface BatteryDoorbellPushData {
     pic_url: string;
     push_count: number;
     notification_style: number;
+    objects?: DoorbellPeopleNames;
+}
+
+export interface DoorbellPeopleNames {
+    names: string[];
 }
 
 export interface RawPushMessage {
@@ -234,7 +239,7 @@ export interface PushMessage {
     short_user_id?: string;
     station_guard_mode?: number;
     station_current_mode?: number;
-    person_name?: string;
+    people_names?: string;
     sensor_open?: boolean;
     device_online?: boolean;
     fetch_id?: number;

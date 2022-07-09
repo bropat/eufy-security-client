@@ -1048,7 +1048,7 @@ export class Camera extends Device {
 
         this.properties[PropertyName.DeviceMotionDetected] = false ;
         this.properties[PropertyName.DevicePersonDetected] = false ;
-        this.properties[PropertyName.DevicePersonName] = "";
+        this.properties[PropertyName.DevicePeopleNames] = "";
     }
 
     static async initialize(api: HTTPApi, device: DeviceListResponse): Promise<Camera> {
@@ -1233,7 +1233,7 @@ export class Camera extends Device {
     }
 
     public getDetectedPerson(): string {
-        return this.getPropertyValue(PropertyName.DevicePersonName) as string;
+        return this.getPropertyValue(PropertyName.DevicePeopleNames) as string;
     }
 
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
@@ -1244,17 +1244,17 @@ export class Camera extends Device {
                     if (message.fetch_id !== undefined) {
                         // Person or someone identified
                         this.updateProperty(PropertyName.DevicePersonDetected, true);
-                        this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
+                        this.updateProperty(PropertyName.DevicePeopleNames, !isEmpty(message.people_names) ? message.people_names! : "Unknown");
                         if (!isEmpty(message.pic_url))
                             this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
                         if (message.push_count === 1 || message.push_count === undefined)
-                            this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
+                            this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePeopleNames) as string);
 
                         this.clearEventTimeout(DeviceEvent.PersonDetected);
                         this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
                             this.updateProperty(PropertyName.DevicePersonDetected, false);
-                            this.updateProperty(PropertyName.DevicePersonName, "");
-                            this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
+                            this.updateProperty(PropertyName.DevicePeopleNames, "");
+                            this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePeopleNames) as string);
                             this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                         }, eventDurationSeconds * 1000));
                     } else {
@@ -1317,16 +1317,16 @@ export class SoloCamera extends Camera {
                             break;
                         case IndoorPushEvent.FACE_DETECTION:
                             this.updateProperty(PropertyName.DevicePersonDetected, true);
-                            this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
+                            this.updateProperty(PropertyName.DevicePeopleNames, !isEmpty(message.people_names) ? message.people_names! : "Unknown");
                             if (!isEmpty(message.pic_url))
                                 this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
                             if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
+                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePeopleNames) as string);
                             this.clearEventTimeout(DeviceEvent.PersonDetected);
                             this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
-                                this.updateProperty(PropertyName.DevicePersonName, "");
-                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
+                                this.updateProperty(PropertyName.DevicePeopleNames, "");
+                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePeopleNames) as string);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                             }, eventDurationSeconds * 1000));
                             break;
@@ -1408,16 +1408,16 @@ export class IndoorCamera extends Camera {
                             break;
                         case IndoorPushEvent.FACE_DETECTION:
                             this.updateProperty(PropertyName.DevicePersonDetected, true);
-                            this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
+                            this.updateProperty(PropertyName.DevicePeopleNames, !isEmpty(message.people_names) ? message.people_names! : "Unknown");
                             if (!isEmpty(message.pic_url))
                                 this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
                             if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
+                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePeopleNames) as string);
                             this.clearEventTimeout(DeviceEvent.PersonDetected);
                             this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
-                                this.updateProperty(PropertyName.DevicePersonName, "");
-                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
+                                this.updateProperty(PropertyName.DevicePeopleNames, "");
+                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePeopleNames) as string);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                             }, eventDurationSeconds * 1000));
                             break;
@@ -1544,16 +1544,17 @@ export class DoorbellCamera extends Camera {
                             }, eventDurationSeconds * 1000));
                             break;
                         case DoorbellPushEvent.FACE_DETECTION:
+                        case DoorbellPushEvent.FAMILY_DETECTION:
                             this.updateProperty(PropertyName.DevicePersonDetected, true);
-                            this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
+                            this.updateProperty(PropertyName.DevicePeopleNames, !isEmpty(message.people_names) ? message.people_names! : "Unknown");
                             if (!isEmpty(message.pic_url))
                                 this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
                             if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
+                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePeopleNames) as string);
                             this.clearEventTimeout(DeviceEvent.PersonDetected);
                             this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
-                                this.updateProperty(PropertyName.DevicePersonName, "");
+                                this.updateProperty(PropertyName.DevicePeopleNames, "");
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                             }, eventDurationSeconds * 1000));
                             break;
