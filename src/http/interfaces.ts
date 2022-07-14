@@ -169,6 +169,7 @@ export interface StationEvents {
     "wifi rssi": (station: Station, channel: number, rssi: number) => void;
     "floodlight manual switch": (station: Station, channel: number, enabled: boolean) => void;
     "alarm delay event": (station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
+    "alarm arm delay event": (station: Station, armDelay: number) => void;
     "alarm armed event": (station: Station) => void;
     "talkback started": (station: Station, channel: number, talkbackStream: TalkbackStream) => void;
     "talkback stopped": (station: Station, channel: number) => void;

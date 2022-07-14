@@ -529,3 +529,21 @@ export interface PassportProfileResponse {
         code: string;
     }
 }
+
+export interface StationSecuritySettings {
+    account_id: string;
+    count_down_alarm: StationSecuritySettingsDelayDetails;
+    count_down_arm: StationSecuritySettingsDelayDetails;
+    devices: StationSecuritySettingsDeviceDetails;
+}
+
+export interface StationSecuritySettingsDelayDetails {
+    account_id: string;
+    channel_list: number[];
+    delay_time: number;
+}
+
+export interface StationSecuritySettingsDeviceDetails {
+    action: number;
+    device_channel: number;
+}
