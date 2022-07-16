@@ -80,10 +80,14 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 2.1.1 (2022-06-xx)
+### 2.1.1 (2022-07-16)
 
+* (Palmke) Add alarm arm delay event (#180)
+* (thieren) Fix: stream command for T8420 (#171)
+* (Palmke) Don't send the alarm armed p2p events as alarm events (#169)
 * (bropat) Fixed issue #167
 * (bropat) Fixed issue #161
+* (bropat) Updated versions of the package dependencies
 
 ### 2.1.0 (2022-06-12)
 
