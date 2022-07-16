@@ -66,6 +66,7 @@ export interface EufySecurityEvents {
     "station alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
     "station alarm delay event": (station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
     "station alarm armed": (station: Station) => void;
+    "station alarm arm delay event": (station: Station, armDelay: number) => void;
     "station connect": (station: Station) => void;
     "station close": (station: Station) => void;
     "station talkback start": (station: Station, device: Device, talkbackStream: TalkbackStream) => void;

@@ -468,6 +468,14 @@ export enum PropertyName {
 
     DeviceHiddenMotionDetectionSensitivity = "hidden-motionDetectionSensitivity",
     DeviceHiddenMotionDetectionMode = "hidden-motionDetectionMode",
+
+    StationHomeSecuritySettings = "stationHomeSecuritySettings",
+    StationAwaySecuritySettings = "stationAwaySecuritySettings",
+    StationCustom1SecuritySettings = "stationCustom1SecuritySettings",
+    StationCustom2SecuritySettings = "stationCustom2SecuritySettings",
+    StationCustom3SecuritySettings = "stationCustom3SecuritySettings",
+    StationOffSecuritySettings = "stationOffSecuritySettings",
+
 }
 
 export const DeviceNameProperty: PropertyMetadataString = {
@@ -2639,6 +2647,60 @@ export const DeviceSoundDetectionRoundLookProperty: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
+export const StationHomeSecuritySettings: PropertyMetadataString = {
+    key: CommandType.ARM_DELAY_HOME,
+    name: PropertyName.StationHomeSecuritySettings,
+    label: "Security Settings Home",
+    readable: true,
+    writeable: false,
+    type: "string",
+}
+
+export const StationAwaySecuritySettings: PropertyMetadataString = {
+    key: CommandType.ARM_DELAY_AWAY,
+    name: PropertyName.StationAwaySecuritySettings,
+    label: "Security Settings Away",
+    readable: true,
+    writeable: false,
+    type: "string",
+}
+
+export const StationCustom1SecuritySettings: PropertyMetadataString = {
+    key: CommandType.ARM_DELAY_AWAY,
+    name: PropertyName.StationCustom1SecuritySettings,
+    label: "Security Settings Custom1",
+    readable: true,
+    writeable: false,
+    type: "string",
+}
+
+export const StationCustom2SecuritySettings: PropertyMetadataString = {
+    key: CommandType.ARM_DELAY_CUS1,
+    name: PropertyName.StationCustom2SecuritySettings,
+    label: "Security Settings Custom2",
+    readable: true,
+    writeable: false,
+    type: "string",
+}
+
+export const StationCustom3SecuritySettings: PropertyMetadataString = {
+    key: CommandType.ARM_DELAY_CUS3,
+    name: PropertyName.StationCustom3SecuritySettings,
+    label: "Security Settings Custom3",
+    readable: true,
+    writeable: false,
+    type: "string",
+}
+
+export const StationOffSecuritySettings: PropertyMetadataString = {
+    key: CommandType.ARM_DELAY_OFF,
+    name: PropertyName.StationOffSecuritySettings,
+    label: "Security Settings Off",
+    readable: true,
+    writeable: false,
+    type: "string",
+}
+
 export const DeviceProperties: Properties = {
     [DeviceType.CAMERA2]: {
         ...GenericDeviceProperties,
@@ -4060,6 +4122,12 @@ export const StationProperties: Properties = {
         [PropertyName.StationNotificationSwitchModeApp]: StationNotificationSwitchModeAppProperty,
         [PropertyName.StationNotificationSwitchModeKeypad]: StationNotificationSwitchModeKeypadProperty,
         [PropertyName.StationNotificationStartAlarmDelay]: StationNotificationStartAlarmDelayProperty,
+        [PropertyName.StationHomeSecuritySettings]: StationHomeSecuritySettings,
+        [PropertyName.StationAwaySecuritySettings]: StationAwaySecuritySettings,
+        [PropertyName.StationCustom1SecuritySettings]: StationCustom1SecuritySettings,
+        [PropertyName.StationCustom2SecuritySettings]: StationCustom2SecuritySettings,
+        [PropertyName.StationCustom3SecuritySettings]: StationCustom3SecuritySettings,
+        [PropertyName.StationOffSecuritySettings]: StationOffSecuritySettings,
     },
     [DeviceType.INDOOR_CAMERA]: {
         ...BaseStationProperties,

@@ -4,7 +4,7 @@ import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
 import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode } from "./types";
-import { StationListResponse } from "./models"
+import { StationListResponse, StationSecuritySettings } from "./models"
 import { ParameterHelper } from "./parameter";
 import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValues, StationEvents, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString } from "./interfaces";
 import { getBlocklist, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
@@ -13,7 +13,7 @@ import { P2PClientProtocol } from "../p2p/session";
 import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLInnerCommand, IndoorSoloSmartdropCommandType, P2PConnectionType, PanTiltDirection, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
 import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData } from "../p2p/models";
 import { Device, DoorbellCamera, Lock } from "./device";
-import { getAdvancedLockKey, encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, generateAdvancedLockAESKey, getLockVectorBytes, isPrivateIp } from "../p2p/utils";
+import { getAdvancedLockKey, encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, generateAdvancedLockAESKey, getLockVectorBytes, isPrivateIp, decodeBase64 } from "../p2p/utils";
 import { InvalidCommandValueError, InvalidPropertyValueError, NotSupportedError, RTSPPropertyNotEnabled, WrongStationError } from "../error";
 import { PushMessage } from "../push/models";
 import { CusPushEvent } from "../push/types";
@@ -563,9 +563,43 @@ export class Station extends TypedEmitter<StationEvents> {
     private async onAlarmMode(mode: AlarmMode): Promise<void> {
         this.log.info(`Alarm mode for station ${this.getSerial()} changed to: ${AlarmMode[mode]}`);
         this.updateRawProperty(CommandType.CMD_GET_ALARM_MODE, mode.toString());
+        const armDelay = this.getArmDelay(mode);
+        if (armDelay > 0) {
+            this.emit("alarm arm delay event", this, armDelay);
+        }
 
         // Trigger refresh Guard Mode
         await this.getCameraInfo();
+    }
+
+    private getArmDelay(mode: AlarmMode): number {
+        let propertyName;
+        switch (mode) {
+            case AlarmMode.HOME:
+                propertyName = PropertyName.StationHomeSecuritySettings;
+                break;
+            case AlarmMode.AWAY:
+                propertyName = PropertyName.StationAwaySecuritySettings;
+                break;
+            case AlarmMode.CUSTOM1:
+                propertyName = PropertyName.StationCustom1SecuritySettings;
+                break;
+            case AlarmMode.CUSTOM2:
+                propertyName = PropertyName.StationCustom2SecuritySettings;
+                break;
+            case AlarmMode.CUSTOM3:
+                propertyName = PropertyName.StationCustom3SecuritySettings;
+                break;
+        }
+
+        if (propertyName !== undefined) {
+            const securitySettingsData: string = this.getPropertyValue(propertyName).toString();
+            const settings: StationSecuritySettings = JSON.parse(decodeBase64(securitySettingsData).toString("utf8"));
+            if (settings.count_down_arm.channel_list.length > 0 && settings.count_down_arm.delay_time > 0) {
+                return settings.count_down_arm.delay_time;
+            }
+        }
+        return 0;
     }
 
     private _getDeviceSerial(channel: number): string {
