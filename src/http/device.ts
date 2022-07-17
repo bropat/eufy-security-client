@@ -1544,6 +1544,7 @@ export class DoorbellCamera extends Camera {
                             }, eventDurationSeconds * 1000));
                             break;
                         case DoorbellPushEvent.FACE_DETECTION:
+                        case DoorbellPushEvent.FAMILY_DETECTION:
                             this.updateProperty(PropertyName.DevicePersonDetected, true);
                             this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
                             if (!isEmpty(message.pic_url))
