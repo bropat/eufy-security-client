@@ -239,7 +239,7 @@ export interface PushMessage {
     short_user_id?: string;
     station_guard_mode?: number;
     station_current_mode?: number;
-    people_names?: string;
+    person_name?: string;
     sensor_open?: boolean;
     device_online?: boolean;
     fetch_id?: number;

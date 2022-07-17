@@ -325,7 +325,7 @@ export enum PropertyName {
     DeviceMotionAutoCruise = "motionAutoCruise",  // Flooglight T8423
     DeviceMotionOutOfViewDetection = "motionOutOfViewDetection",  // Flooglight T8423
     DevicePersonDetected = "personDetected",
-    DevicePeopleNames = "peopleNames",
+    DevicePersonName = "personName",
     DeviceRTSPStream = "rtspStream",
     DeviceRTSPStreamUrl = "rtspStreamUrl",
     DeviceWatermark = "watermark",
