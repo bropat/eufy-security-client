@@ -340,6 +340,12 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 } catch (error) {
                     this.log.error(`Type ${DeviceType[normalized_message.type]} BatteryDoorbellPushData - push_time - Error:`, error);
                 }
+
+                //Get family face names from Doorbell Dual "Family Recognition" event
+                if (push_data.objects !== undefined) {
+                    normalized_message.person_name = push_data.objects.names !== undefined ? push_data.objects.names.join(",") : "";
+                }
+
                 normalized_message.channel = push_data.channel !== undefined ? push_data.channel : 0;
                 normalized_message.cipher = push_data.cipher !== undefined ? push_data.cipher : 0;
                 normalized_message.event_session = push_data.session_id !== undefined ? push_data.session_id : "";

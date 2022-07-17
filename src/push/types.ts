@@ -65,7 +65,8 @@ export enum DoorbellPushEvent {
     FACE_DETECTION = 3102,
     PRESS_DOORBELL = 3103,
     OFFLINE = 3106,
-    ONLINE = 3107
+    ONLINE = 3107,
+    FAMILY_DETECTION = 3303,
 }
 
 export enum LockPushEvent {
