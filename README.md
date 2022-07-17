@@ -83,6 +83,7 @@ Please use GitHub issues for this.
 ### 2.1.1 (2022-06-xx)
 
 * (bropat) Fixed issue #167
+* (bropat) Fixed issue #161
 
 ### 2.1.0 (2022-06-12)
 
