@@ -1871,12 +1871,14 @@ export class Lock extends Device {
 
     protected convertRawPropertyValue(property: PropertyMetadataAny, value: string): PropertyValue {
         try {
-            if (property.key === CommandType.CMD_DOORLOCK_GET_STATE) {
+            if (property.key === CommandType.CMD_DOORLOCK_GET_STATE || property.key === CommandType.CMD_SMARTLOCK_QUERY_STATUS) {
                 switch (value) {
                     case "3":
-                        return false;
+                        return 3;
                     case "4":
-                        return true;
+                        return 4;
+                    case "5":
+                        return 5;
                 }
             }
         } catch (error) {
@@ -1918,6 +1920,7 @@ export class Lock extends Device {
                     {
                         const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
                         this.updateRawProperty(cmdType, "4");
+                        this.updateProperty(PropertyName.DeviceLocked, true);
                         this.emit("locked", this, this.getPropertyValue(PropertyName.DeviceLocked) as boolean);
                         break;
                     }
@@ -1930,6 +1933,7 @@ export class Lock extends Device {
                     {
                         const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
                         this.updateRawProperty(cmdType, "3");
+                        this.updateProperty(PropertyName.DeviceLocked, false);
                         this.emit("locked", this, this.getPropertyValue(PropertyName.DeviceLocked) as boolean);
                         break;
                     }
@@ -1939,6 +1943,7 @@ export class Lock extends Device {
                     case LockPushEvent.MULTIPLE_ERRORS:
                     {
                         const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        this.updateProperty(PropertyName.DeviceLocked, false);
                         this.updateRawProperty(cmdType, "5");
                         break;
                     }
