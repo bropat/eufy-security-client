@@ -1869,24 +1869,6 @@ export class Lock extends Device {
         return Buffer.concat([buf1, buf2, buf3, buf4]);
     }
 
-    protected convertRawPropertyValue(property: PropertyMetadataAny, value: string): PropertyValue {
-        try {
-            if (property.key === CommandType.CMD_DOORLOCK_GET_STATE || property.key === CommandType.CMD_SMARTLOCK_QUERY_STATUS) {
-                switch (value) {
-                    case "3":
-                        return 3;
-                    case "4":
-                        return 4;
-                    case "5":
-                        return 5;
-                }
-            }
-        } catch (error) {
-            this.log.error("Convert Error:", { property: property, value: value, error: error });
-        }
-        return super.convertRawPropertyValue(property, value);
-    }
-
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
         if (message.event_type !== undefined) {
