@@ -70,7 +70,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     public updateProperty(name: string, value: PropertyValue): boolean {
-        if ((this.properties[name] !== undefined&& this.properties[name] !== value)
+        if ((this.properties[name] !== undefined && this.properties[name] !== value)
             || this.properties[name] === undefined) {
             this.properties[name] = value;
             if (!name.startsWith("hidden-")) {

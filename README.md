@@ -80,6 +80,11 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.1.2 (2022-07-xx)
+
+* (Palmke) Dual Doorbell family detection (#177)
+* (bropat) Fixed issue #186
+
 ### 2.1.1 (2022-07-16)
 
 * (Palmke) Add alarm arm delay event (#180)

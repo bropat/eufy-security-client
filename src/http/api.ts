@@ -817,8 +817,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     data: {
                         device_sn: filter.deviceSN !== undefined ? filter.deviceSN : "",
                         end_time: Math.trunc(endTime.getTime() / 1000),
-                        //exclude_guest:false,
-                        //house_id:"shared.devices",
+                        exclude_guest: false,
+                        house_id: "HOUSEID_ALL_DEVICE",
                         id: 0,
                         id_type: 1,
                         is_favorite: false,
@@ -857,15 +857,15 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
 
     public async getVideoEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        return this._getEvents("getVideoEvents", "v1/house/event/video_list", startTime, endTime, filter, maxResults);
+        return this._getEvents("getVideoEvents", "v1/event/app/get_all_video_record", startTime, endTime, filter, maxResults);
     }
 
     public async getAlarmEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        return this._getEvents("getAlarmEvents", "v1/house/event/alarm_list", startTime, endTime, filter, maxResults);
+        return this._getEvents("getAlarmEvents", "v1/event/app/get_all_alarm_record", startTime, endTime, filter, maxResults);
     }
 
     public async getHistoryEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        return this._getEvents("getHistoryEvents", "v1/house/event/list", startTime, endTime, filter, maxResults);
+        return this._getEvents("getHistoryEvents", "v1/event/app/get_all_history_record", startTime, endTime, filter, maxResults);
     }
 
     public async getAllVideoEvents(filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
