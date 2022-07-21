@@ -592,7 +592,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 break;
         }
 
-        if (propertyName !== undefined) {
+        if (propertyName !== undefined && this.hasProperty(propertyName)) {
             const securitySettingsData: string = this.getPropertyValue(propertyName).toString();
             const settings: StationSecuritySettings = JSON.parse(decodeBase64(securitySettingsData).toString("utf8"));
             if (settings.count_down_arm.channel_list.length > 0 && settings.count_down_arm.delay_time > 0) {
