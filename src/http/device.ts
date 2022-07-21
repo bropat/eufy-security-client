@@ -1902,7 +1902,6 @@ export class Lock extends Device {
                     {
                         const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
                         this.updateRawProperty(cmdType, "4");
-                        this.emit("locked", this, this.getPropertyValue(PropertyName.DeviceLocked) as boolean);
                         break;
                     }
                     case LockPushEvent.APP_UNLOCK:
@@ -1914,7 +1913,6 @@ export class Lock extends Device {
                     {
                         const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
                         this.updateRawProperty(cmdType, "3");
-                        this.emit("locked", this, this.getPropertyValue(PropertyName.DeviceLocked) as boolean);
                         break;
                     }
                     case LockPushEvent.LOCK_MECHANICAL_ANOMALY:
