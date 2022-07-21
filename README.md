@@ -83,6 +83,7 @@ Please use GitHub issues for this.
 ### 2.1.2 (2022-07-xx)
 
 * (Palmke) Dual Doorbell family detection (#177)
+* (Palmke) Fixed issue #187
 * (bropat) Fixed issue #186
 
 ### 2.1.1 (2022-07-16)
