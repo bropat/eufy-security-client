@@ -2666,7 +2666,7 @@ export const StationAwaySecuritySettings: PropertyMetadataString = {
 }
 
 export const StationCustom1SecuritySettings: PropertyMetadataString = {
-    key: CommandType.ARM_DELAY_AWAY,
+    key: CommandType.ARM_DELAY_CUS1,
     name: PropertyName.StationCustom1SecuritySettings,
     label: "Security Settings Custom1",
     readable: true,
@@ -2675,7 +2675,7 @@ export const StationCustom1SecuritySettings: PropertyMetadataString = {
 }
 
 export const StationCustom2SecuritySettings: PropertyMetadataString = {
-    key: CommandType.ARM_DELAY_CUS1,
+    key: CommandType.ARM_DELAY_CUS2,
     name: PropertyName.StationCustom2SecuritySettings,
     label: "Security Settings Custom2",
     readable: true,
