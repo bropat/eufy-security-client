@@ -1923,7 +1923,6 @@ export class Lock extends Device {
                     case LockPushEvent.MULTIPLE_ERRORS:
                     {
                         const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                        this.updateProperty(PropertyName.DeviceLocked, false);
                         this.updateRawProperty(cmdType, "5");
                         break;
                     }
