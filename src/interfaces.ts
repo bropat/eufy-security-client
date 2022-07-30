@@ -49,6 +49,11 @@ export interface EufySecurityEvents {
     "device rings": (device: Device, state: boolean) => void;
     "device locked": (device: Device, state: boolean) => void;
     "device open": (device: Device, state: boolean) => void;
+    "device package delivered": (device: Device, state: boolean) => void;
+    "device package stranded": (device: Device, state: boolean) => void;
+    "device package taken": (device: Device, state: boolean) => void;
+    "device someone loitering": (device: Device, state: boolean) => void;
+    "device radar motion detected": (device: Device, state: boolean) => void;
     "station added": (station: Station) => void;
     "station removed": (station: Station) => void;
     "station livestream start": (station: Station, device: Device, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;

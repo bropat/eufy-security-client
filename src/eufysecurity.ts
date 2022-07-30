@@ -502,6 +502,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         device.on("locked", (device: Device, state: boolean) => this.onDeviceLocked(device, state));
                         device.on("open", (device: Device, state: boolean) => this.onDeviceOpen(device, state));
                         device.on("ready", (device: Device) => this.onDeviceReady(device));
+                        device.on("package delivered", (device: Device, state: boolean) => this.onDevicePackageDelivered(device, state));
+                        device.on("package stranded", (device: Device, state: boolean) => this.onDevicePackageStranded(device, state));
+                        device.on("package taken", (device: Device, state: boolean) => this.onDevicePackageTaken(device, state));
+                        device.on("someone loitering", (device: Device, state: boolean) => this.onDeviceSomeoneLoitering(device, state));
+                        device.on("radar motion detected", (device: Device, state: boolean) => this.onDeviceRadarMotionDetected(device, state));
                         this.addDevice(device);
                     } catch (error) {
                         this.log.error("Error", error);
@@ -1539,6 +1544,26 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onDeviceOpen(device: Device, state: boolean): void {
         this.emit("device open", device, state);
+    }
+
+    private onDevicePackageDelivered(device: Device, state: boolean): void {
+        this.emit("device package delivered", device, state);
+    }
+
+    private onDevicePackageStranded(device: Device, state: boolean): void {
+        this.emit("device package stranded", device, state);
+    }
+
+    private onDevicePackageTaken(device: Device, state: boolean): void {
+        this.emit("device package taken", device, state);
+    }
+
+    private onDeviceSomeoneLoitering(device: Device, state: boolean): void {
+        this.emit("device someone loitering", device, state);
+    }
+
+    private onDeviceRadarMotionDetected(device: Device, state: boolean): void {
+        this.emit("device radar motion detected", device, state);
     }
 
     private onDeviceReady(device: Device): void {

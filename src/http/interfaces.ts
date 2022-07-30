@@ -188,4 +188,9 @@ export interface DeviceEvents {
     "locked": (device: Device, state: boolean) => void;
     "open": (device: Device, state: boolean) => void;
     "ready": (device: Device) => void;
+    "package delivered": (device: Device, state: boolean) => void;
+    "package stranded": (device: Device, state: boolean) => void;
+    "package taken": (device: Device, state: boolean) => void;
+    "someone loitering": (device: Device, state: boolean) => void;
+    "radar motion detected": (device: Device, state: boolean) => void;
 }

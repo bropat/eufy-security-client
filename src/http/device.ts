@@ -1571,6 +1571,71 @@ export class DoorbellCamera extends Camera {
                                 this.eventTimeouts.delete(DeviceEvent.Ringing);
                             }, eventDurationSeconds * 1000));
                             break;
+                        case DoorbellPushEvent.PACKAGE_DELIVERED:
+                            this.updateProperty(PropertyName.DevicePackageDelivered, true);
+                            if (!isEmpty(message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                            if (message.push_count === 1 || message.push_count === undefined)
+                                this.emit("package delivered", this, this.getPropertyValue(PropertyName.DevicePackageDelivered) as boolean);
+                            this.clearEventTimeout(DeviceEvent.PackageDelivered);
+                            this.eventTimeouts.set(DeviceEvent.PackageDelivered, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePackageDelivered, false);
+                                this.emit("package delivered", this, this.getPropertyValue(PropertyName.DevicePackageDelivered) as boolean);
+                                this.eventTimeouts.delete(DeviceEvent.PackageDelivered);
+                            }, eventDurationSeconds * 1000));
+                            break;
+                        case DoorbellPushEvent.PACKAGE_STRANDED:
+                            this.updateProperty(PropertyName.DevicePackageStranded, true);
+                            if (!isEmpty(message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                            if (message.push_count === 1 || message.push_count === undefined)
+                                this.emit("package stranded", this, this.getPropertyValue(PropertyName.DevicePackageStranded) as boolean);
+                            this.clearEventTimeout(DeviceEvent.PackageStranded);
+                            this.eventTimeouts.set(DeviceEvent.PackageStranded, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePackageStranded, false);
+                                this.emit("package stranded", this, this.getPropertyValue(PropertyName.DevicePackageStranded) as boolean);
+                                this.eventTimeouts.delete(DeviceEvent.PackageStranded);
+                            }, eventDurationSeconds * 1000));
+                            break;
+                        case DoorbellPushEvent.PACKAGE_TAKEN:
+                            this.updateProperty(PropertyName.DevicePackageTaken, true);
+                            if (!isEmpty(message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                            if (message.push_count === 1 || message.push_count === undefined)
+                                this.emit("package taken", this, this.getPropertyValue(PropertyName.DevicePackageTaken) as boolean);
+                            this.clearEventTimeout(DeviceEvent.PackageTaken);
+                            this.eventTimeouts.set(DeviceEvent.PackageTaken, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePackageTaken, false);
+                                this.emit("package taken", this, this.getPropertyValue(PropertyName.DevicePackageTaken) as boolean);
+                                this.eventTimeouts.delete(DeviceEvent.PackageTaken);
+                            }, eventDurationSeconds * 1000));
+                            break;
+                        case DoorbellPushEvent.SOMEONE_LOITERING:
+                            this.updateProperty(PropertyName.DeviceSomeoneLoitering, true);
+                            if (!isEmpty(message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                            if (message.push_count === 1 || message.push_count === undefined)
+                                this.emit("someone loitering", this, this.getPropertyValue(PropertyName.DeviceSomeoneLoitering) as boolean);
+                            this.clearEventTimeout(DeviceEvent.SomeoneLoitering);
+                            this.eventTimeouts.set(DeviceEvent.SomeoneLoitering, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceSomeoneLoitering, false);
+                                this.emit("someone loitering", this, this.getPropertyValue(PropertyName.DeviceSomeoneLoitering) as boolean);
+                                this.eventTimeouts.delete(DeviceEvent.SomeoneLoitering);
+                            }, eventDurationSeconds * 1000));
+                            break;
+                        case DoorbellPushEvent.RADAR_MOTION_DETECTION:
+                            this.updateProperty(PropertyName.DeviceRadarMotionDetected, true);
+                            if (!isEmpty(message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                            if (message.push_count === 1 || message.push_count === undefined)
+                                this.emit("radar motion detected", this, this.getPropertyValue(PropertyName.DeviceRadarMotionDetected) as boolean);
+                            this.clearEventTimeout(DeviceEvent.RadarMotionDetected);
+                            this.eventTimeouts.set(DeviceEvent.RadarMotionDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceRadarMotionDetected, false);
+                                this.emit("radar motion detected", this, this.getPropertyValue(PropertyName.DeviceRadarMotionDetected) as boolean);
+                                this.eventTimeouts.delete(DeviceEvent.RadarMotionDetected);
+                            }, eventDurationSeconds * 1000));
+                            break;
                         default:
                             this.log.debug("Unhandled doorbell push event", message);
                             break;

@@ -282,7 +282,12 @@ export enum DeviceEvent {
     PetDetected,
     SoundDetected,
     CryingDetected,
-    Ringing
+    Ringing,
+    PackageDelivered,
+    PackageTaken,
+    PackageStranded,
+    SomeoneLoitering,
+    RadarMotionDetected
 }
 
 export enum PropertyName {
@@ -447,6 +452,11 @@ export enum PropertyName {
     DeviceDefaultAngle = "defaultAngle",
     DeviceDefaultAngleIdleTime = "defaultAngleIdleTime",
     DeviceSoundDetectionRoundLook = "soundDetectionRoundLook",
+    DevicePackageDelivered = "packageDelivered",
+    DevicePackageStranded = "packageStranded",
+    DevicePackageTaken = "packageTaken",
+    DeviceSomeoneLoitering = "someoneLoitering",
+    DeviceRadarMotionDetected = "radarMotionDetected",
 
     StationLANIpAddress = "lanIpAddress",
     StationMacAddress = "macAddress",
@@ -2701,6 +2711,51 @@ export const StationOffSecuritySettings: PropertyMetadataString = {
     type: "string",
 }
 
+export const DevicePackageDeliveredProperty: PropertyMetadataBoolean = {
+    key: "custom_packageDelivered",
+    name: PropertyName.DevicePackageDelivered,
+    label: "Package Delivered",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
+export const DevicePackageStrandedProperty: PropertyMetadataBoolean = {
+    key: "custom_packageStranded",
+    name: PropertyName.DevicePackageStranded,
+    label: "Package Stranded",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
+export const DevicePackageTakenProperty: PropertyMetadataBoolean = {
+    key: "custom_packageTaken",
+    name: PropertyName.DevicePackageTaken,
+    label: "Package Taken",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
+export const DeviceSomeoneLoiteringProperty: PropertyMetadataBoolean = {
+    key: "custom_someoneLoitering",
+    name: PropertyName.DeviceSomeoneLoitering,
+    label: "Someone Loitering",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
+export const DeviceRadarMotionDetectedProperty: PropertyMetadataBoolean = {
+    key: "custom_radarMotionDetected",
+    name: PropertyName.DeviceRadarMotionDetected,
+    label: "Radar Motion Detected",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
 export const DeviceProperties: Properties = {
     [DeviceType.CAMERA2]: {
         ...GenericDeviceProperties,
@@ -3106,6 +3161,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRingAutoResponseVoiceResponseVoice]: DeviceRingAutoResponseVoiceResponseVoiceProperty,
         [PropertyName.DeviceRingAutoResponseTimeFrom]: DeviceRingAutoResponseTimeFromProperty,
         [PropertyName.DeviceRingAutoResponseTimeTo]: DeviceRingAutoResponseTimeToProperty,
+        [PropertyName.DevicePackageDelivered]: DevicePackageDeliveredProperty,
+        [PropertyName.DevicePackageStranded]: DevicePackageStrandedProperty,
+        [PropertyName.DevicePackageTaken]: DevicePackageTakenProperty,
+        [PropertyName.DeviceSomeoneLoitering]: DeviceSomeoneLoiteringProperty,
+        [PropertyName.DeviceRadarMotionDetected]: DeviceRadarMotionDetectedProperty,
     },
     [DeviceType.DOORBELL_SOLO]: { //T8203
         ...GenericDeviceProperties,

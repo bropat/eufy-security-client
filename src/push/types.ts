@@ -66,7 +66,12 @@ export enum DoorbellPushEvent {
     PRESS_DOORBELL = 3103,
     OFFLINE = 3106,
     ONLINE = 3107,
+    PACKAGE_DELIVERED = 3301,
+    PACKAGE_TAKEN = 3302,
     FAMILY_DETECTION = 3303,
+    PACKAGE_STRANDED = 3304,
+    SOMEONE_LOITERING = 3305,
+    RADAR_MOTION_DETECTION = 3306
 }
 
 export enum LockPushEvent {
