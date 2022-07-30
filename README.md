@@ -80,7 +80,7 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 2.1.2 (2022-07-xx)
+### 2.1.2 (2022-07-30)
 
 * (Palmke) Dual Doorbell family detection (#177)
 * (Palmke) Fixed issue #187
