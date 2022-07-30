@@ -80,6 +80,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.x.x (2022-08-xx)
+
+* (bropat) Added new Doorbell Dual notification types (package delivered, package taken, package stranded, someone loitering, radar motion detected)
+
 ### 2.1.2 (2022-07-30)
 
 * (Palmke) Dual Doorbell family detection (#177)
