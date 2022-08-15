@@ -148,6 +148,7 @@ export interface HTTPApiEvents {
 export interface StationEvents {
     "connect": (station: Station) => void;
     "close": (station: Station) => void;
+    "connection error": (station: Station, error: Error) => void;
     "raw device property changed": (deviceSN: string, params: RawValues) => void;
     "property changed": (station: Station, name: string, value: PropertyValue) => void;
     "raw property changed": (station: Station, type: number, value: string) => void;

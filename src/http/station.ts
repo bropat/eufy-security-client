@@ -14,7 +14,7 @@ import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLInnerCommand, Indo
 import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData } from "../p2p/models";
 import { Device, DoorbellCamera, Lock } from "./device";
 import { getAdvancedLockKey, encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, generateAdvancedLockAESKey, getLockVectorBytes, isPrivateIp, decodeBase64 } from "../p2p/utils";
-import { InvalidCommandValueError, InvalidPropertyValueError, NotSupportedError, RTSPPropertyNotEnabled, WrongStationError } from "../error";
+import { InvalidCommandValueError, InvalidPropertyValueError, NotSupportedError, RTSPPropertyNotEnabled, WrongStationError, StationConnectTimeoutError } from "../error";
 import { PushMessage } from "../push/models";
 import { CusPushEvent } from "../push/types";
 import { InvalidPropertyError, LivestreamAlreadyRunningError, LivestreamNotRunningError, PropertyNotSupportedError } from "./error";
@@ -666,6 +666,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onTimeout(): void {
         this.log.info(`Timeout connecting to station ${this.getSerial()}`);
+        this.emit('connection error', this, new StationConnectTimeoutError());
         this.scheduleReconnect();
     }
 
