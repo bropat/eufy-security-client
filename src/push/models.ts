@@ -48,13 +48,28 @@ export interface EufyPushMessage {
     content: string;
     device_sn: string;
     event_time: string;
-    payload?: CusPushData | IndoorPushData | ServerPushData | BatteryDoorbellPushData | LockPushData;
+    payload?: CusPushData | IndoorPushData | ServerPushData | BatteryDoorbellPushData | LockPushData | SmartSafeData;
     push_time: string;
     station_sn: string;
     title: string;
     type: string;
     doorbell?: string;
     "google.c.sender.id": string;
+}
+
+export interface SmartSafeEventValueDetail {
+    type: number;
+    action: number;
+    figure_id: number;
+    user_id: number;
+    name?: string;
+}
+
+export interface SmartSafeData {
+    dev_name: string;
+    event_type: number;
+    event_time: number;
+    event_value: number | SmartSafeEventValueDetail;
 }
 
 export interface LockPushData {
@@ -256,4 +271,5 @@ export interface PushMessage {
     doorbell_video_url?: string;
     msg_type?: number;
     timeout?: number;
+    event_value?: number | SmartSafeEventValueDetail;
 }

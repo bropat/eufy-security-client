@@ -7,13 +7,13 @@ import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMot
 import { StationListResponse, StationSecuritySettings } from "./models"
 import { ParameterHelper } from "./parameter";
 import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValues, StationEvents, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString } from "./interfaces";
-import { getBlocklist, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
+import { encodeSmartSafeData, getBlocklist, getCurrentTimeInSeconds, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
 import { StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
-import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLInnerCommand, IndoorSoloSmartdropCommandType, P2PConnectionType, PanTiltDirection, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
+import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLInnerCommand, IndoorSoloSmartdropCommandType, P2PConnectionType, PanTiltDirection, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
 import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData } from "../p2p/models";
-import { Device, DoorbellCamera, Lock } from "./device";
-import { getAdvancedLockKey, encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, generateAdvancedLockAESKey, getLockVectorBytes, isPrivateIp, decodeBase64 } from "../p2p/utils";
+import { Device, DoorbellCamera, Lock, SmartSafe } from "./device";
+import { getAdvancedLockKey, encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, generateAdvancedLockAESKey, getLockVectorBytes, isPrivateIp, encryptPayloadData } from "../p2p/utils";
 import { InvalidCommandValueError, InvalidPropertyValueError, NotSupportedError, RTSPPropertyNotEnabled, WrongStationError } from "../error";
 import { PushMessage } from "../push/models";
 import { CusPushEvent } from "../push/types";
@@ -62,7 +62,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("rtsp livestream started", (channel: number) => this.onStartRTSPLivestream(channel));
         this.p2pSession.on("rtsp livestream stopped", (channel: number) => this.onStopRTSPLivestream(channel));
         this.p2pSession.on("rtsp url", (channel: number, rtspUrl: string) => this.onRTSPUrl(channel, rtspUrl));
-        this.p2pSession.on("esl parameter", (channel: number, param: number, value: string) => this.onESLParameter(channel, param, value));
+        this.p2pSession.on("parameter", (channel: number, param: number, value: string) => this.onParameter(channel, param, value));
         this.p2pSession.on("runtime state", (channel: number, batteryLevel: number, temperature: number) => this.onRuntimeState(channel, batteryLevel, temperature));
         this.p2pSession.on("charging state", (channel: number, chargeType: ChargingType, batteryLevel: number) => this.onChargingState(channel, chargeType, batteryLevel));
         this.p2pSession.on("floodlight manual switch", (channel: number, enabled: boolean) => this.onFloodlightManualSwitch(channel, enabled));
@@ -72,6 +72,12 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("talkback started", (channel: number, talkbackStream: TalkbackStream) => this.onTalkbackStarted(channel, talkbackStream));
         this.p2pSession.on("talkback stopped", (channel: number) => this.onTalkbackStopped(channel));
         this.p2pSession.on("talkback error", (channel: number, error: Error) => this.onTalkbackError(channel, error));
+        this.p2pSession.on("secondary command", (result: CommandResult) => this.onSecondaryCommandResponse(result));
+        this.p2pSession.on("shake alarm", (channel: number, event: SmartSafeShakeAlarmEvent) => this.onDeviceShakeAlarm(channel, event));
+        this.p2pSession.on("911 alarm", (channel: number, event: SmartSafeAlarm911Event) => this.onDevice911Alarm(channel, event));
+        this.p2pSession.on("jammed", (channel: number) => this.onDeviceJammed(channel));
+        this.p2pSession.on("low battery", (channel: number) => this.onDeviceLowBattery(channel));
+        this.p2pSession.on("wrong try-protect alarm", (channel: number) => this.onDeviceWrongTryProtectAlarm(channel));
         this.update(this.rawStation);
         this.ready = true;
         setImmediate(() => {
@@ -294,6 +300,10 @@ export class Station extends TypedEmitter<StationEvents> {
         return this.properties[name];
     }
 
+    public hasPropertyValue(name: string): boolean {
+        return this.getPropertyValue(name) !== undefined;
+    }
+
     public getRawProperty(type: number): string {
         return this.rawProperties[type];
     }
@@ -345,8 +355,11 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public isIntegratedDevice(): boolean {
-        if (Device.isLock(this.getDeviceType()) || Device.isSmartDrop(this.getDeviceType())) {
-            return this.rawStation.devices[0]?.device_sn === this.rawStation.station_sn;
+        if (Device.isLock(this.getDeviceType()) || Device.isSmartDrop(this.getDeviceType()) || Device.isSmartSafe(this.getDeviceType())) {
+            if (this.rawStation.devices?.length === 1)
+                return this.rawStation.devices[0]?.device_sn === this.rawStation.station_sn;
+            else
+                return true;
         }
         return Device.isWiredDoorbellDual(this.getDeviceType()) || Device.isFloodLight(this.getDeviceType()) || Device.isWiredDoorbell(this.getDeviceType()) || Device.isIndoorCamera(this.getDeviceType()) || Device.isSoloCameras(this.getDeviceType());
     }
@@ -478,7 +491,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.emit("rtsp url", this, channel, rtspUrl);
     }
 
-    private onESLParameter(channel: number, param: number, value: string): void {
+    private onParameter(channel: number, param: number, value: string): void {
         const params: RawValues = {};
         params[param] = ParameterHelper.readValue(param, value, this.log);
         this.emit("raw device property changed", this._getDeviceSerial(channel), params);
@@ -592,9 +605,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 break;
         }
 
-        if (propertyName !== undefined && this.hasProperty(propertyName)) {
-            const securitySettingsData: string = this.getPropertyValue(propertyName).toString();
-            const settings: StationSecuritySettings = JSON.parse(decodeBase64(securitySettingsData).toString("utf8"));
+        if (propertyName !== undefined && this.hasPropertyValue(propertyName) && this.getPropertyValue(propertyName) !== "") {
+            const settings: StationSecuritySettings = (this.getPropertyValue(propertyName) as any) as StationSecuritySettings;
             if (settings.count_down_arm.channel_list.length > 0 && settings.count_down_arm.delay_time > 0) {
                 return settings.count_down_arm.delay_time;
             }
@@ -648,6 +660,11 @@ export class Station extends TypedEmitter<StationEvents> {
     private onCommandResponse(result: CommandResult): void {
         this.log.debug("Got p2p command response", { station: this.getSerial(), commandType: result.command_type, channel: result.channel, returnCodeName: ErrorCode[result.return_code], returnCode: result.return_code, property: result.property });
         this.emit("command result", this, result);
+    }
+
+    private onSecondaryCommandResponse(result: CommandResult): void {
+        this.log.debug("Got p2p secondary command response", { station: this.getSerial(), commandType: result.command_type, channel: result.channel, returnCode: result.return_code, property: result.property });
+        this.emit("secondary command result", this, result);
     }
 
     private onConnect(address: Address): void {
@@ -3919,22 +3936,22 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private convertAdvancedLockSettingValue(property: PropertyName, value: unknown): number | string {
         switch (property) {
-            case PropertyName.DeviceLockSettingsAutoLock:
-            case PropertyName.DeviceLockSettingsNotification:
-            case PropertyName.DeviceLockSettingsNotificationLocked:
-            case PropertyName.DeviceLockSettingsOneTouchLocking:
-            case PropertyName.DeviceLockSettingsAutoLockSchedule:
-            case PropertyName.DeviceLockSettingsScramblePasscode:
-            case PropertyName.DeviceLockSettingsNotificationUnlocked:
-            case PropertyName.DeviceLockSettingsWrongTryProtection:
+            case PropertyName.DeviceAutoLock:
+            case PropertyName.DeviceNotification:
+            case PropertyName.DeviceNotificationLocked:
+            case PropertyName.DeviceOneTouchLocking:
+            case PropertyName.DeviceAutoLockSchedule:
+            case PropertyName.DeviceScramblePasscode:
+            case PropertyName.DeviceNotificationUnlocked:
+            case PropertyName.DeviceWrongTryProtection:
                 return value as boolean === true ? 1 : 0;
-            case PropertyName.DeviceLockSettingsWrongTryLockdownTime:
-            case PropertyName.DeviceLockSettingsSound:
-            case PropertyName.DeviceLockSettingsWrongTryAttempts:
-            case PropertyName.DeviceLockSettingsAutoLockTimer:
+            case PropertyName.DeviceWrongTryLockdownTime:
+            case PropertyName.DeviceSound:
+            case PropertyName.DeviceWrongTryAttempts:
+            case PropertyName.DeviceAutoLockTimer:
                 return value as number;
-            case PropertyName.DeviceLockSettingsAutoLockScheduleEndTime:
-            case PropertyName.DeviceLockSettingsAutoLockScheduleStartTime:
+            case PropertyName.DeviceAutoLockScheduleEndTime:
+            case PropertyName.DeviceAutoLockScheduleStartTime:
                 const autoLockSchedule = (value as string).split(":");
                 return `${Number.parseInt(autoLockSchedule[0]).toString(16).padStart(2, "0")}${Number.parseInt(autoLockSchedule[1]).toString(16).padStart(2, "0")}`;
         }
@@ -3960,41 +3977,41 @@ export class Station extends TypedEmitter<StationEvents> {
                 break;
         }
         return {
-            autoLockTime: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsAutoLockTimer, device.getPropertyValue(PropertyName.DeviceLockSettingsAutoLockTimer)) as number,
-            isAutoLock: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsAutoLock, device.getPropertyValue(PropertyName.DeviceLockSettingsAutoLock)) as number,
-            isLockNotification: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsNotificationLocked, device.getPropertyValue(PropertyName.DeviceLockSettingsNotificationLocked)) as number,
-            isNotification: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsNotification, device.getPropertyValue(PropertyName.DeviceLockSettingsNotification)) as number,
-            isOneTouchLock: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsOneTouchLocking, device.getPropertyValue(PropertyName.DeviceLockSettingsOneTouchLocking)) as number,
-            isSchedule: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsAutoLockSchedule, device.getPropertyValue(PropertyName.DeviceLockSettingsAutoLockSchedule)) as number,
-            isScramblePasscode: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsScramblePasscode, device.getPropertyValue(PropertyName.DeviceLockSettingsScramblePasscode)) as number,
-            isUnLockNotification: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsNotificationUnlocked, device.getPropertyValue(PropertyName.DeviceLockSettingsNotificationUnlocked)) as number,
-            isWrongTryProtect: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsWrongTryProtection, device.getPropertyValue(PropertyName.DeviceLockSettingsWrongTryProtection)) as number,
-            lockDownTime: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsWrongTryLockdownTime, device.getPropertyValue(PropertyName.DeviceLockSettingsWrongTryLockdownTime)) as number,
-            lockSound: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsSound, device.getPropertyValue(PropertyName.DeviceLockSettingsSound)) as number,
+            autoLockTime: this.convertAdvancedLockSettingValue(PropertyName.DeviceAutoLockTimer, device.getPropertyValue(PropertyName.DeviceAutoLockTimer)) as number,
+            isAutoLock: this.convertAdvancedLockSettingValue(PropertyName.DeviceAutoLock, device.getPropertyValue(PropertyName.DeviceAutoLock)) as number,
+            isLockNotification: this.convertAdvancedLockSettingValue(PropertyName.DeviceNotificationLocked, device.getPropertyValue(PropertyName.DeviceNotificationLocked)) as number,
+            isNotification: this.convertAdvancedLockSettingValue(PropertyName.DeviceNotification, device.getPropertyValue(PropertyName.DeviceNotification)) as number,
+            isOneTouchLock: this.convertAdvancedLockSettingValue(PropertyName.DeviceOneTouchLocking, device.getPropertyValue(PropertyName.DeviceOneTouchLocking)) as number,
+            isSchedule: this.convertAdvancedLockSettingValue(PropertyName.DeviceAutoLockSchedule, device.getPropertyValue(PropertyName.DeviceAutoLockSchedule)) as number,
+            isScramblePasscode: this.convertAdvancedLockSettingValue(PropertyName.DeviceScramblePasscode, device.getPropertyValue(PropertyName.DeviceScramblePasscode)) as number,
+            isUnLockNotification: this.convertAdvancedLockSettingValue(PropertyName.DeviceNotificationUnlocked, device.getPropertyValue(PropertyName.DeviceNotificationUnlocked)) as number,
+            isWrongTryProtect: this.convertAdvancedLockSettingValue(PropertyName.DeviceWrongTryProtection, device.getPropertyValue(PropertyName.DeviceWrongTryProtection)) as number,
+            lockDownTime: this.convertAdvancedLockSettingValue(PropertyName.DeviceWrongTryLockdownTime, device.getPropertyValue(PropertyName.DeviceWrongTryLockdownTime)) as number,
+            lockSound: this.convertAdvancedLockSettingValue(PropertyName.DeviceSound, device.getPropertyValue(PropertyName.DeviceSound)) as number,
             paramType: command,
-            scheduleEnd: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsAutoLockScheduleEndTime, device.getPropertyValue(PropertyName.DeviceLockSettingsAutoLockScheduleEndTime)) as string,
-            scheduleStart: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsAutoLockScheduleStartTime, device.getPropertyValue(PropertyName.DeviceLockSettingsAutoLockScheduleStartTime)) as string,
-            wrongTryTime: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsWrongTryAttempts, device.getPropertyValue(PropertyName.DeviceLockSettingsWrongTryAttempts)) as number,
+            scheduleEnd: this.convertAdvancedLockSettingValue(PropertyName.DeviceAutoLockScheduleEndTime, device.getPropertyValue(PropertyName.DeviceAutoLockScheduleEndTime)) as string,
+            scheduleStart: this.convertAdvancedLockSettingValue(PropertyName.DeviceAutoLockScheduleStartTime, device.getPropertyValue(PropertyName.DeviceAutoLockScheduleStartTime)) as string,
+            wrongTryTime: this.convertAdvancedLockSettingValue(PropertyName.DeviceWrongTryAttempts, device.getPropertyValue(PropertyName.DeviceWrongTryAttempts)) as number,
             seq_num: this.p2pSession.incLockSequenceNumber()
         };
     }
 
     private getAdvancedLockSettingName(property: PropertyName): string {
         switch (property) {
-            case PropertyName.DeviceLockSettingsAutoLock: return "isAutoLock";
-            case PropertyName.DeviceLockSettingsAutoLockTimer: return "autoLockTime";
-            case PropertyName.DeviceLockSettingsNotification: return "isNotification";
-            case PropertyName.DeviceLockSettingsNotificationLocked: return "isLockNotification";
-            case PropertyName.DeviceLockSettingsOneTouchLocking: return "isOneTouchLock";
-            case PropertyName.DeviceLockSettingsAutoLockSchedule: return "isSchedule";
-            case PropertyName.DeviceLockSettingsScramblePasscode: return "isScramblePasscode";
-            case PropertyName.DeviceLockSettingsNotificationUnlocked: return "isUnLockNotification";
-            case PropertyName.DeviceLockSettingsWrongTryProtection: return "isWrongTryProtect";
-            case PropertyName.DeviceLockSettingsWrongTryLockdownTime: return "lockDownTime";
-            case PropertyName.DeviceLockSettingsSound: return "lockSound";
-            case PropertyName.DeviceLockSettingsAutoLockScheduleEndTime: return "scheduleEnd";
-            case PropertyName.DeviceLockSettingsAutoLockScheduleStartTime: return "scheduleStart";
-            case PropertyName.DeviceLockSettingsWrongTryAttempts: return "wrongTryTime";
+            case PropertyName.DeviceAutoLock: return "isAutoLock";
+            case PropertyName.DeviceAutoLockTimer: return "autoLockTime";
+            case PropertyName.DeviceNotification: return "isNotification";
+            case PropertyName.DeviceNotificationLocked: return "isLockNotification";
+            case PropertyName.DeviceOneTouchLocking: return "isOneTouchLock";
+            case PropertyName.DeviceAutoLockSchedule: return "isSchedule";
+            case PropertyName.DeviceScramblePasscode: return "isScramblePasscode";
+            case PropertyName.DeviceNotificationUnlocked: return "isUnLockNotification";
+            case PropertyName.DeviceWrongTryProtection: return "isWrongTryProtect";
+            case PropertyName.DeviceWrongTryLockdownTime: return "lockDownTime";
+            case PropertyName.DeviceSound: return "lockSound";
+            case PropertyName.DeviceAutoLockScheduleEndTime: return "scheduleEnd";
+            case PropertyName.DeviceAutoLockScheduleStartTime: return "scheduleStart";
+            case PropertyName.DeviceWrongTryAttempts: return "wrongTryTime";
         }
         return "";
     }
@@ -4010,6 +4027,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const propertyMetadata = device.getPropertyMetadata(propertyData.name);
+        validValue(propertyMetadata, value);
+
         this.log.debug(`Sending set advanced lock settings command to station ${this.getSerial()} for device ${device.getSerial()} property ${property}`);
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             const publicKey = await this.api.getPublicKey(device.getSerial(), PublicKeyType.LOCK);
@@ -5155,6 +5175,308 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.getStationSerial() !== this.getSerial())
             return false;
         return this.p2pSession.isTalkbackOngoing(device.getChannel());
+    }
+
+    public async setScramblePasscode(device: Device, value: boolean): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceScramblePasscode,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending scramble passcode command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceScramblePasscode, value);
+        } else if (device.isSmartSafe()) {
+            await this.setSmartSafeParams(device, PropertyName.DeviceScramblePasscode, value);
+        }
+    }
+
+    public async setWrongTryProtection(device: Device, value: boolean): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceWrongTryProtection,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending wrong try protection command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceWrongTryProtection, value);
+        } else if (device.isSmartSafe()) {
+            await this.setSmartSafeParams(device, PropertyName.DeviceWrongTryProtection, value);
+        }
+    }
+
+    public async setWrongTryAttempts(device: Device, value: number): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceWrongTryAttempts,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending wrong try attempts command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceWrongTryAttempts, value);
+        } else if (device.isSmartSafe()) {
+            await this.setSmartSafeParams(device, PropertyName.DeviceWrongTryAttempts, value);
+        }
+    }
+
+    public async setWrongTryLockdownTime(device: Device, value: number): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceWrongTryLockdownTime,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending wrong try lockdown time command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceWrongTryLockdownTime, value);
+        } else if (device.isSmartSafe()) {
+            await this.setSmartSafeParams(device, PropertyName.DeviceWrongTryLockdownTime, value);
+        }
+    }
+
+    private async _sendSmartSafeCommand(device: Device, command: SmartSafeCommandCode, payload: Buffer, propertyData?: PropertyData): Promise<void> {
+        const encPayload = encryptPayloadData(payload, Buffer.from(device.getSerial()), Buffer.from(SmartSafe.IV, "hex"));
+        const data = encodeSmartSafeData(command, encPayload);
+
+        await this.p2pSession.sendCommandWithStringPayload({
+            commandType: CommandType.CMD_SET_PAYLOAD,
+            value: JSON.stringify({
+                "account_id": this.rawStation.member.admin_user_id,
+                "cmd": CommandType.CMD_SMARTSAFE_SETTINGS,
+                "mChannel": device.getChannel(),
+                "mValue3": 0,
+                "payload": {
+                    "data": data.toString("hex"),
+                    "prj_id": CommandType.CMD_SMARTSAFE_SETTINGS,
+                    "seq_num": getCurrentTimeInSeconds(),
+                }
+            }),
+            channel: device.getChannel()
+        }, propertyData);
+    }
+
+    public async setSmartSafeParams(device: Device, property: PropertyName, value: PropertyValue): Promise<void> {
+        const propertyData: PropertyData = {
+            name: property,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        const propertyMetadata = device.getPropertyMetadata(propertyData.name);
+        validValue(propertyMetadata, value);
+
+        this.log.debug(`Sending set smart safe settings command to station ${this.getSerial()} for device ${device.getSerial()} property ${property}`);
+        if (device.isSmartSafe()) {
+            let payload: Buffer;
+            let command: number;
+            switch (property) {
+                case PropertyName.DeviceWrongTryProtection:
+                    payload = SmartSafe.encodeCmdWrongTryProtect(
+                        this.rawStation.member.admin_user_id,
+                        value as boolean,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryAttempts) as number,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryLockdownTime) as number
+                    );
+                    command = SmartSafeCommandCode.SET_CRACK_PROTECT;
+                    break;
+                case PropertyName.DeviceWrongTryAttempts:
+                    payload = SmartSafe.encodeCmdWrongTryProtect(
+                        this.rawStation.member.admin_user_id,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryProtection) as boolean,
+                        value as number,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryLockdownTime) as number
+                    );
+                    command = SmartSafeCommandCode.SET_CRACK_PROTECT;
+                    break;
+                case PropertyName.DeviceWrongTryLockdownTime:
+                    payload = SmartSafe.encodeCmdWrongTryProtect(
+                        this.rawStation.member.admin_user_id,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryProtection) as boolean,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryAttempts) as number,
+                        value as number
+                    );
+                    command = SmartSafeCommandCode.SET_CRACK_PROTECT;
+                    break;
+                case PropertyName.DeviceLeftOpenAlarm:
+                    payload = SmartSafe.encodeCmdLeftOpenAlarm(
+                        this.rawStation.member.admin_user_id,
+                        value as boolean,
+                        device.getPropertyValue(PropertyName.DeviceLeftOpenAlarmDuration) as number
+                    );
+                    command = SmartSafeCommandCode.SET_LOCK_ALARM;
+                    break;
+                case PropertyName.DeviceLeftOpenAlarmDuration:
+                    payload = SmartSafe.encodeCmdLeftOpenAlarm(
+                        this.rawStation.member.admin_user_id,
+                        device.getPropertyValue(PropertyName.DeviceLeftOpenAlarm) as boolean,
+                        value as number
+                    );
+                    command = SmartSafeCommandCode.SET_LOCK_ALARM;
+                    break;
+                case PropertyName.DeviceDualUnlock:
+                    payload = SmartSafe.encodeCmdDualUnlock(
+                        this.rawStation.member.admin_user_id,
+                        value as boolean
+                    );
+                    command = SmartSafeCommandCode.SET_DUAL_UNLOCK;
+                    break;
+                case PropertyName.DevicePowerSave:
+                    payload = SmartSafe.encodeCmdPowerSave(
+                        this.rawStation.member.admin_user_id,
+                        value as boolean
+                    );
+                    command = SmartSafeCommandCode.SET_POWERSAVE;
+                    break;
+                case PropertyName.DeviceInteriorBrightness:
+                    payload = SmartSafe.encodeCmdInteriorBrightness(
+                        this.rawStation.member.admin_user_id,
+                        value as number,
+                        device.getPropertyValue(PropertyName.DeviceInteriorBrightnessDuration) as number
+                    );
+                    command = SmartSafeCommandCode.SET_LIGHT;
+                    break;
+                case PropertyName.DeviceInteriorBrightness:
+                    payload = SmartSafe.encodeCmdInteriorBrightness(
+                        this.rawStation.member.admin_user_id,
+                        device.getPropertyValue(PropertyName.DeviceInteriorBrightness) as number,
+                        value as number
+                    );
+                    command = SmartSafeCommandCode.SET_LIGHT;
+                    break;
+                case PropertyName.DeviceTamperAlarm:
+                    payload = SmartSafe.encodeCmdTamperAlarm(
+                        this.rawStation.member.admin_user_id,
+                        value as number
+                    );
+                    command = SmartSafeCommandCode.SET_SHAKE;
+                    break;
+                case PropertyName.DeviceRemoteUnlock:
+                case PropertyName.DeviceRemoteUnlockMasterPIN:
+                {
+                    let newValue = 0;
+                    const remoteUnlock = property === PropertyName.DeviceRemoteUnlock ? value as boolean : device.getPropertyValue(PropertyName.DeviceRemoteUnlock) as boolean;
+                    const remoteUnlockMasterPIN = property === PropertyName.DeviceRemoteUnlockMasterPIN ? value as boolean : device.getPropertyValue(PropertyName.DeviceRemoteUnlockMasterPIN) as boolean;
+                    if (remoteUnlock && remoteUnlockMasterPIN as boolean) {
+                        newValue = 2;
+                    } else if (remoteUnlock) {
+                        newValue = 1;
+                    }
+                    payload = SmartSafe.encodeCmdRemoteUnlock(
+                        this.rawStation.member.admin_user_id,
+                        newValue
+                    );
+                    command = SmartSafeCommandCode.SET_UNLOCK_MODE;
+                    break;
+                }
+                case PropertyName.DevicePromptVolume:
+                    payload = SmartSafe.encodeCmdPromptVolume(
+                        this.rawStation.member.admin_user_id,
+                        value as number
+                    );
+                    command = SmartSafeCommandCode.SET_VOLUME;
+                    break;
+                case PropertyName.DeviceAlarmVolume:
+                    payload = SmartSafe.encodeCmdAlertVolume(
+                        this.rawStation.member.admin_user_id,
+                        value as number
+                    );
+                    command = SmartSafeCommandCode.SET_VOLUME_ALERT;
+                    break;
+                case PropertyName.DeviceNotificationUnlockByKey:
+                case PropertyName.DeviceNotificationUnlockByPIN:
+                case PropertyName.DeviceNotificationUnlockByFingerprint:
+                case PropertyName.DeviceNotificationUnlockByApp:
+                case PropertyName.DeviceNotificationDualUnlock:
+                case PropertyName.DeviceNotificationDualLock:
+                case PropertyName.DeviceNotificationWrongTryProtect:
+                case PropertyName.DeviceNotificationJammed:
+                    const settingsValues: Array<boolean> = [
+                        property === PropertyName.DeviceNotificationUnlockByKey ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationUnlockByKey) as boolean,
+                        property === PropertyName.DeviceNotificationUnlockByPIN ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationUnlockByPIN) as boolean,
+                        property === PropertyName.DeviceNotificationUnlockByFingerprint ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationUnlockByFingerprint) as boolean,
+                        property === PropertyName.DeviceNotificationUnlockByApp ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationUnlockByApp) as boolean,
+                        property === PropertyName.DeviceNotificationDualUnlock ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationDualUnlock) as boolean,
+                        property === PropertyName.DeviceNotificationDualLock ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationDualLock) as boolean,
+                        property === PropertyName.DeviceNotificationWrongTryProtect ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationWrongTryProtect) as boolean,
+                        property === PropertyName.DeviceNotificationJammed ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationJammed) as boolean,
+                    ];
+
+                    let modes = 0;
+                    for (let pos = 0; pos < settingsValues.length; pos++) {
+                        if (settingsValues[pos]) {
+                            modes = (modes | (1 << pos));
+                        }
+                    }
+
+                    payload = SmartSafe.encodeCmdPushNotification(
+                        this.rawStation.member.admin_user_id,
+                        modes
+                    );
+                    command = SmartSafeCommandCode.SET_PUSH;
+                    break;
+                default:
+                    payload = Buffer.from([]);
+                    command = SmartSafeCommandCode.DEFAULT;
+                    break;
+            }
+
+            this.log.debug(`device: ${device.getSerial()} property: ${property} value: ${value} payload: ${payload.toString("hex")}`);
+            await this._sendSmartSafeCommand(device, command, payload, propertyData);
+        }
+    }
+
+    public async unlock(device: Device): Promise<void> {
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasCommand(CommandName.DeviceUnlock)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending trigger device unlock command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        await this._sendSmartSafeCommand(device, SmartSafeCommandCode.UNLOCK, SmartSafe.encodeCmdUnlock(this.rawStation.member.admin_user_id));
+    }
+
+    private onDeviceShakeAlarm(channel: number, event: SmartSafeShakeAlarmEvent): void {
+        this.emit("device shake alarm", this._getDeviceSerial(channel), event);
+    }
+
+    private onDevice911Alarm(channel: number, event: SmartSafeAlarm911Event): void {
+        this.emit("device 911 alarm", this._getDeviceSerial(channel), event);
+    }
+
+    private onDeviceJammed(channel: number): void {
+        this.emit("device jammed", this._getDeviceSerial(channel));
+    }
+
+    private onDeviceLowBattery(channel: number): void {
+        this.emit("device low battery", this._getDeviceSerial(channel));
+    }
+
+    private onDeviceWrongTryProtectAlarm(channel: number): void {
+        this.emit("device wrong try-protect alarm", this._getDeviceSerial(channel));
     }
 
 }

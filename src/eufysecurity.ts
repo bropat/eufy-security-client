@@ -12,8 +12,8 @@ import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, Sta
 import { CommandName, DeviceType, NotificationSwitchMode, NotificationType, PropertyName } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
-import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SoloCamera, UnknownDevice, WiredDoorbellCamera } from "./http/device";
-import { AlarmEvent, ChargingType, CommandType, P2PConnectionType } from "./p2p/types";
+import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WiredDoorbellCamera } from "./http/device";
+import { AlarmEvent, ChargingType, CommandType, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent } from "./p2p/types";
 import { StreamMetadata } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
 import { generateSerialnumber, generateUDID, handleUpdate, md5, parseValue, removeLastChar } from "./utils";
@@ -223,7 +223,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         });
         this.mqttService.on("lock message", (message) => {
             this.getDevice(message.data.data.deviceSn).then((device: Device) => {
-                (device as Lock).processMQTTNotification(message.data.data);
+                (device as Lock).processMQTTNotification(message.data.data, this.config.eventDurationSeconds);
             }).catch((error) => {
                 if (error instanceof DeviceNotFoundError) {
                 } else {
@@ -412,6 +412,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 station.on("talkback error", (station: Station, channel: number, error: Error) => this.onStationTalkbackError(station, channel, error));
                 station.on("alarm armed event", (station: Station) => this.onStationAlarmArmedEvent(station));
                 station.on("alarm arm delay event", (station: Station, armDelay: number) => this.onStationArmDelayEvent(station, armDelay));
+                station.on("secondary command result", (station: Station, result: CommandResult) => this.onStationSecondaryCommandResult(station, result));
+                station.on("device shake alarm", (deviceSN: string, event: SmartSafeShakeAlarmEvent) => this.onStationDeviceShakeAlarm(deviceSN, event));
+                station.on("device 911 alarm", (deviceSN: string, event: SmartSafeAlarm911Event) => this.onStationDevice911Alarm(deviceSN, event));
+                station.on("device jammed", (deviceSN: string) => this.onStationDeviceJammed(deviceSN));
+                station.on("device low battery", (deviceSN: string) => this.onStationDeviceLowBattery(deviceSN));
+                station.on("device wrong try-protect alarm", (deviceSN: string) => this.onStationDeviceWrongTryProtectAlarm(deviceSN));
 
                 this.addStation(station);
             }
@@ -425,17 +431,19 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onStationConnect(station: Station): void {
         this.emit("station connect", station);
-        if (Device.isCamera(station.getDeviceType()) && !Device.isWiredDoorbell(station.getDeviceType())) {
+        if ((Device.isCamera(station.getDeviceType()) && !Device.isWiredDoorbell(station.getDeviceType()) || Device.isSmartSafe(station.getDeviceType()))) {
             station.getCameraInfo().catch(error => {
                 this.log.error(`Error during station ${station.getSerial()} p2p data refreshing`, error);
             });
             if (this.refreshEufySecurityP2PTimeout[station.getSerial()] !== undefined)
                 clearTimeout(this.refreshEufySecurityP2PTimeout[station.getSerial()]);
-            this.refreshEufySecurityP2PTimeout[station.getSerial()] = setTimeout(() => {
-                station.getCameraInfo().catch(error => {
-                    this.log.error(`Error during station ${station.getSerial()} p2p data refreshing`, error);
-                });
-            }, this.P2P_REFRESH_INTERVAL_MIN * 60 * 1000);
+            if (!station.isEnergySavingDevice()) {
+                this.refreshEufySecurityP2PTimeout[station.getSerial()] = setTimeout(() => {
+                    station.getCameraInfo().catch(error => {
+                        this.log.error(`Error during station ${station.getSerial()} p2p data refreshing`, error);
+                    });
+                }, this.P2P_REFRESH_INTERVAL_MIN * 60 * 1000);
+            }
         }
     }
 
@@ -485,6 +493,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     new_device = EntrySensor.initialize(this.api, device);
                 } else if (Device.isKeyPad(device.device_type)) {
                     new_device = Keypad.initialize(this.api, device);
+                } else if (Device.isSmartSafe(device.device_type)) {
+                    new_device = SmartSafe.initialize(this.api, device);
                 } else {
                     new_device = UnknownDevice.initialize(this.api, device);
                 }
@@ -507,6 +517,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         device.on("package taken", (device: Device, state: boolean) => this.onDevicePackageTaken(device, state));
                         device.on("someone loitering", (device: Device, state: boolean) => this.onDeviceSomeoneLoitering(device, state));
                         device.on("radar motion detected", (device: Device, state: boolean) => this.onDeviceRadarMotionDetected(device, state));
+                        device.on("911 alarm", (device: Device, state: boolean, detail: SmartSafeAlarm911Event) => this.onDevice911Alarm(device, state, detail));
+                        device.on("shake alarm", (device: Device, state: boolean, detail: SmartSafeShakeAlarmEvent) => this.onDeviceShakeAlarm(device, state, detail));
+                        device.on("wrong try-protect alarm", (device: Device, state: boolean) => this.onDeviceWrongTryProtectAlarm(device, state));
+                        device.on("long time not close", (device: Device, state: boolean) => this.onDeviceLongTimeNotClose(device, state));
+                        device.on("low battery", (device: Device, state: boolean) => this.onDeviceLowBattery(device, state));
+                        device.on("jammed", (device: Device, state: boolean) => this.onDeviceJammed(device, state));
                         this.addDevice(device);
                     } catch (error) {
                         this.log.error("Error", error);
@@ -1150,47 +1166,35 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             case PropertyName.DeviceAutoCalibration:
                 await station.setAutoCalibration(device, value as boolean);
                 break;
-            case PropertyName.DeviceLockSettingsAutoLock:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsAutoLock, value as PropertyValue);
+            case PropertyName.DeviceAutoLock:
+            case PropertyName.DeviceAutoLockSchedule:
+            case PropertyName.DeviceAutoLockScheduleStartTime:
+            case PropertyName.DeviceAutoLockScheduleEndTime:
+            case PropertyName.DeviceAutoLockTimer:
+            case PropertyName.DeviceOneTouchLocking:
+            case PropertyName.DeviceSound:
+                await station.setAdvancedLockParams(device, name, value as PropertyValue);
                 break;
-            case PropertyName.DeviceLockSettingsAutoLockSchedule:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsAutoLockSchedule, value as PropertyValue);
+            case PropertyName.DeviceNotification:
+                await station.setAdvancedLockParams(device, PropertyName.DeviceNotification, value as PropertyValue);
                 break;
-            case PropertyName.DeviceLockSettingsAutoLockScheduleStartTime:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsAutoLockScheduleStartTime, value as PropertyValue);
+            case PropertyName.DeviceNotificationLocked:
+                await station.setAdvancedLockParams(device, PropertyName.DeviceNotificationLocked, value as PropertyValue);
                 break;
-            case PropertyName.DeviceLockSettingsAutoLockScheduleEndTime:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsAutoLockScheduleEndTime, value as PropertyValue);
+            case PropertyName.DeviceNotificationUnlocked:
+                await station.setAdvancedLockParams(device, PropertyName.DeviceNotificationUnlocked, value as PropertyValue);
                 break;
-            case PropertyName.DeviceLockSettingsAutoLockTimer:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsAutoLockTimer, value as PropertyValue);
+            case PropertyName.DeviceScramblePasscode:
+                await station.setScramblePasscode(device,value as boolean);
                 break;
-            case PropertyName.DeviceLockSettingsNotification:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsNotification, value as PropertyValue);
+            case PropertyName.DeviceWrongTryProtection:
+                await station.setWrongTryProtection(device, value as boolean);
                 break;
-            case PropertyName.DeviceLockSettingsNotificationLocked:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsNotificationLocked, value as PropertyValue);
+            case PropertyName.DeviceWrongTryAttempts:
+                await station.setWrongTryAttempts(device, value as number);
                 break;
-            case PropertyName.DeviceLockSettingsNotificationUnlocked:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsNotificationUnlocked, value as PropertyValue);
-                break;
-            case PropertyName.DeviceLockSettingsOneTouchLocking:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsOneTouchLocking, value as PropertyValue);
-                break;
-            case PropertyName.DeviceLockSettingsScramblePasscode:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsScramblePasscode, value as PropertyValue);
-                break;
-            case PropertyName.DeviceLockSettingsSound:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsSound, value as PropertyValue);
-                break;
-            case PropertyName.DeviceLockSettingsWrongTryProtection:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsWrongTryProtection, value as PropertyValue);
-                break;
-            case PropertyName.DeviceLockSettingsWrongTryAttempts:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsWrongTryAttempts, value as PropertyValue);
-                break;
-            case PropertyName.DeviceLockSettingsWrongTryLockdownTime:
-                await station.setAdvancedLockParams(device, PropertyName.DeviceLockSettingsWrongTryLockdownTime, value as PropertyValue);
+            case PropertyName.DeviceWrongTryLockdownTime:
+                await station.setWrongTryLockdownTime(device, value as number);
                 break;
             case PropertyName.DeviceLoiteringDetection:
                 await station.setLoiteringDetection(device, value as boolean);
@@ -1315,6 +1319,27 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             case PropertyName.DeviceDeliveryGuardUncollectedPackageAlertTimeToCheck:
                 await station.setDeliveryGuardUncollectedPackageAlertTimeToCheck(device, value as string);
                 break;
+            case PropertyName.DeviceLeftOpenAlarm:
+            case PropertyName.DeviceLeftOpenAlarmDuration:
+            case PropertyName.DeviceDualUnlock:
+            case PropertyName.DevicePowerSave:
+            case PropertyName.DeviceInteriorBrightness:
+            case PropertyName.DeviceInteriorBrightnessDuration:
+            case PropertyName.DeviceTamperAlarm:
+            case PropertyName.DeviceRemoteUnlock:
+            case PropertyName.DeviceRemoteUnlockMasterPIN:
+            case PropertyName.DeviceAlarmVolume:
+            case PropertyName.DevicePromptVolume:
+            case PropertyName.DeviceNotificationUnlockByKey:
+            case PropertyName.DeviceNotificationUnlockByPIN:
+            case PropertyName.DeviceNotificationUnlockByFingerprint:
+            case PropertyName.DeviceNotificationUnlockByApp:
+            case PropertyName.DeviceNotificationDualUnlock:
+            case PropertyName.DeviceNotificationDualLock:
+            case PropertyName.DeviceNotificationWrongTryProtect:
+            case PropertyName.DeviceNotificationJammed:
+                await station.setSmartSafeParams(device, name, value as PropertyValue);
+                break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
                     throw new ReadOnlyPropertyError(`Property ${name} is read only`);
@@ -1434,7 +1459,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.emit("station command result", station, result);
         if (result.return_code === 0) {
             this.getStationDevice(station.getSerial(), result.channel).then((device: Device) => {
-                if (result.property !== undefined) {
+                //TODO: Finish SmartSafe implementation - check better the if below
+                if (result.property !== undefined && (device.isSmartSafe() && result.command_type !== CommandType.CMD_SMARTSAFE_SETTINGS) && !device.isLock()) {
                     if (device.hasProperty(result.property.name))
                         device.updateProperty(result.property.name, result.property.value);
                     else if (station.hasProperty(result.property.name)) {
@@ -1453,6 +1479,28 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             if (station.isIntegratedDevice() && result.command_type === CommandType.CMD_SET_ARMING && station.isConnected() && station.getDeviceType() !== DeviceType.DOORBELL) {
                 station.getCameraInfo();
             }
+        }
+    }
+
+    private onStationSecondaryCommandResult(station: Station, result: CommandResult): void {
+        if (result.return_code === 0) {
+            this.getStationDevice(station.getSerial(), result.channel).then((device: Device) => {
+                if (result.property !== undefined) {
+                    if (device.hasProperty(result.property.name))
+                        device.updateProperty(result.property.name, result.property.value);
+                    else if (station.hasProperty(result.property.name)) {
+                        station.updateProperty(result.property.name, result.property.value);
+                    }
+                }
+            }).catch((error) => {
+                if (error instanceof DeviceNotFoundError) {
+                    if (result.property !== undefined) {
+                        station.updateProperty(result.property.name, result.property.value);
+                    }
+                } else {
+                    this.log.error(`Station secondary command result error (station: ${station.getSerial()})`, error);
+                }
+            });
         }
     }
 
@@ -1564,6 +1612,30 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onDeviceRadarMotionDetected(device: Device, state: boolean): void {
         this.emit("device radar motion detected", device, state);
+    }
+
+    private onDevice911Alarm(device: Device, state: boolean, detail: SmartSafeAlarm911Event): void {
+        this.emit("device 911 alarm", device, state, detail);
+    }
+
+    private onDeviceShakeAlarm(device: Device, state: boolean, detail: SmartSafeShakeAlarmEvent): void {
+        this.emit("device shake alarm", device, state, detail);
+    }
+
+    private onDeviceWrongTryProtectAlarm(device: Device, state: boolean): void {
+        this.emit("device wrong try-protect alarm", device, state);
+    }
+
+    private onDeviceLongTimeNotClose(device: Device, state: boolean): void {
+        this.emit("device long time not close", device, state);
+    }
+
+    private onDeviceLowBattery(device: Device, state: boolean): void {
+        this.emit("device low battery", device, state);
+    }
+
+    private onDeviceJammed(device: Device, state: boolean): void {
+        this.emit("device jammed", device, state);
     }
 
     private onDeviceReady(device: Device): void {
@@ -1701,6 +1773,51 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         } else {
             this.log.warn(`The station talkback for the device ${deviceSN} cannot be stopped, because it isn't live streaming!`);
         }
+    }
+
+    private onStationDeviceShakeAlarm(deviceSN: string, event: SmartSafeShakeAlarmEvent): void {
+        this.getDevice(deviceSN).then((device: Device) => {
+            if (device.isSmartSafe())
+                (device as SmartSafe).shakeEvent(event, this.config.eventDurationSeconds);
+        }).catch((error) => {
+            this.log.error(`onStationShakeAlarm device ${deviceSN} error`, error);
+        });
+    }
+
+    private onStationDevice911Alarm(deviceSN: string, event: SmartSafeAlarm911Event): void {
+        this.getDevice(deviceSN).then((device: Device) => {
+            if (device.isSmartSafe())
+                (device as SmartSafe).alarm911Event(event, this.config.eventDurationSeconds);
+        }).catch((error) => {
+            this.log.error(`onStation911Alarm device ${deviceSN} error`, error);
+        });
+    }
+
+    private onStationDeviceJammed(deviceSN: string): void {
+        this.getDevice(deviceSN).then((device: Device) => {
+            if (device.isSmartSafe())
+                (device as SmartSafe).jammedEvent(this.config.eventDurationSeconds);
+        }).catch((error) => {
+            this.log.error(`onStationDeviceJammed device ${deviceSN} error`, error);
+        });
+    }
+
+    private onStationDeviceLowBattery(deviceSN: string): void {
+        this.getDevice(deviceSN).then((device: Device) => {
+            if (device.isSmartSafe())
+                (device as SmartSafe).lowBatteryEvent(this.config.eventDurationSeconds);
+        }).catch((error) => {
+            this.log.error(`onStationDeviceLowBattery device ${deviceSN} error`, error);
+        });
+    }
+
+    private onStationDeviceWrongTryProtectAlarm(deviceSN: string): void {
+        this.getDevice(deviceSN).then((device: Device) => {
+            if (device.isSmartSafe())
+                (device as SmartSafe).wrongTryProtectAlarmEvent(this.config.eventDurationSeconds);
+        }).catch((error) => {
+            this.log.error(`onStationDeviceWrongTryProtectAlarm device ${deviceSN} error`, error);
+        });
     }
 
 }

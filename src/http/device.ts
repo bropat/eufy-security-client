@@ -7,10 +7,10 @@ import { ResultResponse, StreamResponse, DeviceListResponse, Voice } from "./mod
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString } from "./interfaces";
 import { CommandType, ESLAnkerBleConstant } from "../p2p/types";
-import { calculateWifiSignalLevel, getAbsoluteFilePath, getDistances } from "./utils";
+import { calculateWifiSignalLevel, getAbsoluteFilePath, getCurrentTimeInSeconds, getDistances, SmartSafeByteWriter } from "./utils";
 import { eslTimestamp } from "../p2p/utils";
-import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent } from "../push/types";
-import { PushMessage } from "../push/models";
+import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent } from "../push/types";
+import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
 import { isEmpty } from "../utils";
 import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
 import { DeviceSmartLockNotifyData } from "../mqtt/model";
@@ -32,11 +32,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
         this.api = api;
         this.rawDevice = device;
         this.log = api.getLog();
-        /*this.update(this.rawDevice);
-        this.ready = true;
-        setImmediate(() => {
-            this.emit("ready", this);
-        });*/
     }
 
     protected initializeState(): void {
@@ -72,11 +67,24 @@ export class Device extends TypedEmitter<DeviceEvents> {
     public updateProperty(name: string, value: PropertyValue): boolean {
         if ((this.properties[name] !== undefined && this.properties[name] !== value)
             || this.properties[name] === undefined) {
+            const oldValue = this.properties[name];
             this.properties[name] = value;
             if (!name.startsWith("hidden-")) {
                 if (this.ready)
                     this.emit("property changed", this, name, value);
             }
+            try {
+                this.handlePropertyChange(this.getPropertyMetadata(name), oldValue, this.properties[name]);
+            } catch (error) {
+                if (error instanceof InvalidPropertyError) {
+                    this.log.error(`Invalid Property ${name} error`, error);
+                } else {
+                    this.log.error(`Property  ${name} error`, error);
+                }
+            }
+            /*} catch (error) {
+                this.log.error("updateProperty Error:", { name: name, value: value, error: error });
+            }*/
             return true;
         }
         return false;
@@ -90,7 +98,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected processCustomParameterChanged(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
+    protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
         if ((metadata.key === ParamType.DETECT_MOTION_SENSITIVE || metadata.key === ParamType.DETECT_MODE) && this.isWiredDoorbell()) {
             //TODO: Not perfectly solved, can in certain cases briefly trigger a double event where the last event is the correct one
             const rawSensitivity = this.getRawProperty(ParamType.DETECT_MOTION_SENSITIVE);
@@ -131,10 +139,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             for (const property of Object.values(metadata)) {
                 if (property.key === type) {
                     try {
-                        const oldValue = this.properties[property.name];
-                        if (this.updateProperty(property.name, this.convertRawPropertyValue(property, this.rawProperties[type]))) {
-                            this.processCustomParameterChanged(property, oldValue, this.properties[property.name]);
-                        }
+                        this.updateProperty(property.name, this.convertRawPropertyValue(property, this.rawProperties[type]));
                     } catch (error) {
                         if (error instanceof PropertyNotSupportedError) {
                             this.log.debug("Property not supported error", error);
@@ -472,6 +477,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return this.properties[name];
     }
 
+    public hasPropertyValue(name: string): boolean {
+        return this.getPropertyValue(name) !== undefined;
+    }
+
     public getRawProperty(type: number): string {
         return this.rawProperties[type];
     }
@@ -586,7 +595,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_2K ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
             type == DeviceType.LOCK_WIFI ||
-            type == DeviceType.LOCK_WIFI_NO_FINGER)
+            type == DeviceType.LOCK_WIFI_NO_FINGER ||
+            type == DeviceType.SMART_SAFE_7400 ||
+            type == DeviceType.SMART_SAFE_7401 ||
+            type == DeviceType.SMART_SAFE_7402 ||
+            type == DeviceType.SMART_SAFE_7403)
             //TODO: Add other battery devices
             return true;
         return false;
@@ -787,6 +800,15 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.SMART_DROP == type;
     }
 
+    static isSmartSafe(type: number): boolean {
+        if (type == DeviceType.SMART_SAFE_7400 ||
+            type == DeviceType.SMART_SAFE_7401 ||
+            type == DeviceType.SMART_SAFE_7402 ||
+            type == DeviceType.SMART_SAFE_7403)
+            return true;
+        return false;
+    }
+
     static isIntegratedDeviceBySn(sn: string): boolean {
         return sn.startsWith("T8420") ||
             sn.startsWith("T820") ||
@@ -955,6 +977,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isSmartDrop(): boolean {
         return Device.isSmartDrop(this.rawDevice.device_type);
+    }
+
+    public isSmartSafe(): boolean {
+        return Device.isSmartSafe(this.rawDevice.device_type);
     }
 
     public isIntegratedDevice(): boolean {
@@ -1236,6 +1262,15 @@ export class Camera extends Device {
         return this.getPropertyValue(PropertyName.DevicePersonName) as string;
     }
 
+    protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
+        super.handlePropertyChange(metadata, oldValue, newValue);
+        if (metadata.name === PropertyName.DevicePersonDetected) {
+            this.emit("person detected", this, newValue as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
+        } else if (metadata.name === PropertyName.DeviceMotionDetected) {
+            this.emit("motion detected", this, newValue as boolean);
+        }
+    }
+
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined) {
@@ -1243,33 +1278,30 @@ export class Camera extends Device {
                 try {
                     if (message.fetch_id !== undefined) {
                         // Person or someone identified
-                        this.updateProperty(PropertyName.DevicePersonDetected, true);
-                        this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
-                        if (!isEmpty(message.pic_url))
-                            this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                        if (message.push_count === 1 || message.push_count === undefined)
-                            this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
-
-                        this.clearEventTimeout(DeviceEvent.PersonDetected);
-                        this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
-                            this.updateProperty(PropertyName.DevicePersonDetected, false);
-                            this.updateProperty(PropertyName.DevicePersonName, "");
-                            this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
-                            this.eventTimeouts.delete(DeviceEvent.PersonDetected);
-                        }, eventDurationSeconds * 1000));
+                        if (message.push_count === 1 || message.push_count === undefined) {
+                            this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
+                            if (!isEmpty(message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                            this.updateProperty(PropertyName.DevicePersonDetected, true);
+                            this.clearEventTimeout(DeviceEvent.PersonDetected);
+                            this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePersonName, "");
+                                this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                            }, eventDurationSeconds * 1000));
+                        }
                     } else {
                         // Motion detected
-                        this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                        if (!isEmpty(message.pic_url))
-                            this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                        if (message.push_count === 1 || message.push_count === undefined)
-                            this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected) as boolean);
-                        this.clearEventTimeout(DeviceEvent.MotionDetected);
-                        this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                            this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                            this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected) as boolean);
-                            this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                        }, eventDurationSeconds * 1000));
+                        if (message.push_count === 1 || message.push_count === undefined) {
+                            if (!isEmpty(message.pic_url))
+                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                            this.clearEventTimeout(DeviceEvent.MotionDetected);
+                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                            }, eventDurationSeconds * 1000));
+                        }
                     }
                 } catch (error) {
                     this.log.debug(`CusPushEvent.SECURITY - Device: ${message.device_sn} Error:`, error);
@@ -1296,6 +1328,10 @@ export class SoloCamera extends Camera {
         return this.getPropertyValue(PropertyName.DeviceMotionDetection);
     }
 
+    /*protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
+        super.handlePropertyChange(metadata, oldValue, newValue);
+    }*/
+
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined) {
@@ -1303,32 +1339,30 @@ export class SoloCamera extends Camera {
                 try {
                     switch (message.event_type) {
                         case IndoorPushEvent.MOTION_DETECTION:
-                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                            if (!isEmpty(message.pic_url))
-                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected) as boolean);
-                            this.clearEventTimeout(DeviceEvent.MotionDetected);
-                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected) as boolean);
-                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case IndoorPushEvent.FACE_DETECTION:
-                            this.updateProperty(PropertyName.DevicePersonDetected, true);
-                            this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
-                            if (!isEmpty(message.pic_url))
-                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
-                            this.clearEventTimeout(DeviceEvent.PersonDetected);
-                            this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DevicePersonDetected, false);
-                                this.updateProperty(PropertyName.DevicePersonName, "");
-                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
-                                this.eventTimeouts.delete(DeviceEvent.PersonDetected);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                this.updateProperty(PropertyName.DevicePersonDetected, true);
+                                this.clearEventTimeout(DeviceEvent.PersonDetected);
+                                this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePersonName, "");
+                                    this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         default:
                             this.log.debug("Unhandled solo camera push event", message);
@@ -1387,6 +1421,17 @@ export class IndoorCamera extends Camera {
         return this.getPropertyValue(PropertyName.DeviceCryingDetected) as boolean;
     }
 
+    protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
+        super.handlePropertyChange(metadata, oldValue, newValue);
+        if (metadata.name === PropertyName.DeviceCryingDetected) {
+            this.emit("crying detected", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceSoundDetected) {
+            this.emit("sound detected", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DevicePetDetected) {
+            this.emit("pet detected", this, newValue as boolean);
+        }
+    }
+
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined) {
@@ -1394,67 +1439,62 @@ export class IndoorCamera extends Camera {
                 try {
                     switch (message.event_type) {
                         case IndoorPushEvent.MOTION_DETECTION:
-                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                            if (!isEmpty(message.pic_url))
-                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected) as boolean);
-                            this.clearEventTimeout(DeviceEvent.MotionDetected);
-                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected) as boolean);
-                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case IndoorPushEvent.FACE_DETECTION:
-                            this.updateProperty(PropertyName.DevicePersonDetected, true);
-                            this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
-                            if (!isEmpty(message.pic_url))
-                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
-                            this.clearEventTimeout(DeviceEvent.PersonDetected);
-                            this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DevicePersonDetected, false);
-                                this.updateProperty(PropertyName.DevicePersonName, "");
-                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
-                                this.eventTimeouts.delete(DeviceEvent.PersonDetected);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                this.updateProperty(PropertyName.DevicePersonDetected, true);
+                                this.clearEventTimeout(DeviceEvent.PersonDetected);
+                                this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePersonName, "");
+                                    this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case IndoorPushEvent.CRYING_DETECTION:
-                            this.updateProperty(PropertyName.DeviceCryingDetected, true);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("crying detected", this, this.getPropertyValue(PropertyName.DeviceCryingDetected) as boolean);
-                            this.clearEventTimeout(DeviceEvent.CryingDetected);
-                            this.eventTimeouts.set(DeviceEvent.CryingDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceCryingDetected, false);
-                                this.emit("crying detected", this, this.getPropertyValue(PropertyName.DeviceCryingDetected) as boolean);
-                                this.eventTimeouts.delete(DeviceEvent.CryingDetected);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                this.updateProperty(PropertyName.DeviceCryingDetected, true);
+                                this.clearEventTimeout(DeviceEvent.CryingDetected);
+                                this.eventTimeouts.set(DeviceEvent.CryingDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceCryingDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.CryingDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case IndoorPushEvent.SOUND_DETECTION:
-                            this.updateProperty(PropertyName.DeviceSoundDetected, true);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("sound detected", this, this.getPropertyValue(PropertyName.DeviceSoundDetected) as boolean);
-                            this.clearEventTimeout(DeviceEvent.SoundDetected);
-                            this.eventTimeouts.set(DeviceEvent.SoundDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceSoundDetected, false);
-                                this.emit("sound detected", this, this.getPropertyValue(PropertyName.DeviceSoundDetected) as boolean);
-                                this.eventTimeouts.delete(DeviceEvent.SoundDetected);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                this.updateProperty(PropertyName.DeviceSoundDetected, true);
+                                this.clearEventTimeout(DeviceEvent.SoundDetected);
+                                this.eventTimeouts.set(DeviceEvent.SoundDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceSoundDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.SoundDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case IndoorPushEvent.PET_DETECTION:
-                            this.updateProperty(PropertyName.DevicePetDetected, true);
-                            if (!isEmpty(message.pic_url))
-                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("pet detected", this, this.getPropertyValue(PropertyName.DevicePetDetected) as boolean);
-                            this.clearEventTimeout(DeviceEvent.PetDetected);
-                            this.eventTimeouts.set(DeviceEvent.PetDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DevicePetDetected, false);
-                                this.emit("pet detected", this, this.getPropertyValue(PropertyName.DevicePetDetected) as boolean);
-                                this.eventTimeouts.delete(DeviceEvent.PetDetected);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                this.updateProperty(PropertyName.DevicePetDetected, true);
+                                this.clearEventTimeout(DeviceEvent.PetDetected);
+                                this.eventTimeouts.set(DeviceEvent.PetDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePetDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.PetDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         default:
                             this.log.debug("Unhandled indoor camera push event", message);
@@ -1524,6 +1564,23 @@ export class DoorbellCamera extends Camera {
         return this.getPropertyValue(PropertyName.DeviceRinging) as boolean;
     }
 
+    protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
+        super.handlePropertyChange(metadata, oldValue, newValue);
+        if (metadata.name === PropertyName.DeviceRinging) {
+            this.emit("rings", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DevicePackageDelivered) {
+            this.emit("package delivered", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DevicePackageStranded) {
+            this.emit("package stranded", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DevicePackageTaken) {
+            this.emit("package taken", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceSomeoneLoitering) {
+            this.emit("someone loitering", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceRadarMotionDetected) {
+            this.emit("radar motion detected", this, newValue as boolean);
+        }
+    }
+
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined) {
@@ -1531,110 +1588,103 @@ export class DoorbellCamera extends Camera {
                 try {
                     switch (message.event_type) {
                         case DoorbellPushEvent.MOTION_DETECTION:
-                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                            if (!isEmpty(message.pic_url))
-                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected) as boolean);
-                            this.clearEventTimeout(DeviceEvent.MotionDetected);
-                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected) as boolean);
-                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case DoorbellPushEvent.FACE_DETECTION:
                         case DoorbellPushEvent.FAMILY_DETECTION:
-                            this.updateProperty(PropertyName.DevicePersonDetected, true);
-                            this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
-                            if (!isEmpty(message.pic_url))
-                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("person detected", this, this.getPropertyValue(PropertyName.DevicePersonDetected) as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
-                            this.clearEventTimeout(DeviceEvent.PersonDetected);
-                            this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DevicePersonDetected, false);
-                                this.updateProperty(PropertyName.DevicePersonName, "");
-                                this.eventTimeouts.delete(DeviceEvent.PersonDetected);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                this.updateProperty(PropertyName.DevicePersonDetected, true);
+                                this.clearEventTimeout(DeviceEvent.PersonDetected);
+                                this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePersonName, "");
+                                    this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case DoorbellPushEvent.PRESS_DOORBELL:
-                            this.updateProperty(PropertyName.DeviceRinging, true);
-                            if (!isEmpty(message.pic_url))
-                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("rings", this, this.getPropertyValue(PropertyName.DeviceRinging) as boolean);
-                            this.clearEventTimeout(DeviceEvent.Ringing);
-                            this.eventTimeouts.set(DeviceEvent.Ringing, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceRinging, false);
-                                this.emit("rings", this, this.getPropertyValue(PropertyName.DeviceRinging) as boolean);
-                                this.eventTimeouts.delete(DeviceEvent.Ringing);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                this.updateProperty(PropertyName.DeviceRinging, true);
+                                this.clearEventTimeout(DeviceEvent.Ringing);
+                                this.eventTimeouts.set(DeviceEvent.Ringing, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceRinging, false);
+                                    this.eventTimeouts.delete(DeviceEvent.Ringing);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case DoorbellPushEvent.PACKAGE_DELIVERED:
-                            this.updateProperty(PropertyName.DevicePackageDelivered, true);
-                            if (!isEmpty(message.pic_url))
-                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("package delivered", this, this.getPropertyValue(PropertyName.DevicePackageDelivered) as boolean);
-                            this.clearEventTimeout(DeviceEvent.PackageDelivered);
-                            this.eventTimeouts.set(DeviceEvent.PackageDelivered, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DevicePackageDelivered, false);
-                                this.emit("package delivered", this, this.getPropertyValue(PropertyName.DevicePackageDelivered) as boolean);
-                                this.eventTimeouts.delete(DeviceEvent.PackageDelivered);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                this.updateProperty(PropertyName.DevicePackageDelivered, true);
+                                this.clearEventTimeout(DeviceEvent.PackageDelivered);
+                                this.eventTimeouts.set(DeviceEvent.PackageDelivered, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePackageDelivered, false);
+                                    this.eventTimeouts.delete(DeviceEvent.PackageDelivered);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case DoorbellPushEvent.PACKAGE_STRANDED:
-                            this.updateProperty(PropertyName.DevicePackageStranded, true);
-                            if (!isEmpty(message.pic_url))
-                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("package stranded", this, this.getPropertyValue(PropertyName.DevicePackageStranded) as boolean);
-                            this.clearEventTimeout(DeviceEvent.PackageStranded);
-                            this.eventTimeouts.set(DeviceEvent.PackageStranded, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DevicePackageStranded, false);
-                                this.emit("package stranded", this, this.getPropertyValue(PropertyName.DevicePackageStranded) as boolean);
-                                this.eventTimeouts.delete(DeviceEvent.PackageStranded);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                this.updateProperty(PropertyName.DevicePackageStranded, true);
+                                this.clearEventTimeout(DeviceEvent.PackageStranded);
+                                this.eventTimeouts.set(DeviceEvent.PackageStranded, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePackageStranded, false);
+                                    this.eventTimeouts.delete(DeviceEvent.PackageStranded);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case DoorbellPushEvent.PACKAGE_TAKEN:
-                            this.updateProperty(PropertyName.DevicePackageTaken, true);
-                            if (!isEmpty(message.pic_url))
-                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("package taken", this, this.getPropertyValue(PropertyName.DevicePackageTaken) as boolean);
-                            this.clearEventTimeout(DeviceEvent.PackageTaken);
-                            this.eventTimeouts.set(DeviceEvent.PackageTaken, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DevicePackageTaken, false);
-                                this.emit("package taken", this, this.getPropertyValue(PropertyName.DevicePackageTaken) as boolean);
-                                this.eventTimeouts.delete(DeviceEvent.PackageTaken);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                this.updateProperty(PropertyName.DevicePackageTaken, true);
+                                this.clearEventTimeout(DeviceEvent.PackageTaken);
+                                this.eventTimeouts.set(DeviceEvent.PackageTaken, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePackageTaken, false);
+                                    this.eventTimeouts.delete(DeviceEvent.PackageTaken);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case DoorbellPushEvent.SOMEONE_LOITERING:
-                            this.updateProperty(PropertyName.DeviceSomeoneLoitering, true);
-                            if (!isEmpty(message.pic_url))
-                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("someone loitering", this, this.getPropertyValue(PropertyName.DeviceSomeoneLoitering) as boolean);
-                            this.clearEventTimeout(DeviceEvent.SomeoneLoitering);
-                            this.eventTimeouts.set(DeviceEvent.SomeoneLoitering, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceSomeoneLoitering, false);
-                                this.emit("someone loitering", this, this.getPropertyValue(PropertyName.DeviceSomeoneLoitering) as boolean);
-                                this.eventTimeouts.delete(DeviceEvent.SomeoneLoitering);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                this.updateProperty(PropertyName.DeviceSomeoneLoitering, true);
+                                this.clearEventTimeout(DeviceEvent.SomeoneLoitering);
+                                this.eventTimeouts.set(DeviceEvent.SomeoneLoitering, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceSomeoneLoitering, false);
+                                    this.eventTimeouts.delete(DeviceEvent.SomeoneLoitering);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case DoorbellPushEvent.RADAR_MOTION_DETECTION:
-                            this.updateProperty(PropertyName.DeviceRadarMotionDetected, true);
-                            if (!isEmpty(message.pic_url))
-                                this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
-                            if (message.push_count === 1 || message.push_count === undefined)
-                                this.emit("radar motion detected", this, this.getPropertyValue(PropertyName.DeviceRadarMotionDetected) as boolean);
-                            this.clearEventTimeout(DeviceEvent.RadarMotionDetected);
-                            this.eventTimeouts.set(DeviceEvent.RadarMotionDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceRadarMotionDetected, false);
-                                this.emit("radar motion detected", this, this.getPropertyValue(PropertyName.DeviceRadarMotionDetected) as boolean);
-                                this.eventTimeouts.delete(DeviceEvent.RadarMotionDetected);
-                            }, eventDurationSeconds * 1000));
+                            if (message.push_count === 1 || message.push_count === undefined) {
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                this.updateProperty(PropertyName.DeviceRadarMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.RadarMotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.RadarMotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceRadarMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.RadarMotionDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         default:
                             this.log.debug("Unhandled doorbell push event", message);
@@ -1789,7 +1839,6 @@ export class EntrySensor extends Sensor {
                 try {
                     if (message.sensor_open !== undefined) {
                         this.updateRawProperty(CommandType.CMD_ENTRY_SENSOR_STATUS, message.sensor_open ? "1" : "0");
-                        this.emit("open", this, message.sensor_open);
                     }
                 } catch (error) {
                     this.log.debug(`CusPushEvent.DOOR_SENSOR - Device: ${message.device_sn} Error:`, error);
@@ -1797,6 +1846,14 @@ export class EntrySensor extends Sensor {
             }
         }
     }
+
+    protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
+        super.handlePropertyChange(metadata, oldValue, newValue);
+        if (metadata.name === PropertyName.DeviceSensorOpen && metadata.key === CommandType.CMD_ENTRY_SENSOR_STATUS) {
+            this.emit("open", this, newValue as boolean);
+        }
+    }
+
 
 }
 
@@ -1848,17 +1905,22 @@ export class MotionSensor extends Sensor {
         return this.getPropertyValue(PropertyName.DeviceBatteryLow);
     }
 
+    protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
+        super.handlePropertyChange(metadata, oldValue, newValue);
+        if (metadata.name === PropertyName.DeviceMotionDetected) {
+            this.emit("motion detected", this, newValue as boolean);
+        }
+    }
+
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined) {
             if (message.event_type === CusPushEvent.MOTION_SENSOR_PIR && message.device_sn === this.getSerial()) {
                 try {
                     this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                    this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected) as boolean);
                     this.clearEventTimeout(DeviceEvent.MotionDetected);
                     this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
                         this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                        this.emit("motion detected", this, this.getPropertyValue(PropertyName.DeviceMotionDetected) as boolean);
                         this.eventTimeouts.delete(DeviceEvent.MotionDetected);
                     }, eventDurationSeconds * 1000));
                 } catch (error) {
@@ -1882,11 +1944,14 @@ export class Lock extends Device {
         return "locks";
     }
 
-    protected processCustomParameterChanged(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
-        super.processCustomParameterChanged(metadata, oldValue, newValue);
-        if ((metadata.key === CommandType.CMD_DOORLOCK_GET_STATE || metadata.key === CommandType.CMD_SMARTLOCK_QUERY_STATUS) && ((oldValue !== undefined && ((oldValue === 4 && newValue !== 4) || (oldValue !== 4 && newValue === 4))) || oldValue === undefined)) {
-            if (this.updateProperty(PropertyName.DeviceLocked, newValue === 4 ? true : false))
-                this.emit("locked", this as unknown as Lock, newValue === 4 ? true : false);
+    protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
+        super.handlePropertyChange(metadata, oldValue, newValue);
+        if (metadata.name === PropertyName.DeviceLocked) {
+            this.emit("locked", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceLowBatteryAlert) {
+            this.emit("low battery", this, newValue as boolean);
+        } else if ((metadata.key === CommandType.CMD_DOORLOCK_GET_STATE || metadata.key === CommandType.CMD_SMARTLOCK_QUERY_STATUS) && ((oldValue !== undefined && ((oldValue === 4 && newValue !== 4) || (oldValue !== 4 && newValue === 4))) || oldValue === undefined)) {
+            this.updateProperty(PropertyName.DeviceLocked, newValue === 4 ? true : false);
         }
     }
 
@@ -1937,11 +2002,11 @@ export class Lock extends Device {
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
         if (message.event_type !== undefined) {
-            this.processNotification(message.event_type, message.event_time, message.device_sn);
+            this.processNotification(message.event_type, message.event_time, message.device_sn, eventDurationSeconds);
         }
     }
 
-    public processMQTTNotification(message: DeviceSmartLockNotifyData): void {
+    public processMQTTNotification(message: DeviceSmartLockNotifyData, eventDurationSeconds: number): void {
         if (message.eventType === LockPushEvent.STATUS_CHANGE) {
             // Lock state event
             const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
@@ -1949,11 +2014,11 @@ export class Lock extends Device {
         } else if (message.eventType === LockPushEvent.OTA_STATUS) {
             // OTA Status - ignore event
         } else {
-            this.processNotification(message.eventType, message.eventTime, this.getSerial());
+            this.processNotification(message.eventType, message.eventTime, this.getSerial(), eventDurationSeconds);
         }
     }
 
-    private processNotification(eventType: number, eventTime: number, deviceSN: string): void {
+    private processNotification(eventType: number, eventTime: number, deviceSN: string, eventDurationSeconds: number): void {
         if (deviceSN === this.getSerial()) {
             try {
                 switch (eventType) {
@@ -1989,6 +2054,15 @@ export class Lock extends Device {
                         this.updateRawProperty(cmdType, "5");
                         break;
                     }
+                    case LockPushEvent.LOW_POWER:
+                    case LockPushEvent.VERY_LOW_POWER:
+                        this.updateProperty(PropertyName.DeviceLowBatteryAlert, true);
+                        this.clearEventTimeout(DeviceEvent.LowBattery);
+                        this.eventTimeouts.set(DeviceEvent.LowBattery, setTimeout(async () => {
+                            this.updateProperty(PropertyName.DeviceLowBatteryAlert, false);
+                            this.eventTimeouts.delete(DeviceEvent.LowBattery);
+                        }, eventDurationSeconds * 1000));
+                        break;
                     // case LockPushEvent.LOW_POWE:
                     //     this.updateRawProperty(CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL, "10");
                     //     break;
@@ -2067,6 +2141,316 @@ export class Keypad extends Device {
             this.log.error("Convert Error:", { property: property, value: value, error: error });
         }
         return super.convertRawPropertyValue(property, value);
+    }
+
+}
+
+export class SmartSafe extends Device {
+
+    public static readonly IV = "052E19EB3F880512E99EBB684D4DC1FE";
+    public static readonly DATA_HEADER = [-1, 9];
+    public static readonly VERSION_CODE = 1;
+    public static readonly PUSH_NOTIFICATION_POSITION: {
+        [index: string]: number;
+    } = {
+            [PropertyName.DeviceNotificationUnlockByKey] : 0,
+            [PropertyName.DeviceNotificationUnlockByPIN] : 1,
+            [PropertyName.DeviceNotificationUnlockByFingerprint] : 2,
+            [PropertyName.DeviceNotificationUnlockByApp] : 3,
+            [PropertyName.DeviceNotificationDualUnlock] : 4,
+            [PropertyName.DeviceNotificationDualLock] : 5,
+            [PropertyName.DeviceNotificationWrongTryProtect] : 6,
+            [PropertyName.DeviceNotificationJammed] : 7,
+        };
+
+    static async initialize(api: HTTPApi, device: DeviceListResponse): Promise<SmartSafe> {
+        const safe = new SmartSafe(api, device);
+        safe.initializeState();
+        return safe;
+    }
+
+    public getStateChannel(): string {
+        return "smartsafes";
+    }
+
+    private static getCurrentTimeInSeconds(): Buffer {
+        const timeInSeconds = getCurrentTimeInSeconds();
+        const arr = new Uint8Array(4);
+        for (let i = 0; i < 4; i++) {
+            arr[i] = ((timeInSeconds >> (i * 8)) & 255);
+        }
+        return Buffer.from(arr);
+    }
+
+    private static getUInt8Buffer(value: number): Buffer {
+        const buffer = Buffer.allocUnsafe(1);
+        buffer.writeUInt8(value);
+        return buffer;
+    }
+
+    private static getUint16LEBuffer(value: number): Buffer {
+        const buffer = Buffer.allocUnsafe(2);
+        buffer.writeUint16LE(value);
+        return buffer;
+    }
+
+    private static encodeCmdSingleUInt8(user_id: string, value: number): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(user_id));
+        ssbytes.write(this.getUInt8Buffer(value));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdWrongTryProtect(user_id: string, enabled: boolean, attempts: number, lockdownTime: number): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(user_id));
+        ssbytes.write(this.getUInt8Buffer(enabled === true ? 1 : 0));
+        ssbytes.write(this.getUInt8Buffer(attempts));
+        ssbytes.write(this.getUInt8Buffer(lockdownTime));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdLeftOpenAlarm(user_id: string, enabled: boolean, duration: number): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(user_id));
+        ssbytes.write(this.getUInt8Buffer(enabled === true ? 1 : 0));
+        ssbytes.write(this.getUint16LEBuffer(duration));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdDualUnlock(user_id: string, enabled: boolean): Buffer {
+        return SmartSafe.encodeCmdSingleUInt8(user_id, enabled === true ? 1 : 0);
+    }
+
+    public static encodeCmdScramblePIN(user_id: string, enabled: boolean): Buffer {
+        return SmartSafe.encodeCmdSingleUInt8(user_id, enabled === true ? 1 : 0);
+    }
+
+    public static encodeCmdPowerSave(user_id: string, enabled: boolean): Buffer {
+        return SmartSafe.encodeCmdSingleUInt8(user_id, enabled === true ? 1 : 0);
+    }
+
+    public static encodeCmdInteriorBrightness(user_id: string, interiorBrightness: number, duration: number): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(user_id));
+        ssbytes.write(this.getUInt8Buffer(interiorBrightness));
+        ssbytes.write(this.getUInt8Buffer(duration));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdTamperAlarm(user_id: string, option: number): Buffer {
+        return SmartSafe.encodeCmdSingleUInt8(user_id, option);
+    }
+
+    public static encodeCmdRemoteUnlock(user_id: string, option: number): Buffer {
+        return SmartSafe.encodeCmdSingleUInt8(user_id, option);
+    }
+
+    public static encodeCmdAlertVolume(user_id: string, volume: number): Buffer {
+        return SmartSafe.encodeCmdSingleUInt8(user_id, volume);
+    }
+
+    public static encodeCmdPromptVolume(user_id: string, volume: number): Buffer {
+        return SmartSafe.encodeCmdSingleUInt8(user_id, volume);
+    }
+
+    public static encodeCmdPushNotification(user_id: string, modes: number): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(user_id));
+        ssbytes.write(this.getUint16LEBuffer(modes));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdUnlock(user_id: string): Buffer {
+        return SmartSafe.encodeCmdSingleUInt8(user_id, 1);
+    }
+
+    protected convertRawPropertyValue(property: PropertyMetadataAny, value: string): PropertyValue {
+        try {
+            if (property.key === CommandType.CMD_SMARTSAFE_REMOTE_OPEN_TYPE) {
+                switch (property.name) {
+                    case PropertyName.DeviceRemoteUnlock:
+                    {
+                        const booleanProperty = property as PropertyMetadataBoolean;
+                        return value !== undefined ? (value === "0" || value === "1" ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                    }
+                    case PropertyName.DeviceRemoteUnlockMasterPIN:
+                    {
+                        const booleanProperty = property as PropertyMetadataBoolean;
+                        return value !== undefined ? (value === "0" ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                    }
+                }
+            } else if (property.key === CommandType.CMD_SMARTSAFE_NOTIF) {
+                const booleanProperty = property as PropertyMetadataBoolean;
+                return value !== undefined ? ((Number.parseInt(value) >> SmartSafe.PUSH_NOTIFICATION_POSITION[property.name]) & 1) === 1 : booleanProperty.default !== undefined ? booleanProperty.default : false;
+            }
+        } catch (error) {
+            this.log.error("Convert Error:", { property: property, value: value, error: error });
+        }
+        return super.convertRawPropertyValue(property, value);
+    }
+
+    public shakeEvent(event: number, eventDurationSeconds: number): void {
+        this.updateProperty(PropertyName.DeviceShakeAlertEvent, event);
+        this.updateProperty(PropertyName.DeviceShakeAlert, true);
+        this.clearEventTimeout(DeviceEvent.ShakeAlarm);
+        this.eventTimeouts.set(DeviceEvent.ShakeAlarm, setTimeout(async () => {
+            this.updateProperty(PropertyName.DeviceShakeAlert, false);
+            this.eventTimeouts.delete(DeviceEvent.ShakeAlarm);
+        }, eventDurationSeconds * 1000));
+    }
+
+    public alarm911Event(event: number, eventDurationSeconds: number): void {
+        this.updateProperty(PropertyName.Device911AlertEvent, event);
+        this.updateProperty(PropertyName.Device911Alert, true);
+        this.clearEventTimeout(DeviceEvent.Alarm911);
+        this.eventTimeouts.set(DeviceEvent.Alarm911, setTimeout(async () => {
+            this.updateProperty(PropertyName.Device911Alert, false);
+            this.eventTimeouts.delete(DeviceEvent.Alarm911);
+        }, eventDurationSeconds * 1000));
+    }
+
+    public jammedEvent(eventDurationSeconds: number): void {
+        this.updateProperty(PropertyName.DeviceJammedAlert, true);
+        this.clearEventTimeout(DeviceEvent.Jammed);
+        this.eventTimeouts.set(DeviceEvent.Jammed, setTimeout(async () => {
+            this.updateProperty(PropertyName.DeviceJammedAlert, false);
+            this.eventTimeouts.delete(DeviceEvent.Jammed);
+        }, eventDurationSeconds * 1000));
+    }
+
+    public lowBatteryEvent(eventDurationSeconds: number): void {
+        this.updateProperty(PropertyName.DeviceLowBatteryAlert, true);
+        this.clearEventTimeout(DeviceEvent.LowBattery);
+        this.eventTimeouts.set(DeviceEvent.LowBattery, setTimeout(async () => {
+            this.updateProperty(PropertyName.DeviceLowBatteryAlert, false);
+            this.eventTimeouts.delete(DeviceEvent.LowBattery);
+        }, eventDurationSeconds * 1000));
+    }
+
+    public wrongTryProtectAlarmEvent(eventDurationSeconds: number): void {
+        this.updateProperty(PropertyName.DeviceWrongTryProtectAlert, true);
+        this.clearEventTimeout(DeviceEvent.WrontTryProtectAlarm);
+        this.eventTimeouts.set(DeviceEvent.WrontTryProtectAlarm, setTimeout(async () => {
+            this.updateProperty(PropertyName.DeviceWrongTryProtectAlert, false);
+            this.eventTimeouts.delete(DeviceEvent.WrontTryProtectAlarm);
+        }, eventDurationSeconds * 1000));
+    }
+
+    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(message, eventDurationSeconds);
+        if (message.event_type !== undefined) {
+            if (message.device_sn === this.getSerial()) {
+                try {
+                    switch (message.event_type) {
+                        //TODO: Finish smart safe push notification handling implementation
+                        case SmartSafeEvent.LOCK_STATUS:
+                        {
+                            const eventValues = message.event_value as SmartSafeEventValueDetail;
+
+                            if (eventValues.action === 0) {
+                                this.updateRawProperty(CommandType.CMD_SMARTSAFE_LOCK_STATUS, "0");
+                                /*
+                                    type values:
+                                        1: Unlocked by PIN
+                                        2: Unlocked by User
+                                        3: Unlocked by key
+                                        4: Unlocked by App
+                                        5: Unlocked by Dual Unlock
+                                */
+                            } else if (eventValues.action === 1) {
+                                this.updateRawProperty(CommandType.CMD_SMARTSAFE_LOCK_STATUS, "1");
+                            } else if (eventValues.action === 2) {
+                                this.jammedEvent(eventDurationSeconds);
+                            } else if (eventValues.action === 3) {
+                                this.lowBatteryEvent(eventDurationSeconds);
+                            }
+                            break;
+                        }
+                        case SmartSafeEvent.ALARM_911:
+                        {
+                            const eventValue = message.event_value as number;
+                            this.alarm911Event(eventValue, eventDurationSeconds);
+                            break;
+                        }
+                        case SmartSafeEvent.SHAKE_ALARM:
+                        {
+                            const eventValue = message.event_value as number;
+                            this.shakeEvent(eventValue, eventDurationSeconds);
+                            break;
+                        }
+                        case SmartSafeEvent.LONG_TIME_NOT_CLOSE:
+                        {
+                            const eventValue = message.event_value as number;
+                            if (eventValue === 1) {
+                                this.updateProperty(PropertyName.DeviceLongTimeNotCloseAlert, true);
+                                this.clearEventTimeout(DeviceEvent.LongTimeNotClose);
+                                this.eventTimeouts.set(DeviceEvent.LongTimeNotClose, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceLongTimeNotCloseAlert, false);
+                                    this.eventTimeouts.delete(DeviceEvent.LongTimeNotClose);
+                                }, eventDurationSeconds * 1000));
+                            }
+                            break;
+                        }
+                        case SmartSafeEvent.LOW_POWER:
+                        {
+                            this.lowBatteryEvent(eventDurationSeconds);
+                            break;
+                        }
+                        case SmartSafeEvent.INPUT_ERR_MAX:
+                        {
+                            this.wrongTryProtectAlarmEvent(eventDurationSeconds);
+                            break;
+                        }
+                        default:
+                            this.log.debug("Unhandled smart safe notification event", message.event_type, message.event_time, message.device_sn);
+                            break;
+                    }
+                } catch (error) {
+                    this.log.debug(`LockEvent - Device: ${message.device_sn} Error:`, error);
+                }
+            }
+        }
+    }
+
+    protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
+        super.handlePropertyChange(metadata, oldValue, newValue);
+        if (metadata.name === PropertyName.DeviceLocked && metadata.key === CommandType.CMD_SMARTSAFE_LOCK_STATUS) {
+            this.emit("locked", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceJammedAlert) {
+            this.emit("jammed", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceLowBatteryAlert) {
+            this.emit("low battery", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.Device911Alert) {
+            this.emit("911 alarm", this, newValue as boolean, this.getPropertyValue(PropertyName.Device911AlertEvent) as number);
+        } else if (metadata.name === PropertyName.DeviceShakeAlert) {
+            this.emit("shake alarm", this, newValue as boolean, this.getPropertyValue(PropertyName.DeviceShakeAlertEvent) as number);
+        } else if (metadata.name === PropertyName.DeviceLongTimeNotCloseAlert) {
+            this.emit("long time not close", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceWrongTryProtectAlert) {
+            this.emit("wrong try-protect alarm", this, newValue as boolean);
+        }
+    }
+
+    public getState(): PropertyValue {
+        return this.getPropertyValue(PropertyName.DeviceState);
+    }
+
+    public getBatteryValue(): PropertyValue {
+        return this.getPropertyValue(PropertyName.DeviceBattery);
+    }
+
+    public getWifiRssi(): PropertyValue {
+        return this.getPropertyValue(PropertyName.DeviceWifiRSSI);
+    }
+
+    public isLocked(): boolean {
+        return this.getPropertyValue(PropertyName.DeviceLocked) as boolean;
     }
 
 }
