@@ -386,6 +386,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             } else {
                 const station = new Station(this.api, hub);
                 station.on("connect", (station: Station) => this.onStationConnect(station));
+                station.on("connection error", (station: Station, error: Error) => this.onStationConnectionError(station, error));
                 station.on("close", (station: Station) => this.onStationClose(station));
                 station.on("raw device property changed", (deviceSN: string, params: RawValues) => this.updateDeviceProperties(deviceSN, params));
                 station.on("livestream start", (station: Station, channel:number, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => this.onStartStationLivestream(station, channel, metadata, videostream, audiostream));
@@ -445,6 +446,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }, this.P2P_REFRESH_INTERVAL_MIN * 60 * 1000);
             }
         }
+    }
+
+    private onStationConnectionError(station: Station, error: Error): void {
+        this.emit("station connection error", station, error);
     }
 
     private onStationClose(station: Station): void {
