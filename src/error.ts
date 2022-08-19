@@ -94,3 +94,11 @@ export class TalkbackError extends Error {
         this.name = TalkbackError.name;
     }
 }
+
+export class StationConnectTimeoutError extends Error {
+    constructor(message?: string) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = StationConnectTimeoutError.name;
+    }
+}
