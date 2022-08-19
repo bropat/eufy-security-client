@@ -80,9 +80,16 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 2.x.x (2022-08-xx)
+### 2.2.0-rc.1 (2022-08-19)
 
-* (bropat) Added new Doorbell Dual notification types (package delivered, package taken, package stranded, someone loitering, radar motion detected)
+* (bropat) **Breaking Change** Renamed all lock settings parameters according to standard
+* (bropat) Renewed p2p device address discovery (now also includes local discovery via broadcast; cloud discovery optimised)
+* (bropat) Added support for Doorbell Dual notification types (package delivered, package taken, package stranded, someone loitering, radar motion detected)
+* (bropat) Added Smart Safe support (tested only T7401; #182 **WIP**)
+* (bropat) Fixed issue #196
+* (bropat) Fixed issue #201
+* (bropat) Fixed emitting of event "locked" for lock devices
+* (bropat) Small bugfixes and optimizations
 
 ### 2.1.2 (2022-07-30)
 

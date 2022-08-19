@@ -5,17 +5,19 @@ import { Readable } from "stream";
 import { Logger } from "ts-log";
 import { SortedMap } from "sweet-collections";
 
-import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, PropertyData, ESLStationP2PThroughData } from "./models";
-import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateBasicLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildVoidCommandPayload, isP2PQueueMessage, buildTalkbackAudioFrameHeader } from "./utils";
-import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, ESLInnerCommand, P2PConnectionType, ChargingType, AlarmEvent, IndoorSoloSmartdropCommandType } from "./types";
+import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, PropertyData, ESLStationP2PThroughData, SmartSafeSettingsNotification, SmartSafeStatusNotification } from "./models";
+import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateBasicLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildVoidCommandPayload, isP2PQueueMessage, buildTalkbackAudioFrameHeader, getLocalIpAddress, decodeP2PCloudIPs } from "./utils";
+import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, ESLInnerCommand, P2PConnectionType, ChargingType, AlarmEvent, IndoorSoloSmartdropCommandType, SmartSafeCommandCode } from "./types";
 import { AlarmMode } from "../http/types";
 import { P2PDataMessage, P2PDataMessageAudio, P2PDataMessageBuilder, P2PMessageState, P2PDataMessageVideo, P2PMessage, P2PDataHeader, P2PDataMessageState, P2PClientProtocolEvents, DeviceSerial, P2PQueueMessage, P2PCommand, P2PVideoMessageState } from "./interfaces";
 import { DskKeyResponse, ResultResponse, StationListResponse } from "../http/models";
 import { HTTPApi } from "../http/api";
 import { Device } from "../http/device";
-import { getAdvancedLockTimezone } from "../http/utils";
+import { decodeSmartSafeData, getAdvancedLockTimezone } from "../http/utils";
 import { TalkbackStream } from "./talkback";
 import { LivestreamError, TalkbackError } from "../error";
+import { SmartSafeEvent } from "../push/types";
+import { SmartSafeEventValueDetail } from "../push/models";
 
 export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
@@ -65,17 +67,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private downloadTotalBytes = 0;
     private downloadReceivedBytes = 0;
 
-    private cloudAddresses: Array<Address> = [
-        { host: "18.197.212.165", port: 32100 },    // Germany Frankfurt
-        { host: "34.235.4.153", port: 32100 },      // USA Ashburn
-        { host: "54.153.101.7", port: 32100 },      // USA San Francisco
-        { host: "18.223.127.200", port: 32100 },    // USA Columbus
-        { host: "54.223.148.206", port: 32100 },    // China Beijing
-        { host: "13.251.222.7", port: 32100 },      // Singapore
-        { host: "54.167.31.60", port: 32100 },      // USA Ashburn
-        { host: "204.236.133.68", port: 32100 },    // USA San Jose
-        { host: "3.131.209.36", port: 32100 },      // USA Columbus
-    ];
+    private cloudAddresses: Array<Address>;
 
     private messageStates: SortedMap<number, P2PMessageState> = new SortedMap<number, P2PMessageState>((a: number, b: number) => a - b);
     private messageVideoStates: SortedMap<number, P2PVideoMessageState> = new SortedMap<number, P2PVideoMessageState>((a: number, b: number) => a - b);
@@ -87,6 +79,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private heartbeatTimeout?: NodeJS.Timeout;
     private keepaliveTimeout?: NodeJS.Timeout;
     private esdDisconnectTimeout?: NodeJS.Timeout;
+    private secondaryCommandTimeout?: NodeJS.Timeout;
     private connectTime: number | null = null;
     private lastPong: number | null = null;
     private connectionType: P2PConnectionType = P2PConnectionType.QUICKEST;
@@ -96,17 +89,22 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private energySavingDeviceP2PDataSeqNumber = 0;
 
     private connectAddress: Address | undefined = undefined;
+    private localIPAddress: string | undefined = undefined;
     private dskKey = "";
     private dskExpiration: Date | null = null;
     private log: Logger;
     private deviceSNs: DeviceSerial = {};
     private api: HTTPApi;
     private rawStation!: StationListResponse;
+    private lastPropertyData?: PropertyData;
+    private lastChannel?: number;
 
     constructor(rawStation: StationListResponse, api: HTTPApi) {
         super();
         this.api = api;
         this.log = api.getLog();
+        this.cloudAddresses = decodeP2PCloudIPs(rawStation.app_conn);
+        this.log.debug("Loaded P2P cloud ip addresses", this.cloudAddresses);
         this.updateRawStation(rawStation);
 
         this.socket = createSocket("udp4");
@@ -135,6 +133,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.energySavingDeviceP2PDataSeqNumber = 0;
         this.lockSeqNumber = -1;
         this.connectAddress = undefined;
+        this.lastChannel = undefined;
+        this.lastPropertyData = undefined;
 
         this._clearMessageStateTimeouts();
         this._clearMessageVideoStateTimeouts();
@@ -248,6 +248,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.esdDisconnectTimeout = undefined;
     }
 
+    private _clearSecondaryCommandTimeout(): void {
+        this._clearTimeout(this.secondaryCommandTimeout);
+        this.secondaryCommandTimeout = undefined;
+    }
+
     private _disconnected(): void {
         this._clearHeartbeatTimeout();
         this._clearKeepaliveTimeout();
@@ -255,6 +260,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this._clearLookupTimeout();
         this._clearConnectTimeout();
         this._clearESDDisconnectTimeout();
+        this._clearSecondaryCommandTimeout();
         if (this.currentMessageState[P2PDataType.VIDEO].p2pStreaming) {
             this.endStream(P2PDataType.VIDEO)
         }
@@ -297,48 +303,53 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         }
     }
 
-    public lookup(): void {
-        this.cloudAddresses.map((address) => this.lookupByAddress(address));
-        this.cloudAddresses.map((address) => this.lookupByAddress2(address));
-
-        this._clearLookupTimeout();
-        this._clearLookupRetryTimeout();
-
-        this.lookupTimeout = setTimeout(() => {
-            this.lookupTimeout = undefined;
-            this.log.error(`${this.constructor.name}.lookup(): station: ${this.rawStation.station_sn} - All address lookup tentatives failed.`);
-            this._disconnected();
-        }, this.MAX_LOOKUP_TIMEOUT);
+    private localLookup(host: string): void {
+        this.log.debug(`Trying to local lookup address for station ${this.rawStation.station_sn} with host ${host}`);
+        this.localLookupByAddress({ host: host, port: 32108 });
     }
 
-    public lookup2(origAddress: Address, data: Buffer): void {
-        this.cloudAddresses.map((address) => this.lookupByAddress3(address, origAddress, data));
+    private cloudLookup(): void {
+        this.cloudAddresses.map((address) => this.cloudLookupByAddress(address));
+        this.cloudAddresses.map((address) => this.cloudLookupByAddress2(address));
     }
 
-    private async lookupByAddress(address: Address): Promise<void> {
+    private cloudLookup2(origAddress: Address, data: Buffer): void {
+        this.cloudAddresses.map((address) => this.cloudLookupByAddress3(address, origAddress, data));
+    }
+
+    private async localLookupByAddress(address: Address): Promise<void> {
+        // Send lookup message
+        const msgId = RequestMessageType.LOCAL_LOOKUP;
+        const payload = Buffer.from([0, 0]);
+        sendMessage(this.socket, address, msgId, payload).catch((error) => {
+            this.log.error(`Local lookup address for station ${this.rawStation.station_sn} - Error:`, error);
+        });
+    }
+
+    private async cloudLookupByAddress(address: Address): Promise<void> {
         // Send lookup message
         const msgId = RequestMessageType.LOOKUP_WITH_KEY;
         const payload = buildLookupWithKeyPayload(this.socket, this.rawStation.p2p_did, this.dskKey);
         sendMessage(this.socket, address, msgId, payload).catch((error) => {
-            this.log.error(`Lookup addresses for station ${this.rawStation.station_sn} - Error:`, error);
+            this.log.error(`Cloud lookup addresses for station ${this.rawStation.station_sn} - Error:`, error);
         });
     }
 
-    private async lookupByAddress2(address: Address): Promise<void> {
+    private async cloudLookupByAddress2(address: Address): Promise<void> {
         // Send lookup message2
         const msgId = RequestMessageType.LOOKUP_WITH_KEY2;
         const payload = buildLookupWithKeyPayload2(this.rawStation.p2p_did, this.dskKey);
         sendMessage(this.socket, address, msgId, payload).catch((error) => {
-            this.log.error(`Lookup addresses for station ${this.rawStation.station_sn} - Error:`, error);
+            this.log.error(`Cloud lookup addresses (2) for station ${this.rawStation.station_sn} - Error:`, error);
         });
     }
 
-    private lookupByAddress3(address: Address, origAddress: Address, data: Buffer): void {
+    private cloudLookupByAddress3(address: Address, origAddress: Address, data: Buffer): void {
         // Send lookup message3
         const msgId = RequestMessageType.LOOKUP_WITH_KEY3;
         const payload = buildLookupWithKeyPayload3(this.rawStation.p2p_did, origAddress, data);
         sendMessage(this.socket, address, msgId, payload).catch((error) => {
-            this.log.error(`Lookup addresses for station ${this.rawStation.station_sn} - Error:`, error);
+            this.log.error(`Cloud lookup addresses (3) for station ${this.rawStation.station_sn} - Error:`, error);
         });
     }
 
@@ -362,7 +373,28 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this._startConnectTimeout();
     }
 
-    public async connect(): Promise<void> {
+    private lookup(host?: string): void {
+        if (host === undefined && this.localIPAddress !== undefined) {
+            host = this.localIPAddress;
+        } else {
+            const localIP = getLocalIpAddress();
+            host = localIP.substring(0, localIP.lastIndexOf(".") + 1).concat("255")
+        }
+        this.localLookup(host);
+        this.cloudLookup();
+        this._clearLookupTimeout();
+        this._clearLookupRetryTimeout();
+
+        this.lookupTimeout = setTimeout(() => {
+            this.lookupTimeout = undefined;
+            this.log.error(`${this.constructor.name}.connect(): station: ${this.rawStation.station_sn} - All address lookup tentatives failed.`);
+            if (this.localIPAddress !== undefined)
+                this.localIPAddress = undefined
+            this._disconnected();
+        }, this.MAX_LOOKUP_TIMEOUT);
+    }
+
+    public async connect(host?: string): Promise<void> {
         if (!this.connected && !this.connecting && this.rawStation.p2p_did !== undefined) {
             this.connecting = true;
             this.terminating = false;
@@ -375,10 +407,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     } catch (error) {
                         this.log.error(`Station ${this.rawStation.station_sn} - Error:`, { error: error, currentRecBufferSize: this.socket.getRecvBufferSize(), recBufferRequestedSize: this.UDP_RECVBUFFERSIZE_BYTES });
                     }
-                    this.lookup();
+                    this.lookup(host);
                 });
-            else
-                this.lookup();
+            else {
+                this.lookup(host);
+            }
         }
     }
 
@@ -633,17 +666,28 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
 
     private handleMsg(msg: Buffer, rinfo: RemoteInfo): void {
-        if (hasHeader(msg, ResponseMessageType.LOOKUP_ADDR)) {
-            const port = msg.slice(6, 8).readUInt16LE();
-            const ip = `${msg[11]}.${msg[10]}.${msg[9]}.${msg[8]}`;
-
-            this.log.debug(`Station ${this.rawStation.station_sn} - LOOKUP_ADDR - Got response`, { remoteAddress: rinfo.address, remotePort: rinfo.port, response: { ip: ip, port: port }});
-
-            if (ip === "0.0.0.0") {
-                this.log.debug(`Station ${this.rawStation.station_sn} - LOOKUP_ADDR - Got invalid ip address 0.0.0.0, ignoring response...`);
-                return;
-            }
+        if (hasHeader(msg, ResponseMessageType.LOCAL_LOOKUP_RESP)) {
             if (!this.connected) {
+                this._clearLookupTimeout();
+                this._clearLookupRetryTimeout();
+                this.log.debug(`Station ${this.rawStation.station_sn} - LOCAL_LOOKUP_RESP - Got response`, { ip: rinfo.address, port: rinfo.port });
+                this._connect({ host: rinfo.address, port: rinfo.port });
+            }
+        } else if (hasHeader(msg, ResponseMessageType.LOOKUP_ADDR)) {
+            if (!this.connected) {
+                const port = msg.slice(6, 8).readUInt16LE();
+                const ip = `${msg[11]}.${msg[10]}.${msg[9]}.${msg[8]}`;
+
+                this.log.debug(`Station ${this.rawStation.station_sn} - LOOKUP_ADDR - Got response`, { remoteAddress: rinfo.address, remotePort: rinfo.port, response: { ip: ip, port: port }});
+
+                if (ip === "0.0.0.0") {
+                    this.log.debug(`Station ${this.rawStation.station_sn} - LOOKUP_ADDR - Got invalid ip address 0.0.0.0, ignoring response...`);
+                    return;
+                }
+
+                if (isPrivateIp(ip))
+                    this.localIPAddress = ip;
+
                 if (this.connectionType === P2PConnectionType.ONLY_LOCAL) {
                     if (isPrivateIp(ip)) {
                         this._clearLookupTimeout();
@@ -657,9 +701,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     this.log.debug(`Station ${this.rawStation.station_sn} - QUICKEST - Try to connect to ${ip}:${port}...`);
                     this._connect({ host: ip, port: port });
                 }
-
-            } else {
-
             }
         } else if (hasHeader(msg, ResponseMessageType.CAM_ID) || hasHeader(msg, ResponseMessageType.CAM_ID2)) {
             // Answer from the device to a CAM_CHECK message
@@ -673,6 +714,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this.lastPong = null;
 
                 this.connectAddress = { host: rinfo.address, port: rinfo.port };
+                if (isPrivateIp(rinfo.address))
+                    this.localIPAddress = rinfo.address;
 
                 this.heartbeatTimeout = setTimeout(() => {
                     this.scheduleHeartbeat();
@@ -707,9 +750,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     });
                 }
                 this.sendQueuedMessage();
-            } else {
+            }/* else {
                 this.log.debug(`Station ${this.rawStation.station_sn} - CAM_ID - Already connected, ignoring...`);
-            }
+            }*/
         } else if (hasHeader(msg, ResponseMessageType.PONG)) {
             // Response to a ping from our side
             this.lastPong = new Date().getTime();
@@ -723,7 +766,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         } else if (hasHeader(msg, ResponseMessageType.END)) {
             // Connection is closed by device
             this.log.debug(`Station ${this.rawStation.station_sn} - END - received from host ${rinfo.address}:${rinfo.port}`);
-            //this._disconnected();
             this.onClose();
             return;
         } else if (hasHeader(msg, ResponseMessageType.ACK)) {
@@ -871,7 +913,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
                 this.log.debug(`Station ${this.rawStation.station_sn} - UNKNOWN_73 - Got response`, { remoteAddress: rinfo.address, remotePort: rinfo.port, response: { port: port, data: data.toString("hex") }});
 
-                this.lookup2({ host: rinfo.address, port: port }, data);
+                this.cloudLookup2({ host: rinfo.address, port: port }, data);
             }
         } else if (hasHeader(msg, ResponseMessageType.UNKNOWN_81) || hasHeader(msg, ResponseMessageType.UNKNOWN_83)) {
             // Do nothing / ignore
@@ -881,12 +923,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
                 this.log.debug(`Station ${this.rawStation.station_sn} - LOOKUP_RESP - Got response`, { remoteAddress: rinfo.address, remotePort: rinfo.port, response: { responseCode: responseCode }});
 
-                if (responseCode !== 0 && this.lookupTimeout !== undefined && this.lookupRetryTimeout === undefined) {
+                /*if (responseCode !== 0 && this.lookupTimeout !== undefined && this.lookupRetryTimeout === undefined) {
                     this.lookupRetryTimeout = setTimeout(() => {
                         this.lookupRetryTimeout = undefined;
-                        this.cloudAddresses.map((address) => this.lookupByAddress(address));
+                        this.cloudAddresses.map((address) => this.cloudLookupByAddress(address));
                     }, this.LOOKUP_RETRY_TIMEOUT);
-                }
+                }*/
             }
         } else {
             this.log.debug(`Station ${this.rawStation.station_sn} - received unknown message`, { remoteAddress: rinfo.address, remotePort: rinfo.port, response: { message: msg.toString("hex"), length: msg.length }});
@@ -1025,8 +1067,25 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 property: msg_state.property
                             } as CommandResult);
                             this.messageStates.delete(message.seqNo);
-                            this.sendQueuedMessage();
-                            this.closeEnergySavingDevice();
+                            if (command_type === CommandType.CMD_SMARTSAFE_SETTINGS) {
+                                this.lastPropertyData = msg_state.property;
+                                this.lastChannel = msg_state.channel;
+                                this.secondaryCommandTimeout = setTimeout(() => {
+                                    this.log.warn(`Station ${this.rawStation.station_sn} - Result data for secondary command not received`, { message: { sequence: msg_state!.sequence, commandType: msg_state!.commandType, nestedCommandType: msg_state!.nestedCommandType, channel: msg_state!.channel, acknowledged: msg_state!.acknowledged, retries: msg_state!.retries, returnCode: msg_state!.returnCode, data: msg_state!.data } });
+                                    this.secondaryCommandTimeout = undefined;
+                                    this.emit("secondary command", {
+                                        command_type: msg_state!.nestedCommandType !== undefined ? msg_state!.nestedCommandType : msg_state!.commandType,
+                                        channel: msg_state!.channel,
+                                        return_code: ErrorCode.ERROR_COMMAND_TIMEOUT,
+                                        property: msg_state!.property
+                                    } as CommandResult);
+                                    this.sendQueuedMessage();
+                                    this.closeEnergySavingDevice();
+                                }, this.MAX_COMMAND_RESULT_WAIT);
+                            } else {
+                                this.sendQueuedMessage();
+                                this.closeEnergySavingDevice();
+                            }
 
                             if (msg_state.commandType === CommandType.CMD_START_REALTIME_MEDIA ||
                                 (msg_state.nestedCommandType !== undefined && msg_state.nestedCommandType === CommandType.CMD_START_REALTIME_MEDIA && msg_state.commandType === CommandType.CMD_SET_PAYLOAD) ||
@@ -1364,8 +1423,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         } else if (json.cmd === CommandType.P2P_QUERY_STATUS_IN_LOCK) {
                             // Example: {"code":0,"slBattery":"82","slState":"4","trigger":2}
                             const payload: ESLAdvancedLockStatusNotification = json.payload as ESLAdvancedLockStatusNotification;
-                            this.emit("esl parameter", message.channel, CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL, payload.slBattery);
-                            this.emit("esl parameter", message.channel, CommandType.CMD_SMARTLOCK_QUERY_STATUS, payload.slState);
+                            this.emit("parameter", message.channel, CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL, payload.slBattery);
+                            this.emit("parameter", message.channel, CommandType.CMD_SMARTLOCK_QUERY_STATUS, payload.slState);
                         } else {
                             this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD - Not implemented`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, message: message.data.toString() });
                         }
@@ -1397,14 +1456,87 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 switch (payload.lock_cmd) {
                                     case ESLInnerCommand.NOTIFY:
                                         const notifyBuffer = Buffer.from(payload.lock_payload, "hex");
-                                        this.emit("esl parameter", message.channel, CommandType.CMD_GET_BATTERY, notifyBuffer.slice(3, 4).readInt8().toString());
-                                        this.emit("esl parameter", message.channel, CommandType.CMD_DOORLOCK_GET_STATE, notifyBuffer.slice(6, 7).readInt8().toString());
+                                        this.emit("parameter", message.channel, CommandType.CMD_GET_BATTERY, notifyBuffer.slice(3, 4).readInt8().toString());
+                                        this.emit("parameter", message.channel, CommandType.CMD_DOORLOCK_GET_STATE, notifyBuffer.slice(6, 7).readInt8().toString());
                                         break;
                                     default:
                                         this.log.debug(`Station ${this.rawStation.station_sn} - CMD_DOORLOCK_DATA_PASS_THROUGH - Not implemented`, { message: message.data.toString() });
                                         break;
                                 }
                             }
+                        }
+                    } else if (Device.isSmartSafe(this.rawStation.device_type)) {
+                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe`, { commandIdName: CommandType[json.cmd], commandId: json.cmd });
+                        switch (json.cmd) {
+                            case CommandType.CMD_SMARTSAFE_SETTINGS:
+                            {
+                                const payload = json.payload as SmartSafeSettingsNotification;
+                                const data = decodeSmartSafeData(this.rawStation.station_sn, Buffer.from(payload.data, "hex"));
+                                const returnCode = data.data.readInt8(0);
+                                if (this.lastChannel !== undefined && this.lastPropertyData !== undefined) {
+                                    const result: CommandResult = {
+                                        channel: this.lastChannel,
+                                        command_type: payload.prj_id,
+                                        return_code: returnCode,
+                                        property: this.lastPropertyData
+                                    };
+
+                                    this.emit("secondary command", result);
+                                }
+                                this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe return code: ${data.data.readInt8(0)}`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, decoded: data, commandCode: SmartSafeCommandCode[data.commandCode], returnCode: returnCode, channel: this.lastChannel, property: this.lastPropertyData });
+                                this._clearSecondaryCommandTimeout();
+                                this.sendQueuedMessage();
+                                this.closeEnergySavingDevice();
+                                break;
+                            }
+                            case CommandType.CMD_SMARTSAFE_STATUS_UPDATE:
+                            {
+                                const payload = json.payload as SmartSafeStatusNotification;
+                                switch (payload.event_type) {
+                                    case SmartSafeEvent.LOCK_STATUS:
+                                    {
+                                        const eventValues = payload.event_value as SmartSafeEventValueDetail;
+
+                                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe Status update - LOCK_STATUS`, { eventValues: eventValues });
+                                        /*
+                                            type values:
+                                                1: Unlocked by PIN
+                                                2: Unlocked by User
+                                                3: Unlocked by key
+                                                4: Unlocked by App
+                                                5: Unlocked by Dual Unlock
+                                        */
+                                        if (eventValues.action === 0) {
+                                            this.emit("parameter", message.channel, CommandType.CMD_SMARTSAFE_LOCK_STATUS, "0");
+                                        } else if (eventValues.action === 1) {
+                                            this.emit("parameter", message.channel, CommandType.CMD_SMARTSAFE_LOCK_STATUS, "1");
+                                        } else if (eventValues.action === 2) {
+                                            this.emit("jammed", message.channel);
+                                        } else if (eventValues.action === 3) {
+                                            this.emit("low battery", message.channel);
+                                        }
+                                        break;
+                                    }
+                                    case SmartSafeEvent.SHAKE_ALARM:
+                                        this.emit("shake alarm", message.channel, payload.event_value as number);
+                                        break;
+                                    case SmartSafeEvent.ALARM_911:
+                                        this.emit("911 alarm", message.channel, payload.event_value as number);
+                                        break;
+                                    //case SmartSafeEvent.BATTERY_STATUS:
+                                    //    break;
+                                    case SmartSafeEvent.INPUT_ERR_MAX:
+                                        this.emit("wrong try-protect alarm", message.channel);
+                                        break;
+                                    default:
+                                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe Status update - Not implemented`, { message: message.data.toString() });
+                                        break;
+                                }
+                                break;
+                            }
+                            default:
+                                this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe - Not implemented`, { message: message.data.toString() });
+                                break;
                         }
                     } else {
                         this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD - Not implemented`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, message: message.data.toString() });
@@ -1481,6 +1613,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this._clearHeartbeatTimeout();
         this._clearMessageStateTimeouts();
         this._clearMessageVideoStateTimeouts();
+        this._clearSecondaryCommandTimeout();
         this.sendQueue = [];
         if (this.socket) {
             if (this.connected) {

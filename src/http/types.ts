@@ -287,7 +287,13 @@ export enum DeviceEvent {
     PackageTaken,
     PackageStranded,
     SomeoneLoitering,
-    RadarMotionDetected
+    RadarMotionDetected,
+    Jammed,
+    Alarm911,
+    LowBattery,
+    LongTimeNotClose,
+    ShakeAlarm,
+    WrontTryProtectAlarm,
 }
 
 export enum PropertyName {
@@ -402,20 +408,20 @@ export enum PropertyName {
     DeviceVideoNightvisionImageAdjustment = "videoNightvisionImageAdjustment",  // Flooglight T8423
     DeviceVideoColorNightvision = "videoColorNightvision",  // Flooglight T8423
     DeviceAutoCalibration = "autoCalibration",  // Flooglight T8423
-    DeviceLockSettingsAutoLock = "lockSettingsAutoLock",
-    DeviceLockSettingsAutoLockTimer = "lockSettingsAutoLockTimer",
-    DeviceLockSettingsAutoLockSchedule = "lockSettingsAutoLockSchedule",
-    DeviceLockSettingsAutoLockScheduleStartTime = "lockSettingsAutoLockScheduleStartTime",
-    DeviceLockSettingsAutoLockScheduleEndTime = "lockSettingsAutoLockScheduleEndTime",
-    DeviceLockSettingsOneTouchLocking = "lockSettingsOneTouchLocking",
-    DeviceLockSettingsWrongTryProtection = "lockSettingsWrongTryProtection",
-    DeviceLockSettingsWrongTryAttempts = "lockSettingsWrongTryAttempts",
-    DeviceLockSettingsWrongTryLockdownTime = "lockSettingsWrongTryLockdownTime",
-    DeviceLockSettingsScramblePasscode = "lockSettingsScramblePasscode",
-    DeviceLockSettingsSound = "lockSettingsSound",
-    DeviceLockSettingsNotification = "lockSettingsNotification",
-    DeviceLockSettingsNotificationUnlocked = "lockSettingsNotificationUnlocked",
-    DeviceLockSettingsNotificationLocked = "lockSettingsNotificationLocked",
+    DeviceAutoLock = "autoLock",
+    DeviceAutoLockTimer = "autoLockTimer",
+    DeviceAutoLockSchedule = "autoLockSchedule",
+    DeviceAutoLockScheduleStartTime = "autoLockScheduleStartTime",
+    DeviceAutoLockScheduleEndTime = "autoLockScheduleEndTime",
+    DeviceOneTouchLocking = "oneTouchLocking",
+    DeviceWrongTryProtection = "wrongTryProtection",
+    DeviceWrongTryAttempts = "wrongTryAttempts",
+    DeviceWrongTryLockdownTime = "wrongTryLockdownTime",
+    DeviceScramblePasscode = "scramblePasscode",
+    DeviceSound = "sound",
+    DeviceNotification = "notification",
+    DeviceNotificationUnlocked = "notificationUnlocked",
+    DeviceNotificationLocked = "notificationLocked",
     DeviceLoiteringDetection = "loiteringDetection",
     DeviceLoiteringDetectionRange = "loiteringDetectionRange",
     DeviceLoiteringDetectionLength = "loiteringDetectionLength",
@@ -457,6 +463,33 @@ export enum PropertyName {
     DevicePackageTaken = "packageTaken",
     DeviceSomeoneLoitering = "someoneLoitering",
     DeviceRadarMotionDetected = "radarMotionDetected",
+    DeviceLeftOpenAlarm = "leftOpenAlarm",
+    DeviceLeftOpenAlarmDuration = "leftOpenAlarmDuration",
+    DeviceDualUnlock = "dualUnlock",
+    DevicePowerSave = "powerSave",
+    DeviceInteriorBrightness = "interiorBrightness",
+    DeviceInteriorBrightnessDuration = "interiorBrightnessDuration",
+    DeviceTamperAlarm = "tamperAlarm",
+    DeviceRemoteUnlock = "remoteUnlock",
+    DeviceRemoteUnlockMasterPIN = "remoteUnlockMasterPIN",
+    DeviceAlarmVolume = "alarmVolume",
+    DevicePromptVolume = "promptVolume",
+    DeviceNotificationUnlockByKey = "notificationUnlockByKey",
+    DeviceNotificationUnlockByPIN = "notificationUnlockByPIN",
+    DeviceNotificationUnlockByFingerprint = "notificationUnlockByFingerprint",
+    DeviceNotificationUnlockByApp = "notificationUnlockByApp",
+    DeviceNotificationDualUnlock = "notificationDualUnlock",
+    DeviceNotificationDualLock = "notificationDualLock",
+    DeviceNotificationWrongTryProtect = "notificationWrongTryProtect",
+    DeviceNotificationJammed = "notificationJammed",
+    DeviceJammedAlert = "jammedAlert",
+    Device911Alert = "911Alert",
+    Device911AlertEvent = "911AlertEvent",
+    DeviceShakeAlert = "shakeAlert",
+    DeviceShakeAlertEvent = "shakeAlertEvent",
+    DeviceLowBatteryAlert = "lowBatteryAlert",
+    DeviceLongTimeNotCloseAlert = "longTimeNotCloseAlert",
+    DeviceWrongTryProtectAlert = "wrongTryProtectAlert",
 
     StationLANIpAddress = "lanIpAddress",
     StationMacAddress = "macAddress",
@@ -750,6 +783,11 @@ export const DeviceWifiRSSIKeypadProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_GET_SUB1G_RSSI,
 };
 
+export const DeviceWifiRSSISmartSafeProperty: PropertyMetadataNumeric = {
+    ...DeviceWifiRSSIProperty,
+    key: CommandType.CMD_SMARTSAFE_RSSI,
+};
+
 export const DeviceEnabledProperty: PropertyMetadataBoolean = {
     key: ParamType.PRIVATE_MODE,
     name: PropertyName.DeviceEnabled,
@@ -974,6 +1012,15 @@ export const DeviceLockedProperty: PropertyMetadataBoolean = {
     label: "locked",
     readable: true,
     writeable: true,
+    type: "boolean",
+}
+
+export const DeviceLockedSmartSafeProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_LOCK_STATUS,
+    name: PropertyName.DeviceLocked,
+    label: "locked",
+    readable: true,
+    writeable: false,
     type: "boolean",
 }
 
@@ -1454,7 +1501,7 @@ export const DeviceRingtoneVolumeWiredDoorbellProperty: PropertyMetadataNumeric 
 export const DevicePowerSourceProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_SET_POWER_CHARGE,
     name: PropertyName.DevicePowerSource,
-    label: "Speaker Volume",
+    label: "Power Source",
     readable: true,
     writeable: true,
     type: "number",
@@ -2105,19 +2152,19 @@ export const DeviceAutoCalibrationProperty: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
-export const DeviceLockSettingsAutoLockProperty: PropertyMetadataBoolean = {
+export const DeviceAutoLockProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_SMARTLOCK_AUTO_LOCK,
-    name: PropertyName.DeviceLockSettingsAutoLock,
-    label: "Lock Setting Auto Lock",
+    name: PropertyName.DeviceAutoLock,
+    label: "Auto Lock",
     readable: true,
     writeable: true,
     type: "boolean",
 }
 
-export const DeviceLockSettingsAutoLockTimerProperty: PropertyMetadataNumeric = {
+export const DeviceAutoLockTimerProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_SMARTLOCK_AUTO_LOCK_TIMER,
-    name: PropertyName.DeviceLockSettingsAutoLockTimer,
-    label: "Lock Setting Auto Lock Timer",
+    name: PropertyName.DeviceAutoLockTimer,
+    label: "Auto Lock Timer",
     readable: true,
     writeable: true,
     type: "number",
@@ -2134,19 +2181,19 @@ export const DeviceLockSettingsAutoLockTimerProperty: PropertyMetadataNumeric = 
     unit: "sec",
 }
 
-export const DeviceLockSettingsAutoLockScheduleProperty: PropertyMetadataBoolean = {
+export const DeviceAutoLockScheduleProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE,
-    name: PropertyName.DeviceLockSettingsAutoLockSchedule,
-    label: "Lock Setting Auto Lock Schedule",
+    name: PropertyName.DeviceAutoLockSchedule,
+    label: "Auto Lock Schedule",
     readable: true,
     writeable: true,
     type: "boolean",
 }
 
-export const DeviceLockSettingsAutoLockScheduleStartTimeProperty: PropertyMetadataString = {
+export const DeviceAutoLockScheduleStartTimeProperty: PropertyMetadataString = {
     key: CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_STARTTIME,
-    name: PropertyName.DeviceLockSettingsAutoLockScheduleStartTime,
-    label: "Lock Setting Auto Lock Schedule Starttime (24-hour clock)",
+    name: PropertyName.DeviceAutoLockScheduleStartTime,
+    label: "Auto Lock Schedule Starttime (24-hour clock)",
     readable: true,
     writeable: true,
     type: "string",
@@ -2154,10 +2201,10 @@ export const DeviceLockSettingsAutoLockScheduleStartTimeProperty: PropertyMetada
     format: /^[0-9]{1,2}:[0-9]{1,2}$/,
 }
 
-export const DeviceLockSettingsAutoLockScheduleEndTimeProperty: PropertyMetadataString = {
+export const DeviceAutoLockScheduleEndTimeProperty: PropertyMetadataString = {
     key: CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_ENDTIME,
-    name: PropertyName.DeviceLockSettingsAutoLockScheduleEndTime,
-    label: "Lock Setting Auto Lock Schedule Endtime (24-hour clock)",
+    name: PropertyName.DeviceAutoLockScheduleEndTime,
+    label: "Auto Lock Schedule Endtime (24-hour clock)",
     readable: true,
     writeable: true,
     type: "string",
@@ -2165,28 +2212,33 @@ export const DeviceLockSettingsAutoLockScheduleEndTimeProperty: PropertyMetadata
     format: /^[0-9]{1,2}:[0-9]{1,2}$/,
 }
 
-export const DeviceLockSettingsOneTouchLockingProperty: PropertyMetadataBoolean = {
+export const DeviceOneTouchLockingProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_SMARTLOCK_ONE_TOUCH_LOCK,
-    name: PropertyName.DeviceLockSettingsOneTouchLocking,
-    label: "Lock Setting One-Touch Locking",
+    name: PropertyName.DeviceOneTouchLocking,
+    label: "One-Touch Locking",
     readable: true,
     writeable: true,
     type: "boolean",
 }
 
-export const DeviceLockSettingsWrongTryProtectionProperty: PropertyMetadataBoolean = {
+export const DeviceWrongTryProtectionProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_SMARTLOCK_WRONG_TRY_PROTECT,
-    name: PropertyName.DeviceLockSettingsWrongTryProtection,
-    label: "Lock Setting Wrong Try Protection",
+    name: PropertyName.DeviceWrongTryProtection,
+    label: "Wrong Try Protection",
     readable: true,
     writeable: true,
     type: "boolean",
 }
 
-export const DeviceLockSettingsWrongTryLockdownTimeProperty: PropertyMetadataNumeric = {
+export const DeviceWrongTryProtectionSmartSafeProperty: PropertyMetadataBoolean = {
+    ...DeviceWrongTryProtectionProperty,
+    key: CommandType.CMD_SMARTSAFE_IS_ENABLE_CRACK_PROTECT,
+}
+
+export const DeviceWrongTryLockdownTimeProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_SMARTLOCK_WRONG_TRY_LOCKDOWN,
-    name: PropertyName.DeviceLockSettingsWrongTryLockdownTime,
-    label: "Lock Setting Wrong Try Lockdown Time",
+    name: PropertyName.DeviceWrongTryLockdownTime,
+    label: "Wrong Try Lockdown Time",
     readable: true,
     writeable: true,
     type: "number",
@@ -2201,10 +2253,16 @@ export const DeviceLockSettingsWrongTryLockdownTimeProperty: PropertyMetadataNum
     unit: "sec",
 }
 
-export const DeviceLockSettingsWrongTryAttemptsProperty: PropertyMetadataNumeric = {
+export const DeviceWrongTryLockdownTimeSmartSafeProperty: PropertyMetadataNumeric = {
+    ...DeviceWrongTryLockdownTimeProperty,
+    key: CommandType.CMD_SMARTSAFE_PROTECT_COOLDOWN_SECONDS,
+    default: 60,
+}
+
+export const DeviceWrongTryAttemptsProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_SMARTLOCK_WRONG_TRY_ATTEMPTS,
-    name: PropertyName.DeviceLockSettingsWrongTryAttempts,
-    label: "Lock Setting Wrong Try Attempts",
+    name: PropertyName.DeviceWrongTryAttempts,
+    label: "Wrong Try Attempts",
     readable: true,
     writeable: true,
     type: "number",
@@ -2213,19 +2271,33 @@ export const DeviceLockSettingsWrongTryAttemptsProperty: PropertyMetadataNumeric
     default: 6,
 }
 
-export const DeviceLockSettingsScramblePasscodeProperty: PropertyMetadataBoolean = {
+export const DeviceWrongTryAttemptsSmartSafeProperty: PropertyMetadataNumeric = {
+    ...DeviceWrongTryAttemptsProperty,
+    key: CommandType.CMD_SMARTSAFE_MAX_WRONG_PIN_TIMES,
+    min: 5,
+    max: 10,
+    default: 5,
+}
+
+export const DeviceScramblePasscodeProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_SMARTLOCK_SCRAMBLE_PASSCODE,
-    name: PropertyName.DeviceLockSettingsScramblePasscode,
-    label: "Lock Setting Scramble Passcode",
+    name: PropertyName.DeviceScramblePasscode,
+    label: "Scramble Passcode",
     readable: true,
     writeable: true,
     type: "boolean",
 }
 
-export const DeviceLockSettingsSoundProperty: PropertyMetadataNumeric = {
+export const DeviceScramblePasscodeSmartSafeProperty: PropertyMetadataBoolean = {
+    ...DeviceScramblePasscodeProperty,
+    key: CommandType.CMD_SMARTSAFE_IS_SET_PREFIX_PWD,
+    label: "Scramble PIN",
+}
+
+export const DeviceSoundProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_SMARTLOCK_LOCK_SOUND,
-    name: PropertyName.DeviceLockSettingsSound,
-    label: "Lock Setting Sound",
+    name: PropertyName.DeviceSound,
+    label: "Sound",
     readable: true,
     writeable: true,
     type: "number",
@@ -2238,28 +2310,28 @@ export const DeviceLockSettingsSoundProperty: PropertyMetadataNumeric = {
     default: 2,
 }
 
-export const DeviceLockSettingsNotificationProperty: PropertyMetadataBoolean = {
+export const DeviceNotificationProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_SMARTLOCK_NOTIFICATION,
-    name: PropertyName.DeviceLockSettingsNotification,
-    label: "Lock Setting Notification",
+    name: PropertyName.DeviceNotification,
+    label: "Notification",
     readable: true,
     writeable: true,
     type: "boolean",
 }
 
-export const DeviceLockSettingsNotificationUnlockedProperty: PropertyMetadataBoolean = {
+export const DeviceNotificationUnlockedProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_SMARTLOCK_NOTIFICATION_UNLOCKED,
-    name: PropertyName.DeviceLockSettingsNotificationUnlocked,
-    label: "Lock Setting Notification Unlocked",
+    name: PropertyName.DeviceNotificationUnlocked,
+    label: "Notification Unlocked",
     readable: true,
     writeable: true,
     type: "boolean",
 }
 
-export const DeviceLockSettingsNotificationLockedProperty: PropertyMetadataBoolean = {
+export const DeviceNotificationLockedProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_SMARTLOCK_NOTIFICATION_LOCKED,
-    name: PropertyName.DeviceLockSettingsNotificationLocked,
-    label: "Lock Setting Notification Locked",
+    name: PropertyName.DeviceNotificationLocked,
+    label: "Notification Locked",
     readable: true,
     writeable: true,
     type: "boolean",
@@ -2751,6 +2823,298 @@ export const DeviceRadarMotionDetectedProperty: PropertyMetadataBoolean = {
     key: "custom_radarMotionDetected",
     name: PropertyName.DeviceRadarMotionDetected,
     label: "Radar Motion Detected",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
+export const DeviceLeftOpenAlarmProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_IS_ENABLE_LEFT_OPEN,
+    name: PropertyName.DeviceLeftOpenAlarm,
+    label: "Left Open Alarm",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceLeftOpenAlarmDurationProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SMARTSAFE_LEFT_OPEN_SECONDS,
+    name: PropertyName.DeviceLeftOpenAlarmDuration,
+    label: "Left Open Alarm Duration",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        30: "30 sec.",
+        60: "60 sec.",
+        90: "90 sec.",
+        120: "120 sec.",
+    },
+    default: 120,
+    unit: "sec",
+}
+
+export const DeviceDualUnlockProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_IS_ENABLE_TOW_FACTOR_CHK,
+    name: PropertyName.DeviceDualUnlock,
+    label: "Dual Unlock",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DevicePowerSaveProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_POWER_SAVE_ON,
+    name: PropertyName.DevicePowerSave,
+    label: "Power Save",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceInteriorBrightnessProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SMARTSAFE_LED_BRIGHTNESS_LEVEL,
+    name: PropertyName.DeviceInteriorBrightness,
+    label: "Interior Brightness Level",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Off",
+        1: "Low",
+        2: "Mid",
+        3: "High",
+    },
+    default: 2,
+}
+
+export const DeviceInteriorBrightnessDurationProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SMARTSAFE_LED_BRIGHTNESS_SECOND,
+    name: PropertyName.DeviceInteriorBrightnessDuration,
+    label: "Interior Brightness Duration",
+    readable: true,
+    writeable: true,
+    type: "number",
+    default: 10,
+    min: 5,
+    max: 60,
+    steps: 1,
+    unit: "sec",
+}
+
+export const DeviceTamperAlarmProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SMARTSAFE_IS_ENABLE_SHAKE_ALARM,
+    name: PropertyName.DeviceTamperAlarm,
+    label: "Tamper Alarm",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Off",
+        2: "Tamper Alarm",
+        3: "Move Alarm",
+    },
+    default: 2,
+}
+
+export const DeviceRemoteUnlockProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_REMOTE_OPEN_TYPE,
+    name: PropertyName.DeviceRemoteUnlock,
+    label: "Remote Unlock",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceRemoteUnlockMasterPINProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_REMOTE_OPEN_TYPE,
+    name: PropertyName.DeviceRemoteUnlockMasterPIN,
+    label: "Remote Unlock Master PIN",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DevicePromptVolumeProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SMARTSAFE_VOLUME,
+    name: PropertyName.DevicePromptVolume,
+    label: "Prompt Volume",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Mute",
+        1: "Soft",
+        2: "Max",
+    },
+    default: 1,
+}
+
+export const DeviceAlarmVolumeProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SMARTSAFE_ALERT_VOLUME,
+    name: PropertyName.DeviceAlarmVolume,
+    label: "Alarm Volume",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Low",
+        1: "Medium",
+        2: "High",
+    },
+    default: 2,
+}
+
+export const DeviceNotificationUnlockByKeyProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_NOTIF,
+    name: PropertyName.DeviceNotificationUnlockByKey,
+    label: "Notification Unlock By Key",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceNotificationUnlockByPINProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_NOTIF,
+    name: PropertyName.DeviceNotificationUnlockByPIN,
+    label: "Notification Unlock By PIN",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceNotificationUnlockByFingerprintProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_NOTIF,
+    name: PropertyName.DeviceNotificationUnlockByFingerprint,
+    label: "Notification Unlock By Fingerprint",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceNotificationUnlockByAppProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_NOTIF,
+    name: PropertyName.DeviceNotificationUnlockByApp,
+    label: "Notification Unlock By App",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceNotificationDualUnlockProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_NOTIF,
+    name: PropertyName.DeviceNotificationDualUnlock,
+    label: "Notification Dual Unlock",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceNotificationDualLockProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_NOTIF,
+    name: PropertyName.DeviceNotificationDualLock,
+    label: "Notification Dual Lock",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceNotificationWrongTryProtectProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_NOTIF,
+    name: PropertyName.DeviceNotificationWrongTryProtect,
+    label: "Notification Wrong-Try Protect",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceNotificationJammedProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTSAFE_NOTIF,
+    name: PropertyName.DeviceNotificationJammed,
+    label: "Notification Jammed",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
+export const DeviceJammedAlertProperty: PropertyMetadataBoolean = {
+    key: "custom_jammedAlert",
+    name: PropertyName.DeviceJammedAlert,
+    label: "Jammed Alert",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
+export const Device911AlertProperty: PropertyMetadataBoolean = {
+    key: "custom_911Alert",
+    name: PropertyName.Device911Alert,
+    label: "911 Alert",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
+export const Device911AlertEventProperty: PropertyMetadataNumeric = {
+    key: "custom_911AlertEvent",
+    name: PropertyName.Device911AlertEvent,
+    label: "911 Alert Event",
+    readable: true,
+    writeable: false,
+    type: "number",
+    states: {
+        0: "Cancel Alarm",
+        1: "Alarm",
+        2: "Alarm Success",
+        3: "Alarm Not Open",
+        4: "Alarm Open Failed",
+    },
+}
+
+export const DeviceShakeAlertProperty: PropertyMetadataBoolean = {
+    key: "custom_shakeAlert",
+    name: PropertyName.DeviceShakeAlert,
+    label: "Shake Alert",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
+export const DeviceShakeAlertEventProperty: PropertyMetadataNumeric = {
+    key: "custom_shakeAlertEvent",
+    name: PropertyName.DeviceShakeAlertEvent,
+    label: "Shake Alert Event",
+    readable: true,
+    writeable: false,
+    type: "number",
+    states: {
+        0: "Cancel Alarm",
+        1: "Alarm",
+    },
+}
+
+export const DeviceLowBatteryAlertProperty: PropertyMetadataBoolean = {
+    key: "custom_lowBatteryAlert",
+    name: PropertyName.DeviceLowBatteryAlert,
+    label: "Low Battery Alert",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
+export const DeviceLongTimeNotCloseAlertProperty: PropertyMetadataBoolean = {
+    key: "custom_longTimeNotCloseAlert",
+    name: PropertyName.DeviceLongTimeNotCloseAlert,
+    label: "Long Time Not Close Alert",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
+export const DeviceWrongTryProtectAlertProperty: PropertyMetadataBoolean = {
+    key: "custom_wrongTryProtectAlert",
+    name: PropertyName.DeviceWrongTryProtectAlert,
+    label: "Wrong Try-Protect Alert",
     readable: true,
     writeable: false,
     type: "boolean",
@@ -3851,40 +4215,42 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceBattery]: DeviceBatteryLockProperty,
         [PropertyName.DeviceLocked]: DeviceLockedProperty,
         [PropertyName.DeviceLockStatus]: DeviceAdvancedLockStatusProperty,
-        [PropertyName.DeviceLockSettingsAutoLock]: DeviceLockSettingsAutoLockProperty,
-        [PropertyName.DeviceLockSettingsAutoLockTimer]: DeviceLockSettingsAutoLockTimerProperty,
-        [PropertyName.DeviceLockSettingsAutoLockSchedule]: DeviceLockSettingsAutoLockScheduleProperty,
-        [PropertyName.DeviceLockSettingsAutoLockScheduleStartTime]: DeviceLockSettingsAutoLockScheduleStartTimeProperty,
-        [PropertyName.DeviceLockSettingsAutoLockScheduleEndTime]: DeviceLockSettingsAutoLockScheduleEndTimeProperty,
-        [PropertyName.DeviceLockSettingsOneTouchLocking]: DeviceLockSettingsOneTouchLockingProperty,
-        [PropertyName.DeviceLockSettingsWrongTryProtection]: DeviceLockSettingsWrongTryProtectionProperty,
-        [PropertyName.DeviceLockSettingsWrongTryAttempts]: DeviceLockSettingsWrongTryAttemptsProperty,
-        [PropertyName.DeviceLockSettingsWrongTryLockdownTime]: DeviceLockSettingsWrongTryLockdownTimeProperty,
-        [PropertyName.DeviceLockSettingsScramblePasscode]: DeviceLockSettingsScramblePasscodeProperty,
-        [PropertyName.DeviceLockSettingsSound]: DeviceLockSettingsSoundProperty,
-        [PropertyName.DeviceLockSettingsNotification]: DeviceLockSettingsNotificationProperty,
-        [PropertyName.DeviceLockSettingsNotificationUnlocked]: DeviceLockSettingsNotificationUnlockedProperty,
-        [PropertyName.DeviceLockSettingsNotificationLocked]: DeviceLockSettingsNotificationLockedProperty,
+        [PropertyName.DeviceAutoLock]: DeviceAutoLockProperty,
+        [PropertyName.DeviceAutoLockTimer]: DeviceAutoLockTimerProperty,
+        [PropertyName.DeviceAutoLockSchedule]: DeviceAutoLockScheduleProperty,
+        [PropertyName.DeviceAutoLockScheduleStartTime]: DeviceAutoLockScheduleStartTimeProperty,
+        [PropertyName.DeviceAutoLockScheduleEndTime]: DeviceAutoLockScheduleEndTimeProperty,
+        [PropertyName.DeviceOneTouchLocking]: DeviceOneTouchLockingProperty,
+        [PropertyName.DeviceWrongTryProtection]: DeviceWrongTryProtectionProperty,
+        [PropertyName.DeviceWrongTryAttempts]: DeviceWrongTryAttemptsProperty,
+        [PropertyName.DeviceWrongTryLockdownTime]: DeviceWrongTryLockdownTimeProperty,
+        [PropertyName.DeviceScramblePasscode]: DeviceScramblePasscodeProperty,
+        [PropertyName.DeviceSound]: DeviceSoundProperty,
+        [PropertyName.DeviceNotification]: DeviceNotificationProperty,
+        [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedProperty,
+        [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedProperty,
+        [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
     },
     [DeviceType.LOCK_WIFI_NO_FINGER]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceBattery]: DeviceBatteryLockProperty,
         [PropertyName.DeviceLocked]: DeviceLockedProperty,
         [PropertyName.DeviceLockStatus]: DeviceAdvancedLockStatusProperty,
-        [PropertyName.DeviceLockSettingsAutoLock]: DeviceLockSettingsAutoLockProperty,
-        [PropertyName.DeviceLockSettingsAutoLockTimer]: DeviceLockSettingsAutoLockTimerProperty,
-        [PropertyName.DeviceLockSettingsAutoLockSchedule]: DeviceLockSettingsAutoLockScheduleProperty,
-        [PropertyName.DeviceLockSettingsAutoLockScheduleStartTime]: DeviceLockSettingsAutoLockScheduleStartTimeProperty,
-        [PropertyName.DeviceLockSettingsAutoLockScheduleEndTime]: DeviceLockSettingsAutoLockScheduleEndTimeProperty,
-        [PropertyName.DeviceLockSettingsOneTouchLocking]: DeviceLockSettingsOneTouchLockingProperty,
-        [PropertyName.DeviceLockSettingsWrongTryProtection]: DeviceLockSettingsWrongTryProtectionProperty,
-        [PropertyName.DeviceLockSettingsWrongTryAttempts]: DeviceLockSettingsWrongTryAttemptsProperty,
-        [PropertyName.DeviceLockSettingsWrongTryLockdownTime]: DeviceLockSettingsWrongTryLockdownTimeProperty,
-        [PropertyName.DeviceLockSettingsScramblePasscode]: DeviceLockSettingsScramblePasscodeProperty,
-        [PropertyName.DeviceLockSettingsSound]: DeviceLockSettingsSoundProperty,
-        [PropertyName.DeviceLockSettingsNotification]: DeviceLockSettingsNotificationProperty,
-        [PropertyName.DeviceLockSettingsNotificationUnlocked]: DeviceLockSettingsNotificationUnlockedProperty,
-        [PropertyName.DeviceLockSettingsNotificationLocked]: DeviceLockSettingsNotificationLockedProperty,
+        [PropertyName.DeviceAutoLock]: DeviceAutoLockProperty,
+        [PropertyName.DeviceAutoLockTimer]: DeviceAutoLockTimerProperty,
+        [PropertyName.DeviceAutoLockSchedule]: DeviceAutoLockScheduleProperty,
+        [PropertyName.DeviceAutoLockScheduleStartTime]: DeviceAutoLockScheduleStartTimeProperty,
+        [PropertyName.DeviceAutoLockScheduleEndTime]: DeviceAutoLockScheduleEndTimeProperty,
+        [PropertyName.DeviceOneTouchLocking]: DeviceOneTouchLockingProperty,
+        [PropertyName.DeviceWrongTryProtection]: DeviceWrongTryProtectionProperty,
+        [PropertyName.DeviceWrongTryAttempts]: DeviceWrongTryAttemptsProperty,
+        [PropertyName.DeviceWrongTryLockdownTime]: DeviceWrongTryLockdownTimeProperty,
+        [PropertyName.DeviceScramblePasscode]: DeviceScramblePasscodeProperty,
+        [PropertyName.DeviceSound]: DeviceSoundProperty,
+        [PropertyName.DeviceNotification]: DeviceNotificationProperty,
+        [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedProperty,
+        [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedProperty,
+        [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
     },
     [DeviceType.LOCK_BLE]: {
         ...GenericDeviceProperties,
@@ -3917,6 +4283,154 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceChirpTone]: DeviceChirpToneEntrySensorProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIEntrySensorProperty,
+    },
+    [DeviceType.SMART_SAFE_7400]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSISmartSafeProperty,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceWrongTryProtection]: DeviceWrongTryProtectionSmartSafeProperty,
+        [PropertyName.DeviceWrongTryAttempts]: DeviceWrongTryAttemptsSmartSafeProperty,
+        [PropertyName.DeviceWrongTryLockdownTime]: DeviceWrongTryLockdownTimeSmartSafeProperty,
+        [PropertyName.DeviceLeftOpenAlarm]: DeviceLeftOpenAlarmProperty,
+        [PropertyName.DeviceLeftOpenAlarmDuration]: DeviceLeftOpenAlarmDurationProperty,
+        [PropertyName.DeviceDualUnlock]: DeviceDualUnlockProperty,
+        [PropertyName.DevicePowerSave]: DevicePowerSaveProperty,
+        [PropertyName.DeviceInteriorBrightness]: DeviceInteriorBrightnessProperty,
+        [PropertyName.DeviceInteriorBrightnessDuration]: DeviceInteriorBrightnessDurationProperty,
+        [PropertyName.DeviceTamperAlarm]: DeviceTamperAlarmProperty,
+        [PropertyName.DeviceRemoteUnlock]: DeviceRemoteUnlockProperty,
+        [PropertyName.DeviceRemoteUnlockMasterPIN]: DeviceRemoteUnlockMasterPINProperty,
+        [PropertyName.DeviceScramblePasscode]: DeviceScramblePasscodeSmartSafeProperty,
+        [PropertyName.DeviceAlarmVolume]: DeviceAlarmVolumeProperty,
+        [PropertyName.DevicePromptVolume]: DevicePromptVolumeProperty,
+        [PropertyName.DeviceNotificationUnlockByKey]: DeviceNotificationUnlockByKeyProperty,
+        [PropertyName.DeviceNotificationUnlockByPIN]: DeviceNotificationUnlockByPINProperty,
+        [PropertyName.DeviceNotificationUnlockByFingerprint]: DeviceNotificationUnlockByFingerprintProperty,
+        [PropertyName.DeviceNotificationUnlockByApp]: DeviceNotificationUnlockByAppProperty,
+        [PropertyName.DeviceNotificationDualLock]: DeviceNotificationDualLockProperty,
+        [PropertyName.DeviceNotificationDualUnlock]: DeviceNotificationDualUnlockProperty,
+        [PropertyName.DeviceNotificationWrongTryProtect]: DeviceNotificationWrongTryProtectProperty,
+        [PropertyName.DeviceNotificationJammed]: DeviceNotificationJammedProperty,
+        [PropertyName.DeviceLocked]: DeviceLockedSmartSafeProperty,
+        [PropertyName.DeviceJammedAlert]: DeviceJammedAlertProperty,
+        [PropertyName.Device911Alert]: Device911AlertProperty,
+        [PropertyName.Device911AlertEvent]: Device911AlertEventProperty,
+        [PropertyName.DeviceShakeAlert]: DeviceShakeAlertProperty,
+        [PropertyName.DeviceShakeAlertEvent]: DeviceShakeAlertEventProperty,
+        [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+        [PropertyName.DeviceLongTimeNotCloseAlert]: DeviceLongTimeNotCloseAlertProperty,
+        [PropertyName.DeviceWrongTryProtectAlert]: DeviceWrongTryProtectAlertProperty,
+    },
+    [DeviceType.SMART_SAFE_7401]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSISmartSafeProperty,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceWrongTryProtection]: DeviceWrongTryProtectionSmartSafeProperty,
+        [PropertyName.DeviceWrongTryAttempts]: DeviceWrongTryAttemptsSmartSafeProperty,
+        [PropertyName.DeviceWrongTryLockdownTime]: DeviceWrongTryLockdownTimeSmartSafeProperty,
+        [PropertyName.DeviceLeftOpenAlarm]: DeviceLeftOpenAlarmProperty,
+        [PropertyName.DeviceLeftOpenAlarmDuration]: DeviceLeftOpenAlarmDurationProperty,
+        [PropertyName.DeviceDualUnlock]: DeviceDualUnlockProperty,
+        [PropertyName.DevicePowerSave]: DevicePowerSaveProperty,
+        [PropertyName.DeviceInteriorBrightness]: DeviceInteriorBrightnessProperty,
+        [PropertyName.DeviceInteriorBrightnessDuration]: DeviceInteriorBrightnessDurationProperty,
+        [PropertyName.DeviceTamperAlarm]: DeviceTamperAlarmProperty,
+        [PropertyName.DeviceRemoteUnlock]: DeviceRemoteUnlockProperty,
+        [PropertyName.DeviceRemoteUnlockMasterPIN]: DeviceRemoteUnlockMasterPINProperty,
+        [PropertyName.DeviceScramblePasscode]: DeviceScramblePasscodeSmartSafeProperty,
+        [PropertyName.DeviceAlarmVolume]: DeviceAlarmVolumeProperty,
+        [PropertyName.DevicePromptVolume]: DevicePromptVolumeProperty,
+        [PropertyName.DeviceNotificationUnlockByKey]: DeviceNotificationUnlockByKeyProperty,
+        [PropertyName.DeviceNotificationUnlockByPIN]: DeviceNotificationUnlockByPINProperty,
+        [PropertyName.DeviceNotificationUnlockByFingerprint]: DeviceNotificationUnlockByFingerprintProperty,
+        [PropertyName.DeviceNotificationUnlockByApp]: DeviceNotificationUnlockByAppProperty,
+        [PropertyName.DeviceNotificationDualLock]: DeviceNotificationDualLockProperty,
+        [PropertyName.DeviceNotificationDualUnlock]: DeviceNotificationDualUnlockProperty,
+        [PropertyName.DeviceNotificationWrongTryProtect]: DeviceNotificationWrongTryProtectProperty,
+        [PropertyName.DeviceNotificationJammed]: DeviceNotificationJammedProperty,
+        [PropertyName.DeviceLocked]: DeviceLockedSmartSafeProperty,
+        [PropertyName.DeviceJammedAlert]: DeviceJammedAlertProperty,
+        [PropertyName.Device911Alert]: Device911AlertProperty,
+        [PropertyName.Device911AlertEvent]: Device911AlertEventProperty,
+        [PropertyName.DeviceShakeAlert]: DeviceShakeAlertProperty,
+        [PropertyName.DeviceShakeAlertEvent]: DeviceShakeAlertEventProperty,
+        [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+        [PropertyName.DeviceLongTimeNotCloseAlert]: DeviceLongTimeNotCloseAlertProperty,
+        [PropertyName.DeviceWrongTryProtectAlert]: DeviceWrongTryProtectAlertProperty,
+    },
+    [DeviceType.SMART_SAFE_7402]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSISmartSafeProperty,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceWrongTryProtection]: DeviceWrongTryProtectionSmartSafeProperty,
+        [PropertyName.DeviceWrongTryAttempts]: DeviceWrongTryAttemptsSmartSafeProperty,
+        [PropertyName.DeviceWrongTryLockdownTime]: DeviceWrongTryLockdownTimeSmartSafeProperty,
+        [PropertyName.DeviceLeftOpenAlarm]: DeviceLeftOpenAlarmProperty,
+        [PropertyName.DeviceLeftOpenAlarmDuration]: DeviceLeftOpenAlarmDurationProperty,
+        [PropertyName.DeviceDualUnlock]: DeviceDualUnlockProperty,
+        [PropertyName.DevicePowerSave]: DevicePowerSaveProperty,
+        [PropertyName.DeviceInteriorBrightness]: DeviceInteriorBrightnessProperty,
+        [PropertyName.DeviceInteriorBrightnessDuration]: DeviceInteriorBrightnessDurationProperty,
+        [PropertyName.DeviceTamperAlarm]: DeviceTamperAlarmProperty,
+        [PropertyName.DeviceRemoteUnlock]: DeviceRemoteUnlockProperty,
+        [PropertyName.DeviceRemoteUnlockMasterPIN]: DeviceRemoteUnlockMasterPINProperty,
+        [PropertyName.DeviceScramblePasscode]: DeviceScramblePasscodeSmartSafeProperty,
+        [PropertyName.DeviceAlarmVolume]: DeviceAlarmVolumeProperty,
+        [PropertyName.DevicePromptVolume]: DevicePromptVolumeProperty,
+        [PropertyName.DeviceNotificationUnlockByKey]: DeviceNotificationUnlockByKeyProperty,
+        [PropertyName.DeviceNotificationUnlockByPIN]: DeviceNotificationUnlockByPINProperty,
+        [PropertyName.DeviceNotificationUnlockByFingerprint]: DeviceNotificationUnlockByFingerprintProperty,
+        [PropertyName.DeviceNotificationUnlockByApp]: DeviceNotificationUnlockByAppProperty,
+        [PropertyName.DeviceNotificationDualLock]: DeviceNotificationDualLockProperty,
+        [PropertyName.DeviceNotificationDualUnlock]: DeviceNotificationDualUnlockProperty,
+        [PropertyName.DeviceNotificationWrongTryProtect]: DeviceNotificationWrongTryProtectProperty,
+        [PropertyName.DeviceNotificationJammed]: DeviceNotificationJammedProperty,
+        [PropertyName.DeviceLocked]: DeviceLockedSmartSafeProperty,
+        [PropertyName.DeviceJammedAlert]: DeviceJammedAlertProperty,
+        [PropertyName.Device911Alert]: Device911AlertProperty,
+        [PropertyName.Device911AlertEvent]: Device911AlertEventProperty,
+        [PropertyName.DeviceShakeAlert]: DeviceShakeAlertProperty,
+        [PropertyName.DeviceShakeAlertEvent]: DeviceShakeAlertEventProperty,
+        [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+        [PropertyName.DeviceLongTimeNotCloseAlert]: DeviceLongTimeNotCloseAlertProperty,
+        [PropertyName.DeviceWrongTryProtectAlert]: DeviceWrongTryProtectAlertProperty,
+    },
+    [DeviceType.SMART_SAFE_7403]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSISmartSafeProperty,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceWrongTryProtection]: DeviceWrongTryProtectionSmartSafeProperty,
+        [PropertyName.DeviceWrongTryAttempts]: DeviceWrongTryAttemptsSmartSafeProperty,
+        [PropertyName.DeviceWrongTryLockdownTime]: DeviceWrongTryLockdownTimeSmartSafeProperty,
+        [PropertyName.DeviceLeftOpenAlarm]: DeviceLeftOpenAlarmProperty,
+        [PropertyName.DeviceLeftOpenAlarmDuration]: DeviceLeftOpenAlarmDurationProperty,
+        [PropertyName.DeviceDualUnlock]: DeviceDualUnlockProperty,
+        [PropertyName.DevicePowerSave]: DevicePowerSaveProperty,
+        [PropertyName.DeviceInteriorBrightness]: DeviceInteriorBrightnessProperty,
+        [PropertyName.DeviceInteriorBrightnessDuration]: DeviceInteriorBrightnessDurationProperty,
+        [PropertyName.DeviceTamperAlarm]: DeviceTamperAlarmProperty,
+        [PropertyName.DeviceRemoteUnlock]: DeviceRemoteUnlockProperty,
+        [PropertyName.DeviceRemoteUnlockMasterPIN]: DeviceRemoteUnlockMasterPINProperty,
+        [PropertyName.DeviceScramblePasscode]: DeviceScramblePasscodeSmartSafeProperty,
+        [PropertyName.DeviceAlarmVolume]: DeviceAlarmVolumeProperty,
+        [PropertyName.DevicePromptVolume]: DevicePromptVolumeProperty,
+        [PropertyName.DeviceNotificationUnlockByKey]: DeviceNotificationUnlockByKeyProperty,
+        [PropertyName.DeviceNotificationUnlockByPIN]: DeviceNotificationUnlockByPINProperty,
+        [PropertyName.DeviceNotificationUnlockByFingerprint]: DeviceNotificationUnlockByFingerprintProperty,
+        [PropertyName.DeviceNotificationUnlockByApp]: DeviceNotificationUnlockByAppProperty,
+        [PropertyName.DeviceNotificationDualLock]: DeviceNotificationDualLockProperty,
+        [PropertyName.DeviceNotificationDualUnlock]: DeviceNotificationDualUnlockProperty,
+        [PropertyName.DeviceNotificationWrongTryProtect]: DeviceNotificationWrongTryProtectProperty,
+        [PropertyName.DeviceNotificationJammed]: DeviceNotificationJammedProperty,
+        [PropertyName.DeviceLocked]: DeviceLockedSmartSafeProperty,
+        [PropertyName.DeviceJammedAlert]: DeviceJammedAlertProperty,
+        [PropertyName.Device911Alert]: Device911AlertProperty,
+        [PropertyName.Device911AlertEvent]: Device911AlertEventProperty,
+        [PropertyName.DeviceShakeAlert]: DeviceShakeAlertProperty,
+        [PropertyName.DeviceShakeAlertEvent]: DeviceShakeAlertEventProperty,
+        [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+        [PropertyName.DeviceLongTimeNotCloseAlert]: DeviceLongTimeNotCloseAlertProperty,
+        [PropertyName.DeviceWrongTryProtectAlert]: DeviceWrongTryProtectAlertProperty,
     },
 }
 
@@ -4353,6 +4867,18 @@ export const StationProperties: Properties = {
     [DeviceType.LOCK_BLE_NO_FINGER]: {
         ...BaseStationProperties,
     },
+    [DeviceType.SMART_SAFE_7400]: {
+        ...BaseStationProperties,
+    },
+    [DeviceType.SMART_SAFE_7401]: {
+        ...BaseStationProperties,
+    },
+    [DeviceType.SMART_SAFE_7402]: {
+        ...BaseStationProperties,
+    },
+    [DeviceType.SMART_SAFE_7403]: {
+        ...BaseStationProperties,
+    },
 }
 
 export enum CommandName {
@@ -4373,6 +4899,7 @@ export enum CommandName {
     DeviceSetPrivacyAngle = "deviceSetPrivacyAngle",
     DeviceStartTalkback = "deviceStartTalkback",
     DeviceStopTalkback = "deviceStopTalkback",
+    DeviceUnlock = "deviceUnlock",
 }
 
 export const DeviceCommands: Commands = {
@@ -4658,6 +5185,18 @@ export const DeviceCommands: Commands = {
     ],
     [DeviceType.MOTION_SENSOR]: [],
     [DeviceType.SENSOR]: [],
+    [DeviceType.SMART_SAFE_7400]: [
+        CommandName.DeviceUnlock,
+    ],
+    [DeviceType.SMART_SAFE_7401]: [
+        CommandName.DeviceUnlock,
+    ],
+    [DeviceType.SMART_SAFE_7402]: [
+        CommandName.DeviceUnlock,
+    ],
+    [DeviceType.SMART_SAFE_7403]: [
+        CommandName.DeviceUnlock,
+    ],
 }
 
 export const StationCommands: Commands = {

@@ -1,6 +1,8 @@
 import { createCipheriv } from "crypto";
+import { SmartSafeNotificationResponse } from "../p2p/models";
+import { decryptPayloadData } from "../p2p/utils";
 
-import { Device } from "./device";
+import { Device, SmartSafe } from "./device";
 import { NotificationSwitchMode, DeviceType, WifiSignalLevel } from "./types";
 
 export const isGreaterEqualMinVersion = function(minimal_version: string, current_version: string): boolean {
@@ -3229,3 +3231,71 @@ export const getAdvancedLockTimezone = function(stationSN: string): string {
     }
     return "";
 };
+
+export class SmartSafeByteWriter {
+
+    private split_byte = -95;
+    private data = Buffer.from([]);
+
+    public write(bytes: Buffer): void {
+        const tmp_data = Buffer.from(bytes);
+        this.data = Buffer.concat([ this.data, Buffer.from([this.split_byte]), Buffer.from([tmp_data.length & 255]), tmp_data]);
+        this.split_byte += 1;
+    }
+
+    public getData(): Buffer {
+        return this.data;
+    }
+
+}
+
+export const getCurrentTimeInSeconds = function(): number {
+    return Math.trunc(new Date().getTime() / 1000);
+}
+
+export const generateHash = function(data: Buffer): number {
+    let result = 0;
+    for (const value of data) {
+        result = result ^ value;
+    }
+    return result;
+}
+
+export const encodeSmartSafeData = function(command: number, payload: Buffer): Buffer {
+    const header = Buffer.from(SmartSafe.DATA_HEADER);
+    const size = Buffer.allocUnsafe(2);
+    size.writeInt16LE(payload.length + 9);
+    const versionCode = Buffer.from([SmartSafe.VERSION_CODE]);
+    const dataType = Buffer.from([-1]);
+    const commandCode = Buffer.from([command]);
+    const packageFlag = Buffer.from([-64]);
+    const data = Buffer.concat([header, size, versionCode, dataType, commandCode, packageFlag, payload]);
+    const hash = generateHash(data);
+    return Buffer.concat([data, Buffer.from([hash])]);
+}
+
+export const decodeSmartSafeData = function(deviceSN: string, data: Buffer): SmartSafeNotificationResponse {
+    if (data.readInt8(0) !== SmartSafe.DATA_HEADER[0] && data.readInt8(1) !== SmartSafe.DATA_HEADER[1]) {
+        //TODO: raise Exception invalid data header
+    }
+    if (generateHash(data.slice(0, data.length - 1)) !== data.readInt8(data.length - 1)) {
+        //TODO: raise Exception hash invalid / packet corrupted
+    }
+    const packageFlag = data.readInt8(7);
+    const dataHeaderLength = packageFlag == -64 ? 8 : 12;
+    const encData = data.slice(dataHeaderLength, data.length - 1)
+
+    const result: SmartSafeNotificationResponse = {
+        versionCode: data.readInt8(4),
+        dataType: data.readInt8(5),
+        commandCode: data.readInt8(6),
+        packageFlag: packageFlag,
+        responseCode: -1,
+        data: decryptPayloadData(encData, Buffer.from(deviceSN), Buffer.from(SmartSafe.IV, "hex"))
+    }
+    const responseCodePosition = packageFlag == -64 ? 9 : 13;
+    if (data.length >= responseCodePosition) {
+        result.responseCode = data.readInt8(responseCodePosition - 1);
+    }
+    return result;
+}
