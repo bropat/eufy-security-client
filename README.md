@@ -86,6 +86,7 @@ Please use GitHub issues for this.
 * (bropat) Renewed p2p device address discovery (now also includes local discovery via broadcast; cloud discovery optimised)
 * (bropat) Added support for Doorbell Dual notification types (package delivered, package taken, package stranded, someone loitering, radar motion detected)
 * (bropat) Added Smart Safe support (tested only T7401; #182 **WIP**)
+* (thieren) Added station event for connection timeout (#202)
 * (bropat) Fixed issue #196
 * (bropat) Fixed issue #201
 * (bropat) Fixed emitting of event "locked" for lock devices
