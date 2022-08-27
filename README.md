@@ -80,6 +80,16 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.2.0-rc.2 (2022-08-27)
+
+* (bropat) Added snooze command for supported devices (#173, #176)
+* (bropat) Added support for video type store to NAS for indoor cameras (#147)
+* (bropat) Fixed issue with energy saving measures interrupting running streams
+* (bropat) Better error handling for not supported p2p commands
+* (bropat) Fixed signalling of event `station command result`
+* (bropat) Updated docs - Added supported devices SoloCam L20 (T8122), SoloCam L40 (T8123), SoloCam S40 (T8124), SoloCam E20 (T8130)
+* (bropat) Changed default persistent directory path for saving persistent data
+
 ### 2.2.0-rc.1 (2022-08-19)
 
 * (bropat) **Breaking Change** Renamed all lock settings parameters according to standard

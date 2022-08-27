@@ -52,7 +52,10 @@ export class ParameterHelper {
     public static writeValue(type: number, value: string): string {
         if (value) {
             const result = JSON.stringify(value);
-            if (type === ParamType.SNOOZE_MODE || type === ParamType.CAMERA_MOTION_ZONES || type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN_DELAY || type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN) {
+            if (type === ParamType.SNOOZE_MODE ||
+                type === ParamType.CAMERA_MOTION_ZONES ||
+                type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN_DELAY ||
+                type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN) {
                 return Buffer.from(result).toString("base64");
             }
             return result;

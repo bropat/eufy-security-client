@@ -3,7 +3,7 @@ import { Readable } from "stream";
 import { SortedMap } from "sweet-collections";
 
 import { AlarmMode } from "../http/types";
-import { Address, CmdCameraInfoResponse, CommandResult, PropertyData } from "./models";
+import { Address, CmdCameraInfoResponse, CommandResult, CustomData } from "./models";
 import { TalkbackStream } from "./talkback";
 import { AlarmEvent, AudioCodec, ChargingType, CommandType, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, VideoCodec } from "./types";
 
@@ -47,7 +47,7 @@ export interface P2PQueueMessage {
     channel: number;
     payload: Buffer;
     timestamp: number;
-    property?: PropertyData;
+    customData?: CustomData;
 }
 
 export interface P2PMessageState {
@@ -60,7 +60,7 @@ export interface P2PMessageState {
     acknowledged: boolean;
     returnCode: number;
     timeout?: NodeJS.Timeout;
-    property?: PropertyData;
+    customData?: CustomData;
 }
 
 export interface P2PMessageParts {

@@ -12,7 +12,11 @@
 | ![T8113 image](_media/eufycam2c_small.jpg) | eufyCam 2C (T8113) | :heavy_check_mark: |  |
 | ![T8140 image](_media/eufycam2pro_small.jpg) | eufyCam 2 Pro (T8140) | :heavy_check_mark: |  |
 | ![T8141 image](_media/eufycam2cpro_small.jpg) | eufyCam 2C Pro (T8141) | :heavy_check_mark: |  |
+| ![T8130 image](_media/solocame20_small.jpg) | SoloCam E20 (T8130) | :heavy_check_mark: |  |
 | ![T8131 image](_media/solocame40_small.jpg) | SoloCam E40 (T8131) | :heavy_check_mark: |  |
+| ![T8122 image](_media/solocaml20_small.jpg) | SoloCam L20 (T8122) | :heavy_check_mark: | Firmware: 1.0.8.1 |
+| ![T8123 image](_media/solocaml20_small.jpg) | SoloCam L40 (T8123) | :heavy_check_mark: |  |
+| ![T8124 image](_media/solocams40_small.jpg) | SoloCam S40 (T8124) | :heavy_check_mark: |  |
 | ![T8420 image](_media/floodlight_small.jpg) | Floodlight Camera (T8420) | :heavy_check_mark: | Firmware: 1.0.0.35 Hardware: 2.2 (20211219) |
 | ![T8422 image](_media/floodlight_small.jpg) | Floodlight Cam (T8422) | :heavy_check_mark: |  |
 | ![T8423 image](_media/floodlight2pro_small.jpg) | Floodlight Cam 2 Pro (T8423) | :heavy_check_mark: | Firmware: 1.0.7.4 (20211219) |

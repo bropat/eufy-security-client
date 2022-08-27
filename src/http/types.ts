@@ -158,17 +158,28 @@ export enum GuardMode {
 export enum ResponseErrorCode {
     CODE_CONNECT_ERROR = 997,
     CODE_ERROR_PIN = 36006,
+    CODE_IS_OPEN = 25074,
+    CODE_IS_OPEN_OTHERS = 25080,
     CODE_MULTI_ALARM = 36002,
     CODE_NEED_VERIFY_CODE = 26052,
     CODE_NETWORK_ERROR = 998,
     CODE_PHONE_NONE_SUPPORT = 26058,
     CODE_SERVER_ERROR = 999,
+    CODE_SERVER_UNDER_MAINTENANCE = 424,
     CODE_VERIFY_CODE_ERROR = 26050,
     CODE_VERIFY_CODE_EXPIRED = 26051,
     CODE_VERIFY_CODE_MAX = 26053,
     CODE_VERIFY_CODE_NONE_MATCH = 26054,
     CODE_VERIFY_PASSWORD_ERROR = 26055,
     CODE_WHATEVER_ERROR = 0,
+    CODE_EMAIL_LIMIT_EXCEED = 25077,
+    CODE_GIVE_AWAY_EXPIRED = 25075,
+    CODE_GIVE_AWAY_INVALID = 25076,
+    CODE_GIVE_AWAY_NOT_EXIST = 25079,
+    CODE_GIVE_AWAY_PACKAGE_NOT_MATCH = 25078,
+    CODE_GIVE_AWAY_PACKAGE_TYPE_NOT_MATCH = 25080,
+    CODE_GIVE_AWAY_RECORD_EXIST = 25074,
+    CODE_INPUT_PARAM_INVALID = 10000,
     CODE_MAX_FORGET_PASSWORD_ERROR = 100035,
     CODE_MAX_LOGIN_LIMIT = 100028,
     CODE_MAX_REGISTER_ERROR = 100034,
@@ -250,6 +261,11 @@ export enum WifiSignalLevel {
 export enum MotionDetectionMode {
     STANDARD = 0,
     ADVANCED = 1,
+}
+
+export enum VideoTypeStoreToNAS {
+    Events = 0,
+    ContinuousRecording = 1,
 }
 
 export enum DualCamStreamMode {
@@ -490,6 +506,13 @@ export enum PropertyName {
     DeviceLowBatteryAlert = "lowBatteryAlert",
     DeviceLongTimeNotCloseAlert = "longTimeNotCloseAlert",
     DeviceWrongTryProtectAlert = "wrongTryProtectAlert",
+    DeviceVideoTypeStoreToNAS = "videoTypeStoreToNAS",
+    DeviceSnooze = "snooze",
+    DeviceSnoozeTime = "snoozeTime",
+
+    DeviceHiddenMotionDetectionSensitivity = "hidden-motionDetectionSensitivity",
+    DeviceHiddenMotionDetectionMode = "hidden-motionDetectionMode",
+    DeviceHiddenSnoozeStartTime = "hidden-snoozeStartTime",
 
     StationLANIpAddress = "lanIpAddress",
     StationMacAddress = "macAddress",
@@ -508,10 +531,6 @@ export enum PropertyName {
     StationSwitchModeWithAccessCode = "switchModeWithAccessCode",
     StationAutoEndAlarm = "autoEndAlarm",
     StationTurnOffAlarmWithButton = "turnOffAlarmWithButton",
-
-    DeviceHiddenMotionDetectionSensitivity = "hidden-motionDetectionSensitivity",
-    DeviceHiddenMotionDetectionMode = "hidden-motionDetectionMode",
-
     StationHomeSecuritySettings = "stationHomeSecuritySettings",
     StationAwaySecuritySettings = "stationAwaySecuritySettings",
     StationCustom1SecuritySettings = "stationCustom1SecuritySettings",
@@ -3120,6 +3139,59 @@ export const DeviceWrongTryProtectAlertProperty: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
+export const DeviceVideoTypeStoreToNASProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_INDOOR_NAS_STORAGE_TYPE,
+    name: PropertyName.DeviceVideoTypeStoreToNAS,
+    label: "Video Type Store To NAS",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Events",
+        1: "Continuous Recording",
+    },
+}
+
+export const DeviceSnoozeProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SET_SNOOZE_MODE,
+    name: PropertyName.DeviceSnooze,
+    label: "Snooze",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
+export const DeviceSnoozeTimeProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SET_SNOOZE_MODE,
+    name: PropertyName.DeviceSnoozeTime,
+    label: "Snooze Time",
+    readable: true,
+    writeable: false,
+    type: "number",
+    default: 0,
+    unit: "sec",
+}
+
+export const DeviceHiddenSnoozeStartTimeProperty: PropertyMetadataNumeric = {
+    key: ParamType.DOORBELL_SNOOZE_START_TIME,
+    name: PropertyName.DeviceHiddenSnoozeStartTime,
+    label: "HIDDEN Snooze Start Time",
+    readable: true,
+    writeable: false,
+    type: "number",
+    default: 0,
+}
+
+export const DevicePersonNameProperty: PropertyMetadataString = {
+    key: "custom_personName",
+    name: PropertyName.DevicePersonName,
+    label: "Person Name",
+    readable: true,
+    writeable: false,
+    type: "string",
+    default: "",
+}
+
 export const DeviceProperties: Properties = {
     [DeviceType.CAMERA2]: {
         ...GenericDeviceProperties,
@@ -3157,6 +3229,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.CAMERA2C]: {
         ...GenericDeviceProperties,
@@ -3196,6 +3272,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
         [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceCameraLightSettingsBrightnessManualProperty,
         [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.CAMERA2C_PRO]: {
         ...GenericDeviceProperties,
@@ -3237,6 +3317,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityCamera2CProProperty,
         [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceCameraLightSettingsBrightnessManualProperty,
         [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.CAMERA2_PRO]: {
         ...GenericDeviceProperties,
@@ -3274,6 +3358,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.CAMERA]: {
         ...GenericDeviceProperties,
@@ -3308,6 +3396,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
         [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
         [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.CAMERA_E]: {
         ...GenericDeviceProperties,
@@ -3342,6 +3434,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
         [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
         [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.DOORBELL]: {
         ...GenericDeviceProperties,
@@ -3369,6 +3465,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationRing]: DeviceNotificationRingWiredDoorbellProperty,
         [PropertyName.DeviceNotificationMotion]: DeviceNotificationMotionWiredDoorbellProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeWiredDoorbellProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.BATTERY_DOORBELL]: {
         ...GenericDeviceProperties,
@@ -3410,6 +3510,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeBatteryDoorbellProperty,
         [PropertyName.DeviceNotificationRing]: DeviceNotificationRingProperty,
         [PropertyName.DeviceNotificationMotion]: DeviceNotificationMotionProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.BATTERY_DOORBELL_2]: {
         ...GenericDeviceProperties,
@@ -3451,6 +3555,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeBatteryDoorbellProperty,
         [PropertyName.DeviceNotificationRing]: DeviceNotificationRingProperty,
         [PropertyName.DeviceNotificationMotion]: DeviceNotificationMotionProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.BATTERY_DOORBELL_PLUS]: { //T8213 2K Battery Dual Doorbell
         ...GenericDeviceProperties,
@@ -3530,6 +3638,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DevicePackageTaken]: DevicePackageTakenProperty,
         [PropertyName.DeviceSomeoneLoitering]: DeviceSomeoneLoiteringProperty,
         [PropertyName.DeviceRadarMotionDetected]: DeviceRadarMotionDetectedProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.DOORBELL_SOLO]: { //T8203
         ...GenericDeviceProperties,
@@ -3569,6 +3681,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRingAutoResponseVoiceResponseVoice]: DeviceRingAutoResponseVoiceResponseVoiceProperty,
         [PropertyName.DeviceRingAutoResponseTimeFrom]: DeviceRingAutoResponseTimeFromProperty,
         [PropertyName.DeviceRingAutoResponseTimeTo]: DeviceRingAutoResponseTimeToProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     /*[DeviceType.FLOODLIGHT]: {
         ...GenericDeviceProperties,
@@ -3627,6 +3743,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceMotionDetectionTestMode]: DeviceMotionDetectionTestModeProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.FLOODLIGHT_CAMERA_8422]: {
         ...GenericDeviceProperties,
@@ -3658,6 +3778,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityIndoorProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.FLOODLIGHT_CAMERA_8423]: { // T8423 Firmware: 1.0.7.4 (20211219)
         ...GenericDeviceProperties,
@@ -3704,6 +3828,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceAutoCalibration]: DeviceAutoCalibrationProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.FLOODLIGHT_CAMERA_8424]: {
         ...GenericDeviceProperties,
@@ -3735,6 +3863,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityIndoorProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.INDOOR_CAMERA]: {
         ...GenericDeviceProperties,
@@ -3771,6 +3903,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationCrying]: DeviceNotificationCryingProperty,
         [PropertyName.DeviceContinuousRecording]: DeviceContinuousRecordingProperty,
         [PropertyName.DeviceContinuousRecordingType]: DeviceContinuousRecordingTypeProperty,
+        [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.INDOOR_CAMERA_1080]: {
         ...GenericDeviceProperties,
@@ -3806,6 +3943,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationCrying]: DeviceNotificationCryingProperty,
         [PropertyName.DeviceContinuousRecording]: DeviceContinuousRecordingProperty,
         [PropertyName.DeviceContinuousRecordingType]: DeviceContinuousRecordingTypeProperty,
+        [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.INDOOR_COST_DOWN_CAMERA]: {
         ...GenericDeviceProperties,
@@ -3842,6 +3984,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceDefaultAngleIdleTime]: DeviceDefaultAngleIdleTimeProperty,
         [PropertyName.DeviceNotificationIntervalTime]: DeviceNotificationIntervalTimeProperty,
         [PropertyName.DeviceSoundDetectionRoundLook]: DeviceSoundDetectionRoundLookProperty,
+        [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.INDOOR_PT_CAMERA]: {
         ...GenericDeviceProperties,
@@ -3882,6 +4029,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceContinuousRecordingType]: DeviceContinuousRecordingTypeProperty,
         [PropertyName.DeviceMotionZone]: DeviceMotionZoneProperty,
         [PropertyName.DeviceImageMirrored]: DeviceImageMirroredProperty,
+        [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.INDOOR_PT_CAMERA_1080]: {
         ...GenericDeviceProperties,
@@ -3919,6 +4071,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationCrying]: DeviceNotificationCryingProperty,
         [PropertyName.DeviceContinuousRecording]: DeviceContinuousRecordingProperty,
         [PropertyName.DeviceContinuousRecordingType]: DeviceContinuousRecordingTypeProperty,
+        [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P]: {
         ...GenericDeviceProperties,
@@ -3955,6 +4112,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationCrying]: DeviceNotificationCryingProperty,
         [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
         [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT]: {
         ...GenericDeviceProperties,
@@ -3989,6 +4151,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionProperty,
         [PropertyName.DeviceNotificationAllSound]: DeviceNotificationAllSoundProperty,
         [PropertyName.DeviceNotificationCrying]: DeviceNotificationCryingProperty,
+        [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.INDOOR_OUTDOOR_CAMERA_2K]: {
         ...GenericDeviceProperties,
@@ -4025,6 +4192,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationCrying]: DeviceNotificationCryingProperty,
         [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
         [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.SOLO_CAMERA]: {
         ...GenericDeviceProperties,
@@ -4059,6 +4231,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
         [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.SOLO_CAMERA_PRO]: {
         ...GenericDeviceProperties,
@@ -4094,6 +4270,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
         [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_1080]: {
         ...GenericDeviceProperties,
@@ -4130,6 +4310,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
         [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_2K]: {
         ...GenericDeviceProperties,
@@ -4166,6 +4350,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
         [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR]: {
         ...GenericDeviceProperties,
@@ -4202,6 +4390,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
         [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceHiddenSnoozeStartTime]: DeviceHiddenSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.KEYPAD]: {
         ...GenericDeviceProperties,
@@ -4230,6 +4422,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedProperty,
         [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedProperty,
         [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+        //TODO: Smart locks apparently also have a snooze function
     },
     [DeviceType.LOCK_WIFI_NO_FINGER]: {
         ...GenericDeviceProperties,
@@ -4251,6 +4444,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedProperty,
         [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedProperty,
         [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+        //TODO: Smart locks apparently also have a snooze function
     },
     [DeviceType.LOCK_BLE]: {
         ...GenericDeviceProperties,
@@ -4889,10 +5083,6 @@ export enum CommandName {
     DeviceTriggerAlarmSound = "deviceTriggerAlarmSound",
     DeviceStartDownload = "deviceStartDownload",
     DeviceCancelDownload = "deviceCancelDownload",
-    StationReboot = "stationReboot",
-    StationTriggerAlarmSound = "stationTriggerAlarmSound",
-    DeviceStartRTSPLivestream = "deviceStartRTSPLivestream",
-    DeviceStopRTSPLivestream = "deviceStopRTSPLivestream",
     DeviceLockCalibration = "deviceLockCalibration",
     DeviceCalibrate = "deviceCalibrate",
     DeviceSetDefaultAngle = "deviceSetDefaultAngle",
@@ -4900,6 +5090,9 @@ export enum CommandName {
     DeviceStartTalkback = "deviceStartTalkback",
     DeviceStopTalkback = "deviceStopTalkback",
     DeviceUnlock = "deviceUnlock",
+    DeviceSnooze = "deviceSnooze",
+    StationReboot = "stationReboot",
+    StationTriggerAlarmSound = "stationTriggerAlarmSound",
 }
 
 export const DeviceCommands: Commands = {
@@ -4909,8 +5102,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.CAMERA2]: [
         CommandName.DeviceStartLivestream,
@@ -4918,10 +5110,9 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.CAMERA2C]: [
         CommandName.DeviceStartLivestream,
@@ -4929,10 +5120,9 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.CAMERA2C_PRO]: [
         CommandName.DeviceStartLivestream,
@@ -4940,10 +5130,9 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.CAMERA2_PRO]: [
         CommandName.DeviceStartLivestream,
@@ -4951,10 +5140,9 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.CAMERA_E]: [
         CommandName.DeviceStartLivestream,
@@ -4962,8 +5150,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.DOORBELL]: [
         CommandName.DeviceStartLivestream,
@@ -4973,6 +5160,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.BATTERY_DOORBELL]: [
         CommandName.DeviceStartLivestream,
@@ -4982,6 +5170,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.BATTERY_DOORBELL_2]: [
         CommandName.DeviceStartLivestream,
@@ -4991,6 +5180,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.BATTERY_DOORBELL_PLUS]: [
         CommandName.DeviceStartLivestream,
@@ -5000,6 +5190,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.DOORBELL_SOLO]: [
         CommandName.DeviceStartLivestream,
@@ -5009,56 +5200,52 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.INDOOR_CAMERA]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.INDOOR_CAMERA_1080]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.INDOOR_OUTDOOR_CAMERA_2K]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.INDOOR_PT_CAMERA]: [
         CommandName.DeviceStartLivestream,
@@ -5066,11 +5253,10 @@ export const DeviceCommands: Commands = {
         CommandName.DevicePanAndTilt,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceCalibrate,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.INDOOR_PT_CAMERA_1080]: [
         CommandName.DeviceStartLivestream,
@@ -5078,11 +5264,10 @@ export const DeviceCommands: Commands = {
         CommandName.DevicePanAndTilt,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceCalibrate,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.INDOOR_COST_DOWN_CAMERA]: [
         CommandName.DeviceStartLivestream,
@@ -5090,13 +5275,12 @@ export const DeviceCommands: Commands = {
         CommandName.DevicePanAndTilt,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceCalibrate,
         CommandName.DeviceSetDefaultAngle,
         CommandName.DeviceSetPrivacyAngle,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.SOLO_CAMERA]: [
         CommandName.DeviceStartLivestream,
@@ -5105,6 +5289,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.SOLO_CAMERA_PRO]: [
         CommandName.DeviceStartLivestream,
@@ -5113,6 +5298,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_1080]: [
         CommandName.DeviceStartLivestream,
@@ -5121,6 +5307,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_2K]: [
         CommandName.DeviceStartLivestream,
@@ -5129,6 +5316,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR]: [
         CommandName.DeviceStartLivestream,
@@ -5137,6 +5325,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.FLOODLIGHT]: [
         CommandName.DeviceStartLivestream,
@@ -5145,6 +5334,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8422]: [
         CommandName.DeviceStartLivestream,
@@ -5153,6 +5343,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8423]: [
         CommandName.DeviceStartLivestream,
@@ -5160,11 +5351,10 @@ export const DeviceCommands: Commands = {
         CommandName.DevicePanAndTilt,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
-        CommandName.DeviceStartRTSPLivestream,
-        CommandName.DeviceStopRTSPLivestream,
         CommandName.DeviceCalibrate,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8424]: [
         CommandName.DeviceStartLivestream,
@@ -5173,6 +5363,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
     ],
     [DeviceType.KEYPAD]: [],
     [DeviceType.LOCK_BLE]: [],

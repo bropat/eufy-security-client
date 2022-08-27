@@ -3,18 +3,18 @@ import { Readable } from "stream";
 import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
-import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode } from "./types";
-import { StationListResponse, StationSecuritySettings } from "./models"
+import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode, VideoTypeStoreToNAS } from "./types";
+import { SnoozeDetail, StationListResponse, StationSecuritySettings } from "./models"
 import { ParameterHelper } from "./parameter";
 import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValues, StationEvents, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString } from "./interfaces";
 import { encodeSmartSafeData, getBlocklist, getCurrentTimeInSeconds, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
 import { StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
 import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLInnerCommand, IndoorSoloSmartdropCommandType, P2PConnectionType, PanTiltDirection, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
-import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData } from "../p2p/models";
+import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData, CustomData, CommandData } from "../p2p/models";
 import { Device, DoorbellCamera, Lock, SmartSafe } from "./device";
 import { getAdvancedLockKey, encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, generateAdvancedLockAESKey, getLockVectorBytes, isPrivateIp, encryptPayloadData } from "../p2p/utils";
-import { InvalidCommandValueError, InvalidPropertyValueError, NotSupportedError, RTSPPropertyNotEnabled, WrongStationError, StationConnectTimeoutError } from "../error";
+import { InvalidCommandValueError, InvalidPropertyValueError, NotSupportedError, RTSPPropertyNotEnabledError, WrongStationError, StationConnectTimeoutError } from "../error";
 import { PushMessage } from "../push/models";
 import { CusPushEvent } from "../push/types";
 import { InvalidPropertyError, LivestreamAlreadyRunningError, LivestreamNotRunningError, PropertyNotSupportedError } from "./error";
@@ -536,9 +536,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 }),
                 channel: Station.CHANNEL
             }, {
-                name: property.name,
-                value: mode
-            } as PropertyData);
+                property: propertyData
+            });
         } else {
             this.log.debug(`Using CMD_SET_ARMING for station ${this.getSerial()}`);
             await this.p2pSession.sendCommandWithInt({
@@ -547,8 +546,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 strValue: this.rawStation.member.admin_user_id,
                 channel: Station.CHANNEL
             }, {
-                name: property.name,
-                value: mode
+                property: propertyData
             });
         }
     }
@@ -658,12 +656,12 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     private onCommandResponse(result: CommandResult): void {
-        this.log.debug("Got p2p command response", { station: this.getSerial(), commandType: result.command_type, channel: result.channel, returnCodeName: ErrorCode[result.return_code], returnCode: result.return_code, property: result.property });
+        this.log.debug("Got p2p command response", { station: this.getSerial(), commandType: result.command_type, channel: result.channel, returnCodeName: ErrorCode[result.return_code], returnCode: result.return_code, customData: result.customData });
         this.emit("command result", this, result);
     }
 
     private onSecondaryCommandResponse(result: CommandResult): void {
-        this.log.debug("Got p2p secondary command response", { station: this.getSerial(), commandType: result.command_type, channel: result.channel, returnCode: result.return_code, property: result.property });
+        this.log.debug("Got p2p secondary command response", { station: this.getSerial(), commandType: result.command_type, channel: result.channel, returnCode: result.return_code, customData: result.customData });
         this.emit("secondary command result", this, result);
     }
 
@@ -715,6 +713,9 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public async rebootHUB(): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.StationReboot
+        };
         if (!this.hasCommand(CommandName.StationReboot)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
@@ -724,6 +725,8 @@ export class Station extends TypedEmitter<StationEvents> {
             value: 0,
             strValue: this.rawStation.member.admin_user_id,
             channel: Station.CHANNEL
+        }, {
+            command: commandData
         });
     }
 
@@ -746,14 +749,18 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_LIVEVIEW_LED_SWITCH,
                 value: value === true ? 1 : 0,
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 || device.getDeviceType() === DeviceType.FLOODLIGHT) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_DEV_LED_SWITCH,
@@ -761,7 +768,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isIndoorCamera() || device.isFloodLight()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -791,7 +800,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     },
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isSoloCameras()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -822,7 +833,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isBatteryDoorbell() || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -835,7 +848,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -846,7 +861,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -867,7 +886,9 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value === true ? 1 : 0,
             valueSub: device.getChannel(),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setNightVision(device: Device, value: number): Promise<void> {
@@ -894,7 +915,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setMotionDetection(device: Device, value: boolean): Promise<void> {
@@ -925,7 +948,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isSoloCameras()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -943,7 +968,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -954,7 +981,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_PIR_SWITCH,
@@ -962,7 +991,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         }
     }
 
@@ -993,7 +1024,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setSoundDetectionType(device: Device, value: number): Promise<void> {
@@ -1026,7 +1059,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setSoundDetectionSensitivity(device: Device, value: number): Promise<void> {
@@ -1059,7 +1094,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setPetDetection(device: Device, value: boolean): Promise<void> {
@@ -1089,10 +1126,16 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async panAndTilt(device: Device, direction: PanTiltDirection, command = 1): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DevicePanAndTilt,
+            value: direction
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -1117,6 +1160,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -1129,6 +1174,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         }
     }
@@ -1154,7 +1201,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1189,7 +1240,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isSoloCameras()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1200,7 +1253,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if ((device.isBatteryDoorbell() && !device.isBatteryDoorbellDual()) || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -1213,7 +1268,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isCamera2Product()) {
             let convertedValue;
             switch(value) {
@@ -1248,7 +1305,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E) {
             const convertedValue = 200 - ((value - 1) * 2);
             await this.p2pSession.sendCommandWithIntString({
@@ -1257,7 +1316,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             let intMode: number;
             let intSensitivity: number;
@@ -1297,7 +1358,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.getDeviceType() === DeviceType.FLOODLIGHT) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_MDSENSITIVITY,
@@ -1305,7 +1368,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1332,7 +1399,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 value: value,
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isFloodLight() || device.isIndoorCamera()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1349,7 +1418,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1373,6 +1446,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 "data": JSON.parse(value)
             }),
             channel: device.getChannel()
+        }, {
+            property: propertyData
         });
     }
 
@@ -1404,7 +1479,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setPanAndTiltRotationSpeed(device: Device, value: number): Promise<void> {
@@ -1438,7 +1515,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setMicMute(device: Device, value: boolean): Promise<void> {
@@ -1459,7 +1538,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setAudioRecording(device: Device, value: boolean): Promise<void> {
@@ -1494,7 +1575,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.getDeviceType() === DeviceType.FLOODLIGHT) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -1506,7 +1589,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isFloodLight() || device.isIndoorCamera() || device.isSoloCameras()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1524,7 +1609,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isCamera2Product() || device.isBatteryDoorbell() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -1538,7 +1625,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1549,7 +1638,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1571,7 +1664,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setSpeakerVolume(device: Device, value: number): Promise<void> {
@@ -1595,7 +1690,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setRingtoneVolume(device: Device, value: number): Promise<void> {
@@ -1620,7 +1717,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1631,7 +1730,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1654,7 +1757,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1665,7 +1770,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1688,7 +1797,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1719,7 +1832,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1750,7 +1867,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1786,7 +1907,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isBatteryDoorbell() || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -1801,7 +1924,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isCamera2Product() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -1814,7 +1939,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1825,7 +1952,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1858,7 +1989,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1891,7 +2026,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1924,7 +2063,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1957,7 +2100,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1990,7 +2137,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2020,7 +2171,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -2031,7 +2184,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2061,7 +2218,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -2072,7 +2231,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2102,7 +2265,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setPowerWorkingMode(device: Device, value: number): Promise<void> {
@@ -2126,7 +2291,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setRecordingClipLength(device: Device, value: number): Promise<void> {
@@ -2149,7 +2316,9 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value,
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setRecordingRetriggerInterval(device: Device, value: number): Promise<void> {
@@ -2172,7 +2341,9 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value,
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setRecordingEndClipMotionStops(device: Device, value: boolean): Promise<void> {
@@ -2192,7 +2363,9 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value === true ? 0 : 1,
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setVideoStreamingQuality(device: Device, value: number): Promise<void> {
@@ -2220,7 +2393,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isBatteryDoorbell() || device.isCamera2CPro() || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY,
@@ -2228,7 +2403,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2257,7 +2436,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isCamera2CPro()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -2270,7 +2451,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2292,7 +2477,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setFloodlightLightSettingsEnable(device: Device, value: boolean): Promise<void> {
@@ -2314,7 +2501,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2342,7 +2533,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2368,7 +2563,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2394,7 +2593,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2417,7 +2620,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2459,7 +2666,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2485,11 +2696,19 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
     public async triggerStationAlarmSound(seconds: number): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.StationTriggerAlarmSound,
+            value: seconds
+        };
         if (!this.hasCommand(CommandName.StationTriggerAlarmSound)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
@@ -2501,6 +2720,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: seconds,
                 strValue: this.rawStation.member.admin_user_id,
                 channel: Station.CHANNEL
+            }, {
+                command: commandData
             });
         } else {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -2515,6 +2736,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
+            }, {
+                command: commandData
             });
         }
     }
@@ -2524,6 +2747,10 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public async triggerDeviceAlarmSound(device: Device, seconds: number): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceTriggerAlarmSound,
+            value: seconds
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -2537,6 +2764,8 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
+        }, {
+            command: commandData
         });
     }
 
@@ -2561,7 +2790,9 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value,
             strValue: this.rawStation.member.admin_user_id,
             channel: Station.CHANNEL
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setStationAlarmTone(value: AlarmTone): Promise<void> {
@@ -2587,7 +2818,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: Station.CHANNEL
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setStationPromptVolume(value: number): Promise<void> {
@@ -2613,7 +2846,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: Station.CHANNEL
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setStationNotificationSwitchMode(mode: NotificationSwitchMode, value: boolean): Promise<void> {
@@ -2651,7 +2886,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -2666,7 +2903,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         }
     }
 
@@ -2701,7 +2940,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -2716,7 +2957,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         }
     }
 
@@ -2737,7 +2980,9 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value,
             strValue: this.rawStation.member.admin_user_id,
             channel: Station.CHANNEL
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setRTSPStream(device: Device, value: boolean): Promise<void> {
@@ -2758,7 +3003,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setAntiTheftDetection(device: Device, value: boolean): Promise<void> {
@@ -2779,7 +3026,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setWatermark(device: Device, value: WatermarkSetting1 | WatermarkSetting2 | WatermarkSetting3 | WatermarkSetting4): Promise<void> {
@@ -2808,7 +3057,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isSoloCameras() || device.isWiredDoorbell() || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             if (!Object.values(WatermarkSetting1).includes(value as WatermarkSetting1)) {
                 this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting1);
@@ -2821,7 +3072,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: 0,
                 strValue: this.rawStation.member.admin_user_id,
                 channel: 0
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isIndoorCamera() || device.isFloodLight()) {
             if (!Object.values(WatermarkSetting4).includes(value as WatermarkSetting4)) {
                 this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting4);
@@ -2834,7 +3087,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isBatteryDoorbell() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E || device.isWiredDoorbellDual()) {
             if (!Object.values(WatermarkSetting2).includes(value as WatermarkSetting2)) {
                 this.log.error(`The device ${device.getSerial()} accepts only this type of values: `, WatermarkSetting2);
@@ -2847,7 +3102,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2877,7 +3136,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_DEVS_SWITCH,
@@ -2885,11 +3146,20 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         }
     }
 
     public async startDownload(device: Device, path: string, cipher_id: number): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceStartDownload,
+            value: {
+                path: path,
+                cipher_id: cipher_id
+            }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -2905,13 +3175,26 @@ export class Station extends TypedEmitter<StationEvents> {
                 strValue: path,
                 strValueSub: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else {
             this.log.warn(`Cancelled download of video "${path}" from Station ${this.getSerial()}, because RSA certificate couldn't be loaded`);
+            this.emit("command result", this, {
+                channel: device.getChannel(),
+                command_type: CommandType.CMD_DOWNLOAD_VIDEO,
+                return_code: ErrorCode.ERROR_INVALID_PARAM,
+                customData: {
+                    command: commandData
+                }
+            });
         }
     }
 
     public async cancelDownload(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceCancelDownload
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -2924,10 +3207,16 @@ export class Station extends TypedEmitter<StationEvents> {
             value: device.getChannel(),
             strValueSub: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
+        }, {
+            command: commandData
         });
     }
 
     public async startLivestream(device: Device, videoCodec: VideoCodec = VideoCodec.H264): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceStartLivestream,
+            value: videoCodec
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -2953,6 +3242,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else if (device.isWiredDoorbell() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isIndoorCamera() || device.getSerial().startsWith("T8420")) {
             this.log.debug(`Using CMD_DOORBELL_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
@@ -2967,6 +3258,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else {
             if ((Device.isIntegratedDeviceBySn(this.getSerial()) || !isGreaterEqualMinVersion("2.0.9.7", this.getSoftwareVersion())) && (!this.getSerial().startsWith("T8420") || !isGreaterEqualMinVersion("1.0.0.25", this.getSoftwareVersion()))) {
@@ -2976,6 +3269,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     value: device.getChannel(),
                     strValue: rsa_key?.exportKey("components-public").n.slice(1).toString("hex"),
                     channel: device.getChannel()
+                }, {
+                    command: commandData
                 });
             } else {
                 this.log.debug(`Using CMD_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
@@ -2992,12 +3287,17 @@ export class Station extends TypedEmitter<StationEvents> {
                         }
                     }),
                     channel: device.getChannel()
+                }, {
+                    command: commandData
                 });
             }
         }
     }
 
     public async stopLivestream(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceStopLivestream
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -3012,6 +3312,8 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_STOP_REALTIME_MEDIA,
             value: device.getChannel(),
             channel: device.getChannel()
+        }, {
+            command: commandData
         });
     }
 
@@ -3028,6 +3330,10 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public async quickResponse(device: Device, voice_id: number): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceQuickResponse,
+            value: voice_id
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -3043,6 +3349,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else if (device.isWiredDoorbell()) {
             this.log.debug(`Using CMD_DOORBELL_SET_PAYLOAD for station ${this.getSerial()}`);
@@ -3055,7 +3363,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3087,7 +3399,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3113,7 +3429,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3139,7 +3459,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3165,7 +3489,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3194,7 +3522,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3235,7 +3567,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             const publicKey = await this.api.getPublicKey(device.getSerial(), PublicKeyType.LOCK);
 
@@ -3266,7 +3600,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: p2pCommandData,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3291,7 +3629,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
     }
 
@@ -3316,7 +3658,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
     }
 
@@ -3341,7 +3687,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
     }
 
@@ -3354,7 +3704,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
         const rtspStreamProperty = device.getPropertyValue(PropertyName.DeviceRTSPStream);
         if (rtspStreamProperty !== undefined && rtspStreamProperty !== true) {
-            throw new RTSPPropertyNotEnabled(`RTSP setting for device ${device.getSerial()} must be enabled first, to enable this functionality!`);
+            throw new RTSPPropertyNotEnabledError(`RTSP setting for device ${device.getSerial()} must be enabled first, to enable this functionality!`);
         }
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRTSPStream,
@@ -3368,7 +3718,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async stopRTSPStream(device: Device): Promise<void> {
@@ -3380,7 +3732,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
         const rtspStreamProperty = device.getPropertyValue(PropertyName.DeviceRTSPStream);
         if (rtspStreamProperty !== undefined && rtspStreamProperty !== true) {
-            throw new RTSPPropertyNotEnabled(`RTSP setting for device ${device.getSerial()} must be enabled first, to enable this functionality!`);
+            throw new RTSPPropertyNotEnabledError(`RTSP setting for device ${device.getSerial()} must be enabled first, to enable this functionality!`);
         }
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRTSPStream,
@@ -3394,7 +3746,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setMotionDetectionRange(device: Device, type: number): Promise<void> {
@@ -3422,7 +3776,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3451,7 +3809,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3480,7 +3842,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3509,7 +3875,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3538,7 +3908,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3564,7 +3938,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3593,7 +3971,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3622,7 +4004,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3651,7 +4037,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3680,7 +4070,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3709,7 +4103,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3738,7 +4136,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3764,7 +4166,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3793,7 +4199,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3822,7 +4232,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3851,7 +4265,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3898,6 +4316,9 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public async calibrateLock(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceLockCalibration
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -3931,7 +4352,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: p2pCommandData,
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4059,10 +4484,15 @@ export class Station extends TypedEmitter<StationEvents> {
                     commandType: CommandType.CMD_SET_PAYLOAD,
                     value: p2pCommandData,
                     channel: device.getChannel()
-                }, propertyData);
+                }, {
+                    property: propertyData
+                });
             } else {
-                this.log.debug();
+                this.log.warn(`Internal lock property for property ${property} not identified for ${device.getSerial()}`, { p2pParamName: p2pParamName });
+                throw new InvalidPropertyError(`Internal lock property for property ${property} not identified for ${device.getSerial()}`);
             }
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4091,7 +4521,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4123,7 +4557,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4155,7 +4593,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4184,7 +4626,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4341,7 +4787,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4473,7 +4923,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4502,7 +4956,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4535,7 +4993,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4566,7 +5028,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4621,7 +5087,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4654,7 +5124,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4683,7 +5157,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4716,7 +5194,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4756,7 +5238,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4865,11 +5351,18 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
     public async calibrate(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceCalibrate
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -4884,7 +5377,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     "commandType": CommandType.CMD_INDOOR_PAN_CALIBRATION
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4919,7 +5416,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 },
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setContinuousRecordingType(device: Device, value: number): Promise<void> {
@@ -4953,7 +5452,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async enableDefaultAngle(device: Device, value: boolean): Promise<void> {
@@ -4980,7 +5481,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 },
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setDefaultAngleIdleTime(device: Device, value: number): Promise<void> {
@@ -5007,10 +5510,15 @@ export class Station extends TypedEmitter<StationEvents> {
                 },
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setDefaultAngle(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceSetDefaultAngle
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -5027,10 +5535,15 @@ export class Station extends TypedEmitter<StationEvents> {
                 },
             }),
             channel: device.getChannel()
+        }, {
+            command: commandData
         });
     }
 
     public async setPrivacyAngle(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceSetPrivacyAngle
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -5047,6 +5560,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 },
             }),
             channel: device.getChannel()
+        }, {
+            command: commandData
         });
     }
 
@@ -5070,7 +5585,9 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value,
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setSoundDetectionRoundLook(device: Device, value: boolean): Promise<void> {
@@ -5097,10 +5614,15 @@ export class Station extends TypedEmitter<StationEvents> {
                 },
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async startTalkback(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceStartTalkback
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -5118,19 +5640,34 @@ export class Station extends TypedEmitter<StationEvents> {
                     "commandType": IndoorSoloSmartdropCommandType.CMD_START_SPEAK,
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else if (device.isBatteryDoorbell() && isGreaterEqualMinVersion("2.0.6.8", this.getSoftwareVersion())) {
             await this.p2pSession.sendCommandWithInt({
                 commandType: CommandType.CMD_START_TALKBACK,
                 value: 0,
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else {
             this.p2pSession.startTalkback(device.getChannel());
+            this.emit("command result", this, {
+                channel: device.getChannel(),
+                command_type: 0,
+                return_code: 0,
+                customData: {
+                    command: commandData
+                }
+            });
         }
     }
 
     public async stopTalkback(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceStopTalkback
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -5148,15 +5685,27 @@ export class Station extends TypedEmitter<StationEvents> {
                     "commandType": IndoorSoloSmartdropCommandType.CMD_END_SPEAK,
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else if (device.isBatteryDoorbell() && isGreaterEqualMinVersion("2.0.6.8", this.getSoftwareVersion())) {
             await this.p2pSession.sendCommandWithInt({
                 commandType: CommandType.CMD_STOP_TALKBACK,
                 value: 0,
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else {
             this.p2pSession.stopTalkback(device.getChannel());
+            this.emit("command result", this, {
+                channel: device.getChannel(),
+                command_type: 0,
+                return_code: 0,
+                customData: {
+                    command: commandData
+                }
+            });
         }
     }
 
@@ -5194,6 +5743,8 @@ export class Station extends TypedEmitter<StationEvents> {
             await this.setAdvancedLockParams(device, PropertyName.DeviceScramblePasscode, value);
         } else if (device.isSmartSafe()) {
             await this.setSmartSafeParams(device, PropertyName.DeviceScramblePasscode, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -5213,6 +5764,8 @@ export class Station extends TypedEmitter<StationEvents> {
             await this.setAdvancedLockParams(device, PropertyName.DeviceWrongTryProtection, value);
         } else if (device.isSmartSafe()) {
             await this.setSmartSafeParams(device, PropertyName.DeviceWrongTryProtection, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -5232,6 +5785,8 @@ export class Station extends TypedEmitter<StationEvents> {
             await this.setAdvancedLockParams(device, PropertyName.DeviceWrongTryAttempts, value);
         } else if (device.isSmartSafe()) {
             await this.setSmartSafeParams(device, PropertyName.DeviceWrongTryAttempts, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -5251,10 +5806,12 @@ export class Station extends TypedEmitter<StationEvents> {
             await this.setAdvancedLockParams(device, PropertyName.DeviceWrongTryLockdownTime, value);
         } else if (device.isSmartSafe()) {
             await this.setSmartSafeParams(device, PropertyName.DeviceWrongTryLockdownTime, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
-    private async _sendSmartSafeCommand(device: Device, command: SmartSafeCommandCode, payload: Buffer, propertyData?: PropertyData): Promise<void> {
+    private async _sendSmartSafeCommand(device: Device, command: SmartSafeCommandCode, payload: Buffer, customData?: CustomData): Promise<void> {
         const encPayload = encryptPayloadData(payload, Buffer.from(device.getSerial()), Buffer.from(SmartSafe.IV, "hex"));
         const data = encodeSmartSafeData(command, encPayload);
 
@@ -5272,7 +5829,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, customData);
     }
 
     public async setSmartSafeParams(device: Device, property: PropertyName, value: PropertyValue): Promise<void> {
@@ -5445,11 +6002,16 @@ export class Station extends TypedEmitter<StationEvents> {
             }
 
             this.log.debug(`device: ${device.getSerial()} property: ${property} value: ${value} payload: ${payload.toString("hex")}`);
-            await this._sendSmartSafeCommand(device, command, payload, propertyData);
+            await this._sendSmartSafeCommand(device, command, payload, { property: propertyData });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
     public async unlock(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceUnlock
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -5457,7 +6019,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
         this.log.debug(`Sending trigger device unlock command to station ${this.getSerial()} for device ${device.getSerial()}`);
-        await this._sendSmartSafeCommand(device, SmartSafeCommandCode.UNLOCK, SmartSafe.encodeCmdUnlock(this.rawStation.member.admin_user_id));
+        await this._sendSmartSafeCommand(device, SmartSafeCommandCode.UNLOCK, SmartSafe.encodeCmdUnlock(this.rawStation.member.admin_user_id), { command: commandData });
     }
 
     private onDeviceShakeAlarm(channel: number, event: SmartSafeShakeAlarmEvent): void {
@@ -5478,6 +6040,88 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onDeviceWrongTryProtectAlarm(channel: number): void {
         this.emit("device wrong try-protect alarm", this._getDeviceSerial(channel));
+    }
+
+    public async setVideoTypeStoreToNAS(device: Device, value: VideoTypeStoreToNAS): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceVideoTypeStoreToNAS,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
+        if (device.getPropertyValue(PropertyName.DeviceContinuousRecording) !== true && value === VideoTypeStoreToNAS.ContinuousRecording) {
+            await this.setContinuousRecording(device, true);
+        }
+
+        this.log.debug(`Sending video type store to NAS command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
+        await this.p2pSession.sendCommandWithStringPayload({
+            commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+            value: JSON.stringify({
+                "commandType": CommandType.CMD_INDOOR_NAS_STORAGE_TYPE,
+                "data":{
+                    "enable": 0,
+                    "index": 0,
+                    "status": 0,
+                    "type": 0,
+                    "value": value,
+                    "voiceID": 0,
+                    "zonecount": 0,
+                    "transaction": `${new Date().getTime()}`,
+                },
+            }),
+            channel: device.getChannel()
+        }, {
+            property: propertyData
+        });
+    }
+
+    public async snooze(device: Device, value: SnoozeDetail): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceSnooze,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasCommand(CommandName.DeviceSnooze)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending snooze command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
+        if (device.isDoorbell()) {
+            //TODO: To test if it works
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_SNOOZE_MODE,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "snooze_time": value.snooze_time,
+                    //"startTime": 0,
+                    "chime_onoff": value.snooze_chime !== undefined && value.snooze_chime ? 1 : 0,
+                    "motion_onoff": value.snooze_motion !== undefined && value.snooze_motion ? 1 : 0,
+                    "homebase_onoff": value.snooze_homebase !== undefined && value.snooze_homebase ? 1 : 0,
+                }),
+                channel: device.getChannel()
+            }, {
+                command: commandData
+            });
+        } else {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_SNOOZE_MODE,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "snooze_time": value.snooze_time
+                }),
+                channel: device.getChannel()
+            }, {
+                command: commandData
+            });
+        }
     }
 
 }

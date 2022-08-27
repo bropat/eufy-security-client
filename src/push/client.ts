@@ -178,11 +178,13 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
 
     private onSocketClose(): void {
         this.loggedIn = false;
-        if (this.heartbeatTimeout)
+        if (this.heartbeatTimeout) {
             clearTimeout(this.heartbeatTimeout);
+            this.heartbeatTimeout = undefined;
+        }
 
-        this.scheduleReconnect();
         this.emit("close");
+        this.scheduleReconnect();
     }
 
     private onSocketError(error: any): void {

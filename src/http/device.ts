@@ -440,6 +440,27 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     this.log.error("Convert CMD_DOORBELL_DUAL_PACKAGE_GUARD_VOICE Error:", { property: property, value: value, error: error });
                     return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
+            } else if (property.key === CommandType.CMD_SET_SNOOZE_MODE) {
+                switch (property.name) {
+                    case PropertyName.DeviceSnooze: {
+                        const booleanProperty = property as PropertyMetadataBoolean;
+                        try {
+                            return value !== undefined && (value as any).snooze_time !== undefined && (value as any).snooze_time !== "" && Number.parseInt((value as any).snooze_time) !== 0 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                        } catch (error) {
+                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnooze Error:", { property: property, value: value, error: error });
+                            return booleanProperty.default !== undefined ? booleanProperty.default : false;
+                        }
+                    }
+                    case PropertyName.DeviceSnoozeTime: {
+                        const numericProperty = property as PropertyMetadataNumeric;
+                        try {
+                            return value !== undefined && (value as any).snooze_time !== undefined && (value as any).snooze_time !== "" ? Number.parseInt((value as any).snooze_time) : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                        } catch (error) {
+                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeTime Error:", { property: property, value: value, error: error });
+                            return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
+                        }
+                    }
+                }
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {

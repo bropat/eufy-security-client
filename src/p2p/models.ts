@@ -1,5 +1,5 @@
 import { PropertyValue } from "../http";
-import { PropertyName } from "../http/types";
+import { CommandName, PropertyName } from "../http/types";
 import { SmartSafeEventValueDetail } from "../push/models";
 import { CommandType } from "./types";
 
@@ -23,8 +23,18 @@ export interface PropertyData {
     value: PropertyValue;
 }
 
+export interface CommandData {
+    name: CommandName;
+    value?: any;
+}
+
+export interface CustomData {
+    property?: PropertyData;
+    command?: CommandData;
+}
+
 export interface CommandResult {
-    property: PropertyData;
+    customData?: CustomData;
     command_type: CommandType;
     channel: number;
     return_code: number;

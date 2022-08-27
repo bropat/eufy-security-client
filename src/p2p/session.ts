@@ -5,7 +5,7 @@ import { Readable } from "stream";
 import { Logger } from "ts-log";
 import { SortedMap } from "sweet-collections";
 
-import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, PropertyData, ESLStationP2PThroughData, SmartSafeSettingsNotification, SmartSafeStatusNotification } from "./models";
+import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, ESLStationP2PThroughData, SmartSafeSettingsNotification, SmartSafeStatusNotification, CustomData } from "./models";
 import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateBasicLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildVoidCommandPayload, isP2PQueueMessage, buildTalkbackAudioFrameHeader, getLocalIpAddress, decodeP2PCloudIPs } from "./utils";
 import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, ESLInnerCommand, P2PConnectionType, ChargingType, AlarmEvent, IndoorSoloSmartdropCommandType, SmartSafeCommandCode } from "./types";
 import { AlarmMode } from "../http/types";
@@ -96,7 +96,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private deviceSNs: DeviceSerial = {};
     private api: HTTPApi;
     private rawStation!: StationListResponse;
-    private lastPropertyData?: PropertyData;
+    private lastCustomData?: CustomData;
     private lastChannel?: number;
 
     constructor(rawStation: StationListResponse, api: HTTPApi) {
@@ -134,7 +134,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.lockSeqNumber = -1;
         this.connectAddress = undefined;
         this.lastChannel = undefined;
-        this.lastPropertyData = undefined;
+        this.lastCustomData = undefined;
 
         this._clearMessageStateTimeouts();
         this._clearMessageVideoStateTimeouts();
@@ -280,9 +280,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
 
     private closeEnergySavingDevice(): void {
-        if (this.sendQueue.filter((queue) => queue.commandType !== CommandType.CMD_PING && queue.commandType !== CommandType.CMD_GET_DEVICE_PING).length === 0 && this.energySavingDevice) {
+        if (this.sendQueue.filter((queue) => queue.commandType !== CommandType.CMD_PING && queue.commandType !== CommandType.CMD_GET_DEVICE_PING).length === 0 && this.energySavingDevice && !this.isCurrentlyStreaming()) {
             if (this.esdDisconnectTimeout === undefined) {
-                this.log.debug(`Station ${this.rawStation.station_sn} - Energy saving device - No more p2p commands to execute, initiate disconnect timeout in ${this.ESD_DISCONNECT_TIMEOUT} milliseconds...`);
+                this.log.debug(`Station ${this.rawStation.station_sn} - Energy saving device - No more p2p commands to execute or running streams, initiate disconnect timeout in ${this.ESD_DISCONNECT_TIMEOUT} milliseconds...`);
                 this.esdDisconnectTimeout = setTimeout(() => {
                     this.esdDisconnectTimeout = undefined;
                     sendMessage(this.socket, this.connectAddress!, RequestMessageType.END).catch((error) => {
@@ -387,7 +387,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
         this.lookupTimeout = setTimeout(() => {
             this.lookupTimeout = undefined;
-            this.log.error(`${this.constructor.name}.connect(): station: ${this.rawStation.station_sn} - All address lookup tentatives failed.`);
+            this.log.error(`Station ${this.rawStation.station_sn} - All address lookup tentatives failed.`);
             if (this.localIPAddress !== undefined)
                 this.localIPAddress = undefined
             this._disconnected();
@@ -441,8 +441,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         });
     }
 
-    //public sendCommandWithIntString(commandType: CommandType, value: number, valueSub = 0, strValue = "", strValueSub = "", channel = 0): void {
-    public sendCommandWithIntString(p2pcommand: P2PCommand, property?: PropertyData): void {
+    public sendCommandWithIntString(p2pcommand: P2PCommand, customData?: CustomData): void {
         if (p2pcommand.channel === undefined)
             p2pcommand.channel = 0;
         if (p2pcommand.value === undefined || typeof p2pcommand.value !== "number")
@@ -452,22 +451,20 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (p2pcommand.commandType === CommandType.CMD_NAS_TEST) {
             this.currentMessageState[P2PDataType.DATA].rtspStream[p2pcommand.channel] = p2pcommand.value === 1 ? true : false;
         }
-        this.sendCommand(p2pcommand.commandType, payload, p2pcommand.channel, undefined, property);
+        this.sendCommand(p2pcommand.commandType, payload, p2pcommand.channel, undefined, customData);
     }
 
-    //public sendCommandWithInt(commandType: CommandType, value: number, strValue = "", channel = 255): void {
-    public sendCommandWithInt(p2pcommand: P2PCommand, property?: PropertyData): void {
+    public sendCommandWithInt(p2pcommand: P2PCommand, customData?: CustomData): void {
         if (p2pcommand.channel === undefined)
             p2pcommand.channel = 255;
         if (p2pcommand.value === undefined || typeof p2pcommand.value !== "number")
             throw new TypeError("value must be a number");
 
         const payload = buildIntCommandPayload(p2pcommand.value, p2pcommand.strValue === undefined ? "" : p2pcommand.strValue, p2pcommand.channel);
-        this.sendCommand(p2pcommand.commandType, payload, p2pcommand.channel, undefined, property);
+        this.sendCommand(p2pcommand.commandType, payload, p2pcommand.channel, undefined, customData);
     }
 
-    //public sendCommandWithStringPayload(commandType: CommandType, value: string, channel = 0): void {
-    public sendCommandWithStringPayload(p2pcommand: P2PCommand, property?: PropertyData): void {
+    public sendCommandWithStringPayload(p2pcommand: P2PCommand, customData?: CustomData): void {
         if (p2pcommand.channel === undefined)
             p2pcommand.channel = 0;
         if (p2pcommand.value === undefined || typeof p2pcommand.value !== "string")
@@ -492,11 +489,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             }
         }
 
-        this.sendCommand(p2pcommand.commandType, payload, p2pcommand.channel, nested_commandType, property);
+        this.sendCommand(p2pcommand.commandType, payload, p2pcommand.channel, nested_commandType, customData);
     }
 
-    //public sendCommandWithString(commandType: CommandType, strValue: string, strValueSub:string, channel = 255): void {
-    public sendCommandWithString(p2pcommand: P2PCommand, property?: PropertyData): void {
+    public sendCommandWithString(p2pcommand: P2PCommand, customData?: CustomData): void {
         if (p2pcommand.channel === undefined)
             p2pcommand.channel = 255;
         if (p2pcommand.strValue === undefined)
@@ -505,7 +501,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             throw new TypeError("strValueSub must be defined");
 
         const payload = buildStringTypeCommandPayload(p2pcommand.strValue, p2pcommand.strValueSub, p2pcommand.channel);
-        this.sendCommand(p2pcommand.commandType, payload, p2pcommand.channel, p2pcommand.commandType, property);
+        this.sendCommand(p2pcommand.commandType, payload, p2pcommand.channel, p2pcommand.commandType, customData);
     }
 
     public sendCommandPing(channel = 255): void {
@@ -545,14 +541,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         }
     }
 
-    private sendCommand(commandType: CommandType, payload: Buffer, channel: number, nestedCommandType?: CommandType, property?: PropertyData): void {
+    private sendCommand(commandType: CommandType, payload: Buffer, channel: number, nestedCommandType?: CommandType, customData?: CustomData): void {
         const message: P2PQueueMessage = {
             commandType: commandType,
             nestedCommandType: nestedCommandType,
             channel: channel,
             payload: payload,
             timestamp: +new Date,
-            property: property
+            customData: customData
         };
         this.sendQueue.push(message);
         if (message.commandType !== CommandType.CMD_PING && message.commandType !== CommandType.CMD_GET_DEVICE_PING)
@@ -575,7 +571,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     retries: 0,
                     acknowledged: false,
                     returnCode: ErrorCode.ERROR_COMMAND_TIMEOUT,
-                    property: message.property
+                    customData: message.customData
                 };
                 message = messageState;
                 this.seqNumber = this._incrementSequence(this.seqNumber);
@@ -587,7 +583,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     command_type: message.nestedCommandType !== undefined ? message.nestedCommandType : message.commandType,
                     channel: message.channel,
                     return_code: ErrorCode.ERROR_CONNECT_TIMEOUT,
-                    property: message.property
+                    customData: message.customData
                 } as CommandResult);
                 return;
             }
@@ -607,7 +603,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     command_type: message.nestedCommandType !== undefined ? message.nestedCommandType : message.commandType,
                     channel: message.channel,
                     return_code: message.returnCode,
-                    property: message.property
+                    customData: message.customData
                 } as CommandResult);
                 this.messageStates.delete(message.sequence);
                 this.sendQueuedMessage();
@@ -798,7 +794,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     command_type: msg_state.nestedCommandType !== undefined ? msg_state.nestedCommandType : msg_state.commandType,
                                     channel: msg_state.channel,
                                     return_code: ErrorCode.ERROR_COMMAND_TIMEOUT,
-                                    property: msg_state.property
+                                    customData: msg_state.customData
                                 } as CommandResult);
                                 this.sendQueuedMessage();
                                 this.closeEnergySavingDevice();
@@ -1064,11 +1060,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 command_type: command_type,
                                 channel: msg_state.channel,
                                 return_code: return_code,
-                                property: msg_state.property
+                                customData: msg_state.customData
                             } as CommandResult);
                             this.messageStates.delete(message.seqNo);
                             if (command_type === CommandType.CMD_SMARTSAFE_SETTINGS) {
-                                this.lastPropertyData = msg_state.property;
+                                this.lastCustomData = msg_state.customData;
                                 this.lastChannel = msg_state.channel;
                                 this.secondaryCommandTimeout = setTimeout(() => {
                                     this.log.warn(`Station ${this.rawStation.station_sn} - Result data for secondary command not received`, { message: { sequence: msg_state!.sequence, commandType: msg_state!.commandType, nestedCommandType: msg_state!.nestedCommandType, channel: msg_state!.channel, acknowledged: msg_state!.acknowledged, retries: msg_state!.retries, returnCode: msg_state!.returnCode, data: msg_state!.data } });
@@ -1077,7 +1073,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                         command_type: msg_state!.nestedCommandType !== undefined ? msg_state!.nestedCommandType : msg_state!.commandType,
                                         channel: msg_state!.channel,
                                         return_code: ErrorCode.ERROR_COMMAND_TIMEOUT,
-                                        property: msg_state!.property
+                                        customData: msg_state!.customData
                                     } as CommandResult);
                                     this.sendQueuedMessage();
                                     this.closeEnergySavingDevice();
@@ -1473,17 +1469,17 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 const payload = json.payload as SmartSafeSettingsNotification;
                                 const data = decodeSmartSafeData(this.rawStation.station_sn, Buffer.from(payload.data, "hex"));
                                 const returnCode = data.data.readInt8(0);
-                                if (this.lastChannel !== undefined && this.lastPropertyData !== undefined) {
+                                if (this.lastChannel !== undefined && this.lastCustomData !== undefined) {
                                     const result: CommandResult = {
                                         channel: this.lastChannel,
                                         command_type: payload.prj_id,
                                         return_code: returnCode,
-                                        property: this.lastPropertyData
+                                        customData: this.lastCustomData
                                     };
 
                                     this.emit("secondary command", result);
                                 }
-                                this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe return code: ${data.data.readInt8(0)}`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, decoded: data, commandCode: SmartSafeCommandCode[data.commandCode], returnCode: returnCode, channel: this.lastChannel, property: this.lastPropertyData });
+                                this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe return code: ${data.data.readInt8(0)}`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, decoded: data, commandCode: SmartSafeCommandCode[data.commandCode], returnCode: returnCode, channel: this.lastChannel, customData: this.lastCustomData });
                                 this._clearSecondaryCommandTimeout();
                                 this.sendQueuedMessage();
                                 this.closeEnergySavingDevice();
@@ -1569,6 +1565,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     }
                 } catch (error) {
                     this.log.error(`Station ${this.rawStation.station_sn} - CMD_SET_TONE_FILE - Error:`, { error: error, payload: message.data.toString("hex") });
+                }
+                break;
+            case CommandType.CMD_SET_SNOOZE_MODE:
+                // Received for station managed devices when snooze time ends
+                try {
+                    this.log.debug(`Station ${this.rawStation.station_sn} - CMD_SET_SNOOZE_MODE`, { payload: message.data.toString() });
+                } catch (error) {
+                    this.log.error(`Station ${this.rawStation.station_sn} - CMD_SET_SNOOZE_MODE - Error:`, error);
                 }
                 break;
             case CommandType.CMD_PING:
@@ -1738,6 +1742,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             this.initializeMessageBuilder(datatype);
             this.initializeMessageState(datatype, this.currentMessageState[datatype].rsaKey);
             this.initializeStream(datatype);
+            this.closeEnergySavingDevice();
         }
     }
 
@@ -1774,6 +1779,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     public isLiveStreaming(channel: number): boolean {
         return this.isStreaming(channel, P2PDataType.VIDEO);
+    }
+
+    private isCurrentlyStreaming(): boolean {
+        for (const element of Object.values(this.currentMessageState)) {
+            if (element.p2pStreaming || element.p2pTalkback)
+                return true;
+        }
+        return false;
     }
 
     public isRTSPLiveStreaming(channel: number): boolean {
@@ -1948,6 +1961,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.currentMessageState[P2PDataType.VIDEO].p2pTalkbackChannel = -1;
         this.talkbackStream?.stopTalkback();
         this.emit("talkback stopped", channel);
+        this.closeEnergySavingDevice();
     }
 
 }

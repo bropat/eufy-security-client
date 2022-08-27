@@ -64,6 +64,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private refreshEufySecurityP2PTimeout: {
         [dataType: string]: NodeJS.Timeout;
     } = {};
+    private deviceSnoozeTimeout: {
+        [dataType: string]: NodeJS.Timeout;
+    } = {};
 
     private loadingDevices?: Promise<unknown>;
 
@@ -107,9 +110,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.config.acceptInvitations = false;
         }
         if (this.config.persistentDir === undefined) {
-            this.config.persistentDir = path.resolve(__dirname, "..");
+            this.config.persistentDir = path.resolve(__dirname, "../../..");
         } else if (!fse.existsSync(this.config.persistentDir)) {
-            this.config.persistentDir = path.resolve(__dirname, "..");
+            this.config.persistentDir = path.resolve(__dirname, "../../..");
         }
         this.persistentFile = path.join(this.config.persistentDir, "persistent.json");
 
@@ -436,8 +439,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             station.getCameraInfo().catch(error => {
                 this.log.error(`Error during station ${station.getSerial()} p2p data refreshing`, error);
             });
-            if (this.refreshEufySecurityP2PTimeout[station.getSerial()] !== undefined)
+            if (this.refreshEufySecurityP2PTimeout[station.getSerial()] !== undefined) {
                 clearTimeout(this.refreshEufySecurityP2PTimeout[station.getSerial()]);
+                delete this.refreshEufySecurityP2PTimeout[station.getSerial()];
+            }
             if (!station.isEnergySavingDevice()) {
                 this.refreshEufySecurityP2PTimeout[station.getSerial()] = setTimeout(() => {
                     station.getCameraInfo().catch(error => {
@@ -584,6 +589,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         Object.keys(this.refreshEufySecurityP2PTimeout).forEach(station_sn => {
             clearTimeout(this.refreshEufySecurityP2PTimeout[station_sn]);
+            delete this.refreshEufySecurityP2PTimeout[station_sn];
+        });
+
+        Object.keys(this.deviceSnoozeTimeout).forEach(device_sn => {
+            clearTimeout(this.deviceSnoozeTimeout[device_sn]);
+            delete this.deviceSnoozeTimeout[device_sn];
         });
 
         this.savePushPersistentIds();
@@ -1345,6 +1356,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             case PropertyName.DeviceNotificationJammed:
                 await station.setSmartSafeParams(device, name, value as PropertyValue);
                 break;
+            case PropertyName.DeviceVideoTypeStoreToNAS:
+                await station.setVideoTypeStoreToNAS(device, value as number);
+                break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
                     throw new ReadOnlyPropertyError(`Property ${name} is read only`);
@@ -1465,17 +1479,41 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (result.return_code === 0) {
             this.getStationDevice(station.getSerial(), result.channel).then((device: Device) => {
                 //TODO: Finish SmartSafe implementation - check better the if below
-                if (result.property !== undefined && (device.isSmartSafe() && result.command_type !== CommandType.CMD_SMARTSAFE_SETTINGS) && !device.isLock()) {
-                    if (device.hasProperty(result.property.name))
-                        device.updateProperty(result.property.name, result.property.value);
-                    else if (station.hasProperty(result.property.name)) {
-                        station.updateProperty(result.property.name, result.property.value);
+                if ((result.customData !== undefined && result.customData.property !== undefined && !device.isLock()) ||
+                    (result.customData !== undefined && result.customData.property !== undefined && device.isSmartSafe() && result.command_type !== CommandType.CMD_SMARTSAFE_SETTINGS)) {
+                    if (device.hasProperty(result.customData.property.name)) {
+                        device.updateProperty(result.customData.property.name, result.customData.property.value);
+                    } else if (station.hasProperty(result.customData.property.name)) {
+                        station.updateProperty(result.customData.property.name, result.customData.property.value);
                     }
+                } else if (result.customData !== undefined && result.customData.command !== undefined && result.customData.command.name === CommandName.DeviceSnooze) {
+                    const snoozeTime = result.customData.command.value !== undefined && result.customData.command.value.snooze_time !== undefined ? result.customData.command.value.snooze_time as number : 0;
+                    if (snoozeTime > 0) {
+                        device.updateProperty(PropertyName.DeviceSnooze, true);
+                        device.updateProperty(PropertyName.DeviceSnoozeTime, snoozeTime);
+                    }
+                    this.api.refreshAllData().then(() => {
+                        const snoozeStartTime = device.getPropertyValue(PropertyName.DeviceHiddenSnoozeStartTime) as number;
+                        const currentTime = Math.trunc(new Date().getTime() / 1000);
+                        let timeoutMS;
+                        if (snoozeStartTime !== undefined && snoozeStartTime !== 0) {
+                            timeoutMS = (snoozeStartTime + snoozeTime - currentTime) * 1000;
+                        } else {
+                            timeoutMS = snoozeTime * 1000;
+                        }
+                        this.deviceSnoozeTimeout[device.getSerial()] = setTimeout(() => {
+                            device.updateProperty(PropertyName.DeviceSnooze, false);
+                            device.updateProperty(PropertyName.DeviceSnoozeTime, 0);
+                            delete this.deviceSnoozeTimeout[device.getSerial()];
+                        }, timeoutMS);
+                    }).catch(error => {
+                        this.log.error("Error during API data refreshing", error);
+                    });
                 }
             }).catch((error) => {
                 if (error instanceof DeviceNotFoundError) {
-                    if (result.property !== undefined) {
-                        station.updateProperty(result.property.name, result.property.value);
+                    if (result.customData !== undefined && result.customData.property !== undefined) {
+                        station.updateProperty(result.customData.property.name, result.customData.property.value);
                     }
                 } else {
                     this.log.error(`Station command result error (station: ${station.getSerial()})`, error);
@@ -1490,17 +1528,17 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private onStationSecondaryCommandResult(station: Station, result: CommandResult): void {
         if (result.return_code === 0) {
             this.getStationDevice(station.getSerial(), result.channel).then((device: Device) => {
-                if (result.property !== undefined) {
-                    if (device.hasProperty(result.property.name))
-                        device.updateProperty(result.property.name, result.property.value);
-                    else if (station.hasProperty(result.property.name)) {
-                        station.updateProperty(result.property.name, result.property.value);
+                if (result.customData !== undefined && result.customData.property !== undefined) {
+                    if (device.hasProperty(result.customData.property.name))
+                        device.updateProperty(result.customData.property.name, result.customData.property.value);
+                    else if (station.hasProperty(result.customData.property.name)) {
+                        station.updateProperty(result.customData.property.name, result.customData.property.value);
                     }
                 }
             }).catch((error) => {
                 if (error instanceof DeviceNotFoundError) {
-                    if (result.property !== undefined) {
-                        station.updateProperty(result.property.name, result.property.value);
+                    if (result.customData !== undefined && result.customData.property !== undefined) {
+                        station.updateProperty(result.customData.property.name, result.customData.property.value);
                     }
                 } else {
                     this.log.error(`Station secondary command result error (station: ${station.getSerial()})`, error);
