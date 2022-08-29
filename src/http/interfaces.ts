@@ -3,7 +3,7 @@ import { Method } from "got";
 
 import { StreamMetadata } from "../p2p/interfaces";
 import { CommandResult } from "../p2p/models";
-import { AlarmEvent, ChargingType } from "../p2p/types";
+import { AlarmEvent, ChargingType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent } from "../p2p/types";
 import { Camera, Device } from "./device";
 import { Cipher, Voice, Invite, DeviceListResponse, StationListResponse, HouseListResponse } from "./models";
 import { Station } from "./station";
@@ -148,6 +148,7 @@ export interface HTTPApiEvents {
 export interface StationEvents {
     "connect": (station: Station) => void;
     "close": (station: Station) => void;
+    "connection error": (station: Station, error: Error) => void;
     "raw device property changed": (deviceSN: string, params: RawValues) => void;
     "property changed": (station: Station, name: string, value: PropertyValue) => void;
     "raw property changed": (station: Station, type: number, value: string) => void;
@@ -174,6 +175,12 @@ export interface StationEvents {
     "talkback started": (station: Station, channel: number, talkbackStream: TalkbackStream) => void;
     "talkback stopped": (station: Station, channel: number) => void;
     "talkback error": (station: Station, channel: number, error: Error) => void;
+    "secondary command result": (station: Station, result: CommandResult) => void;
+    "device shake alarm": (deviceSN: string, event: SmartSafeShakeAlarmEvent) => void;
+    "device 911 alarm": (deviceSN: string, event: SmartSafeAlarm911Event) => void;
+    "device jammed": (deviceSN: string) => void;
+    "device low battery": (deviceSN: string) => void;
+    "device wrong try-protect alarm": (deviceSN: string) => void;
 }
 
 export interface DeviceEvents {
@@ -193,4 +200,10 @@ export interface DeviceEvents {
     "package taken": (device: Device, state: boolean) => void;
     "someone loitering": (device: Device, state: boolean) => void;
     "radar motion detected": (device: Device, state: boolean) => void;
+    "911 alarm": (device: Device, state: boolean, detail: SmartSafeAlarm911Event) => void;
+    "shake alarm": (device: Device, state: boolean, detail: SmartSafeShakeAlarmEvent) => void;
+    "wrong try-protect alarm": (device: Device, state: boolean) => void;
+    "long time not close": (device: Device, state: boolean) => void;
+    "low battery": (device: Device, state: boolean) => void;
+    "jammed": (device: Device, state: boolean) => void;
 }

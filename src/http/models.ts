@@ -547,3 +547,10 @@ export interface StationSecuritySettingsDeviceDetails {
     action: number;
     device_channel: number;
 }
+
+export interface SnoozeDetail {
+    snooze_time: number;
+    snooze_chime?: boolean;
+    snooze_motion?: boolean;
+    snooze_homebase?: boolean;
+}

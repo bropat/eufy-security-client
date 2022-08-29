@@ -1,6 +1,6 @@
 {
   "name": "eufy-security-client",
-  "version": "2.1.2",
+  "version": "2.2.0-rc.2",
   "description": "Client to comunicate with Eufy-Security devices",
   "author": {
     "name": "bropat",
@@ -27,7 +27,10 @@
     "security",
     "eufy-security",
     "doorbell",
-    "lock"
+    "lock",
+    "keypad",
+    "smartlock",
+    "smartsafe"
   ],
   "repository": {
     "type": "git",
@@ -53,16 +56,16 @@
     "p-throttle": "~4.1.1"
   },
   "devDependencies": {
-    "@types/node": "^16.11.46",
+    "@types/node": "^16.11.56",
     "@types/qs": "^6.9.7",
     "@types/node-rsa": "^1.1.1",
     "@types/crypto-js": "^4.1.1",
     "@types/fs-extra": "^9.0.13",
     "@types/node-schedule": "^2.1.0",
-    "@typescript-eslint/eslint-plugin": "^5.31.0",
-    "@typescript-eslint/parser": "^5.31.0",
-    "eslint": "^8.20.0",
-    "typescript": "4.7.4"
+    "@typescript-eslint/eslint-plugin": "^5.35.1",
+    "@typescript-eslint/parser": "^5.35.1",
+    "eslint": "^8.23.0",
+    "typescript": "4.8.2"
   },
   "bugs": {
     "url": "https://github.com/bropat/eufy-security-client/issues"

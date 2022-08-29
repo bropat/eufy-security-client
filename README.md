@@ -80,9 +80,27 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 2.x.x (2022-08-xx)
+### 2.2.0-rc.2 (2022-08-27)
 
-* (bropat) Added new Doorbell Dual notification types (package delivered, package taken, package stranded, someone loitering, radar motion detected)
+* (bropat) Added snooze command for supported devices (#173, #176)
+* (bropat) Added support for video type store to NAS for indoor cameras (#147)
+* (bropat) Fixed issue with energy saving measures interrupting running streams
+* (bropat) Better error handling for not supported p2p commands
+* (bropat) Fixed signalling of event `station command result`
+* (bropat) Updated docs - Added supported devices SoloCam L20 (T8122), SoloCam L40 (T8123), SoloCam S40 (T8124), SoloCam E20 (T8130)
+* (bropat) Changed default persistent directory path for saving persistent data
+
+### 2.2.0-rc.1 (2022-08-19)
+
+* (bropat) **Breaking Change** Renamed all lock settings parameters according to standard
+* (bropat) Renewed p2p device address discovery (now also includes local discovery via broadcast; cloud discovery optimised)
+* (bropat) Added support for Doorbell Dual notification types (package delivered, package taken, package stranded, someone loitering, radar motion detected)
+* (bropat) Added Smart Safe support (tested only T7401; #182 **WIP**)
+* (thieren) Added station event for connection timeout (#202)
+* (bropat) Fixed issue #196
+* (bropat) Fixed issue #201
+* (bropat) Fixed emitting of event "locked" for lock devices
+* (bropat) Small bugfixes and optimizations
 
 ### 2.1.2 (2022-07-30)
 

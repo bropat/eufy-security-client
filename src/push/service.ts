@@ -4,7 +4,7 @@ import { dummyLogger, Logger } from "ts-log";
 import { TypedEmitter } from "tiny-typed-emitter";
 
 import { buildCheckinRequest, convertTimestampMs, generateFid, parseCheckinResponse, sleep } from "./utils";
-import { CheckinResponse, Credentials, CusPushData, DoorbellPushData, FidInstallationResponse, FidTokenResponse, GcmRegisterResponse, IndoorPushData, RawPushMessage, PushMessage, BatteryDoorbellPushData, LockPushData } from "./models";
+import { CheckinResponse, Credentials, CusPushData, DoorbellPushData, FidInstallationResponse, FidTokenResponse, GcmRegisterResponse, IndoorPushData, RawPushMessage, PushMessage, BatteryDoorbellPushData, LockPushData, SmartSafeData } from "./models";
 import { PushClient } from "./client";
 import { PushNotificationServiceEvents } from "./interfaces";
 import { Device } from "../http/device";
@@ -386,7 +386,38 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 normalized_message.tfcard_status = push_data.tfcard_status;
                 normalized_message.storage_type = push_data.storage_type !== undefined ? push_data.storage_type : 1;
                 normalized_message.unique_id = push_data.unique_id;
-            } else if (Device.isLock(normalized_message.type)) {
+            } else if (Device.isSmartSafe(normalized_message.type)) {
+                const push_data = message.payload.payload as SmartSafeData;
+
+                try {
+                    normalized_message.event_time = message.payload.event_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.event_time)) : Number.parseInt(message.payload.event_time);
+                } catch (error) {
+                    this.log.error(`Type ${DeviceType[normalized_message.type]} SmartSafePushData - event_time - Error:`, error);
+                }
+                normalized_message.station_sn = message.payload.station_sn;
+                normalized_message.device_sn = message.payload.station_sn;
+                normalized_message.title = message.payload.title;
+                normalized_message.content = message.payload.content;
+                try {
+                    normalized_message.push_time = message.payload.push_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.push_time)) : Number.parseInt(message.payload.push_time);
+                } catch (error) {
+                    this.log.error(`Type ${DeviceType[normalized_message.type]} SmartSafePushData - push_time - Error:`, error);
+                }
+                normalized_message.event_type = push_data.event_type;
+                normalized_message.event_value = push_data.event_value;
+                /*
+                event_value: {
+                    type: 3,    3/4
+                    action: 1,
+                    figure_id: 0,
+                    user_id: 0
+                }
+                */
+                normalized_message.name = push_data.dev_name !== undefined ? push_data.dev_name : "";
+
+                /*normalized_message.short_user_id = push_data.short_user_id !== undefined ? push_data.short_user_id : "";
+                normalized_message.user_id = push_data.user_id !== undefined ? push_data.user_id : "";*/
+            } else if (Device.isSmartSafe(normalized_message.type)) {
                 const push_data = message.payload.payload as LockPushData;
 
                 try {

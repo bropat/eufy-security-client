@@ -1,5 +1,6 @@
 import { PropertyValue } from "../http";
-import { PropertyName } from "../http/types";
+import { CommandName, PropertyName } from "../http/types";
+import { SmartSafeEventValueDetail } from "../push/models";
 import { CommandType } from "./types";
 
 export interface Address {
@@ -22,8 +23,18 @@ export interface PropertyData {
     value: PropertyValue;
 }
 
+export interface CommandData {
+    name: CommandName;
+    value?: any;
+}
+
+export interface CustomData {
+    property?: PropertyData;
+    command?: CommandData;
+}
+
 export interface CommandResult {
-    property: PropertyData;
+    customData?: CustomData;
     command_type: CommandType;
     channel: number;
     return_code: number;
@@ -31,7 +42,7 @@ export interface CommandResult {
 
 export interface CmdNotifyPayload {
     cmd: number;
-    payload: ESLStationP2PThroughData | ESLAdvancedLockStatusNotification | string,
+    payload: ESLStationP2PThroughData | ESLAdvancedLockStatusNotification | SmartSafeSettingsNotification | SmartSafeStatusNotification | string,
     payloadLen?: number;
 }
 
@@ -48,6 +59,26 @@ export interface ESLAdvancedLockStatusNotification {
     slBattery: string;
     slState: string;
     trigger: number;
+}
+
+export interface SmartSafeSettingsNotification {
+    data: string;
+    prj_id: number;
+}
+
+export interface SmartSafeStatusNotification {
+    event_type: number;
+    event_time: number;
+    event_value: number | SmartSafeEventValueDetail;
+}
+
+export interface SmartSafeNotificationResponse {
+    versionCode: number;
+    commandCode: number;
+    packageFlag: number;
+    dataType: number;
+    responseCode: number;
+    data: Buffer;
 }
 
 export interface LockAdvancedOnOffRequestPayload {

@@ -1,7 +1,7 @@
 import { Socket } from "dgram";
 import * as NodeRSA from "node-rsa";
 import * as CryptoJS from "crypto-js"
-import { randomBytes, createCipheriv, createECDH, ECDH, createHmac } from "crypto";
+import { randomBytes, createCipheriv, createECDH, ECDH, createHmac, createDecipheriv } from "crypto";
 import * as os from "os";
 
 import { P2PMessageParts, P2PMessageState, P2PQueueMessage } from "./interfaces";
@@ -456,8 +456,16 @@ export function isP2PQueueMessage(type: P2PQueueMessage | P2PMessageState): type
     return (type as P2PQueueMessage).payload !== undefined;
 }
 
-export const encryptAdvancedLockData = (data: string, key: Buffer, iv: Buffer): Buffer => {
+export const encryptPayloadData = (data: string | Buffer, key: Buffer, iv: Buffer): Buffer => {
     const cipher = createCipheriv("aes-128-cbc", key, iv);
+    return Buffer.concat([
+        cipher.update(data),
+        cipher.final()]
+    );
+}
+
+export const decryptPayloadData = (data: Buffer, key: Buffer, iv: Buffer): Buffer => {
+    const cipher = createDecipheriv("aes-128-cbc", key, iv);
     return Buffer.concat([
         cipher.update(data),
         cipher.final()]
@@ -488,7 +496,7 @@ export const getAdvancedLockKey = (key: string, publicKey: string): string => {
     const randomValue = randomBytes(16);
 
     const derivedKey = eufyKDF(secret);
-    const encryptedData = encryptAdvancedLockData(key, derivedKey.slice(0, 16), randomValue);
+    const encryptedData = encryptPayloadData(key, derivedKey.slice(0, 16), randomValue);
 
     const hmac = createHmac("sha256", derivedKey.slice(16));
     hmac.update(randomValue);
@@ -518,4 +526,31 @@ export const buildTalkbackAudioFrameHeader = (audioData: Buffer, channel = 0): B
         emptyBuffer,
         audioDataHeader
     ]);
+}
+
+export const decodeP2PCloudIPs = (data: string): Array<Address> => {
+    const lookupTable = Buffer.from("4959433db5bf6da347534f6165e371e9677f02030badb3892b2f35c16b8b959711e5a70deff1050783fb9d3bc5c713171d1f2529d3df", "hex");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [encoded, name = "name not included"] = data.split(":");
+    const output = Buffer.alloc(encoded.length / 2);
+
+    for (let i = 0; i <= data.length / 2; i++) {
+        let z = 0x39; // 57 // '9'
+
+        for (let j = 0; j < i; j++) {
+            z = z ^ output[j];
+        }
+
+        const x = (data.charCodeAt(i * 2 + 1) - "A".charCodeAt(0))
+        const y = (data.charCodeAt(i * 2) - "A".charCodeAt(0)) * 0x10
+        output[i] = z ^ lookupTable[i % lookupTable.length] ^ x + y
+    }
+
+    const result: Array<Address> = [];
+    output.toString("utf8").split(",").forEach((ip) => {
+        if (ip !== "") {
+            result.push({ host: ip, port: 32100 });
+        }
+    });
+    return result;
 }

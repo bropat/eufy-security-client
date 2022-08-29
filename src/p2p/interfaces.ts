@@ -3,9 +3,9 @@ import { Readable } from "stream";
 import { SortedMap } from "sweet-collections";
 
 import { AlarmMode } from "../http/types";
-import { Address, CmdCameraInfoResponse, CommandResult, PropertyData } from "./models";
+import { Address, CmdCameraInfoResponse, CommandResult, CustomData } from "./models";
 import { TalkbackStream } from "./talkback";
-import { AlarmEvent, AudioCodec, ChargingType, CommandType, IndoorSoloSmartdropCommandType, P2PDataType, VideoCodec } from "./types";
+import { AlarmEvent, AudioCodec, ChargingType, CommandType, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, VideoCodec } from "./types";
 
 export interface P2PClientProtocolEvents {
     "alarm mode": (mode: AlarmMode) => void;
@@ -20,7 +20,7 @@ export interface P2PClientProtocolEvents {
     "livestream error": (channel: number, error: Error) => void;
     "wifi rssi": (channel: number, rssi: number) => void;
     "rtsp url": (channel: number, rtspUrl: string) => void;
-    "esl parameter": (channel: number, param: number, value: string) => void;
+    "parameter": (channel: number, param: number, value: string) => void;
     "timeout": () => void;
     "runtime state": (channel: number, batteryLevel: number, temperature: number) => void;
     "charging state": (channel: number, chargeType: ChargingType, batteryLevel: number) => void;
@@ -33,6 +33,12 @@ export interface P2PClientProtocolEvents {
     "talkback started": (channel: number, talkbackStream: TalkbackStream) => void;
     "talkback stopped": (channel: number) => void;
     "talkback error": (channel: number, error: Error) => void;
+    "secondary command": (result: CommandResult) => void;
+    "jammed": (channel: number) => void;
+    "low battery": (channel: number) => void;
+    "shake alarm": (channel: number, detail: SmartSafeShakeAlarmEvent) => void;
+    "911 alarm": (channel: number, detail: SmartSafeAlarm911Event) => void;
+    "wrong try-protect alarm": (channel: number) => void;
 }
 
 export interface P2PQueueMessage {
@@ -41,7 +47,7 @@ export interface P2PQueueMessage {
     channel: number;
     payload: Buffer;
     timestamp: number;
-    property?: PropertyData;
+    customData?: CustomData;
 }
 
 export interface P2PMessageState {
@@ -54,7 +60,7 @@ export interface P2PMessageState {
     acknowledged: boolean;
     returnCode: number;
     timeout?: NodeJS.Timeout;
-    property?: PropertyData;
+    customData?: CustomData;
 }
 
 export interface P2PMessageParts {

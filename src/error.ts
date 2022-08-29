@@ -47,11 +47,11 @@ export class WrongStationError extends Error {
     }
 }
 
-export class RTSPPropertyNotEnabled extends Error {
+export class RTSPPropertyNotEnabledError extends Error {
     constructor(message?: string) {
         super(message);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = RTSPPropertyNotEnabled.name;
+        this.name = RTSPPropertyNotEnabledError.name;
     }
 }
 
@@ -92,5 +92,13 @@ export class TalkbackError extends Error {
         super(message);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = TalkbackError.name;
+    }
+}
+
+export class StationConnectTimeoutError extends Error {
+    constructor(message?: string) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = StationConnectTimeoutError.name;
     }
 }
