@@ -37,7 +37,7 @@
     "node": ">=14.17.0"
   },
   "dependencies": {
-    "got": "~11.8",
+    "got": "~12.5",
     "protobuf-typescript": "^6.8.8",
     "qs": "^6.11.0",
     "node-rsa": "^1.1.1",
