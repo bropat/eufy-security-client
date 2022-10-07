@@ -5139,6 +5139,28 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
+    public async setSnoozeMode(device: Device, chimeOnOff = 0, homebaseOnOff = 0, motionNotficationsOnOff = 0, snoozeTime = 30) {
+
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+
+        this.log.debug(`Sending snoozeMode command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${JSON.stringify({chimeOnOff, homebaseOnOff, motionNotficationsOnOff, snoozeTime})}`);
+
+        await this.p2pSession.sendCommandWithStringPayload({
+            commandType: CommandType.CMD_SET_SNOOZE_MODE,
+            value: JSON.stringify({
+                "account_id": this.rawStation.member.admin_user_id,
+                "chime_onoff": chimeOnOff,
+                "homebase_onoff": homebaseOnOff,
+                "motion_notify_onoff": motionNotficationsOnOff,
+                "snooze_time": snoozeTime,
+                "startTime": Math.floor(new Date().getTime() / 1000)
+            }),
+            channel: device.getChannel()
+        });
+    }
+
     private onTalkbackStarted(channel: number, talkbackStream: TalkbackStream): void {
         this.emit("talkback started", this, channel, talkbackStream);
     }
