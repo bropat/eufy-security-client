@@ -1840,22 +1840,16 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
-    public async setHomebaseChimeRingtoneType(device: Device, value: number): Promise<void> {
+    public async setHomebaseChimeRingtoneType(value: number): Promise<void> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceChimeHomebaseRingtoneType,
             value: value
         };
-        if (device.getStationSerial() !== this.getSerial()) {
-            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        if (!this.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
-        if (!device.hasProperty(propertyData.name)) {
-            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
-        }
-        const property = device.getPropertyMetadata(propertyData.name);
-        validValue(property, value);
-
-        this.log.debug(`Sending homebase chime ringtone type command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if (device.isBatteryDoorbell()) {
+        this.log.debug(`Sending homebase chime ringtone type command to station ${this.getSerial()} with value: ${value}`);
+        if (this.isStation()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -1866,12 +1860,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         "dingdong_ringtone": value,
                     }
                 }),
-                channel: device.getChannel()
+                channel: 0
             }, {
                 property: propertyData
             });
         } else {
-            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
     }
 

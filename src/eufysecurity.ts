@@ -1087,7 +1087,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 await station.setHomebaseChimeRingtoneVolume(device, value as number);
                 break;
             case PropertyName.DeviceChimeHomebaseRingtoneType:
-                await station.setHomebaseChimeRingtoneType(device, value as number);
+                await station.setHomebaseChimeRingtoneType(value as number);
                 break;
             case PropertyName.DeviceNotificationType:
                 await station.setNotificationType(device, value as NotificationType);

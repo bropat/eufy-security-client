@@ -4896,6 +4896,7 @@ export const StationProperties: Properties = {
         [PropertyName.StationCustom2SecuritySettings]: StationCustom2SecuritySettings,
         [PropertyName.StationCustom3SecuritySettings]: StationCustom3SecuritySettings,
         [PropertyName.StationOffSecuritySettings]: StationOffSecuritySettings,
+        [PropertyName.DeviceChimeHomebaseRingtoneType]: DeviceChimeHomebaseRingtoneTypeBatteryDoorbellProperty
     },
     [DeviceType.INDOOR_CAMERA]: {
         ...BaseStationProperties,
