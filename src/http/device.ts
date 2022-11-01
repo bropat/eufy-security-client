@@ -1487,6 +1487,8 @@ export class IndoorCamera extends Camera {
                             break;
                         case IndoorPushEvent.CRYING_DETECTION:
                             if (message.push_count === 1 || message.push_count === undefined) {
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
                                 this.updateProperty(PropertyName.DeviceCryingDetected, true);
                                 this.clearEventTimeout(DeviceEvent.CryingDetected);
                                 this.eventTimeouts.set(DeviceEvent.CryingDetected, setTimeout(async () => {
@@ -1497,6 +1499,8 @@ export class IndoorCamera extends Camera {
                             break;
                         case IndoorPushEvent.SOUND_DETECTION:
                             if (message.push_count === 1 || message.push_count === undefined) {
+                                if (!isEmpty(message.pic_url))
+                                    this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
                                 this.updateProperty(PropertyName.DeviceSoundDetected, true);
                                 this.clearEventTimeout(DeviceEvent.SoundDetected);
                                 this.eventTimeouts.set(DeviceEvent.SoundDetected, setTimeout(async () => {
