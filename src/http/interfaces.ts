@@ -134,6 +134,20 @@ export interface LoginOptions {
     force: boolean;
 }
 
+export interface Schedule {
+    startDateTime?: Date;
+    endDateTime?: Date;
+    week?: {
+        monday: boolean;
+        tuesday: boolean;
+        wednesday: boolean;
+        thursday: boolean;
+        friday: boolean;
+        saturday: boolean;
+        sunday: boolean;
+    }
+}
+
 export interface HTTPApiEvents {
     "devices": (devices: FullDevices) => void;
     "hubs": (hubs: Hubs) => void;
@@ -181,6 +195,7 @@ export interface StationEvents {
     "device jammed": (deviceSN: string) => void;
     "device low battery": (deviceSN: string) => void;
     "device wrong try-protect alarm": (deviceSN: string) => void;
+    "device pin verified": (deviceSN: string, successfull: boolean) => void;
 }
 
 export interface DeviceEvents {

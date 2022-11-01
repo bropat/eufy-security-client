@@ -122,6 +122,60 @@ export enum SmartSafeEvent {
     SHUTDOWN = 1946161160,
 }
 
+export enum HB3PairedDevicePushEvent {
+    MOTION_DETECTION = 3101,
+    FACE_DETECTION = 3102,
+    CRYING_DETECTION = 3104,
+    SOUND_DETECTION = 3105,
+    PET_DETECTION = 3106,
+    VEHICLE_DETECTION = 3107,
+    DOG_DETECTION = 3108,
+    DOG_LICK_DETECTION = 3109,
+    DOG_POOP_DETECTION = 3110,
+    IDENTITY_PERSON_DETECTION = 3111,
+    STRANGER_PERSON_DETECTION = 3112,
+}
+
+export enum HB3PairedDeviceMessageType {
+    SECURITY_EVT = 1,
+    TFCARD_EVT = 2,
+    DOOR_SENSOR_EVT = 3,
+    CAM_STATE_EVT = 4,
+    GSENSOR_EVT = 5,
+    BATTERY_LOW_EVT = 6,
+    BATTERY_HOT_EVT = 7,
+    LIGHT_STATE_EVT = 8,
+    ARMING_EVT = 9,
+    ALARM_EVT = 10,
+    BATTERY_FULL_EVT = 11,
+    REPEATER_RSSI_WEAK_EVT = 12,
+    UPGRADE_STATUS = 13,
+    MOTION_SENSOR_EVT = 14,
+    BAT_DOORBELL_EVT = 15,
+    ALARM_DELAY_EVT = 16,
+    HUB_BATT_POWERED_EVT = 17,
+    INDOOR_EVT = 18,
+    SMARTLOCK_EVT = 19,
+    LOCK_EVT = 20,
+    BBM_SOCK_EVT = 21,
+    DOOR_STATUS_EVT = 22,
+    HHD_EVT = 23,
+}
+
+export enum HB3HDDType {
+    NODISK = 0,
+    READY = 1,
+    PROCESSING = 2,
+    NO_PARTED = 3,
+    NO_ANKER_DISK = 4,
+    NOT_FORMAT = 5,
+    OTHER_USER_DISK = 6,
+    BAD = 7,
+    WAIT_NETWOR = 8,
+    PARTED_DONE = 9,
+    FULL = 32,
+}
+
 export enum IndoorPushMessageType {
     INDOOR = 18,
     TFCARD = 2

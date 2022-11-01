@@ -2,19 +2,18 @@ import { TypedEmitter } from "tiny-typed-emitter";
 import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
-import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName } from "./types";
+import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOhterMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty } from "./types";
 import { ResultResponse, StreamResponse, DeviceListResponse, Voice } from "./models"
 import { ParameterHelper } from "./parameter";
-import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString } from "./interfaces";
+import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices } from "./interfaces";
 import { CommandType, ESLAnkerBleConstant } from "../p2p/types";
-import { calculateWifiSignalLevel, getAbsoluteFilePath, getCurrentTimeInSeconds, getDistances, SmartSafeByteWriter } from "./utils";
-import { eslTimestamp } from "../p2p/utils";
-import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent } from "../push/types";
+import { calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, hexDate, hexTime, hexWeek, isHB3DetectionModeEnabled, SmartSafeByteWriter } from "./utils";
+import { eslTimestamp, getCurrentTimeInSeconds } from "../p2p/utils";
+import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent, HB3PairedDevicePushEvent } from "../push/types";
 import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
 import { isEmpty } from "../utils";
 import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
 import { DeviceSmartLockNotifyData } from "../mqtt/model";
-import { Voices } from ".";
 
 export class Device extends TypedEmitter<DeviceEvents> {
 
@@ -79,7 +78,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 if (error instanceof InvalidPropertyError) {
                     this.log.error(`Invalid Property ${name} error`, error);
                 } else {
-                    this.log.error(`Property  ${name} error`, error);
+                    this.log.error(`Property ${name} error`, error);
                 }
             }
             /*} catch (error) {
@@ -204,6 +203,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     return false;
                 }
             } else if (property.key === CommandType.CMD_SET_PIRSENSITIVITY) {
+                const numericProperty = property as PropertyMetadataNumeric;
                 try {
                     if (this.getDeviceType() === DeviceType.CAMERA || this.getDeviceType() === DeviceType.CAMERA_E) {
                         const convertedValue = ((200 - Number.parseInt(value)) / 2) + 1;
@@ -237,10 +237,12 @@ export class Device extends TypedEmitter<DeviceEvents> {
                                 break;
                         }
                         return convertedValue;
+                    } else {
+                        return value !== undefined ? Number.parseInt(value) : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                     }
                 } catch (error) {
                     this.log.error("Convert CMD_SET_PIRSENSITIVITY Error:", { property: property, value: value, error: error });
-                    return value;
+                    return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
             } else if (property.key === CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_STARTTIME || property.key === CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_ENDTIME) {
                 const tmpBuffer = Buffer.from(value, "hex")
@@ -461,6 +463,20 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         }
                     }
                 }
+            } else if (
+                property.name === PropertyName.DeviceMotionDetectionTypeHuman ||
+                property.name === PropertyName.DeviceMotionDetectionTypeHumanRecognition ||
+                property.name === PropertyName.DeviceMotionDetectionTypePet ||
+                property.name === PropertyName.DeviceMotionDetectionTypeVehicle ||
+                property.name === PropertyName.DeviceMotionDetectionTypeAllOtherMotions
+            ) {
+                const booleanProperty = property as PropertyMetadataBoolean;
+                try {
+                    return isHB3DetectionModeEnabled(Number.parseInt(value), property.name === PropertyName.DeviceMotionDetectionTypeHuman ? HB3DetectionTypes.HUMAN_DETECTION : property.name === PropertyName.DeviceMotionDetectionTypeHumanRecognition ? HB3DetectionTypes.HUMAN_RECOGNITION : property.name === PropertyName.DeviceMotionDetectionTypePet ? HB3DetectionTypes.PET_DETECTION : property.name === PropertyName.DeviceMotionDetectionTypeVehicle ? HB3DetectionTypes.VEHICLE_DETECTION : HB3DetectionTypes.ALL_OTHER_MOTION);
+                } catch (error) {
+                    this.log.error("Convert HB3 motion detection type Error:", { property: property, value: value, error: error });
+                    return booleanProperty.default !== undefined ? booleanProperty.default : false;
+                }
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
@@ -521,6 +537,41 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public getPropertiesMetadata(): IndexedProperty {
         const metadata = DeviceProperties[this.getDeviceType()];
+        if (this.getStationSerial().startsWith("T8030") && metadata[PropertyName.DeviceMotionDetectionType] !== undefined && this.isCamera()) {
+            const newMetadata = {
+                ...metadata
+            };
+            delete newMetadata[PropertyName.DeviceMotionDetectionType];
+            delete newMetadata[PropertyName.DeviceLastChargingDays];
+            delete newMetadata[PropertyName.DeviceLastChargingFalseEvents];
+            delete newMetadata[PropertyName.DeviceLastChargingRecordedEvents];
+            delete newMetadata[PropertyName.DeviceLastChargingTotalEvents];
+            delete newMetadata[PropertyName.DeviceBatteryUsageLastWeek];
+            newMetadata[PropertyName.DeviceMotionDetectionTypeHuman] = DeviceMotionHB3DetectionTypeHumanProperty;
+            newMetadata[PropertyName.DeviceMotionDetectionTypeHumanRecognition] = DeviceMotionHB3DetectionTypeHumanRecognitionProperty;
+            newMetadata[PropertyName.DeviceMotionDetectionTypePet] = DeviceMotionHB3DetectionTypePetProperty;
+            newMetadata[PropertyName.DeviceMotionDetectionTypeVehicle] = DeviceMotionHB3DetectionTypeVehicleProperty;
+            newMetadata[PropertyName.DeviceMotionDetectionTypeAllOtherMotions] = DeviceMotionHB3DetectionTypeAllOhterMotionsProperty;
+            newMetadata[PropertyName.DevicePersonDetected] = DevicePersonDetectedProperty;
+            newMetadata[PropertyName.DeviceMotionDetected] = DeviceMotionDetectedProperty;
+            newMetadata[PropertyName.DevicePetDetected] = DevicePetDetectedProperty;
+            newMetadata[PropertyName.DeviceSoundDetected] = DeviceSoundDetectedProperty;
+            newMetadata[PropertyName.DeviceCryingDetected] = DeviceCryingDetectedProperty;
+            newMetadata[PropertyName.DeviceIdentityPersonDetected] = DeviceIdentityPersonDetectedProperty;
+            newMetadata[PropertyName.DeviceStrangerPersonDetected] = DeviceStrangerPersonDetectedProperty;
+            newMetadata[PropertyName.DeviceVehicleDetected] = DeviceVehicleDetectedProperty;
+            newMetadata[PropertyName.DeviceDogDetected] = DeviceDogDetectedProperty;
+            newMetadata[PropertyName.DeviceDogLickDetected] = DeviceDogLickDetectedProperty;
+            newMetadata[PropertyName.DeviceDogPoopDetected] = DeviceDogPoopDetectedProperty;
+            newMetadata[PropertyName.DeviceDetectionStatisticsWorkingDays] = DeviceDetectionStatisticsWorkingDaysProperty;
+            newMetadata[PropertyName.DeviceDetectionStatisticsDetectedEvents] = DeviceDetectionStatisticsDetectedEventsProperty;
+            newMetadata[PropertyName.DeviceDetectionStatisticsRecordedEvents] = DeviceDetectionStatisticsRecordedEventsProperty;
+
+            //TODO: Check with future devices if this property overriding is correct (for example with indoor cameras etc.)
+            newMetadata[PropertyName.DeviceEnabled] = DeviceEnabledSoloProperty;
+
+            return newMetadata;
+        }
         if (metadata === undefined)
             return GenericDeviceProperties;
         return metadata;
@@ -582,6 +633,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.DOORBELL_SOLO ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
+            type == DeviceType.CAMERA3 ||
+            type == DeviceType.CAMERA3C ||
             type == DeviceType.INDOOR_CAMERA_1080 ||
             type == DeviceType.INDOOR_PT_CAMERA_1080 ||
             type == DeviceType.SOLO_CAMERA ||
@@ -610,6 +663,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
+            type == DeviceType.CAMERA3 ||
+            type == DeviceType.CAMERA3C ||
             type == DeviceType.SOLO_CAMERA ||
             type == DeviceType.SOLO_CAMERA_PRO ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
@@ -617,6 +672,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
             type == DeviceType.LOCK_WIFI ||
             type == DeviceType.LOCK_WIFI_NO_FINGER ||
+            type == DeviceType.LOCK_8503 ||
+            type == DeviceType.LOCK_8504 ||
+            type == DeviceType.LOCK_8530 ||
+            type == DeviceType.LOCK_8592 ||
+            type == DeviceType.LOCK_85A3 ||
             type == DeviceType.SMART_SAFE_7400 ||
             type == DeviceType.SMART_SAFE_7401 ||
             type == DeviceType.SMART_SAFE_7402 ||
@@ -697,7 +757,17 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isLock(type: number): boolean {
-        return Device.isLockBle(type) || Device.isLockWifi(type) || Device.isLockBleNoFinger(type) || Device.isLockWifiNoFinger(type);
+        return Device.isLockBle(type) ||
+        Device.isLockWifi(type) ||
+        Device.isLockBleNoFinger(type) ||
+        Device.isLockWifiNoFinger(type) ||
+        Device.isLockWifiR10(type) ||
+        Device.isLockWifiR20(type) ||
+        Device.isLockWifiVideo(type);
+    }
+
+    static isLockKeypad(type: number): boolean {
+        return Device.isLockWifiR10Keypad(type);
     }
 
     static isLockBle(type: number): boolean {
@@ -714,6 +784,22 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     static isLockWifiNoFinger(type: number): boolean {
         return DeviceType.LOCK_WIFI_NO_FINGER == type;
+    }
+
+    static isLockWifiR10(type: number): boolean {
+        return DeviceType.LOCK_8503 == type;
+    }
+
+    static isLockWifiR20(type: number): boolean {
+        return DeviceType.LOCK_8504 == type /*|| DeviceType.LOCK_8592 == type*/;
+    }
+
+    static isLockWifiVideo(type: number): boolean {
+        return DeviceType.LOCK_8530 == type;
+    }
+
+    static isLockWifiR10Keypad(type: number): boolean {
+        return DeviceType.LOCK_85A3 == type;
     }
 
     static isBatteryDoorbell1(type: number): boolean {
@@ -808,6 +894,18 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return Device.isCamera2(type) || Device.isCamera2C(type) || Device.isCamera2Pro(type) || Device.isCamera2CPro(type);
     }
 
+    static isCamera3(type: number): boolean {
+        return DeviceType.CAMERA3 == type;
+    }
+
+    static isCamera3C(type: number): boolean {
+        return DeviceType.CAMERA3C == type;
+    }
+
+    static isCamera3Product(type: number): boolean {
+        return Device.isCamera3(type) || Device.isCamera3C(type);
+    }
+
     static isEntrySensor(type: number): boolean {
         //T8900
         return DeviceType.SENSOR == type;
@@ -880,6 +978,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return Device.isLock(this.rawDevice.device_type);
     }
 
+    public isLockKeypad(): boolean {
+        return Device.isLockKeypad(this.rawDevice.device_type);
+    }
+
     public isLockBle(): boolean {
         return Device.isLockBle(this.rawDevice.device_type);
     }
@@ -894,6 +996,22 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isLockWifiNoFinger(): boolean {
         return Device.isLockWifiNoFinger(this.rawDevice.device_type);
+    }
+
+    public isLockWifiR10(): boolean {
+        return Device.isLockWifiR10(this.rawDevice.device_type);
+    }
+
+    public isLockWifiR20(): boolean {
+        return Device.isLockWifiR20(this.rawDevice.device_type);
+    }
+
+    public isLockWifiVideo(): boolean {
+        return Device.isLockWifiVideo(this.rawDevice.device_type);
+    }
+
+    public isLockWifiR10Keypad(): boolean {
+        return Device.isLockWifiR10Keypad(this.rawDevice.device_type);
     }
 
     public isBatteryDoorbell1(): boolean {
@@ -974,6 +1092,18 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isCamera2Product(): boolean {
         return Device.isCamera2Product(this.rawDevice.device_type);
+    }
+
+    public isCamera3(): boolean {
+        return Device.isCamera3(this.rawDevice.device_type);
+    }
+
+    public isCamera3C(): boolean {
+        return Device.isCamera3C(this.rawDevice.device_type);
+    }
+
+    public isCamera3Product(): boolean {
+        return Device.isCamera3Product(this.rawDevice.device_type);
     }
 
     public isEntrySensor(): boolean {
@@ -1327,7 +1457,156 @@ export class Camera extends Device {
                 } catch (error) {
                     this.log.debug(`CusPushEvent.SECURITY - Device: ${message.device_sn} Error:`, error);
                 }
+            } else if (message.msg_type === DeviceType.HB3) {
+                if (message.device_sn === this.getSerial()) {
+                    try {
+                        switch (message.event_type) {
+                            case HB3PairedDevicePushEvent.MOTION_DETECTION:
+                                if (message.push_count === 1 || message.push_count === undefined) {
+                                    if (!isEmpty(message.pic_url))
+                                        this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                    this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
+                                break;
+                            case HB3PairedDevicePushEvent.FACE_DETECTION:
+                                if (message.push_count === 1 || message.push_count === undefined) {
+                                    this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
+                                    if (!isEmpty(message.pic_url))
+                                        this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                    this.updateProperty(PropertyName.DevicePersonDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.PersonDetected);
+                                    this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DevicePersonName, "");
+                                        this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
+                                break;
+                            case HB3PairedDevicePushEvent.CRYING_DETECTION:
+                                if (message.push_count === 1 || message.push_count === undefined) {
+                                    if (!isEmpty(message.pic_url))
+                                        this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                    this.updateProperty(PropertyName.DeviceCryingDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.CryingDetected);
+                                    this.eventTimeouts.set(DeviceEvent.CryingDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceCryingDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.CryingDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
+                                break;
+                            case HB3PairedDevicePushEvent.DOG_DETECTION:
+                                if (message.push_count === 1 || message.push_count === undefined) {
+                                    if (!isEmpty(message.pic_url))
+                                        this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                    this.updateProperty(PropertyName.DeviceDogDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.DogDetected);
+                                    this.eventTimeouts.set(DeviceEvent.DogDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceDogDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.DogDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
+                                break;
+                            case HB3PairedDevicePushEvent.DOG_LICK_DETECTION:
+                                if (message.push_count === 1 || message.push_count === undefined) {
+                                    if (!isEmpty(message.pic_url))
+                                        this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                    this.updateProperty(PropertyName.DeviceDogLickDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.DogLickDetected);
+                                    this.eventTimeouts.set(DeviceEvent.DogLickDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceDogLickDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.DogLickDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
+                                break;
+                            case HB3PairedDevicePushEvent.DOG_POOP_DETECTION:
+                                if (message.push_count === 1 || message.push_count === undefined) {
+                                    if (!isEmpty(message.pic_url))
+                                        this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                    this.updateProperty(PropertyName.DeviceDogPoopDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.DogPoopDetected);
+                                    this.eventTimeouts.set(DeviceEvent.DogPoopDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceDogPoopDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.DogPoopDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
+                                break;
+                            case HB3PairedDevicePushEvent.PET_DETECTION:
+                                if (message.push_count === 1 || message.push_count === undefined) {
+                                    if (!isEmpty(message.pic_url))
+                                        this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                    this.updateProperty(PropertyName.DevicePetDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.PetDetected);
+                                    this.eventTimeouts.set(DeviceEvent.PetDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DevicePetDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.PetDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
+                                break;
+                            case HB3PairedDevicePushEvent.SOUND_DETECTION:
+                                if (message.push_count === 1 || message.push_count === undefined) {
+                                    if (!isEmpty(message.pic_url))
+                                        this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                    this.updateProperty(PropertyName.DeviceSoundDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.SoundDetected);
+                                    this.eventTimeouts.set(DeviceEvent.SoundDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceSoundDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.SoundDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
+                                break;
+                            case HB3PairedDevicePushEvent.VEHICLE_DETECTION:
+                                if (message.push_count === 1 || message.push_count === undefined) {
+                                    if (!isEmpty(message.pic_url))
+                                        this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                    this.updateProperty(PropertyName.DeviceVehicleDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.VehicleDetected);
+                                    this.eventTimeouts.set(DeviceEvent.VehicleDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceVehicleDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.VehicleDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
+                                break;
+                            case HB3PairedDevicePushEvent.IDENTITY_PERSON_DETECTION:
+                                if (message.push_count === 1 || message.push_count === undefined) {
+                                    this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
+                                    if (!isEmpty(message.pic_url))
+                                        this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                    this.updateProperty(PropertyName.DeviceIdentityPersonDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.IdentityPersonDetected);
+                                    this.eventTimeouts.set(DeviceEvent.IdentityPersonDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DevicePersonName, "");
+                                        this.updateProperty(PropertyName.DeviceIdentityPersonDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.IdentityPersonDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
+                                break;
+                            case HB3PairedDevicePushEvent.STRANGER_PERSON_DETECTION:
+                                if (message.push_count === 1 || message.push_count === undefined) {
+                                    if (!isEmpty(message.pic_url))
+                                        this.updateProperty(PropertyName.DevicePictureUrl, message.pic_url!);
+                                    this.updateProperty(PropertyName.DeviceStrangerPersonDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.StrangerPersonDetected);
+                                    this.eventTimeouts.set(DeviceEvent.StrangerPersonDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceStrangerPersonDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.StrangerPersonDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
+                                break;
+                            default:
+                                this.log.debug("Unhandled homebase3 camera push event", message);
+                                break;
+                        }
+                    } catch (error) {
+                        this.log.debug(`HB3PairedDevicePushEvent - Device: ${message.device_sn} Error:`, error);
+                    }
+                }
             }
+
         }
     }
 
@@ -1355,7 +1634,7 @@ export class SoloCamera extends Camera {
 
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined) {
+        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
             if (message.device_sn === this.getSerial()) {
                 try {
                     switch (message.event_type) {
@@ -1455,7 +1734,7 @@ export class IndoorCamera extends Camera {
 
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined) {
+        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
             if (message.device_sn === this.getSerial()) {
                 try {
                     switch (message.event_type) {
@@ -1955,6 +2234,8 @@ export class MotionSensor extends Sensor {
 
 export class Lock extends Device {
 
+    public static readonly VERSION_CODE_LOCKV12 = 18;
+
     static async initialize(api: HTTPApi, device: DeviceListResponse): Promise<Lock> {
         const lock = new Lock(api, device);
         lock.initializeState();
@@ -2118,6 +2399,202 @@ export class Lock extends Device {
         }
     }*/
 
+    private static getCurrentTimeInSeconds(): Buffer {
+        const buffer = Buffer.allocUnsafe(4);
+        buffer.writeUint32LE(getCurrentTimeInSeconds());
+        return buffer;
+    }
+
+    private static getUInt8Buffer(value: number): Buffer {
+        const buffer = Buffer.allocUnsafe(1);
+        buffer.writeUInt8(value);
+        return buffer;
+    }
+
+    private static getUint16LEBuffer(value: number): Buffer {
+        const buffer = Buffer.allocUnsafe(2);
+        buffer.writeUint16LE(value);
+        return buffer;
+    }
+
+    private static getUint16BEBuffer(value: number): Buffer {
+        const buffer = Buffer.allocUnsafe(2);
+        buffer.writeUint16BE(value);
+        return buffer;
+    }
+
+    public static encodeCmdStatus(user_id: string): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(user_id, "hex"));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdUnlock(short_user_id: string, value: number, username: string): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(short_user_id, "hex"));
+        ssbytes.write(this.getUInt8Buffer(value));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        ssbytes.write(Buffer.from(username));
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdCalibrate(user_id: string): Buffer {
+        return this.encodeCmdStatus(user_id);
+    }
+
+    public static encodeCmdAddUser(short_user_id: string, passcode: string, username: string, schedule?: Schedule, user_permission = 4): Buffer { // or user_permission 1?
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(short_user_id, "hex"));
+        ssbytes.write(Buffer.from(passcode, "hex"));
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.startDateTime !== undefined ? hexDate(schedule.startDateTime) : "00000000", "hex"));
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.endDateTime !== undefined ? hexDate(schedule.endDateTime) : "ffffffff", "hex"));
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.week !== undefined ? hexWeek(schedule) : "ff", "hex"));
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.startDateTime !== undefined ? hexTime(schedule.startDateTime) : "0000", "hex"));
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.endDateTime !== undefined ? hexTime(schedule.endDateTime) : "ffff", "hex"));
+        ssbytes.write(this.getUInt8Buffer(user_permission));
+        ssbytes.write(Buffer.from(username));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdAddTemporaryUser(schedule?: Schedule, unlimited = false): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.startDateTime !== undefined ? hexDate(schedule.startDateTime) : "00000000", "hex"));
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.endDateTime !== undefined ? hexDate(schedule.endDateTime) : "ffffffff", "hex"));
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.startDateTime !== undefined ? hexTime(schedule.startDateTime) : "0000", "hex"));
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.endDateTime !== undefined ? hexTime(schedule.endDateTime) : "ffff", "hex"));
+        ssbytes.write(this.getUInt8Buffer(unlimited === false ? 1 : 2));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdDeleteTemporaryUser(password_id: string): Buffer {
+        return this.encodeCmdStatus(password_id);
+    }
+
+    public static encodeCmdDeleteUser(short_user_id: string): Buffer {
+        return this.encodeCmdStatus(short_user_id);
+    }
+
+    public static encodeCmdVerifyPw(password: string): Buffer {
+        return this.encodeCmdStatus(password);
+    }
+
+    public static encodeCmdQueryLockRecord(index: number): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(this.getUint16LEBuffer(index));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdQueryUser(short_user_id: string): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(short_user_id, "hex"));
+        ssbytes.write(this.getUInt8Buffer(0));  //TODO: eSLQueryAllUsers.index
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdQueryPassword(password_id: string): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(password_id, "hex"));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdModifyPassword(password_id: string, passcode: string): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(password_id, "hex"));
+        ssbytes.write(Buffer.from(passcode, "hex"));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdUpdateSchedule(short_user_id: string, schedule: Schedule): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(short_user_id, "hex"));
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.startDateTime !== undefined ? hexDate(schedule.startDateTime) : "00000000", "hex"));
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.endDateTime !== undefined ? hexDate(schedule.endDateTime) : "ffffffff", "hex"));
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.week !== undefined ? hexWeek(schedule) : "ff", "hex"));
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.startDateTime !== undefined ? hexTime(schedule.startDateTime) : "0000", "hex"));
+        ssbytes.write(Buffer.from(schedule !== undefined && schedule.endDateTime !== undefined ? hexTime(schedule.endDateTime) : "ffff", "hex"));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdModifyUsername(username: string, password_id: string): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(password_id, "hex"));
+        ssbytes.write(Buffer.from(username));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdGetLockParam(user_id: string): Buffer {
+        return this.encodeCmdStatus(user_id);
+    }
+
+    public static encodeCmdSetLockParamAutoLock(enabled: boolean, lockTimeSeconds: number): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(this.getUint16BEBuffer(CommandType.CMD_SMARTLOCK_AUTO_LOCK));
+        ssbytes.write(this.getUInt8Buffer(enabled === true ? 1 : 0));
+        ssbytes.write(this.getUint16LEBuffer(lockTimeSeconds));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    private static hexTime = function(time: string): string {
+        const buf = Buffer.allocUnsafe(2);
+        buf.writeUint8(Number.parseInt(time.split(":")[0]));
+        buf.writeUint8(Number.parseInt(time.split(":")[1]));
+        return buf.readUInt16BE().toString(16).padStart(4, "0");
+    }
+
+    public static encodeCmdSetLockParamAutoLockSchedule(enabled: boolean, schedule_start: string, schedule_end: string): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(this.getUint16BEBuffer(CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE));
+        ssbytes.write(this.getUInt8Buffer(enabled === true ? 1 : 0));
+        ssbytes.write(Buffer.from(Lock.hexTime(schedule_start), "hex"));
+        ssbytes.write(Buffer.from(Lock.hexTime(schedule_end), "hex"));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdSetLockParamOneTouchLock(enabled: boolean): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(this.getUint16BEBuffer(CommandType.CMD_SMARTLOCK_ONE_TOUCH_LOCK));
+        ssbytes.write(this.getUInt8Buffer(enabled === true ? 1 : 0));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdSetLockParamWrongTryProtect(enabled: boolean, lockdownTime: number, attempts: number): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(this.getUint16BEBuffer(CommandType.CMD_SMARTLOCK_WRONG_TRY_PROTECT));
+        ssbytes.write(this.getUInt8Buffer(enabled === true ? 1 : 0));
+        ssbytes.write(this.getUint16LEBuffer(lockdownTime));
+        ssbytes.write(this.getUInt8Buffer(attempts));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdSetLockParamScramblePasscode(enabled: boolean): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(this.getUint16BEBuffer(CommandType.CMD_SMARTLOCK_SCRAMBLE_PASSCODE));
+        ssbytes.write(this.getUInt8Buffer(enabled === true ? 1 : 0));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
+    public static encodeCmdSetLockParamSound(value: number): Buffer {
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(this.getUint16BEBuffer(CommandType.CMD_SMARTLOCK_LOCK_SOUND));
+        ssbytes.write(this.getUInt8Buffer(value));
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
+    }
+
 }
 
 export class Keypad extends Device {
@@ -2255,9 +2732,21 @@ export class SmartSafe extends Device {
     }
 
     public static encodeCmdInteriorBrightness(user_id: string, interiorBrightness: number, duration: number): Buffer {
+        let convertedinteriorBrightness = 0;
+        switch (interiorBrightness) {
+            case 25:
+                convertedinteriorBrightness = 1;
+                break;
+            case 60:
+                convertedinteriorBrightness = 2;
+                break;
+            case 100:
+                convertedinteriorBrightness = 3;
+                break;
+        }
         const ssbytes = new SmartSafeByteWriter();
         ssbytes.write(Buffer.from(user_id));
-        ssbytes.write(this.getUInt8Buffer(interiorBrightness));
+        ssbytes.write(this.getUInt8Buffer(convertedinteriorBrightness));
         ssbytes.write(this.getUInt8Buffer(duration));
         ssbytes.write(this.getCurrentTimeInSeconds());
         return ssbytes.getData();
@@ -2289,6 +2778,16 @@ export class SmartSafe extends Device {
 
     public static encodeCmdUnlock(user_id: string): Buffer {
         return SmartSafe.encodeCmdSingleUInt8(user_id, 1);
+    }
+
+    public static encodeCmdVerifyPIN(user_id: string, pin: string): Buffer {
+        const pinBuffer = Buffer.alloc(8);
+        pinBuffer.write(pin);
+        const ssbytes = new SmartSafeByteWriter();
+        ssbytes.write(Buffer.from(user_id));
+        ssbytes.write(pinBuffer);
+        ssbytes.write(this.getCurrentTimeInSeconds());
+        return ssbytes.getData();
     }
 
     protected convertRawPropertyValue(property: PropertyMetadataAny, value: string): PropertyValue {
@@ -2366,7 +2865,7 @@ export class SmartSafe extends Device {
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
         if (message.event_type !== undefined) {
-            if (message.device_sn === this.getSerial()) {
+            if (message.station_sn === this.getSerial()) {
                 try {
                     switch (message.event_type) {
                         //TODO: Finish smart safe push notification handling implementation

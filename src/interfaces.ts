@@ -1,7 +1,7 @@
 import { Readable } from "stream";
 
 import { Device } from "./http/device";
-import { HTTPApiPersistentData, PropertyValue } from "./http/interfaces";
+import { HTTPApiPersistentData, PropertyValue, Schedule } from "./http/interfaces";
 import { Station } from "./http/station";
 import { DeviceSmartLockMessage } from "./mqtt/model";
 import { StreamMetadata } from "./p2p/interfaces";
@@ -60,6 +60,7 @@ export interface EufySecurityEvents {
     "device long time not close": (device: Device, state: boolean) => void;
     "device low battery": (device: Device, state: boolean) => void;
     "device jammed": (device: Device, state: boolean) => void;
+    "device pin verified": (device: Device, successfull: boolean) => void;
     "station added": (station: Station) => void;
     "station removed": (station: Station) => void;
     "station livestream start": (station: Station, device: Device, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
@@ -95,4 +96,10 @@ export interface EufySecurityEvents {
     "mqtt connect": () => void;
     "mqtt close": () => void;
     "mqtt lock message": (message: DeviceSmartLockMessage) => void;
+    "user added": (device: Device, username: string, schedule?: Schedule) => void;
+    "user deleted": (device: Device, username: string) => void;
+    "user error": (device: Device, username: string, error: Error) => void;
+    "user username updated": (device: Device, username: string) => void;
+    "user schedule updated": (device: Device, username: string, schedule: Schedule) => void;
+    "user passcode updated": (device: Device, username: string) => void;
 }

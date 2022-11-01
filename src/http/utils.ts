@@ -1,9 +1,8 @@
 import { createCipheriv } from "crypto";
-import { SmartSafeNotificationResponse } from "../p2p/models";
-import { decryptPayloadData } from "../p2p/utils";
 
-import { Device, SmartSafe } from "./device";
-import { NotificationSwitchMode, DeviceType, WifiSignalLevel } from "./types";
+import { Device } from "./device";
+import { Schedule } from "./interfaces";
+import { NotificationSwitchMode, DeviceType, WifiSignalLevel, HB3DetectionTypes } from "./types";
 
 export const isGreaterEqualMinVersion = function(minimal_version: string, current_version: string): boolean {
     if (minimal_version === undefined)
@@ -178,6 +177,39 @@ export const getDistances = function(blocklist: Array<number>): Array<number> {
                 }
                 valueOf = valueOf >> 1;
             }
+        }
+    }
+    return result;
+}
+
+export const isHB3DetectionModeEnabled = function(value: number, type: HB3DetectionTypes): boolean {
+    if (type === HB3DetectionTypes.HUMAN_RECOGNITION) {
+        return (type & value) == type && (value & 65536) == 65536;
+    } else if (type === HB3DetectionTypes.HUMAN_DETECTION) {
+        return (type & value) == type && (value & 1) == 1;
+    }
+    return (type & value) == type;
+}
+
+export const getHB3DetectionMode = function(value: number, type: HB3DetectionTypes, enable: boolean): number {
+    let result = 0;
+    if (!enable) {
+        if (type === HB3DetectionTypes.HUMAN_RECOGNITION) {
+            const tmp = (type & value) == type ? type ^ value : value;
+            result = (value & 65536) == 65536 ? tmp ^ 65536 : tmp;
+        } else if (type === HB3DetectionTypes.HUMAN_DETECTION) {
+            const tmp = (type & value) == type ? type ^ value : value;
+            result = (value & 1) == 1 ? tmp ^ 1 : tmp;
+        } else {
+            result = type ^ value;
+        }
+    } else {
+        if (type === HB3DetectionTypes.HUMAN_RECOGNITION) {
+            result =  type | value | 65536;
+        } else if (type === HB3DetectionTypes.HUMAN_DETECTION) {
+            result =  type | value | 1;
+        } else {
+            result = type | value;
         }
     }
     return result;
@@ -3249,11 +3281,7 @@ export class SmartSafeByteWriter {
 
 }
 
-export const getCurrentTimeInSeconds = function(): number {
-    return Math.trunc(new Date().getTime() / 1000);
-}
-
-export const generateHash = function(data: Buffer): number {
+/*export const generateHash = function(data: Buffer): number {
     let result = 0;
     for (const value of data) {
         result = result ^ value;
@@ -3272,30 +3300,64 @@ export const encodeSmartSafeData = function(command: number, payload: Buffer): B
     const data = Buffer.concat([header, size, versionCode, dataType, commandCode, packageFlag, payload]);
     const hash = generateHash(data);
     return Buffer.concat([data, Buffer.from([hash])]);
+}*/
+
+export const encodePasscode = function(pass: string): string {
+    let result = "";
+    for (let i = 0; i < pass.length; i++)
+        result += pass.charCodeAt(i).toString(16);
+    return result;
 }
 
-export const decodeSmartSafeData = function(deviceSN: string, data: Buffer): SmartSafeNotificationResponse {
-    if (data.readInt8(0) !== SmartSafe.DATA_HEADER[0] && data.readInt8(1) !== SmartSafe.DATA_HEADER[1]) {
-        //TODO: raise Exception invalid data header
-    }
-    if (generateHash(data.slice(0, data.length - 1)) !== data.readInt8(data.length - 1)) {
-        //TODO: raise Exception hash invalid / packet corrupted
-    }
-    const packageFlag = data.readInt8(7);
-    const dataHeaderLength = packageFlag == -64 ? 8 : 12;
-    const encData = data.slice(dataHeaderLength, data.length - 1)
+export const hexDate = function(date: Date): string {
+    const buf = Buffer.allocUnsafe(4);
+    buf.writeUint8(date.getDate());
+    buf.writeUint8(date.getMonth() + 1, 1);
+    buf.writeUint16BE(date.getFullYear(), 2);
+    return buf.readUInt32LE().toString(16).padStart(8, "0");
+}
 
-    const result: SmartSafeNotificationResponse = {
-        versionCode: data.readInt8(4),
-        dataType: data.readInt8(5),
-        commandCode: data.readInt8(6),
-        packageFlag: packageFlag,
-        responseCode: -1,
-        data: decryptPayloadData(encData, Buffer.from(deviceSN), Buffer.from(SmartSafe.IV, "hex"))
+export const hexTime = function(date: Date): string {
+    const buf = Buffer.allocUnsafe(2);
+    buf.writeUint8(date.getHours());
+    buf.writeUint8(date.getMinutes(), 1);
+    return buf.readUInt16BE().toString(16).padStart(4, "0");
+}
+
+export const hexWeek = function(schedule: Schedule): string {
+    const SUNDAY    = 1;
+    const MONDAY    = 2;
+    const TUESDAY   = 4;
+    const WEDNESDAY = 8;
+    const THUERSDAY = 16;
+    const FRIDAY    = 32;
+    const SATURDAY  = 64;
+
+    let result = 0;
+
+    if (schedule.week !== undefined) {
+        if (schedule.week.sunday) {
+            result |= SUNDAY;
+        }
+        if (schedule.week.monday) {
+            result |= MONDAY;
+        }
+        if (schedule.week.tuesday) {
+            result |= TUESDAY;
+        }
+        if (schedule.week.wednesday) {
+            result |= WEDNESDAY;
+        }
+        if (schedule.week.thursday) {
+            result |= THUERSDAY;
+        }
+        if (schedule.week.friday) {
+            result |= FRIDAY;
+        }
+        if (schedule.week.saturday) {
+            result |= SATURDAY;
+        }
+        return result.toString(16);
     }
-    const responseCodePosition = packageFlag == -64 ? 9 : 13;
-    if (data.length >= responseCodePosition) {
-        result.responseCode = data.readInt8(responseCodePosition - 1);
-    }
-    return result;
+    return "ff";
 }

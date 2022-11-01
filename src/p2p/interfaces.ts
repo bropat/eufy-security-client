@@ -59,6 +59,7 @@ export interface P2PMessageState {
     retries: number;
     acknowledged: boolean;
     returnCode: number;
+    retryTimeout?: NodeJS.Timeout;
     timeout?: NodeJS.Timeout;
     customData?: CustomData;
 }

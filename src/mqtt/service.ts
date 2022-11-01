@@ -88,7 +88,8 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
                 username: this.USERNAME_FORMAT.replace("<user_id>", clientID),
                 password: email,
                 ca: fse.readFileSync(path.join(__dirname, "./mqtt-eufy.crt")),
-                clientId: this.CLIENT_ID_FORMAT.replace("<user_id>", clientID).replace("<android_id>", androidID)
+                clientId: this.CLIENT_ID_FORMAT.replace("<user_id>", clientID).replace("<android_id>", androidID),
+                rejectUnauthorized: false  // Some eufy mqtt servers have an expired certificate :(
             });
             this.client.on("connect", (_connack) => {
                 this.connected = true;

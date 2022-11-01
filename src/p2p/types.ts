@@ -1,3 +1,5 @@
+import { LockV12P2PCommandType } from "./models";
+
 export const RequestMessageType = {
     STUN:               Buffer.from([0xF1, 0x00]),
     LOOKUP:             Buffer.from([0xF1, 0x20]),
@@ -501,7 +503,12 @@ export enum CommandType {
     CMD_SMARTSAFE_VOLUME = 1946165249,
     CMD_SMARTSAFE_PARAM_BASE = 1946165248,
     CMD_SMARTSAFE_SETTINGS = 1946157056,
-    CMD_SMARTSAFE_STATUS_UPDATE = 1946157057
+    CMD_SMARTSAFE_STATUS_UPDATE = 1946157057,
+    CMD_SET_PAYLOAD_LOCKV12 = 1930,
+    CMD_SET_MOTION_DETECTION_TYPE_HB3 = 1298,
+    CMD_GET_WORKING_DAYS_HB3 = 1191,
+    CMD_GET_DETECTED_EVENTS_HB3 = 1192,
+    CMD_GET_RECORDED_EVENTS_HB3 = 1193,
 }
 
 export enum MessageType {
@@ -607,7 +614,8 @@ export enum ErrorCode {
     ERROR_XM_WIFI_TIMEOUT = -205,
     ERROR_XM_WIFI_WAKEUP_FAIL = -204,
     ERROR_LIMIT_REACHED = -500,
-    ERROR_FAILED_TO_REQUEST = 503
+    ERROR_FAILED_TO_REQUEST = 503,
+    ERROR_SEQUENCE_NUMBER = -151,
 }
 
 export enum AlarmEvent {
@@ -686,27 +694,35 @@ export enum AudioCodec {
 export enum ESLCommand {
     ACTIVATE_DEVICE = 107,
     ADD_FINGER = 6003,
+    ADD_FINGER_STEP = 6029,
     ADD_PW = 6002,
     BIND_LOCK = 101,
-    BIND_LOCK_FOR_BLE_LOCK = 120,
     CALIBRATE_LOCK = 6017,
     CANCEL_ADD_FINGER = 115,
-    CLEAR_LOCK_AES_KEY = 123,
+    CHECK_KEYPAD_CONNECT = 130,
+    CREATE_TEMPORARY_PW = 125,
     DELETE_FINGER = 6006,
+    DELETE_LOCK_EVENT = 127,
     DELETE_PW = 6005,
     DELETE_USER = 6004,
+    ECDH_CONSULT = 131,
+    ECDH_MODE_GET_PUBLIC_KEY = 138,
     END_BIND = 102,
     ENTER_OTA = 6020,
     ENTER_OTA_UPDATE = 116,
     GET_FINGER_PW_USAGE = 6022,
+    GET_KEYPAD_INFO = 136,
     GET_LOCK_PARAM = 6016,
     GET_LOCK_PUBLIC_KEY = 121,
     GET_USER_ID_AND_PW_ID = 6027,
     HEART_BEAT = 6001,
+    KEYPAD_ENTER_OTA = 135,
+    KEYPAD_VERIFY_APP = 134,
+    LOCK_KEYPAD_BIND_NOTIFY = 133,
+    MANUAL_CALIBRATE = 128,
     MODIFY_NAME = 119,
     NOTIFY = 110,
-    NOTIFY_T31 = 6025,
-    ON_OFF_LOCK = 8,
+    ON_OFF_LOCK = 6018,
     PULL_BLE = 6024,
     QUERY_ALL_USERS = 6007,
     QUERY_LOCK_RECORD = 122,
@@ -717,53 +733,56 @@ export enum ESLCommand {
     QUERY_STATUS_IN_SERVER = 6011,
     RECEIVE_SEQ_NUM = 6028,
     REMOVE_DEVICE = 124,
+    REMOVE_KEYPAD = 137,
     RESET = 6019,
     SAVE_LOCK_PARAM_TO_SERVER = 6023,
+    SEND_LOCK_INFO_TO_KEYPAD = 132,
     SEND_OTA_PACKAGE = 117,
     SET_LOCK_PARAM = 6015,
     SHUT_DOWN_BLE = 6026,
+    TEMPORARY_PW_LIST = 126,
     UPDATE_PW = 6014,
     UPDATE_USER_TIME = 6013,
     VERIFY_IDENTITY = 6000,
     VERIFY_PW = 118,
     WIFI_CONNECT = 106,
     WIFI_LIST = 105,
-    WIFI_SCAN = 104
+    WIFI_SCAN = 104,
 }
 
-export enum ESLInnerCommand {
-    ACTIVATE_DEVICE = 4,
-    ADD_FINGER = 13,
-    ADD_PW = 5,
+export enum ESLBleCommand {
     BIND_LOCK = 1,
+    VERIFY_IDENTITY = 2,
+    HEART_BEAT = 3,
+    ACTIVATE_DEVICE = 4,
+    ADD_PW = 5,
     CALIBRATE_LOCK = 7,
-    CANCEL_ADD_FINGER = 16,
+    ON_OFF_LOCK = 8,
+    RESET = 9,
+    WIFI_SCAN = 10,
+    WIFI_LIST = 11,
+    WIFI_CONNECT = 12,
+    ADD_FINGER = 13,
     DELETE_FINGER = 14,
     DELETE_USER = 15,
-    END_BIND = 21,
-    ENTER_OTA_UPDATE = 31,
-    GET_FINGER_PW_USAGE = 30,
-    GET_LOCK_PARAM = 33,
-    GET_LOCK_PUBLIC_KEY = 22,
-    HEART_BEAT = 3,
-    MODIFY_NAME = 29,
-    NOTIFY = 18,
-    ON_OFF_LOCK = 8,
-    QUERY_ALL_USERS = 25,
-    QUERY_LOCK_RECORD = 24,
-    QUERY_PW = 26,
+    CANCEL_ADD_FINGER = 16,
     QUERY_STATUS_IN_LOCK = 17,
-    RESET = 9,
-    SEND_OTA_PACKAGE = 32,
-    SET_LOCK_PARAM = 34,
-    SHUT_DOWN_BLE = 36,
+    NOTIFY = 18,
+    END_BIND = 21,
+    GET_LOCK_PUBLIC_KEY = 22,
+    VERIFY_PW = 23,
+    QUERY_LOCK_RECORD = 24,
+    QUERY_ALL_USERS = 25,
+    QUERY_PW = 26,
     UPDATE_PW = 27,
     UPDATE_USER_TIME = 28,
-    VERIFY_IDENTITY = 2,
-    VERIFY_PW = 23,
-    WIFI_CONNECT = 12,
-    WIFI_LIST = 11,
-    WIFI_SCAN = 10
+    MODIFY_NAME = 29,
+    GET_FINGER_PW_USAGE = 30,
+    ENTER_OTA_UPDATE = 31,
+    SEND_OTA_PACKAGE = 32,
+    GET_LOCK_PARAM = 33,
+    SET_LOCK_PARAM = 34,
+    SHUT_DOWN_BLE = 36
 }
 
 export enum ESLAnkerBleConstant {
@@ -905,4 +924,49 @@ export enum SmartSafeBatteryTemperatureEvent {
 export enum SmartSafeBatteryStatusEvent {
     NOT_CHARGING = 0,
     CHARGING = 1,
+}
+
+/*export interface Mapping {
+    [index: number]: number;
+}
+
+export const LockV12CommandMapping: Mapping = {
+    [ESLCommand.BIND_LOCK]: ESLInnerCommand.BIND_LOCK,
+    [ESLCommand.VERIFY_IDENTITY]: ESLInnerCommand.VERIFY_IDENTITY,
+    [ESLCommand.HEART_BEAT]: ESLInnerCommand.HEART_BEAT,
+    [ESLCommand.ACTIVATE_DEVICE]: ESLInnerCommand.ACTIVATE_DEVICE,
+    [ESLCommand.ADD_PW]: ESLInnerCommand.ADD_PW,
+    [ESLCommand.CALIBRATE_LOCK]: ESLInnerCommand.CALIBRATE_LOCK,
+    [ESLCommand.ON_OFF_LOCK]: ESLInnerCommand.ON_OFF_LOCK,
+    [ESLCommand.RESET]: ESLInnerCommand.RESET,
+    [ESLCommand.WIFI_SCAN]: ESLInnerCommand.WIFI_SCAN,
+    [ESLCommand.WIFI_LIST]: ESLInnerCommand.WIFI_LIST,
+    [ESLCommand.WIFI_CONNECT]: ESLInnerCommand.WIFI_CONNECT,
+    [ESLCommand.ADD_FINGER]: ESLInnerCommand.ADD_FINGER,
+    [ESLCommand.DELETE_FINGER]: ESLInnerCommand.DELETE_FINGER,
+    [ESLCommand.DELETE_USER]: ESLInnerCommand.DELETE_USER,
+    [ESLCommand.CANCEL_ADD_FINGER]: ESLInnerCommand.CANCEL_ADD_FINGER,
+    [ESLCommand.QUERY_STATUS_IN_LOCK]: ESLInnerCommand.QUERY_STATUS_IN_LOCK,
+    [ESLCommand.NOTIFY]: ESLInnerCommand.NOTIFY,
+    [ESLCommand.END_BIND]: ESLInnerCommand.END_BIND,
+    [ESLCommand.GET_LOCK_PUBLIC_KEY]: ESLInnerCommand.GET_LOCK_PUBLIC_KEY,
+    [ESLCommand.VERIFY_PW]: ESLInnerCommand.VERIFY_PW,
+    [ESLCommand.QUERY_LOCK_RECORD]: ESLInnerCommand.QUERY_LOCK_RECORD,
+    [ESLCommand.QUERY_ALL_USERS]: ESLInnerCommand.QUERY_ALL_USERS,
+    [ESLCommand.QUERY_PW]: ESLInnerCommand.QUERY_PW,
+    [ESLCommand.UPDATE_PW]: ESLInnerCommand.UPDATE_PW,
+    [ESLCommand.UPDATE_USER_TIME]: ESLInnerCommand.UPDATE_USER_TIME,
+    [ESLCommand.MODIFY_NAME]: ESLInnerCommand.MODIFY_NAME,
+    [ESLCommand.GET_FINGER_PW_USAGE]: ESLInnerCommand.GET_FINGER_PW_USAGE,
+    [ESLCommand.ENTER_OTA_UPDATE]: ESLInnerCommand.ENTER_OTA_UPDATE,
+    [ESLCommand.SEND_OTA_PACKAGE]: ESLInnerCommand.SEND_OTA_PACKAGE,
+    [ESLCommand.GET_LOCK_PARAM]: ESLInnerCommand.GET_LOCK_PARAM,
+    [ESLCommand.SET_LOCK_PARAM]: ESLInnerCommand.SET_LOCK_PARAM,
+    [ESLCommand.SHUT_DOWN_BLE]: ESLInnerCommand.SHUT_DOWN_BLE,
+}*/
+
+export interface LockV12P2PCommand {
+    aesKey: string;
+    bleCommand: number;
+    payload: LockV12P2PCommandType;
 }

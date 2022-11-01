@@ -109,13 +109,13 @@ export const parseValue = function(metadata: PropertyMetadataAny, value: unknown
 export const validValue = function(metadata: PropertyMetadataAny, value: unknown): void {
     if (metadata.type === "number") {
         const numberMetadata = metadata as PropertyMetadataNumeric;
-        const numericValue = value as number;
-        if ((numberMetadata.min !== undefined && numberMetadata.min > numericValue) || (numberMetadata.max !== undefined && numberMetadata.max < numericValue) || (numberMetadata.states !== undefined && numberMetadata.states[numericValue] === undefined)) {
+        const numericValue = Number(value);
+        if ((numberMetadata.min !== undefined && numberMetadata.min > numericValue) || (numberMetadata.max !== undefined && numberMetadata.max < numericValue) || (numberMetadata.states !== undefined && numberMetadata.states[numericValue] === undefined) || Number.isNaN(numericValue)) {
             throw new InvalidPropertyValueError(`Value "${numericValue}" isn't a valid value for property "${numberMetadata.name}"`);
         }
     } else if (metadata.type === "string") {
         const stringMetadata = metadata as PropertyMetadataString;
-        const stringValue = value as string;
+        const stringValue = String(value);
         if ((stringMetadata.format !== undefined && stringValue.match(stringMetadata.format) === null) || (stringMetadata.minLength !== undefined && stringMetadata.minLength > stringValue.length) || (stringMetadata.maxLength !== undefined && stringMetadata.maxLength < stringValue.length)) {
             throw new InvalidPropertyValueError(`Value "${stringValue}" isn't a valid value for property "${stringMetadata.name}"`);
         }

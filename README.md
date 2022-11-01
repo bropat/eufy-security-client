@@ -80,27 +80,45 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 2.2.0-rc.2 (2022-08-27)
+### 2.2.0 (2022-11-01)
 
+* (bropat) **Breaking Change** Renamed all lock settings parameters according to standard
+* (bropat) **Breaking Change** Station class initialization is now async
+* (bropat) Renewed p2p device address discovery (now also includes local discovery via broadcast; cloud discovery optimised)
+* (bropat) Added support for Doorbell Dual notification types (package delivered, package taken, package stranded, someone loitering, radar motion detected)
+* (bropat) Added support for eufyCam 3C (#233)
+* (bropat) Added support for eufyCam 3 (#228)
+* (bropat) Added support for Homebase 3 (#228)
+* (bropat) Added support to programmatically add access to lock (#204)
+* (thieren) Added station event for connection timeout (#202)
+* (bropat) Added Smart Safe support (tested only T7400; #182)
 * (bropat) Added snooze command for supported devices (#173, #176)
 * (bropat) Added support for video type store to NAS for indoor cameras (#147)
+* (bropat) Switched API login to new login_sec endpoint
+* (bropat) Incremented p2p disconnect timeout for energy saving device to 30 seconds
+* (bropat) Implemented new resend of not acknowledged p2p commands
 * (bropat) Fixed issue with energy saving measures interrupting running streams
 * (bropat) Better error handling for not supported p2p commands
 * (bropat) Fixed signalling of event `station command result`
+* (bropat) Fixed local device discovery exception (udp broadcast)
+* (bropat) Fixed checking of valid property values (function validValues)
+* (bropat) Fixed regression in parsing lock push notifications
+* (bropat) Fixed updating of device properties on p2p command result event for some devices
+* (bropat) Fixed parsing of raw values of property `motionDetectionSensitivity`
+* (bropat) Fixed MQTT certification verification for some eufy servers (disabled certification verrification, since some server have expired certs)
+* (bropat) Fixed emitting of event "locked" for lock devices
+* (bropat) Fixed issue #227
+* (bropat) Fixed issue #215
+* (bropat) Fixed issue #212
+* (bropat) Fixed issue #207
+* (bropat) Fixed issue #201
+* (bropat) Fixed issue #196
+* (bropat) Small bugfixes and optimizations
+* (bropat) Updated docs - Added partial supported device HomeBase 3 (T8030, S380)
+* (bropat) Updated docs - Added supported devices eufyCam 3 (T8160, S330), eufyCam 3C (T8161, S300)
+* (bropat) Updated docs - Added supported devices Smart Safe S10 (T7400), Smart Safe S12 (T7401)
 * (bropat) Updated docs - Added supported devices SoloCam L20 (T8122), SoloCam L40 (T8123), SoloCam S40 (T8124), SoloCam E20 (T8130)
 * (bropat) Changed default persistent directory path for saving persistent data
-
-### 2.2.0-rc.1 (2022-08-19)
-
-* (bropat) **Breaking Change** Renamed all lock settings parameters according to standard
-* (bropat) Renewed p2p device address discovery (now also includes local discovery via broadcast; cloud discovery optimised)
-* (bropat) Added support for Doorbell Dual notification types (package delivered, package taken, package stranded, someone loitering, radar motion detected)
-* (bropat) Added Smart Safe support (tested only T7401; #182 **WIP**)
-* (thieren) Added station event for connection timeout (#202)
-* (bropat) Fixed issue #196
-* (bropat) Fixed issue #201
-* (bropat) Fixed emitting of event "locked" for lock devices
-* (bropat) Small bugfixes and optimizations
 
 ### 2.1.2 (2022-07-30)
 

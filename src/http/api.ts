@@ -7,7 +7,7 @@ import { createECDH, ECDH } from "crypto";
 import * as schedule from "node-schedule";
 import * as pThrottle from "p-throttle";
 
-import { ResultResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry, ApiResponse, CaptchaResponse, LoginRequest, HouseDetail, DeviceListResponse, StationListResponse, HouseInviteListResponse, HouseListResponse, PassportProfileResponse } from "./models"
+import { ResultResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry, ApiResponse, CaptchaResponse, LoginRequest, HouseDetail, DeviceListResponse, StationListResponse, HouseInviteListResponse, HouseListResponse, PassportProfileResponse, UsersResponse, User, AddUserResponse } from "./models"
 import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites, HTTPApiRequest, HTTPApiPersistentData, Houses, LoginOptions } from "./interfaces";
 import { EventFilterType, PublicKeyType, ResponseErrorCode, StorageType, VerfyCodeTypes } from "./types";
 import { ParameterHelper } from "./parameter";
@@ -51,20 +51,20 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     };
 
     private headers: Record<string, string> = {
-        app_version: "v4.2.1_1280",
-        os_type: "android",
-        os_version: "31",
-        phone_model: "ONEPLUS A3003",
-        country: "DE",
-        language: "en",
-        openudid: "5e4621b0152c0d00",
-        uid: "",
-        net_type: "wifi",
-        mnc: "02",
-        mcc: "262",
-        sn: "75814221ee75",
+        App_version: "v4.4.3_1447",
+        Os_type: "android",
+        Os_version: "31",
+        Phone_model: "ONEPLUS A3003",
+        Country: "DE",
+        Language: "en",
+        Openudid: "5e4621b0152c0d00",
+        //uid: "",
+        Net_type: "wifi",
+        Mnc: "02",
+        Mcc: "262",
+        Sn: "75814221ee75",
         Model_type: "PHONE",
-        timezone: "GMT+01:00",
+        Timezone: "GMT+01:00",
         "Cache-Control": "no-cache",
     };
 
@@ -260,6 +260,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             try {
                 this.ecdh.generateKeys();
                 const data: LoginRequest = {
+                    ab: this.headers.country,
                     client_secret_info: {
                         public_key: this.ecdh.getPublicKey("hex")
                     },
@@ -277,7 +278,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
                 const response: ApiResponse = await this.request({
                     method: "post",
-                    endpoint: "v2/passport/login",
+                    endpoint: "v2/passport/login_sec",
                     data: data
                 });
                 if (response.status == 200) {
@@ -1172,6 +1173,144 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             this.log.error("Generic Error:", error);
         }
         return null;
+    }
+
+    public async addUser(deviceSN: string, nickname: string, stationSN = ""): Promise<AddUserResponse|null> {
+        if (this.connected) {
+            try {
+                const response = await this.request({
+                    method: "post",
+                    endpoint: "v1/app/device/local_user/add",
+                    data: {
+                        device_sn: deviceSN,
+                        nick_name: nickname,
+                        station_sn: stationSN === deviceSN ? "" : stationSN,
+                        transaction: `${new Date().getTime().toString()}`
+                    }
+                });
+                if (response.status == 200) {
+                    const result: ResultResponse = response.data;
+                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                        if (result.data)
+                            return result.data as AddUserResponse;
+                    } else {
+                        this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                    }
+                } else {
+                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                }
+            } catch (error) {
+                this.log.error("Generic Error:", error);
+            }
+        }
+        return null;
+    }
+
+    public async deleteUser(deviceSN: string, shortUserId: string, stationSN = ""): Promise<boolean> {
+        if (this.connected) {
+            try {
+                const response = await this.request({
+                    method: "post",
+                    endpoint: "v1/app/device/user/delete",
+                    data: {
+                        device_sn: deviceSN,
+                        short_user_ids: [shortUserId],
+                        station_sn: stationSN === deviceSN ? "" : stationSN,
+                        transaction: `${new Date().getTime().toString()}`
+                    }
+                });
+                if (response.status == 200) {
+                    const result: ResultResponse = response.data;
+                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                        return true;
+                    } else {
+                        this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                    }
+                } else {
+                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                }
+            } catch (error) {
+                this.log.error("Generic Error:", error);
+            }
+        }
+        return false;
+    }
+
+    public async getUsers(deviceSN: string, stationSN: string): Promise<Array<User>|null> {
+        try {
+            const response = await this.request({
+                method: "get",
+                endpoint: `v1/app/device/user/list?device_sn=${deviceSN}&station_sn=${stationSN}`
+            });
+            if (response.status == 200) {
+                const result: ResultResponse = response.data;
+                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.data) {
+                        const usersResponse = result.data as UsersResponse;
+                        return usersResponse.user_list;
+                    }
+                } else {
+                    this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                }
+            } else {
+                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+            }
+        } catch (error) {
+            this.log.error("Generic Error:", error);
+        }
+        return null;
+    }
+
+    public async getUser(deviceSN: string, stationSN: string, shortUserId: string): Promise<User|null> {
+        try {
+            const users = await this.getUsers(deviceSN, stationSN);
+            if (users !== null) {
+                for (const user of users) {
+                    if (user.short_user_id === shortUserId) {
+                        return user;
+                    }
+                }
+            }
+        } catch (error) {
+            this.log.error("Generic Error:", error);
+        }
+        return null;
+    }
+
+    public async updateUser(deviceSN: string, stationSN: string, shortUserId: string, nickname: string): Promise<boolean> {
+        if (this.connected) {
+            try {
+                const user = await this.getUser(deviceSN, stationSN, shortUserId);
+                if (user !== null) {
+                    const response = await this.request({
+                        method: "post",
+                        endpoint: "v1/app/device/local_user/update",
+                        data: {
+                            device_sn: deviceSN,
+                            nick_name: nickname,
+                            password_list: user.password_list,
+                            short_user_id: shortUserId,
+                            station_sn: stationSN === deviceSN ? "" : stationSN,
+                            user_type: user.user_type,
+                            transaction: `${new Date().getTime().toString()}`
+                        }
+                    });
+                    if (response.status == 200) {
+                        const result: ResultResponse = response.data;
+                        if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                            return true;
+                        } else {
+                            this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                        }
+                    } else {
+                        this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    }
+                }
+            } catch (error) {
+                this.log.error("Generic Error:", error);
+            }
+        }
+        return false;
     }
 
 }

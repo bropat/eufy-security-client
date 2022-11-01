@@ -42,7 +42,7 @@ export interface CommandResult {
 
 export interface CmdNotifyPayload {
     cmd: number;
-    payload: ESLStationP2PThroughData | ESLAdvancedLockStatusNotification | SmartSafeSettingsNotification | SmartSafeStatusNotification | string,
+    payload: ESLStationP2PThroughData | ESLAdvancedLockStatusNotification | SmartSafeSettingsNotification | SmartSafeStatusNotification | ESLBleV12P2PThroughData | string,
     payloadLen?: number;
 }
 
@@ -107,4 +107,60 @@ export interface AdvancedLockSetParamsType {
     scheduleStart: string;
     wrongTryTime: number;
     seq_num: number;
+}
+
+export interface LockP2PCommandType {
+    commandType: CommandType;
+    value: string;
+    channel: number;
+    aesKey: string;
+}
+
+export interface LockP2PCommandPayloadType {
+    key: string;
+    account_id: string;
+    cmd: CommandType;
+    mChannel: number;
+    mValue3: number;
+    payload: string;
+}
+
+export interface ESLBleV12P2PThroughData {
+    dev_sn: string,
+    lock_payload: string,
+}
+
+export interface LockV12P2PCommandPayloadType {
+    account_id: string;
+    cmd: CommandType;
+    mChannel: number;
+    mValue3: number;
+    payload: {
+        apiCommand: number;
+        lock_payload: string;
+        seq_num: number;
+    }
+}
+
+export interface LockV12P2PCommandType {
+    commandType: CommandType,
+    value: string;
+}
+
+export interface SmartSafeP2PCommandPayloadType {
+    account_id: string;
+    cmd: CommandType;
+    mChannel: number;
+    mValue3: number;
+    payload: {
+        data: string;
+        prj_id: CommandType;
+        seq_num: number;
+    }
+}
+
+export interface SmartSafeP2PCommandType {
+    commandType: CommandType;
+    value: string;
+    channel: number;
 }

@@ -102,3 +102,51 @@ export class StationConnectTimeoutError extends Error {
         this.name = StationConnectTimeoutError.name;
     }
 }
+
+export class AddUserError extends Error {
+    constructor(message?: string) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = AddUserError.name;
+    }
+}
+
+export class DeleteUserError extends Error {
+    constructor(message?: string) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = DeleteUserError.name;
+    }
+}
+
+export class UpdateUserUsernameError extends Error {
+    constructor(message?: string) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = UpdateUserUsernameError.name;
+    }
+}
+
+export class UpdateUserScheduleError extends Error {
+    constructor(message?: string) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = UpdateUserScheduleError.name;
+    }
+}
+
+export class UpdateUserPasscodeError extends Error {
+    constructor(message?: string) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = UpdateUserPasscodeError.name;
+    }
+}
+
+export class PinNotVerifiedError extends Error {
+    constructor(message?: string) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = PinNotVerifiedError.name;
+    }
+}

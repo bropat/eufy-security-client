@@ -4,7 +4,7 @@ import { dummyLogger, Logger } from "ts-log";
 import { TypedEmitter } from "tiny-typed-emitter";
 
 import { buildCheckinRequest, convertTimestampMs, generateFid, parseCheckinResponse, sleep } from "./utils";
-import { CheckinResponse, Credentials, CusPushData, DoorbellPushData, FidInstallationResponse, FidTokenResponse, GcmRegisterResponse, IndoorPushData, RawPushMessage, PushMessage, BatteryDoorbellPushData, LockPushData, SmartSafeData } from "./models";
+import { CheckinResponse, Credentials, CusPushData, DoorbellPushData, FidInstallationResponse, FidTokenResponse, GcmRegisterResponse, IndoorPushData, RawPushMessage, PushMessage, BatteryDoorbellPushData, LockPushData, SmartSafeData, PlatformPushMode } from "./models";
 import { PushClient } from "./client";
 import { PushNotificationServiceEvents } from "./interfaces";
 import { Device } from "../http/device";
@@ -321,183 +321,145 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
         if (message.payload.payload) {
             // CusPush
             normalized_message.type = Number.parseInt(message.payload.type);
-
-            if (Device.isBatteryDoorbell(normalized_message.type) || Device.isWiredDoorbellDual(normalized_message.type)) {
-                const push_data = message.payload.payload as BatteryDoorbellPushData;
-
-                normalized_message.name = push_data.name ? push_data.name : "";
-                try {
-                    normalized_message.event_time = message.payload.event_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.event_time)) : Number.parseInt(message.payload.event_time);
-                } catch (error) {
-                    this.log.error(`Type ${DeviceType[normalized_message.type]} BatteryDoorbellPushData - event_time - Error:`, error);
-                }
-                normalized_message.station_sn = message.payload.station_sn;
+            try {
+                normalized_message.event_time = message.payload.event_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.event_time)) : Number.parseInt(message.payload.event_time);
+            } catch (error) {
+                this.log.error(`Type ${DeviceType[normalized_message.type]} CusPush - event_time - Error:`, error);
+            }
+            normalized_message.station_sn = message.payload.station_sn;
+            if (normalized_message.type === DeviceType.FLOODLIGHT)
+                normalized_message.device_sn = message.payload.station_sn;
+            else
                 normalized_message.device_sn = message.payload.device_sn;
-                normalized_message.title = message.payload.title;
-                normalized_message.content = message.payload.content;
-                try {
-                    normalized_message.push_time = message.payload.push_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.push_time)) : Number.parseInt(message.payload.push_time);
-                } catch (error) {
-                    this.log.error(`Type ${DeviceType[normalized_message.type]} BatteryDoorbellPushData - push_time - Error:`, error);
-                }
+            normalized_message.title = message.payload.title;
+            normalized_message.content = message.payload.content;
+            try {
+                normalized_message.push_time = message.payload.push_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.push_time)) : Number.parseInt(message.payload.push_time);
+            } catch (error) {
+                this.log.error(`Type ${DeviceType[normalized_message.type]} CusPush - push_time - Error:`, error);
+            }
 
-                //Get family face names from Doorbell Dual "Family Recognition" event
-                if (push_data.objects !== undefined) {
-                    normalized_message.person_name = push_data.objects.names !== undefined ? push_data.objects.names.join(",") : "";
-                }
-
+            if (normalized_message.station_sn.startsWith("T8030") || normalized_message.type === DeviceType.HB3) {
+                const push_data = message.payload.payload as PlatformPushMode;
+                normalized_message.name = push_data.name ? push_data.name : "";
                 normalized_message.channel = push_data.channel !== undefined ? push_data.channel : 0;
                 normalized_message.cipher = push_data.cipher !== undefined ? push_data.cipher : 0;
                 normalized_message.event_session = push_data.session_id !== undefined ? push_data.session_id : "";
-                normalized_message.event_type = push_data.event_type;
-                normalized_message.file_path = push_data.file_path !== undefined && push_data.file_path !== "" && push_data.channel !== undefined ? getAbsoluteFilePath(normalized_message.type, push_data.channel, push_data.file_path) : "";
+                normalized_message.event_type = push_data.a !== undefined ? push_data.a : push_data.event_type;
+                normalized_message.file_path = push_data.file_path !== undefined ? push_data.file_path : "";
                 normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
                 normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
                 normalized_message.notification_style = push_data.notification_style;
-            } else if (Device.isIndoorCamera(normalized_message.type) || Device.isSoloCameras(normalized_message.type)) {
-                const push_data = message.payload.payload as IndoorPushData;
-
-                normalized_message.name = push_data.name ? push_data.name : "";
-                try {
-                    normalized_message.event_time = message.payload.event_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.event_time)) : Number.parseInt(message.payload.event_time);
-                } catch (error) {
-                    this.log.error(`Type ${DeviceType[normalized_message.type]} IndoorPushData - event_time - Error:`, error);
-                }
-                normalized_message.station_sn = message.payload.station_sn;
-                normalized_message.device_sn = push_data.device_sn;
-                normalized_message.title = message.payload.title;
-                normalized_message.content = message.payload.content;
-                try {
-                    normalized_message.push_time = message.payload.push_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.push_time)) : Number.parseInt(message.payload.push_time);
-                } catch (error) {
-                    this.log.error(`Type ${DeviceType[normalized_message.type]} IndoorPushData - push_time - Error:`, error);
-                }
-                normalized_message.channel = push_data.channel;
-                normalized_message.cipher = push_data.cipher;
-                normalized_message.event_session = push_data.session_id;
-                normalized_message.event_type = push_data.event_type;
-                //normalized_message.file_path = push_data.file_path !== undefined && push_data.file_path !== "" && push_data.channel !== undefined ? getAbsoluteFilePath(normalized_message.type, push_data.channel, push_data.file_path) : "";
-                normalized_message.file_path = push_data.file_path;
-                normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
-                normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
-                normalized_message.notification_style = push_data.notification_style;
-                normalized_message.msg_type = push_data.msg_type;
-                normalized_message.timeout = push_data.timeout;
-                normalized_message.tfcard_status = push_data.tfcard_status;
                 normalized_message.storage_type = push_data.storage_type !== undefined ? push_data.storage_type : 1;
-                normalized_message.unique_id = push_data.unique_id;
-            } else if (Device.isSmartSafe(normalized_message.type)) {
-                const push_data = message.payload.payload as SmartSafeData;
-
-                try {
-                    normalized_message.event_time = message.payload.event_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.event_time)) : Number.parseInt(message.payload.event_time);
-                } catch (error) {
-                    this.log.error(`Type ${DeviceType[normalized_message.type]} SmartSafePushData - event_time - Error:`, error);
-                }
-                normalized_message.station_sn = message.payload.station_sn;
-                normalized_message.device_sn = message.payload.station_sn;
-                normalized_message.title = message.payload.title;
-                normalized_message.content = message.payload.content;
-                try {
-                    normalized_message.push_time = message.payload.push_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.push_time)) : Number.parseInt(message.payload.push_time);
-                } catch (error) {
-                    this.log.error(`Type ${DeviceType[normalized_message.type]} SmartSafePushData - push_time - Error:`, error);
-                }
-                normalized_message.event_type = push_data.event_type;
-                normalized_message.event_value = push_data.event_value;
-                /*
-                event_value: {
-                    type: 3,    3/4
-                    action: 1,
-                    figure_id: 0,
-                    user_id: 0
-                }
-                */
-                normalized_message.name = push_data.dev_name !== undefined ? push_data.dev_name : "";
-
-                /*normalized_message.short_user_id = push_data.short_user_id !== undefined ? push_data.short_user_id : "";
-                normalized_message.user_id = push_data.user_id !== undefined ? push_data.user_id : "";*/
-            } else if (Device.isSmartSafe(normalized_message.type)) {
-                const push_data = message.payload.payload as LockPushData;
-
-                try {
-                    normalized_message.event_time = message.payload.event_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.event_time)) : Number.parseInt(message.payload.event_time);
-                } catch (error) {
-                    this.log.error(`Type ${DeviceType[normalized_message.type]} BatteryDoorbellPushData - event_time - Error:`, error);
-                }
-                normalized_message.station_sn = message.payload.station_sn;
-                normalized_message.device_sn = message.payload.device_sn;
-                normalized_message.title = message.payload.title;
-                normalized_message.content = message.payload.content;
-                try {
-                    normalized_message.push_time = message.payload.push_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.push_time)) : Number.parseInt(message.payload.push_time);
-                } catch (error) {
-                    this.log.error(`Type ${DeviceType[normalized_message.type]} BatteryDoorbellPushData - push_time - Error:`, error);
-                }
-                normalized_message.event_type = push_data.event_type;
-                normalized_message.short_user_id = push_data.short_user_id !== undefined ? push_data.short_user_id : "";
-                normalized_message.user_id = push_data.user_id !== undefined ? push_data.user_id : "";
-                normalized_message.name = push_data.device_name !== undefined ? push_data.device_name : "";
-            } else {
-                const push_data = message.payload.payload as CusPushData;
-
-                normalized_message.name = push_data.device_name && push_data.device_name !== null && push_data.device_name !== "" ? push_data.device_name : push_data.n ? push_data.n : "";
-                try {
-                    normalized_message.event_time = message.payload.event_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.event_time)) : Number.parseInt(message.payload.event_time);
-                } catch (error) {
-                    this.log.error(`Type ${DeviceType[normalized_message.type]} CusPushData - event_time - Error:`, error);
-                }
-                normalized_message.station_sn = message.payload.station_sn;
-                if (normalized_message.type === DeviceType.FLOODLIGHT)
-                    normalized_message.device_sn = message.payload.station_sn;
-                else
-                    normalized_message.device_sn = message.payload.device_sn;
-                normalized_message.title = message.payload.title;
-                normalized_message.content = message.payload.content;
-                try {
-                    normalized_message.push_time = message.payload.push_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.push_time)) : Number.parseInt(message.payload.push_time);
-                } catch (error) {
-                    this.log.error(`Type ${DeviceType[normalized_message.type]} CusPushData - push_time - Error:`, error);
-                }
-                normalized_message.channel = push_data.c;
-                normalized_message.cipher = push_data.k;
-                normalized_message.event_session = push_data.session_id;
-                normalized_message.event_type = push_data.a;
-                normalized_message.file_path = push_data.c !== undefined && push_data.p !== undefined && push_data.p !== "" ? getAbsoluteFilePath(normalized_message.type, push_data.c, push_data.p) : "";
-                normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
-                normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
-                normalized_message.notification_style = push_data.notification_style;
-                normalized_message.tfcard_status = push_data.tfcard;
-                normalized_message.alarm_delay_type = push_data.alarm_type;
-                normalized_message.alarm_delay = push_data.alarm_delay;
-                normalized_message.alarm_type = push_data.type;
-                normalized_message.sound_alarm = push_data.alarm !== undefined ? push_data.alarm === 1 ? true : false : undefined;
-                normalized_message.user_name = push_data.user_name;
+                normalized_message.msg_type = push_data.msg_type;
+                normalized_message.person_name = push_data.nick_name;
+                normalized_message.person_id = push_data.person_id;
+                normalized_message.tfcard_status = push_data.tfcard_status;
                 normalized_message.user_type = push_data.user;
-                normalized_message.user_id = push_data.user_id;
-                normalized_message.short_user_id = push_data.short_user_id;
+                normalized_message.user_name = push_data.user_name;
                 normalized_message.station_guard_mode = push_data.arming;
                 normalized_message.station_current_mode = push_data.mode;
-                normalized_message.person_name = push_data.f;
-                normalized_message.sensor_open = push_data.e !== undefined ? push_data.e === "1" ? true : false : undefined;
-                normalized_message.device_online = push_data.m !== undefined ? push_data.m === 1 ? true : false : undefined;
-                try {
-                    normalized_message.fetch_id = push_data.i !== undefined ? Number.parseInt(push_data.i) : undefined;
-                } catch (error) {
-                    this.log.error(`Type ${DeviceType[normalized_message.type]} CusPushData - fetch_id - Error:`, error);
+                normalized_message.alarm_delay = push_data.alarm_delay;
+                normalized_message.sound_alarm = push_data.alarm !== undefined ? push_data.alarm === 1 ? true : false : undefined;
+            } else {
+                if (Device.isBatteryDoorbell(normalized_message.type) || Device.isWiredDoorbellDual(normalized_message.type)) {
+                    const push_data = message.payload.payload as BatteryDoorbellPushData;
+                    normalized_message.name = push_data.name ? push_data.name : "";
+
+                    //Get family face names from Doorbell Dual "Family Recognition" event
+                    if (push_data.objects !== undefined) {
+                        normalized_message.person_name = push_data.objects.names !== undefined ? push_data.objects.names.join(",") : "";
+                    }
+
+                    normalized_message.channel = push_data.channel !== undefined ? push_data.channel : 0;
+                    normalized_message.cipher = push_data.cipher !== undefined ? push_data.cipher : 0;
+                    normalized_message.event_session = push_data.session_id !== undefined ? push_data.session_id : "";
+                    normalized_message.event_type = push_data.event_type;
+                    normalized_message.file_path = push_data.file_path !== undefined && push_data.file_path !== "" && push_data.channel !== undefined ? getAbsoluteFilePath(normalized_message.type, push_data.channel, push_data.file_path) : "";
+                    normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
+                    normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
+                    normalized_message.notification_style = push_data.notification_style;
+                } else if (Device.isIndoorCamera(normalized_message.type) || Device.isSoloCameras(normalized_message.type)) {
+                    const push_data = message.payload.payload as IndoorPushData;
+                    normalized_message.name = push_data.name ? push_data.name : "";
+                    normalized_message.channel = push_data.channel;
+                    normalized_message.cipher = push_data.cipher;
+                    normalized_message.event_session = push_data.session_id;
+                    normalized_message.event_type = push_data.event_type;
+                    //normalized_message.file_path = push_data.file_path !== undefined && push_data.file_path !== "" && push_data.channel !== undefined ? getAbsoluteFilePath(normalized_message.type, push_data.channel, push_data.file_path) : "";
+                    normalized_message.file_path = push_data.file_path;
+                    normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
+                    normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
+                    normalized_message.notification_style = push_data.notification_style;
+                    normalized_message.msg_type = push_data.msg_type;
+                    normalized_message.timeout = push_data.timeout;
+                    normalized_message.tfcard_status = push_data.tfcard_status;
+                    normalized_message.storage_type = push_data.storage_type !== undefined ? push_data.storage_type : 1;
+                    normalized_message.unique_id = push_data.unique_id;
+                } else if (Device.isSmartSafe(normalized_message.type)) {
+                    const push_data = message.payload.payload as SmartSafeData;
+                    normalized_message.event_type = push_data.event_type;
+                    normalized_message.event_value = push_data.event_value;
+                    /*
+                    event_value: {
+                        type: 3,    3/4
+                        action: 1,
+                        figure_id: 0,
+                        user_id: 0
+                    }
+                    */
+                    normalized_message.name = push_data.dev_name !== undefined ? push_data.dev_name : "";
+                    /*normalized_message.short_user_id = push_data.short_user_id !== undefined ? push_data.short_user_id : "";
+                    normalized_message.user_id = push_data.user_id !== undefined ? push_data.user_id : "";*/
+                } else if (Device.isLock(normalized_message.type)) {
+                    const push_data = message.payload.payload as LockPushData;
+                    normalized_message.event_type = push_data.event_type;
+                    normalized_message.short_user_id = push_data.short_user_id !== undefined ? push_data.short_user_id : "";
+                    normalized_message.user_id = push_data.user_id !== undefined ? push_data.user_id : "";
+                    normalized_message.name = push_data.device_name !== undefined ? push_data.device_name : "";
+                } else {
+                    const push_data = message.payload.payload as CusPushData;
+                    normalized_message.name = push_data.device_name && push_data.device_name !== null && push_data.device_name !== "" ? push_data.device_name : push_data.n ? push_data.n : "";
+                    normalized_message.channel = push_data.c;
+                    normalized_message.cipher = push_data.k;
+                    normalized_message.event_session = push_data.session_id;
+                    normalized_message.event_type = push_data.a;
+                    normalized_message.file_path = push_data.c !== undefined && push_data.p !== undefined && push_data.p !== "" ? getAbsoluteFilePath(normalized_message.type, push_data.c, push_data.p) : "";
+                    normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
+                    normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
+                    normalized_message.notification_style = push_data.notification_style;
+                    normalized_message.tfcard_status = push_data.tfcard;
+                    normalized_message.alarm_delay_type = push_data.alarm_type;
+                    normalized_message.alarm_delay = push_data.alarm_delay;
+                    normalized_message.alarm_type = push_data.type;
+                    normalized_message.sound_alarm = push_data.alarm !== undefined ? push_data.alarm === 1 ? true : false : undefined;
+                    normalized_message.user_name = push_data.user_name;
+                    normalized_message.user_type = push_data.user;
+                    normalized_message.user_id = push_data.user_id;
+                    normalized_message.short_user_id = push_data.short_user_id;
+                    normalized_message.station_guard_mode = push_data.arming;
+                    normalized_message.station_current_mode = push_data.mode;
+                    normalized_message.person_name = push_data.f;
+                    normalized_message.sensor_open = push_data.e !== undefined ? push_data.e === "1" ? true : false : undefined;
+                    normalized_message.device_online = push_data.m !== undefined ? push_data.m === 1 ? true : false : undefined;
+                    try {
+                        normalized_message.fetch_id = push_data.i !== undefined ? Number.parseInt(push_data.i) : undefined;
+                    } catch (error) {
+                        this.log.error(`Type ${DeviceType[normalized_message.type]} CusPushData - fetch_id - Error:`, error);
+                    }
+                    normalized_message.sense_id = push_data.j;
+                    normalized_message.battery_powered = push_data.batt_powered !== undefined ? push_data.batt_powered === 1 ? true : false : undefined;
+                    try {
+                        normalized_message.battery_low = push_data.bat_low !== undefined ? Number.parseInt(push_data.bat_low) : undefined;
+                    } catch (error) {
+                        this.log.error(`Type ${DeviceType[normalized_message.type]} CusPushData - battery_low - Error:`, error);
+                    }
+                    normalized_message.storage_type = push_data.storage_type !== undefined ? push_data.storage_type : 1;
+                    normalized_message.unique_id = push_data.unique_id;
+                    normalized_message.automation_id = push_data.automation_id;
+                    normalized_message.click_action = push_data.click_action;
+                    normalized_message.news_id = push_data.news_id;
                 }
-                normalized_message.sense_id = push_data.j;
-                normalized_message.battery_powered = push_data.batt_powered !== undefined ? push_data.batt_powered === 1 ? true : false : undefined;
-                try {
-                    normalized_message.battery_low = push_data.bat_low !== undefined ? Number.parseInt(push_data.bat_low) : undefined;
-                } catch (error) {
-                    this.log.error(`Type ${DeviceType[normalized_message.type]} CusPushData - battery_low - Error:`, error);
-                }
-                normalized_message.storage_type = push_data.storage_type !== undefined ? push_data.storage_type : 1;
-                normalized_message.unique_id = push_data.unique_id;
-                normalized_message.automation_id = push_data.automation_id;
-                normalized_message.click_action = push_data.click_action;
-                normalized_message.news_id = push_data.news_id;
             }
         } else if (message.payload.doorbell !== undefined) {
             const push_data = JSON.parse(message.payload.doorbell) as DoorbellPushData;
