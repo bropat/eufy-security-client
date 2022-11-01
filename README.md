@@ -113,6 +113,7 @@ Please use GitHub issues for this.
 * (bropat) Fixed issue #207
 * (bropat) Fixed issue #201
 * (bropat) Fixed issue #196
+* (martijnpoppen) FIX: set DevicePictureUrl for sound and crying (#234)
 * (bropat) Small bugfixes and optimizations
 * (bropat) Updated docs - Added partial supported device HomeBase 3 (T8030, S380)
 * (bropat) Updated docs - Added supported devices eufyCam 3 (T8160, S330), eufyCam 3C (T8161, S300)
