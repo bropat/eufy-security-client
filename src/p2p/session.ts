@@ -1687,7 +1687,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         //When the alarm is armed, CMD_GET_DELAY_ALARM is called with event data 0, so ignore it
                         const alarmEventNumber = message.data.slice(0, 4).readUInt32LE();
                         const alarmDelay = message.data.slice(4, 8).readUInt32LE();
-                        if (alarmEventNumber !== 0) {
+                        if (alarmEventNumber === 0) {
+                            this.emit("alarm armed");
+                        } else {
                             this.emit("alarm delay", alarmEventNumber as AlarmEvent, alarmDelay);
                         }
                     } catch (error) {
@@ -1698,9 +1700,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     try {
                         this.log.debug(`Station ${this.rawStation.station_sn} - CMD_SET_TONE_FILE :`, { payload: message.data.toString("hex") });
                         const alarmEventNumber = message.data.slice(0, 4).readUInt32LE();
-                        if (alarmEventNumber === 0 || alarmEventNumber === 1) {
-                            this.emit("alarm armed");
-                        } else {
+                        if (alarmEventNumber !== 0 && alarmEventNumber !== 1) {
                             this.emit("alarm event", alarmEventNumber as AlarmEvent);
                         }
                     } catch (error) {
