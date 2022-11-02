@@ -1415,7 +1415,9 @@ export class Camera extends Device {
 
     protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
         super.handlePropertyChange(metadata, oldValue, newValue);
-        if (metadata.name === PropertyName.DevicePersonDetected) {
+        if (metadata.name === PropertyName.DevicePersonDetected || 
+            metadata.name === PropertyName.DeviceIdentityPersonDetected ||
+             metadata.name === PropertyName.DeviceStrangerPersonDetected) {
             this.emit("person detected", this, newValue as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
         } else if (metadata.name === PropertyName.DeviceMotionDetected) {
             this.emit("motion detected", this, newValue as boolean);
