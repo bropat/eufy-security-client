@@ -10,6 +10,7 @@ import { PushNotificationServiceEvents } from "./interfaces";
 import { Device } from "../http/device";
 import { DeviceType } from "../http/types";
 import { getAbsoluteFilePath } from "../http/utils";
+import { isEmpty } from "../utils";
 
 export class PushNotificationService extends TypedEmitter<PushNotificationServiceEvents> {
 
@@ -331,6 +332,9 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 normalized_message.device_sn = message.payload.station_sn;
             else
                 normalized_message.device_sn = message.payload.device_sn;
+            if (isEmpty(normalized_message.device_sn) && !isEmpty(normalized_message.station_sn)) {
+                normalized_message.device_sn = normalized_message.station_sn;
+            }
             normalized_message.title = message.payload.title;
             normalized_message.content = message.payload.content;
             try {
