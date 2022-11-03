@@ -3256,7 +3256,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 command: commandData
             });
-        } else if (this.getDeviceType() === DeviceType.STATION && cipher_id !== undefined) {
+        } else if (cipher_id !== undefined) {
             const cipher = await this.api.getCipher(cipher_id, this.rawStation.member.admin_user_id);
             if (Object.keys(cipher).length > 0) {
                 this.log.debug(`Sending start download command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${path}`);
@@ -3280,6 +3280,16 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 });
             }
+        } else {
+            this.log.warn(`Cancelled download of video "${path}" from Station ${this.getSerial()}, because cipher_id is missing`);
+            this.emit("command result", this, {
+                channel: device.getChannel(),
+                command_type: CommandType.CMD_DOWNLOAD_VIDEO,
+                return_code: ErrorCode.ERROR_INVALID_PARAM,
+                customData: {
+                    command: commandData
+                }
+            });
         }
     }
 
@@ -3337,7 +3347,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 command: commandData
             });
-        } else if (device.isWiredDoorbell() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isIndoorCamera() || (device.getSerial().startsWith("T8420") && isGreaterEqualMinVersion('2.0.4.8', this.getSoftwareVersion()))) {
+        } else if (device.isWiredDoorbell() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isIndoorCamera() || (device.getSerial().startsWith("T8420") && isGreaterEqualMinVersion("2.0.4.8", this.getSoftwareVersion()))) {
             this.log.debug(`Using CMD_DOORBELL_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
