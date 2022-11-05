@@ -21,6 +21,7 @@
 | ![T8123 image](_media/solocaml20_small.jpg) | SoloCam L40 (T8123) | :heavy_check_mark: |  |
 | ![T8124 image](_media/solocams40_small.jpg) | SoloCam S40 (T8124) | :heavy_check_mark: |  |
 | ![T8420 image](_media/floodlight_small.jpg) | Floodlight Camera (T8420) | :heavy_check_mark: | Firmware: 1.0.0.35 Hardware: 2.2 (20211219) |
+| ![T8420X image](_media/floodlight_small.jpg) | Floodlight Camera (T8420X) | :heavy_check_mark: | Firmware: 2.0.6.1 (20220824) |
 | ![T8422 image](_media/floodlight_small.jpg) | Floodlight Cam (T8422) | :heavy_check_mark: |  |
 | ![T8423 image](_media/floodlight2pro_small.jpg) | Floodlight Cam 2 Pro (T8423) | :heavy_check_mark: | Firmware: 1.0.7.4 (20211219) |
 | ![T8424 image](_media/floodlight2_small.jpg) | Floodlight Cam 2 (T8424) | :heavy_check_mark: |  |

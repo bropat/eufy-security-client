@@ -119,6 +119,11 @@ export const validValue = function(metadata: PropertyMetadataAny, value: unknown
         if ((stringMetadata.format !== undefined && stringValue.match(stringMetadata.format) === null) || (stringMetadata.minLength !== undefined && stringMetadata.minLength > stringValue.length) || (stringMetadata.maxLength !== undefined && stringMetadata.maxLength < stringValue.length)) {
             throw new InvalidPropertyValueError(`Value "${stringValue}" isn't a valid value for property "${stringMetadata.name}"`);
         }
+    } else if (metadata.type === "boolean") {
+        const str = String(value).toLowerCase().trim();
+        if (str !== "true" && str !== "false") {
+            throw new InvalidPropertyValueError(`Value "${value}" isn't a valid value for property "${metadata.name}"`);
+        }
     }
 }
 

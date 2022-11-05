@@ -299,9 +299,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         /*if (dataresult.server_secret_info?.public_key)
                             this.serverPublicKey = dataresult.server_secret_info.public_key;*/
                         this.log.debug("Token data", { token: this.token, tokenExpiration: this.tokenExpiration });
-                        if (!this.connected)
+                        if (!this.connected) {
+                            this.connected = true;
                             this.emit("connect");
-                        this.connected = true;
+                        }
                         this.scheduleRenewAuthToken();
                     } else if (result.code == ResponseErrorCode.CODE_NEED_VERIFY_CODE) {
                         this.log.debug(`Send verification code...`);
@@ -330,8 +331,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             try {
                 const profile = await this.getPassportProfile();
                 if (profile !== null) {
-                    this.emit("connect");
                     this.connected = true;
+                    this.emit("connect");
                     this.scheduleRenewAuthToken();
                 }
             } catch (error) {
@@ -584,8 +585,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 if (error.response.statusCode === 401) {
                     this.invalidateToken();
                     this.log.error("Status return code 401, invalidate token", { status: error.response.statusCode, statusText: error.response.statusMessage });
-                    this.emit("close");
                     this.connected = false;
+                    this.emit("close");
                 }
             }
             throw error;

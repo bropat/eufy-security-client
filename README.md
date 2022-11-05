@@ -80,6 +80,15 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.2.1 (2022-11-05)
+
+* (bropat) Added support for Floodlight Cam (T8420X)
+* (Palmke) Implemented Homebase 3 familiar faces (#237)
+* (bropat) Fixed regression in Station.startDownload
+* (Palmke) Fixed issue #236
+* (bropat) Fixed issue #233
+* (bropat) Small bugfixes
+
 ### 2.2.0 (2022-11-01)
 
 * (bropat) **Breaking Change** Renamed all lock settings parameters according to standard
