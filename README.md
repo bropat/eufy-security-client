@@ -80,6 +80,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.2.2 (2022-11-06)
+
+* (bropat) Fixed issue identifying alarm delay
+
 ### 2.2.1 (2022-11-05)
 
 * (bropat) Added support for Floodlight Cam (T8420X)

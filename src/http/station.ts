@@ -622,8 +622,12 @@ export class Station extends TypedEmitter<StationEvents> {
 
         if (propertyName !== undefined && this.hasPropertyValue(propertyName) && this.getPropertyValue(propertyName) !== "") {
             const settings: StationSecuritySettings = (this.getPropertyValue(propertyName) as any) as StationSecuritySettings;
-            if (settings.count_down_arm.channel_list.length > 0 && settings.count_down_arm.delay_time > 0) {
-                return settings.count_down_arm.delay_time;
+            try {
+                if (settings.count_down_arm?.channel_list?.length > 0 && settings.count_down_arm?.delay_time > 0) {
+                    return settings.count_down_arm.delay_time;
+                }
+            } catch (error) {
+                this.log.debug(`Station ${this.getSerial()} - getArmDelay - Error`, { error: error, mode: mode, propertyName: propertyName, settings: settings });
             }
         }
         return 0;
