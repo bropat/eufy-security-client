@@ -538,6 +538,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         device.on("crying detected", (device: Device, state: boolean) => this.onDeviceCryingDetected(device, state));
                         device.on("sound detected", (device: Device, state: boolean) => this.onDeviceSoundDetected(device, state));
                         device.on("pet detected", (device: Device, state: boolean) => this.onDevicePetDetected(device, state));
+                        device.on("vehicle detected", (device: Device, state: boolean) => this.onDeviceVehicleDetected(device, state));
                         device.on("motion detected", (device: Device, state: boolean) => this.onDeviceMotionDetected(device, state));
                         device.on("person detected", (device: Device, state: boolean, person: string) => this.onDevicePersonDetected(device, state, person));
                         device.on("rings", (device: Device, state: boolean) => this.onDeviceRings(device, state));
@@ -1739,6 +1740,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onDevicePetDetected(device: Device, state: boolean): void {
         this.emit("device pet detected", device, state);
+    }
+
+    private onDeviceVehicleDetected(device: Device, state: boolean): void {
+        this.emit("device vehicle detected", device, state);
     }
 
     private onDeviceMotionDetected(device: Device, state: boolean): void {
