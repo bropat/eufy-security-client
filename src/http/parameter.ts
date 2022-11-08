@@ -1,16 +1,27 @@
 import { Logger } from "ts-log";
 
 import { CommandType } from "../p2p/types";
+import { decodeBase64 } from "../p2p/utils";
 import { ParamType } from "./types";
 
 export class ParameterHelper {
 
     public static readValue(type: number, value: string, log: Logger): string {
         if (value) {
-            if (type === ParamType.SNOOZE_MODE || type === ParamType.CAMERA_MOTION_ZONES || type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN_DELAY || type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN) {
+            if (type === ParamType.SNOOZE_MODE ||
+                type === ParamType.CAMERA_MOTION_ZONES ||
+                type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN_DELAY ||
+                type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN ||
+                type === CommandType.ARM_DELAY_HOME ||
+                type === CommandType.ARM_DELAY_AWAY ||
+                type === CommandType.ARM_DELAY_CUS1 ||
+                type === CommandType.ARM_DELAY_CUS2 ||
+                type === CommandType.ARM_DELAY_CUS3 ||
+                type === CommandType.ARM_DELAY_OFF) {
                 try {
-                    return JSON.parse(Buffer.from(value).toString("ascii"));
+                    return JSON.parse(decodeBase64(value).toString("utf8"));
                 } catch(error) {
+                    log.error(`Error readValue param ${type} `, error, type, value);
                 }
                 return "";
             } else if (type === CommandType.CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE ||
@@ -41,7 +52,10 @@ export class ParameterHelper {
     public static writeValue(type: number, value: string): string {
         if (value) {
             const result = JSON.stringify(value);
-            if (type === ParamType.SNOOZE_MODE || type === ParamType.CAMERA_MOTION_ZONES || type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN_DELAY || type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN) {
+            if (type === ParamType.SNOOZE_MODE ||
+                type === ParamType.CAMERA_MOTION_ZONES ||
+                type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN_DELAY ||
+                type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN) {
                 return Buffer.from(result).toString("base64");
             }
             return result;

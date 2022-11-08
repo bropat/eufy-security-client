@@ -1,3 +1,5 @@
+import { UserPasswordType, UserType } from "./types";
+
 export interface ApiResponse {
     status: number;
     statusText: string;
@@ -45,6 +47,7 @@ export interface CaptchaResponse {
 }
 
 export interface LoginRequest {
+    ab: string;
     client_secret_info: {
         public_key: string;
     },
@@ -546,4 +549,49 @@ export interface StationSecuritySettingsDelayDetails {
 export interface StationSecuritySettingsDeviceDetails {
     action: number;
     device_channel: number;
+}
+
+export interface SnoozeDetail {
+    snooze_time: number;
+    snooze_chime?: boolean;
+    snooze_motion?: boolean;
+    snooze_homebase?: boolean;
+}
+
+export interface RawSchedule {
+    endDay: string;             // "FFFFFFFF"
+    week: string;               // "FF"
+    startDay: string;           // "00000000"
+    startTime: string;          // "0000"
+    endTime: string;            // "FFFF"
+}
+
+export interface UserPassword {
+    expiration_time: number;            // 0
+    is_permanent: number;               // 0
+    password: string;                   // ""
+    password_id: string;                // "0000"
+    password_type: UserPasswordType;    // 2
+    name: string;                       // "Fingerprint 1"
+    schedule: RawSchedule;
+}
+
+export interface User {
+    avatar: string;
+    password_list: Array<UserPassword>;
+    user_id: string;
+    short_user_id: string;
+    user_name: string;
+    user_type: UserType;
+    is_show: boolean;
+}
+
+export interface UsersResponse {
+    device_sn: string;
+    user_list: Array<User>;
+}
+
+export interface AddUserResponse {
+    user_id: string;
+    short_user_id: string;
 }

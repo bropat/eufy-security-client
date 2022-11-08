@@ -1,3 +1,5 @@
+import { UserType } from "../http/types";
+
 export interface CusPushData {
     a?: number;                          // Event type, see enum PushEvent
     alarm?: number;                     // ?
@@ -38,7 +40,7 @@ export interface CusPushData {
     tfcard?: number;
     type?: number;
     unique_id?: string;
-    user?: number;                      // User Type (NORMAL=0, ADMIN=1, SUPER_ADMIN=2, ENTRY_ONLY=4)
+    user?: UserType;
     user_id?: string;
     user_name?: string;                 // Username
     bat_low?: string;
@@ -48,13 +50,28 @@ export interface EufyPushMessage {
     content: string;
     device_sn: string;
     event_time: string;
-    payload?: CusPushData | IndoorPushData | ServerPushData | BatteryDoorbellPushData | LockPushData;
+    payload?: CusPushData | IndoorPushData | ServerPushData | BatteryDoorbellPushData | LockPushData | SmartSafeData;
     push_time: string;
     station_sn: string;
     title: string;
     type: string;
     doorbell?: string;
     "google.c.sender.id": string;
+}
+
+export interface SmartSafeEventValueDetail {
+    type: number;
+    action: number;
+    figure_id: number;
+    user_id: number;
+    name?: string;
+}
+
+export interface SmartSafeData {
+    dev_name: string;
+    event_type: number;
+    event_time: number;
+    event_value: number | SmartSafeEventValueDetail;
 }
 
 export interface LockPushData {
@@ -256,4 +273,41 @@ export interface PushMessage {
     doorbell_video_url?: string;
     msg_type?: number;
     timeout?: number;
+    event_value?: number | SmartSafeEventValueDetail;
+    person_id?: number;
+}
+
+export interface PlatformPushMode {
+    a: number;
+    alarm: number;
+    arming: number;
+    channel: number;
+    cipher: number;
+    create_time: number;
+    device_sn: string;
+    event_type: number;
+    face_id: number;
+    file_path: string;
+    mode: number;
+    msg_type: number;
+    name: string;
+    nick_name: string;
+    notification_style: number;
+    parted_status: number;
+    pic_url: string;
+    push_count: number;
+    record_id: number;
+    s: string;
+    session_id: string;
+    storage_type: number;
+    t: number;
+    tfcard_status: number;
+    timeout: number;
+    unique_id: string;
+    user: number;
+    user_name: string;
+    pic_filepath: string;
+    trigger_time: number;
+    alarm_delay: number;
+    person_id: number;
 }

@@ -3,18 +3,18 @@ import { Readable } from "stream";
 import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
-import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode } from "./types";
-import { StationListResponse, StationSecuritySettings } from "./models"
+import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode, VideoTypeStoreToNAS, HB3DetectionTypes } from "./types";
+import { SnoozeDetail, StationListResponse, StationSecuritySettings } from "./models"
 import { ParameterHelper } from "./parameter";
-import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValues, StationEvents, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString } from "./interfaces";
-import { getBlocklist, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
+import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValues, StationEvents, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule } from "./interfaces";
+import { encodePasscode, getBlocklist, getHB3DetectionMode, hexDate, hexTime, hexWeek, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
 import { StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
-import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLInnerCommand, IndoorSoloSmartdropCommandType, P2PConnectionType, PanTiltDirection, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
-import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData } from "../p2p/models";
-import { Device, DoorbellCamera, Lock } from "./device";
-import { getAdvancedLockKey, encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, generateAdvancedLockAESKey, getLockVectorBytes, isPrivateIp, decodeBase64 } from "../p2p/utils";
-import { InvalidCommandValueError, InvalidPropertyValueError, NotSupportedError, RTSPPropertyNotEnabled, WrongStationError } from "../error";
+import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLBleCommand, ESLCommand, IndoorSoloSmartdropCommandType, LockV12P2PCommand, P2PConnectionType, PanTiltDirection, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
+import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData, CustomData, CommandData } from "../p2p/models";
+import { Device, DoorbellCamera, Lock, SmartSafe } from "./device";
+import { encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, getLockVectorBytes, isPrivateIp, getSmartSafeP2PCommand, getLockV12P2PCommand, getLockP2PCommand } from "../p2p/utils";
+import { InvalidCommandValueError, InvalidPropertyValueError, NotSupportedError, RTSPPropertyNotEnabledError, WrongStationError, StationConnectTimeoutError, PinNotVerifiedError } from "../error";
 import { PushMessage } from "../push/models";
 import { CusPushEvent } from "../push/types";
 import { InvalidPropertyError, LivestreamAlreadyRunningError, LivestreamNotRunningError, PropertyNotSupportedError } from "./error";
@@ -31,6 +31,7 @@ export class Station extends TypedEmitter<StationEvents> {
     private properties: PropertyValues = {};
     private rawProperties: RawValues = {};
     private ready = false;
+    private lockPublicKey: string;
 
     private currentDelay = 0;
     private reconnectTimeout?: NodeJS.Timeout;
@@ -41,12 +42,15 @@ export class Station extends TypedEmitter<StationEvents> {
     public static readonly CHANNEL: number = 255;
     public static readonly CHANNEL_INDOOR: number = 1000;
 
-    constructor(api: HTTPApi, station: StationListResponse) {
+    private pinVerified = false;
+
+    protected constructor(api: HTTPApi, station: StationListResponse, publicKey = "") {
         super();
         this.api = api;
         this.rawStation = station;
+        this.lockPublicKey = publicKey;
         this.log = api.getLog();
-        this.p2pSession = new P2PClientProtocol(this.rawStation, this.api);
+        this.p2pSession = new P2PClientProtocol(this.rawStation, this.api, publicKey);
         this.p2pSession.on("connect", (address: Address) => this.onConnect(address));
         this.p2pSession.on("close", () => this.onDisconnect());
         this.p2pSession.on("timeout", () => this.onTimeout());
@@ -62,7 +66,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("rtsp livestream started", (channel: number) => this.onStartRTSPLivestream(channel));
         this.p2pSession.on("rtsp livestream stopped", (channel: number) => this.onStopRTSPLivestream(channel));
         this.p2pSession.on("rtsp url", (channel: number, rtspUrl: string) => this.onRTSPUrl(channel, rtspUrl));
-        this.p2pSession.on("esl parameter", (channel: number, param: number, value: string) => this.onESLParameter(channel, param, value));
+        this.p2pSession.on("parameter", (channel: number, param: number, value: string) => this.onParameter(channel, param, value));
         this.p2pSession.on("runtime state", (channel: number, batteryLevel: number, temperature: number) => this.onRuntimeState(channel, batteryLevel, temperature));
         this.p2pSession.on("charging state", (channel: number, chargeType: ChargingType, batteryLevel: number) => this.onChargingState(channel, chargeType, batteryLevel));
         this.p2pSession.on("floodlight manual switch", (channel: number, enabled: boolean) => this.onFloodlightManualSwitch(channel, enabled));
@@ -72,11 +76,26 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("talkback started", (channel: number, talkbackStream: TalkbackStream) => this.onTalkbackStarted(channel, talkbackStream));
         this.p2pSession.on("talkback stopped", (channel: number) => this.onTalkbackStopped(channel));
         this.p2pSession.on("talkback error", (channel: number, error: Error) => this.onTalkbackError(channel, error));
+        this.p2pSession.on("secondary command", (result: CommandResult) => this.onSecondaryCommandResponse(result));
+        this.p2pSession.on("shake alarm", (channel: number, event: SmartSafeShakeAlarmEvent) => this.onDeviceShakeAlarm(channel, event));
+        this.p2pSession.on("911 alarm", (channel: number, event: SmartSafeAlarm911Event) => this.onDevice911Alarm(channel, event));
+        this.p2pSession.on("jammed", (channel: number) => this.onDeviceJammed(channel));
+        this.p2pSession.on("low battery", (channel: number) => this.onDeviceLowBattery(channel));
+        this.p2pSession.on("wrong try-protect alarm", (channel: number) => this.onDeviceWrongTryProtectAlarm(channel));
         this.update(this.rawStation);
         this.ready = true;
         setImmediate(() => {
             this.emit("ready", this);
         });
+    }
+
+    static async initialize(api: HTTPApi, stationData: StationListResponse): Promise<Station> {
+        let publicKey: string | undefined;
+        if (Device.isLock(stationData.device_type)) {
+            publicKey = await api.getPublicKey(stationData.station_sn, PublicKeyType.LOCK);
+        }
+        const station = new Station(api, stationData, publicKey);
+        return station;
     }
 
     public getStateID(state: string, level = 2): string {
@@ -294,6 +313,10 @@ export class Station extends TypedEmitter<StationEvents> {
         return this.properties[name];
     }
 
+    public hasPropertyValue(name: string): boolean {
+        return this.getPropertyValue(name) !== undefined;
+    }
+
     public getRawProperty(type: number): string {
         return this.rawProperties[type];
     }
@@ -336,17 +359,24 @@ export class Station extends TypedEmitter<StationEvents> {
         return this.getCommands().includes(name);
     }
 
-    public isStation(): boolean {
-        return this.rawStation.device_type == DeviceType.STATION;
+    public static getChannel(type: number): number {
+        return Station.isStation(type) === true ? (Device.isIndoorCamera(type) ? Station.CHANNEL_INDOOR : Station.CHANNEL) : 0;
     }
 
-    public isDeviceStation(): boolean {
-        return this.rawStation.device_type != DeviceType.STATION;
+    public static isStation(type: number): boolean {
+        return type === DeviceType.STATION || type === DeviceType.HB3;
+    }
+
+    public isStation(): boolean {
+        return Station.isStation(this.rawStation.device_type);
     }
 
     public isIntegratedDevice(): boolean {
-        if (Device.isLock(this.getDeviceType()) || Device.isSmartDrop(this.getDeviceType())) {
-            return this.rawStation.devices[0]?.device_sn === this.rawStation.station_sn;
+        if (Device.isLock(this.getDeviceType()) || Device.isSmartDrop(this.getDeviceType()) || Device.isSmartSafe(this.getDeviceType())) {
+            if (this.rawStation.devices?.length === 1)
+                return this.rawStation.devices[0]?.device_sn === this.rawStation.station_sn;
+            else
+                return true;
         }
         return Device.isWiredDoorbellDual(this.getDeviceType()) || Device.isFloodLight(this.getDeviceType()) || Device.isWiredDoorbell(this.getDeviceType()) || Device.isIndoorCamera(this.getDeviceType()) || Device.isSoloCameras(this.getDeviceType());
     }
@@ -478,7 +508,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.emit("rtsp url", this, channel, rtspUrl);
     }
 
-    private onESLParameter(channel: number, param: number, value: string): void {
+    private onParameter(channel: number, param: number, value: string): void {
         const params: RawValues = {};
         params[param] = ParameterHelper.readValue(param, value, this.log);
         this.emit("raw device property changed", this._getDeviceSerial(channel), params);
@@ -508,7 +538,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, mode);
 
         this.log.debug(`Sending guard mode command to station ${this.getSerial()} with value: ${GuardMode[mode]}`);
-        if ((isGreaterEqualMinVersion("2.0.7.9", this.getSoftwareVersion()) && !Device.isIntegratedDeviceBySn(this.getSerial())) || Device.isSoloCameraBySn(this.getSerial())) {
+        if (((isGreaterEqualMinVersion("2.0.7.9", this.getSoftwareVersion()) && !Device.isIntegratedDeviceBySn(this.getSerial())) || Device.isSoloCameraBySn(this.getSerial())) || this.rawStation.device_type === DeviceType.HB3) {
             this.log.debug(`Using CMD_SET_PAYLOAD for station ${this.getSerial()}`, { main_sw_version: this.getSoftwareVersion() });
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -523,9 +553,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 }),
                 channel: Station.CHANNEL
             }, {
-                name: property.name,
-                value: mode
-            } as PropertyData);
+                property: propertyData
+            });
         } else {
             this.log.debug(`Using CMD_SET_ARMING for station ${this.getSerial()}`);
             await this.p2pSession.sendCommandWithInt({
@@ -534,8 +563,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 strValue: this.rawStation.member.admin_user_id,
                 channel: Station.CHANNEL
             }, {
-                name: property.name,
-                value: mode
+                property: propertyData
             });
         }
     }
@@ -592,11 +620,14 @@ export class Station extends TypedEmitter<StationEvents> {
                 break;
         }
 
-        if (propertyName !== undefined && this.hasProperty(propertyName)) {
-            const securitySettingsData: string = this.getPropertyValue(propertyName).toString();
-            const settings: StationSecuritySettings = JSON.parse(decodeBase64(securitySettingsData).toString("utf8"));
-            if (settings.count_down_arm.channel_list.length > 0 && settings.count_down_arm.delay_time > 0) {
-                return settings.count_down_arm.delay_time;
+        if (propertyName !== undefined && this.hasPropertyValue(propertyName) && this.getPropertyValue(propertyName) !== "") {
+            const settings: StationSecuritySettings = (this.getPropertyValue(propertyName) as any) as StationSecuritySettings;
+            try {
+                if (settings.count_down_arm?.channel_list?.length > 0 && settings.count_down_arm?.delay_time > 0) {
+                    return settings.count_down_arm.delay_time;
+                }
+            } catch (error) {
+                this.log.debug(`Station ${this.getSerial()} - getArmDelay - Error`, { error: error, mode: mode, propertyName: propertyName, settings: settings });
             }
         }
         return 0;
@@ -618,7 +649,7 @@ export class Station extends TypedEmitter<StationEvents> {
             if (param.dev_type === Station.CHANNEL || param.dev_type === Station.CHANNEL_INDOOR || this.isIntegratedDevice()) {
                 this.updateRawProperty(param.param_type, param.param_value);
                 if (param.param_type === CommandType.CMD_GET_ALARM_MODE) {
-                    if (this.getDeviceType() !== DeviceType.STATION)
+                    if (this.getDeviceType() !== DeviceType.STATION && this.getDeviceType() !== DeviceType.HB3)
                         // Trigger refresh Guard Mode
                         this.api.refreshStationData();
                 }
@@ -646,8 +677,22 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     private onCommandResponse(result: CommandResult): void {
-        this.log.debug("Got p2p command response", { station: this.getSerial(), commandType: result.command_type, channel: result.channel, returnCodeName: ErrorCode[result.return_code], returnCode: result.return_code, property: result.property });
+        this.log.debug("Got p2p command response", { station: this.getSerial(), commandType: result.command_type, channel: result.channel, returnCodeName: ErrorCode[result.return_code], returnCode: result.return_code, customData: result.customData });
         this.emit("command result", this, result);
+    }
+
+    private onSecondaryCommandResponse(result: CommandResult): void {
+        this.log.debug("Got p2p secondary command response", { station: this.getSerial(), commandType: result.command_type, channel: result.channel, returnCode: result.return_code, customData: result.customData });
+        this.emit("secondary command result", this, result);
+        if (result.command_type === CommandType.CMD_SMARTSAFE_SETTINGS && result.customData?.command?.name === "deviceVerifyPIN") {
+            if (result.return_code === 0) {
+                // Verify PIN was successfull for this session
+                this.pinVerified = true;
+            } else {
+                this.pinVerified = false;
+            }
+            this.emit("device pin verified", this.getSerial(), this.pinVerified);
+        }
     }
 
     private onConnect(address: Address): void {
@@ -660,12 +705,14 @@ export class Station extends TypedEmitter<StationEvents> {
     private onDisconnect(): void {
         this.log.info(`Disconnected from station ${this.getSerial()}`);
         this.emit("close", this);
+        this.pinVerified = false;
         if (!this.isEnergySavingDevice() && !this.terminating)
             this.scheduleReconnect();
     }
 
     private onTimeout(): void {
         this.log.info(`Timeout connecting to station ${this.getSerial()}`);
+        this.emit("connection error", this, new StationConnectTimeoutError());
         this.scheduleReconnect();
     }
 
@@ -697,6 +744,9 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public async rebootHUB(): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.StationReboot
+        };
         if (!this.hasCommand(CommandName.StationReboot)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
@@ -706,6 +756,8 @@ export class Station extends TypedEmitter<StationEvents> {
             value: 0,
             strValue: this.rawStation.member.admin_user_id,
             channel: Station.CHANNEL
+        }, {
+            command: commandData
         });
     }
 
@@ -720,30 +772,39 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending status led command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if (device.isCamera2Product() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E) {
+        if (device.isCamera2Product() || device.isCamera3Product() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_DEV_LED_SWITCH,
                 value: value === true ? 1 : 0,
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_LIVEVIEW_LED_SWITCH,
                 value: value === true ? 1 : 0,
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
-        } else if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 || device.getDeviceType() === DeviceType.FLOODLIGHT) {
+            }, {
+                property: propertyData
+            });
+        } else if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 || (device.getDeviceType() === DeviceType.FLOODLIGHT && !device.isFloodLightT8420X())) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_DEV_LED_SWITCH,
                 value: value === true ? 1 : 0,
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isIndoorCamera() || device.isFloodLight()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -773,7 +834,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     },
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isSoloCameras()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -804,7 +867,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isBatteryDoorbell() || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -817,7 +882,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -828,7 +895,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -843,13 +914,18 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending autonightvision command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         await this.p2pSession.sendCommandWithIntString({
             commandType: CommandType.CMD_IRCUT_SWITCH,
             value: value === true ? 1 : 0,
             valueSub: device.getChannel(),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setNightVision(device: Device, value: number): Promise<void> {
@@ -863,6 +939,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending nightvision command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         await this.p2pSession.sendCommandWithStringPayload({
             commandType: CommandType.CMD_SET_PAYLOAD,
@@ -876,7 +955,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setMotionDetection(device: Device, value: boolean): Promise<void> {
@@ -890,8 +971,11 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending motion detection command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if (device.isIndoorCamera() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT)) {
+        if (device.isIndoorCamera() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isFloodLightT8420X()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -907,7 +991,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isSoloCameras()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -925,7 +1011,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -936,7 +1024,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_PIR_SWITCH,
@@ -944,7 +1034,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         }
     }
 
@@ -959,6 +1051,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending sound detection command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         await this.p2pSession.sendCommandWithStringPayload({
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -975,7 +1070,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setSoundDetectionType(device: Device, value: number): Promise<void> {
@@ -1008,7 +1105,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setSoundDetectionSensitivity(device: Device, value: number): Promise<void> {
@@ -1041,7 +1140,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setPetDetection(device: Device, value: boolean): Promise<void> {
@@ -1055,6 +1156,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending pet detection command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         await this.p2pSession.sendCommandWithStringPayload({
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1071,10 +1175,16 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async panAndTilt(device: Device, direction: PanTiltDirection, command = 1): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DevicePanAndTilt,
+            value: direction
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -1099,6 +1209,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -1111,6 +1223,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         }
     }
@@ -1126,17 +1240,24 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending switch light command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isFloodLight() || device.isSoloCameraSpotlight1080() || device.isSoloCameraSpotlight2k() ||
             device.isSoloCameraSpotlightSolar() || device.isCamera2C() || device.isCamera2CPro() ||
-            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k()) {
+            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k() || device.isCamera3() || device.isCamera3C()) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
                 value: value === true ? 1 : 0,
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1155,7 +1276,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Sending motion detection sensitivity command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if ((device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isIndoorCamera() ) {
+        if ((device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isIndoorCamera() || device.isFloodLightT8420X()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -1171,7 +1292,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isSoloCameras()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1182,7 +1305,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if ((device.isBatteryDoorbell() && !device.isBatteryDoorbellDual()) || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -1195,7 +1320,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isCamera2Product()) {
             let convertedValue;
             switch(value) {
@@ -1230,7 +1357,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E) {
             const convertedValue = 200 - ((value - 1) * 2);
             await this.p2pSession.sendCommandWithIntString({
@@ -1239,7 +1368,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             let intMode: number;
             let intSensitivity: number;
@@ -1279,7 +1410,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.getDeviceType() === DeviceType.FLOODLIGHT) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_MDSENSITIVITY,
@@ -1287,7 +1420,21 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else if (device.isCamera3Product()) {
+            await this.p2pSession.sendCommandWithIntString({
+                commandType: CommandType.CMD_SET_PIRSENSITIVITY,
+                value: value,
+                valueSub: device.getChannel(),
+                strValue: this.rawStation.member.admin_user_id,
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1314,7 +1461,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 value: value,
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isFloodLight() || device.isIndoorCamera()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1331,7 +1480,48 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setMotionDetectionTypeHB3(device: Device, type: HB3DetectionTypes, value: boolean): Promise<void> {
+        const propertyData: PropertyData = {
+            name: type === HB3DetectionTypes.HUMAN_RECOGNITION ? PropertyName.DeviceMotionDetectionTypeHumanRecognition : type === HB3DetectionTypes.HUMAN_DETECTION ? PropertyName.DeviceMotionDetectionTypeHuman : type === HB3DetectionTypes.PET_DETECTION ? PropertyName.DeviceMotionDetectionTypePet : type === HB3DetectionTypes.VEHICLE_DETECTION ? PropertyName.DeviceMotionDetectionTypeVehicle : PropertyName.DeviceMotionDetectionTypeAllOtherMotions,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
+        this.log.debug(`Sending motion detection type homebase 3 command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
+        try {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
+                    "mChannel": 0, //device.getChannel(),
+                    "mValue3": 0,
+                    "payload": {
+                        "ai_detect_type": getHB3DetectionMode(Number.parseInt(device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)), type, value),
+                        "channel": device.getChannel(),
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } catch (error) {
+            this.log.error(`setMotionDetectionTypeHB3 - station ${this.getSerial()} device ${device.getSerial()}`, error);
         }
     }
 
@@ -1346,8 +1536,10 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
-        this.log.debug(`Sending motion zone command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
+        this.log.debug(`Sending motion zone command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         await this.p2pSession.sendCommandWithStringPayload({
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
@@ -1355,6 +1547,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 "data": JSON.parse(value)
             }),
             channel: device.getChannel()
+        }, {
+            property: propertyData
         });
     }
 
@@ -1369,6 +1563,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending motion tracking command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         await this.p2pSession.sendCommandWithStringPayload({
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1386,7 +1583,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setPanAndTiltRotationSpeed(device: Device, value: number): Promise<void> {
@@ -1420,7 +1619,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setMicMute(device: Device, value: boolean): Promise<void> {
@@ -1434,6 +1635,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending mic mute command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         await this.p2pSession.sendCommandWithIntString({
             commandType: CommandType.CMD_SET_DEV_MIC_MUTE,
@@ -1441,7 +1645,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setAudioRecording(device: Device, value: boolean): Promise<void> {
@@ -1455,6 +1661,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending audio recording command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -1476,8 +1685,10 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
-        } else if (device.getDeviceType() === DeviceType.FLOODLIGHT) {
+            }, {
+                property: propertyData
+            });
+        } else if (device.getDeviceType() === DeviceType.FLOODLIGHT && !device.isFloodLightT8420X()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -1488,7 +1699,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isFloodLight() || device.isIndoorCamera() || device.isSoloCameras()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1506,8 +1719,10 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
-        } else if (device.isCamera2Product() || device.isBatteryDoorbell() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E || device.isWiredDoorbellDual()) {
+            }, {
+                property: propertyData
+            });
+        } else if (device.isCamera2Product() || device.isCamera3Product() || device.isBatteryDoorbell() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -1520,7 +1735,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1531,7 +1748,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1546,6 +1767,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending enable speaker command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         await this.p2pSession.sendCommandWithIntString({
             commandType: CommandType.CMD_SET_DEV_SPEAKER_MUTE,
@@ -1553,7 +1777,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setSpeakerVolume(device: Device, value: number): Promise<void> {
@@ -1577,7 +1803,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setRingtoneVolume(device: Device, value: number): Promise<void> {
@@ -1602,7 +1830,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1613,7 +1843,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1628,6 +1862,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending enable indoor chime command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isBatteryDoorbell()) {
             await this.p2pSession.sendCommandWithIntString({
@@ -1636,7 +1873,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1647,7 +1886,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1662,6 +1905,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending enable homebase chime command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isBatteryDoorbell()) {
             await this.p2pSession.sendCommandWithIntString({
@@ -1670,7 +1916,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1701,7 +1951,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1732,7 +1986,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1768,7 +2026,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isBatteryDoorbell() || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -1783,8 +2043,10 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
-        } else if (device.isCamera2Product() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E) {
+            }, {
+                property: propertyData
+            });
+        } else if (device.isCamera2Product() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E || device.isCamera3Product()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -1796,7 +2058,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1807,7 +2071,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1822,6 +2090,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending notification person command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isIndoorCamera()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -1840,7 +2111,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1855,6 +2130,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending notification pet command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isIndoorCamera()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -1873,7 +2151,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1888,6 +2170,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending notification all other motion command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isIndoorCamera()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -1906,7 +2191,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1921,6 +2210,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending notification all sound command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isIndoorCamera()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -1939,7 +2231,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1954,6 +2250,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending notification crying command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isIndoorCamera()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -1972,7 +2271,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -1987,6 +2290,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending notification ring command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isBatteryDoorbell() || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -2002,7 +2308,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -2013,7 +2321,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2028,6 +2340,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending notification motion command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isBatteryDoorbell() || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -2043,7 +2358,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -2054,7 +2371,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2084,7 +2405,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setPowerWorkingMode(device: Device, value: number): Promise<void> {
@@ -2108,7 +2431,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setRecordingClipLength(device: Device, value: number): Promise<void> {
@@ -2131,7 +2456,9 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value,
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setRecordingRetriggerInterval(device: Device, value: number): Promise<void> {
@@ -2154,7 +2481,9 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value,
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setRecordingEndClipMotionStops(device: Device, value: boolean): Promise<void> {
@@ -2168,13 +2497,18 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending recording end clip motion stops command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         await this.p2pSession.sendCommandWithInt({
             commandType: CommandType.CMD_DEV_RECORD_AUTOSTOP,
             value: value === true ? 0 : 1,
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setVideoStreamingQuality(device: Device, value: number): Promise<void> {
@@ -2202,15 +2536,21 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
-        } else if (device.isBatteryDoorbell() || device.isCamera2CPro() || device.isWiredDoorbellDual()) {
+            }, {
+                property: propertyData
+            });
+        } else if (device.isBatteryDoorbell() || device.isCamera2CPro() || device.isWiredDoorbellDual() || device.isCamera3() || device.isCamera3C()) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY,
                 value: value,
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2239,8 +2579,10 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
-        } else if (device.isCamera2CPro()) {
+            }, {
+                property: propertyData
+            });
+        } else if (device.isCamera2CPro() || device.isCamera3() || device.isCamera3C()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -2252,7 +2594,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2267,6 +2613,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending wdr command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         await this.p2pSession.sendCommandWithIntString({
             commandType: CommandType.CMD_BAT_DOORBELL_WDR_SWITCH,
@@ -2274,7 +2623,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setFloodlightLightSettingsEnable(device: Device, value: boolean): Promise<void> {
@@ -2288,16 +2639,19 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending floodlight light settings enable command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if (device.isFloodLight()) {
-            await this.p2pSession.sendCommandWithIntString({
-                commandType: CommandType.CMD_SET_FLOODLIGHT_TOTAL_SWITCH,
-                value: value === true ? 1 : 0,
-                valueSub: device.getChannel(),
-                strValue: this.rawStation.member.admin_user_id,
-                channel: device.getChannel()
-            }, propertyData);
-        }
+        await this.p2pSession.sendCommandWithIntString({
+            commandType: CommandType.CMD_SET_FLOODLIGHT_TOTAL_SWITCH,
+            value: value === true ? 1 : 0,
+            valueSub: device.getChannel(),
+            strValue: this.rawStation.member.admin_user_id,
+            channel: device.getChannel()
+        }, {
+            property: propertyData
+        });
     }
 
     public async setFloodlightLightSettingsBrightnessManual(device: Device, value: number): Promise<void> {
@@ -2317,14 +2671,18 @@ export class Station extends TypedEmitter<StationEvents> {
         this.log.debug(`Sending floodlight light settings brightness manual command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isFloodLight() || device.isSoloCameraSpotlight1080() || device.isSoloCameraSpotlight2k() ||
             device.isSoloCameraSpotlightSolar() || device.isCamera2C() || device.isCamera2CPro() ||
-            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k()) {
+            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k() || device.isCamera3() || device.isCamera3C()) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_FLOODLIGHT_BRIGHT_VALUE,
                 value: value,
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2350,7 +2708,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2376,7 +2738,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2391,6 +2757,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending floodlight light settings motion triggered command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isFloodLight()) {
             await this.p2pSession.sendCommandWithIntString({
@@ -2399,7 +2768,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2441,7 +2814,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2467,11 +2844,19 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
     public async triggerStationAlarmSound(seconds: number): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.StationTriggerAlarmSound,
+            value: seconds
+        };
         if (!this.hasCommand(CommandName.StationTriggerAlarmSound)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
@@ -2483,6 +2868,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: seconds,
                 strValue: this.rawStation.member.admin_user_id,
                 channel: Station.CHANNEL
+            }, {
+                command: commandData
             });
         } else {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -2497,6 +2884,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
+            }, {
+                command: commandData
             });
         }
     }
@@ -2506,6 +2895,10 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public async triggerDeviceAlarmSound(device: Device, seconds: number): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceTriggerAlarmSound,
+            value: seconds
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -2519,6 +2912,8 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
+        }, {
+            command: commandData
         });
     }
 
@@ -2543,7 +2938,9 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value,
             strValue: this.rawStation.member.admin_user_id,
             channel: Station.CHANNEL
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setStationAlarmTone(value: AlarmTone): Promise<void> {
@@ -2569,7 +2966,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: Station.CHANNEL
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setStationPromptVolume(value: number): Promise<void> {
@@ -2595,7 +2994,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: Station.CHANNEL
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setStationNotificationSwitchMode(mode: NotificationSwitchMode, value: boolean): Promise<void> {
@@ -2609,6 +3010,9 @@ export class Station extends TypedEmitter<StationEvents> {
             name: mode === NotificationSwitchMode.APP ? PropertyName.StationNotificationSwitchModeApp : mode === NotificationSwitchMode.GEOFENCE ? PropertyName.StationNotificationSwitchModeGeofence : mode === NotificationSwitchMode.KEYPAD ? PropertyName.StationNotificationSwitchModeKeypad : mode === NotificationSwitchMode.SCHEDULE ? PropertyName.StationNotificationSwitchModeSchedule : "" as PropertyName,
             value: value
         };
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending station notification switch mode command to station ${this.getSerial()} with value: ${value}`);
         if (isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
             let oldvalue = 0;
@@ -2633,7 +3037,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -2648,7 +3054,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         }
     }
 
@@ -2668,6 +3076,9 @@ export class Station extends TypedEmitter<StationEvents> {
             } catch(error) {
             }
         }
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending station notification start alarm delay command to station ${this.getSerial()} with value: ${value}`);
         if (isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -2683,7 +3094,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -2698,7 +3111,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         }
     }
 
@@ -2719,7 +3134,9 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value,
             strValue: this.rawStation.member.admin_user_id,
             channel: Station.CHANNEL
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setRTSPStream(device: Device, value: boolean): Promise<void> {
@@ -2733,6 +3150,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending rtsp stream command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         await this.p2pSession.sendCommandWithIntString({
             commandType: CommandType.CMD_NAS_SWITCH,
@@ -2740,7 +3160,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setAntiTheftDetection(device: Device, value: boolean): Promise<void> {
@@ -2754,6 +3176,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending antitheft detection command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         await this.p2pSession.sendCommandWithIntString({
             commandType: CommandType.CMD_EAS_SWITCH,
@@ -2761,7 +3186,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setWatermark(device: Device, value: WatermarkSetting1 | WatermarkSetting2 | WatermarkSetting3 | WatermarkSetting4): Promise<void> {
@@ -2778,7 +3205,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const property = device.getPropertyMetadata(propertyData.name);
         validValue(property, value);
 
-        if (device.isCamera2Product()) {
+        if (device.isCamera2Product() || device.isCamera3Product()) {
             if (!Object.values(WatermarkSetting3).includes(value as WatermarkSetting3)) {
                 this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting3);
                 return;
@@ -2790,7 +3217,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isSoloCameras() || device.isWiredDoorbell() || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             if (!Object.values(WatermarkSetting1).includes(value as WatermarkSetting1)) {
                 this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting1);
@@ -2803,7 +3232,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: 0,
                 strValue: this.rawStation.member.admin_user_id,
                 channel: 0
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isIndoorCamera() || device.isFloodLight()) {
             if (!Object.values(WatermarkSetting4).includes(value as WatermarkSetting4)) {
                 this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting4);
@@ -2816,7 +3247,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isBatteryDoorbell() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E || device.isWiredDoorbellDual()) {
             if (!Object.values(WatermarkSetting2).includes(value as WatermarkSetting2)) {
                 this.log.error(`The device ${device.getSerial()} accepts only this type of values: `, WatermarkSetting2);
@@ -2829,7 +3262,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -2844,8 +3281,11 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         let param_value = value === true ? 0 : 1;
-        if ((device.isIndoorCamera() && !device.isIndoorCamMini()) || device.isWiredDoorbell() || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8422 || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424)
+        if ((device.isIndoorCamera() && !device.isIndoorCamMini()) || device.isWiredDoorbell() || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8422 || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424 || device.isFloodLightT8420X())
             param_value = value === true ? 1 : 0;
 
         this.log.debug(`Sending enable device command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
@@ -2859,7 +3299,9 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_DEVS_SWITCH,
@@ -2867,33 +3309,87 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         }
     }
 
-    public async startDownload(device: Device, path: string, cipher_id: number): Promise<void> {
+    public async startDownload(device: Device, path: string, cipher_id?: number): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceStartDownload,
+            value: {
+                path: path,
+                cipher_id: cipher_id
+            }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
         if (!device.hasCommand(CommandName.DeviceStartDownload)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
-        const cipher = await this.api.getCipher(cipher_id, this.rawStation.member.admin_user_id);
-        if (Object.keys(cipher).length > 0) {
+        if (this.getDeviceType() === DeviceType.HB3) {
+            //TODO: Implement HB3 Support! Actually doesn't work and returns return_code -104 (ERROR_INVALID_ACCOUNT). It could be that we need the new encrypted p2p protocol to make this work...
+            const rsa_key = this.p2pSession.getDownloadRSAPrivateKey();
             this.log.debug(`Sending start download command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${path}`);
-            this.p2pSession.setDownloadRSAPrivateKeyPem(cipher.private_key);
-            await this.p2pSession.sendCommandWithString({
+            await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOWNLOAD_VIDEO,
-                strValue: path,
-                strValueSub: this.rawStation.member.admin_user_id,
+                value: JSON.stringify({
+                    account_id: this.rawStation.member.admin_user_id,
+                    cmd: CommandType.CMD_DOWNLOAD_VIDEO,
+                    mChannel: device.getChannel(),
+                    mValue3: CommandType.CMD_DOWNLOAD_VIDEO,
+                    payload: {
+                        filepath: path,
+                        key: rsa_key?.exportKey("components-public").n.slice(1).toString("hex").toUpperCase(),
+                    }
+                }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
+        } else if (cipher_id !== undefined) {
+            const cipher = await this.api.getCipher(cipher_id, this.rawStation.member.admin_user_id);
+            if (Object.keys(cipher).length > 0) {
+                this.log.debug(`Sending start download command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${path}`);
+                this.p2pSession.setDownloadRSAPrivateKeyPem(cipher.private_key);
+                await this.p2pSession.sendCommandWithString({
+                    commandType: CommandType.CMD_DOWNLOAD_VIDEO,
+                    strValue: path,
+                    strValueSub: this.rawStation.member.admin_user_id,
+                    channel: device.getChannel()
+                }, {
+                    command: commandData
+                });
+            } else {
+                this.log.warn(`Cancelled download of video "${path}" from Station ${this.getSerial()}, because RSA certificate couldn't be loaded`);
+                this.emit("command result", this, {
+                    channel: device.getChannel(),
+                    command_type: CommandType.CMD_DOWNLOAD_VIDEO,
+                    return_code: ErrorCode.ERROR_INVALID_PARAM,
+                    customData: {
+                        command: commandData
+                    }
+                });
+            }
         } else {
-            this.log.warn(`Cancelled download of video "${path}" from Station ${this.getSerial()}, because RSA certificate couldn't be loaded`);
+            this.log.warn(`Cancelled download of video "${path}" from Station ${this.getSerial()}, because cipher_id is missing`);
+            this.emit("command result", this, {
+                channel: device.getChannel(),
+                command_type: CommandType.CMD_DOWNLOAD_VIDEO,
+                return_code: ErrorCode.ERROR_INVALID_PARAM,
+                customData: {
+                    command: commandData
+                }
+            });
         }
     }
 
     public async cancelDownload(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceCancelDownload
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -2906,10 +3402,16 @@ export class Station extends TypedEmitter<StationEvents> {
             value: device.getChannel(),
             strValueSub: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
+        }, {
+            command: commandData
         });
     }
 
     public async startLivestream(device: Device, videoCodec: VideoCodec = VideoCodec.H264): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceStartLivestream,
+            value: videoCodec
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -2935,8 +3437,10 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
-        } else if (device.isWiredDoorbell() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isIndoorCamera() || device.getSerial().startsWith("T8420")) {
+        } else if (device.isWiredDoorbell() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isIndoorCamera() || (device.getSerial().startsWith("T8420") && isGreaterEqualMinVersion("2.0.4.8", this.getSoftwareVersion()))) {
             this.log.debug(`Using CMD_DOORBELL_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -2949,6 +3453,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else {
             if ((Device.isIntegratedDeviceBySn(this.getSerial()) || !isGreaterEqualMinVersion("2.0.9.7", this.getSoftwareVersion())) && (!this.getSerial().startsWith("T8420") || !isGreaterEqualMinVersion("1.0.0.25", this.getSoftwareVersion()))) {
@@ -2958,6 +3464,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     value: device.getChannel(),
                     strValue: rsa_key?.exportKey("components-public").n.slice(1).toString("hex"),
                     channel: device.getChannel()
+                }, {
+                    command: commandData
                 });
             } else {
                 this.log.debug(`Using CMD_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
@@ -2974,12 +3482,17 @@ export class Station extends TypedEmitter<StationEvents> {
                         }
                     }),
                     channel: device.getChannel()
+                }, {
+                    command: commandData
                 });
             }
         }
     }
 
     public async stopLivestream(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceStopLivestream
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -2994,6 +3507,8 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_STOP_REALTIME_MEDIA,
             value: device.getChannel(),
             channel: device.getChannel()
+        }, {
+            command: commandData
         });
     }
 
@@ -3010,6 +3525,10 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public async quickResponse(device: Device, voice_id: number): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceQuickResponse,
+            value: voice_id
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -3025,6 +3544,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else if (device.isWiredDoorbell()) {
             this.log.debug(`Using CMD_DOORBELL_SET_PAYLOAD for station ${this.getSerial()}`);
@@ -3037,7 +3558,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3069,7 +3594,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3095,7 +3624,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3110,6 +3643,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending hdr command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -3121,7 +3657,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3136,6 +3676,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending distortion correction command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -3147,7 +3690,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3176,7 +3723,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3191,6 +3742,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending lock device command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isLockBleNoFinger() || device.isLockBle()) {
             const key = generateBasicLockAESKey(this.rawStation.member.admin_user_id, this.getSerial());
@@ -3198,7 +3752,7 @@ export class Station extends TypedEmitter<StationEvents> {
             const lockCmd = Lock.encodeESLCmdOnOff(Number.parseInt(this.rawStation.member.short_user_id), this.rawStation.member.nick_name, value);
             const payload: ESLStationP2PThroughData = {
                 channel: device.getChannel(),
-                lock_cmd: ESLInnerCommand.ON_OFF_LOCK,
+                lock_cmd: ESLBleCommand.ON_OFF_LOCK,
                 lock_payload: lockCmd.toString("base64"),
                 seq_num: this.p2pSession.incLockSequenceNumber()
             };
@@ -3217,38 +3771,48 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
         } else if (device.isLockWifi() || device.isLockWifiNoFinger()) {
-            const publicKey = await this.api.getPublicKey(device.getSerial(), PublicKeyType.LOCK);
-
-            const key = generateAdvancedLockAESKey();
-            const ecdhKey = getAdvancedLockKey(key, publicKey);
-            const iv = getLockVectorBytes(this.getSerial());
-            const payload: LockAdvancedOnOffRequestPayload = {
+            const nestedPayload: LockAdvancedOnOffRequestPayload = {
                 shortUserId: this.rawStation.member.short_user_id,
                 slOperation: value === true ? 1 : 0,
                 userId: this.rawStation.member.admin_user_id,
                 userName: this.rawStation.member.nick_name,
                 seq_num: this.p2pSession.incLockSequenceNumber()
             };
-            const encPayload = encryptLockAESData(key, iv, Buffer.from(JSON.stringify(payload)));
+            const command = getLockP2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                CommandType.P2P_ON_OFF_LOCK,
+                device.getChannel(),
+                this.lockPublicKey,
+                nestedPayload
+            );
+            this.p2pSession.setLockAESKey(CommandType.P2P_ON_OFF_LOCK, command.aesKey);
+            this.log.debug("Locking/unlocking device...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command, nestedPayload: nestedPayload });
 
-            const p2pCommandData = JSON.stringify({
-                "key": ecdhKey,
-                "account_id": this.rawStation.member.admin_user_id,
-                "cmd": CommandType.P2P_ON_OFF_LOCK,
-                "mChannel": device.getChannel(),
-                "mValue3": 0,
-                "payload": encPayload.toString("base64")
-            }).replace("=", "\\u003d");
+            await this.p2pSession.sendCommandWithStringPayload(command, {
+                property: propertyData
+            });
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            const command = getLockV12P2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                ESLCommand.ON_OFF_LOCK,
+                device.getChannel(),
+                this.lockPublicKey,
+                this.p2pSession.incLockSequenceNumber(),
+                Lock.encodeCmdUnlock(this.rawStation.member.short_user_id, value === true ? 1 : 0, this.rawStation.member.nick_name)
+            );
+            this.log.debug("Locking/unlocking device...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command.payload });
 
-            this.log.debug("Locking/unlocking device...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: payload, encPayload: encPayload.toString("hex"), p2pCommandData: p2pCommandData });
-
-            await this.p2pSession.sendCommandWithStringPayload({
-                commandType: CommandType.CMD_SET_PAYLOAD,
-                value: p2pCommandData,
-                channel: device.getChannel()
-            }, propertyData);
+            await this._sendLockV12P2PCommand(command, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3260,6 +3824,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending station switch mode with access code command to station ${this.getSerial()} with value: ${value}`);
         if (this.isStation()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -3273,7 +3840,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
     }
 
@@ -3285,6 +3856,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending station auto end alarm command to station ${this.getSerial()} with value: ${value}`);
         if (this.isStation()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -3298,7 +3872,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
     }
 
@@ -3310,6 +3888,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending station turn off alarm with button command to station ${this.getSerial()} with value: ${value}`);
         if (this.isStation()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -3323,7 +3904,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: Station.CHANNEL
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
     }
 
@@ -3336,7 +3921,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
         const rtspStreamProperty = device.getPropertyValue(PropertyName.DeviceRTSPStream);
         if (rtspStreamProperty !== undefined && rtspStreamProperty !== true) {
-            throw new RTSPPropertyNotEnabled(`RTSP setting for device ${device.getSerial()} must be enabled first, to enable this functionality!`);
+            throw new RTSPPropertyNotEnabledError(`RTSP setting for device ${device.getSerial()} must be enabled first, to enable this functionality!`);
         }
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRTSPStream,
@@ -3350,7 +3935,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async stopRTSPStream(device: Device): Promise<void> {
@@ -3362,7 +3949,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
         const rtspStreamProperty = device.getPropertyValue(PropertyName.DeviceRTSPStream);
         if (rtspStreamProperty !== undefined && rtspStreamProperty !== true) {
-            throw new RTSPPropertyNotEnabled(`RTSP setting for device ${device.getSerial()} must be enabled first, to enable this functionality!`);
+            throw new RTSPPropertyNotEnabledError(`RTSP setting for device ${device.getSerial()} must be enabled first, to enable this functionality!`);
         }
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRTSPStream,
@@ -3376,7 +3963,9 @@ export class Station extends TypedEmitter<StationEvents> {
             valueSub: device.getChannel(),
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setMotionDetectionRange(device: Device, type: number): Promise<void> {
@@ -3404,7 +3993,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3433,7 +4026,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3462,7 +4059,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3491,7 +4092,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3520,7 +4125,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3546,7 +4155,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3575,7 +4188,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3604,7 +4221,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3633,7 +4254,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3662,7 +4287,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3691,7 +4320,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3720,7 +4353,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3746,7 +4383,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3775,7 +4416,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3804,7 +4449,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3833,7 +4482,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -3880,6 +4533,9 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public async calibrateLock(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceLockCalibration
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -3888,53 +4544,61 @@ export class Station extends TypedEmitter<StationEvents> {
         }
         this.log.debug(`Sending calibrate lock command to station ${this.getSerial()} for device ${device.getSerial()}`);
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
-            const publicKey = await this.api.getPublicKey(device.getSerial(), PublicKeyType.LOCK);
-
-            const key = generateAdvancedLockAESKey();
-            const ecdhKey = getAdvancedLockKey(key, publicKey);
-            const iv = getLockVectorBytes(this.getSerial());
-            const payload = {
+            const nestedPayload = {
                 seq_num: this.p2pSession.incLockSequenceNumber()
             };
-            const encPayload = encryptLockAESData(key, iv, Buffer.from(JSON.stringify(payload)));
+            const command = getLockP2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                CommandType.P2P_CALIBRATE_LOCK,
+                device.getChannel(),
+                this.lockPublicKey,
+                nestedPayload
+            );
+            this.p2pSession.setLockAESKey(CommandType.P2P_CALIBRATE_LOCK, command.aesKey);
+            this.log.debug("Calibrate lock...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command, nestedPayload: nestedPayload });
 
-            const p2pCommandData = JSON.stringify({
-                "key": ecdhKey,
-                "account_id": this.rawStation.member.admin_user_id,
-                "cmd": CommandType.P2P_CALIBRATE_LOCK,
-                "mChannel": device.getChannel(),
-                "mValue3": 0,
-                "payload": encPayload.toString("base64")
-            }).replace("=", "\\u003d");
-
-            this.log.debug("Calibrate lock...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: payload, encPayload: encPayload.toString("hex"), p2pCommandData: p2pCommandData });
-
-            await this.p2pSession.sendCommandWithStringPayload({
-                commandType: CommandType.CMD_SET_PAYLOAD,
-                value: p2pCommandData,
-                channel: device.getChannel()
+            await this.p2pSession.sendCommandWithStringPayload(command, {
+                command: commandData
             });
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            const command = getLockV12P2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                ESLCommand.CALIBRATE_LOCK,
+                device.getChannel(),
+                this.lockPublicKey,
+                this.p2pSession.incLockSequenceNumber(),
+                Lock.encodeCmdCalibrate(this.rawStation.member.admin_user_id)
+            );
+            this.log.debug("Locking/unlocking device...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command.payload });
+
+            await this._sendLockV12P2PCommand(command, {
+                command: commandData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
     private convertAdvancedLockSettingValue(property: PropertyName, value: unknown): number | string {
         switch (property) {
-            case PropertyName.DeviceLockSettingsAutoLock:
-            case PropertyName.DeviceLockSettingsNotification:
-            case PropertyName.DeviceLockSettingsNotificationLocked:
-            case PropertyName.DeviceLockSettingsOneTouchLocking:
-            case PropertyName.DeviceLockSettingsAutoLockSchedule:
-            case PropertyName.DeviceLockSettingsScramblePasscode:
-            case PropertyName.DeviceLockSettingsNotificationUnlocked:
-            case PropertyName.DeviceLockSettingsWrongTryProtection:
+            case PropertyName.DeviceAutoLock:
+            case PropertyName.DeviceNotification:
+            case PropertyName.DeviceNotificationLocked:
+            case PropertyName.DeviceOneTouchLocking:
+            case PropertyName.DeviceAutoLockSchedule:
+            case PropertyName.DeviceScramblePasscode:
+            case PropertyName.DeviceNotificationUnlocked:
+            case PropertyName.DeviceWrongTryProtection:
                 return value as boolean === true ? 1 : 0;
-            case PropertyName.DeviceLockSettingsWrongTryLockdownTime:
-            case PropertyName.DeviceLockSettingsSound:
-            case PropertyName.DeviceLockSettingsWrongTryAttempts:
-            case PropertyName.DeviceLockSettingsAutoLockTimer:
+            case PropertyName.DeviceWrongTryLockdownTime:
+            case PropertyName.DeviceSound:
+            case PropertyName.DeviceWrongTryAttempts:
+            case PropertyName.DeviceAutoLockTimer:
                 return value as number;
-            case PropertyName.DeviceLockSettingsAutoLockScheduleEndTime:
-            case PropertyName.DeviceLockSettingsAutoLockScheduleStartTime:
+            case PropertyName.DeviceAutoLockScheduleEndTime:
+            case PropertyName.DeviceAutoLockScheduleStartTime:
                 const autoLockSchedule = (value as string).split(":");
                 return `${Number.parseInt(autoLockSchedule[0]).toString(16).padStart(2, "0")}${Number.parseInt(autoLockSchedule[1]).toString(16).padStart(2, "0")}`;
         }
@@ -3960,41 +4624,41 @@ export class Station extends TypedEmitter<StationEvents> {
                 break;
         }
         return {
-            autoLockTime: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsAutoLockTimer, device.getPropertyValue(PropertyName.DeviceLockSettingsAutoLockTimer)) as number,
-            isAutoLock: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsAutoLock, device.getPropertyValue(PropertyName.DeviceLockSettingsAutoLock)) as number,
-            isLockNotification: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsNotificationLocked, device.getPropertyValue(PropertyName.DeviceLockSettingsNotificationLocked)) as number,
-            isNotification: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsNotification, device.getPropertyValue(PropertyName.DeviceLockSettingsNotification)) as number,
-            isOneTouchLock: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsOneTouchLocking, device.getPropertyValue(PropertyName.DeviceLockSettingsOneTouchLocking)) as number,
-            isSchedule: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsAutoLockSchedule, device.getPropertyValue(PropertyName.DeviceLockSettingsAutoLockSchedule)) as number,
-            isScramblePasscode: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsScramblePasscode, device.getPropertyValue(PropertyName.DeviceLockSettingsScramblePasscode)) as number,
-            isUnLockNotification: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsNotificationUnlocked, device.getPropertyValue(PropertyName.DeviceLockSettingsNotificationUnlocked)) as number,
-            isWrongTryProtect: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsWrongTryProtection, device.getPropertyValue(PropertyName.DeviceLockSettingsWrongTryProtection)) as number,
-            lockDownTime: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsWrongTryLockdownTime, device.getPropertyValue(PropertyName.DeviceLockSettingsWrongTryLockdownTime)) as number,
-            lockSound: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsSound, device.getPropertyValue(PropertyName.DeviceLockSettingsSound)) as number,
+            autoLockTime: this.convertAdvancedLockSettingValue(PropertyName.DeviceAutoLockTimer, device.getPropertyValue(PropertyName.DeviceAutoLockTimer)) as number,
+            isAutoLock: this.convertAdvancedLockSettingValue(PropertyName.DeviceAutoLock, device.getPropertyValue(PropertyName.DeviceAutoLock)) as number,
+            isLockNotification: this.convertAdvancedLockSettingValue(PropertyName.DeviceNotificationLocked, device.getPropertyValue(PropertyName.DeviceNotificationLocked)) as number,
+            isNotification: this.convertAdvancedLockSettingValue(PropertyName.DeviceNotification, device.getPropertyValue(PropertyName.DeviceNotification)) as number,
+            isOneTouchLock: this.convertAdvancedLockSettingValue(PropertyName.DeviceOneTouchLocking, device.getPropertyValue(PropertyName.DeviceOneTouchLocking)) as number,
+            isSchedule: this.convertAdvancedLockSettingValue(PropertyName.DeviceAutoLockSchedule, device.getPropertyValue(PropertyName.DeviceAutoLockSchedule)) as number,
+            isScramblePasscode: this.convertAdvancedLockSettingValue(PropertyName.DeviceScramblePasscode, device.getPropertyValue(PropertyName.DeviceScramblePasscode)) as number,
+            isUnLockNotification: this.convertAdvancedLockSettingValue(PropertyName.DeviceNotificationUnlocked, device.getPropertyValue(PropertyName.DeviceNotificationUnlocked)) as number,
+            isWrongTryProtect: this.convertAdvancedLockSettingValue(PropertyName.DeviceWrongTryProtection, device.getPropertyValue(PropertyName.DeviceWrongTryProtection)) as number,
+            lockDownTime: this.convertAdvancedLockSettingValue(PropertyName.DeviceWrongTryLockdownTime, device.getPropertyValue(PropertyName.DeviceWrongTryLockdownTime)) as number,
+            lockSound: this.convertAdvancedLockSettingValue(PropertyName.DeviceSound, device.getPropertyValue(PropertyName.DeviceSound)) as number,
             paramType: command,
-            scheduleEnd: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsAutoLockScheduleEndTime, device.getPropertyValue(PropertyName.DeviceLockSettingsAutoLockScheduleEndTime)) as string,
-            scheduleStart: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsAutoLockScheduleStartTime, device.getPropertyValue(PropertyName.DeviceLockSettingsAutoLockScheduleStartTime)) as string,
-            wrongTryTime: this.convertAdvancedLockSettingValue(PropertyName.DeviceLockSettingsWrongTryAttempts, device.getPropertyValue(PropertyName.DeviceLockSettingsWrongTryAttempts)) as number,
+            scheduleEnd: this.convertAdvancedLockSettingValue(PropertyName.DeviceAutoLockScheduleEndTime, device.getPropertyValue(PropertyName.DeviceAutoLockScheduleEndTime)) as string,
+            scheduleStart: this.convertAdvancedLockSettingValue(PropertyName.DeviceAutoLockScheduleStartTime, device.getPropertyValue(PropertyName.DeviceAutoLockScheduleStartTime)) as string,
+            wrongTryTime: this.convertAdvancedLockSettingValue(PropertyName.DeviceWrongTryAttempts, device.getPropertyValue(PropertyName.DeviceWrongTryAttempts)) as number,
             seq_num: this.p2pSession.incLockSequenceNumber()
         };
     }
 
     private getAdvancedLockSettingName(property: PropertyName): string {
         switch (property) {
-            case PropertyName.DeviceLockSettingsAutoLock: return "isAutoLock";
-            case PropertyName.DeviceLockSettingsAutoLockTimer: return "autoLockTime";
-            case PropertyName.DeviceLockSettingsNotification: return "isNotification";
-            case PropertyName.DeviceLockSettingsNotificationLocked: return "isLockNotification";
-            case PropertyName.DeviceLockSettingsOneTouchLocking: return "isOneTouchLock";
-            case PropertyName.DeviceLockSettingsAutoLockSchedule: return "isSchedule";
-            case PropertyName.DeviceLockSettingsScramblePasscode: return "isScramblePasscode";
-            case PropertyName.DeviceLockSettingsNotificationUnlocked: return "isUnLockNotification";
-            case PropertyName.DeviceLockSettingsWrongTryProtection: return "isWrongTryProtect";
-            case PropertyName.DeviceLockSettingsWrongTryLockdownTime: return "lockDownTime";
-            case PropertyName.DeviceLockSettingsSound: return "lockSound";
-            case PropertyName.DeviceLockSettingsAutoLockScheduleEndTime: return "scheduleEnd";
-            case PropertyName.DeviceLockSettingsAutoLockScheduleStartTime: return "scheduleStart";
-            case PropertyName.DeviceLockSettingsWrongTryAttempts: return "wrongTryTime";
+            case PropertyName.DeviceAutoLock: return "isAutoLock";
+            case PropertyName.DeviceAutoLockTimer: return "autoLockTime";
+            case PropertyName.DeviceNotification: return "isNotification";
+            case PropertyName.DeviceNotificationLocked: return "isLockNotification";
+            case PropertyName.DeviceOneTouchLocking: return "isOneTouchLock";
+            case PropertyName.DeviceAutoLockSchedule: return "isSchedule";
+            case PropertyName.DeviceScramblePasscode: return "isScramblePasscode";
+            case PropertyName.DeviceNotificationUnlocked: return "isUnLockNotification";
+            case PropertyName.DeviceWrongTryProtection: return "isWrongTryProtect";
+            case PropertyName.DeviceWrongTryLockdownTime: return "lockDownTime";
+            case PropertyName.DeviceSound: return "lockSound";
+            case PropertyName.DeviceAutoLockScheduleEndTime: return "scheduleEnd";
+            case PropertyName.DeviceAutoLockScheduleStartTime: return "scheduleStart";
+            case PropertyName.DeviceWrongTryAttempts: return "wrongTryTime";
         }
         return "";
     }
@@ -4010,38 +4674,35 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const propertyMetadata = device.getPropertyMetadata(propertyData.name);
+        validValue(propertyMetadata, value);
+
         this.log.debug(`Sending set advanced lock settings command to station ${this.getSerial()} for device ${device.getSerial()} property ${property}`);
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
-            const publicKey = await this.api.getPublicKey(device.getSerial(), PublicKeyType.LOCK);
-
-            const key = generateAdvancedLockAESKey();
-            const ecdhKey = getAdvancedLockKey(key, publicKey);
-            const iv = getLockVectorBytes(this.getSerial());
             const payload = this.getAdvancedLockSettingsPayload(device.getPropertyMetadata(property).key as number, device);
             const p2pParamName = this.getAdvancedLockSettingName(property);
             if (p2pParamName !== "") {
                 payload[p2pParamName] = this.convertAdvancedLockSettingValue(property, value);
-                const encPayload = encryptLockAESData(key, iv, Buffer.from(JSON.stringify(payload)));
+                const command = getLockP2PCommand(
+                    this.rawStation.station_sn,
+                    this.rawStation.member.admin_user_id,
+                    CommandType.P2P_SET_LOCK_PARAM,
+                    device.getChannel(),
+                    this.lockPublicKey,
+                    payload
+                );
+                this.p2pSession.setLockAESKey(CommandType.P2P_SET_LOCK_PARAM, command.aesKey);
+                this.log.debug("Set lock param...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, property: property, value: value, payload: command, nestedPayload: payload });
 
-                const p2pCommandData = JSON.stringify({
-                    "key": ecdhKey,
-                    "account_id": this.rawStation.member.admin_user_id,
-                    "cmd": CommandType.P2P_SET_LOCK_PARAM,
-                    "mChannel": device.getChannel(),
-                    "mValue3": 0,
-                    "payload": encPayload.toString("base64")
-                }).replace("=", "\\u003d");
-
-                this.log.debug("Set lock param...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, property: property, value: value, payload: payload, encPayload: encPayload.toString("hex"), p2pCommandData: p2pCommandData });
-
-                await this.p2pSession.sendCommandWithStringPayload({
-                    commandType: CommandType.CMD_SET_PAYLOAD,
-                    value: p2pCommandData,
-                    channel: device.getChannel()
-                }, propertyData);
+                await this.p2pSession.sendCommandWithStringPayload(command, {
+                    property: propertyData
+                });
             } else {
-                this.log.debug();
+                this.log.warn(`Internal lock property for property ${property} not identified for ${device.getSerial()}`, { p2pParamName: p2pParamName });
+                throw new InvalidPropertyError(`Internal lock property for property ${property} not identified for ${device.getSerial()}`);
             }
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4056,6 +4717,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending loitering detection command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isBatteryDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -4070,7 +4734,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4102,7 +4770,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4134,7 +4806,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4163,7 +4839,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4320,7 +5000,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4437,6 +5121,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending delivery guard command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -4452,7 +5139,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4467,6 +5158,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending delivery guard package guarding command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -4481,7 +5175,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4514,7 +5212,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4545,7 +5247,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4586,6 +5292,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending delivery guard uncollected package alert command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -4600,7 +5309,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4633,7 +5346,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4648,6 +5365,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending delivery guard package live check assistance command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -4662,7 +5382,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4695,7 +5419,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4735,7 +5463,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4830,6 +5562,9 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
         this.log.debug(`Sending notification radar detector command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isBatteryDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
@@ -4844,11 +5579,18 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                 }),
                 channel: device.getChannel()
-            }, propertyData);
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
     public async calibrate(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceCalibrate
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -4863,7 +5605,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     "commandType": CommandType.CMD_INDOOR_PAN_CALIBRATION
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
@@ -4898,7 +5644,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 },
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setContinuousRecordingType(device: Device, value: number): Promise<void> {
@@ -4932,7 +5680,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async enableDefaultAngle(device: Device, value: boolean): Promise<void> {
@@ -4959,7 +5709,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 },
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setDefaultAngleIdleTime(device: Device, value: number): Promise<void> {
@@ -4986,10 +5738,15 @@ export class Station extends TypedEmitter<StationEvents> {
                 },
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setDefaultAngle(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceSetDefaultAngle
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -5006,10 +5763,15 @@ export class Station extends TypedEmitter<StationEvents> {
                 },
             }),
             channel: device.getChannel()
+        }, {
+            command: commandData
         });
     }
 
     public async setPrivacyAngle(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceSetPrivacyAngle
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -5026,6 +5788,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 },
             }),
             channel: device.getChannel()
+        }, {
+            command: commandData
         });
     }
 
@@ -5049,7 +5813,9 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value,
             strValue: this.rawStation.member.admin_user_id,
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async setSoundDetectionRoundLook(device: Device, value: boolean): Promise<void> {
@@ -5076,10 +5842,15 @@ export class Station extends TypedEmitter<StationEvents> {
                 },
             }),
             channel: device.getChannel()
-        }, propertyData);
+        }, {
+            property: propertyData
+        });
     }
 
     public async startTalkback(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceStartTalkback
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -5097,19 +5868,34 @@ export class Station extends TypedEmitter<StationEvents> {
                     "commandType": IndoorSoloSmartdropCommandType.CMD_START_SPEAK,
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else if (device.isBatteryDoorbell() && isGreaterEqualMinVersion("2.0.6.8", this.getSoftwareVersion())) {
             await this.p2pSession.sendCommandWithInt({
                 commandType: CommandType.CMD_START_TALKBACK,
                 value: 0,
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else {
             this.p2pSession.startTalkback(device.getChannel());
+            this.emit("command result", this, {
+                channel: device.getChannel(),
+                command_type: 0,
+                return_code: 0,
+                customData: {
+                    command: commandData
+                }
+            });
         }
     }
 
     public async stopTalkback(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceStopTalkback
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
         }
@@ -5127,15 +5913,27 @@ export class Station extends TypedEmitter<StationEvents> {
                     "commandType": IndoorSoloSmartdropCommandType.CMD_END_SPEAK,
                 }),
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else if (device.isBatteryDoorbell() && isGreaterEqualMinVersion("2.0.6.8", this.getSoftwareVersion())) {
             await this.p2pSession.sendCommandWithInt({
                 commandType: CommandType.CMD_STOP_TALKBACK,
                 value: 0,
                 channel: device.getChannel()
+            }, {
+                command: commandData
             });
         } else {
             this.p2pSession.stopTalkback(device.getChannel());
+            this.emit("command result", this, {
+                channel: device.getChannel(),
+                command_type: 0,
+                return_code: 0,
+                customData: {
+                    command: commandData
+                }
+            });
         }
     }
 
@@ -5155,6 +5953,1083 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.getStationSerial() !== this.getSerial())
             return false;
         return this.p2pSession.isTalkbackOngoing(device.getChannel());
+    }
+
+    public async setScramblePasscode(device: Device, value: boolean): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceScramblePasscode,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending scramble passcode command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceScramblePasscode, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            await this.setLockV12Params(device, PropertyName.DeviceScramblePasscode, value);
+        } else if (device.isSmartSafe()) {
+            await this.setSmartSafeParams(device, PropertyName.DeviceScramblePasscode, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setWrongTryProtection(device: Device, value: boolean): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceWrongTryProtection,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending wrong try protection command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceWrongTryProtection, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            await this.setLockV12Params(device, PropertyName.DeviceWrongTryProtection, value);
+        } else if (device.isSmartSafe()) {
+            await this.setSmartSafeParams(device, PropertyName.DeviceWrongTryProtection, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setWrongTryAttempts(device: Device, value: number): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceWrongTryAttempts,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending wrong try attempts command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceWrongTryAttempts, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            await this.setLockV12Params(device, PropertyName.DeviceWrongTryAttempts, value);
+        } else if (device.isSmartSafe()) {
+            await this.setSmartSafeParams(device, PropertyName.DeviceWrongTryAttempts, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setWrongTryLockdownTime(device: Device, value: number): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceWrongTryLockdownTime,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending wrong try lockdown time command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceWrongTryLockdownTime, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            await this.setLockV12Params(device, PropertyName.DeviceWrongTryLockdownTime, value);
+        } else if (device.isSmartSafe()) {
+            await this.setSmartSafeParams(device, PropertyName.DeviceWrongTryLockdownTime, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    private async _sendSmartSafeCommand(device: Device, command: SmartSafeCommandCode, data: Buffer, customData?: CustomData): Promise<void> {
+        const payload = getSmartSafeP2PCommand(
+            device.getSerial(),
+            this.rawStation.member.admin_user_id,
+            CommandType.CMD_SMARTSAFE_SETTINGS,
+            command,
+            device.getChannel(),
+            this.p2pSession.incLockSequenceNumber(),
+            data
+        );
+        await this.p2pSession.sendCommandWithStringPayload(payload, customData);
+    }
+
+    public async setSmartSafeParams(device: Device, property: PropertyName, value: PropertyValue): Promise<void> {
+        const propertyData: PropertyData = {
+            name: property,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        const propertyMetadata = device.getPropertyMetadata(propertyData.name);
+        validValue(propertyMetadata, value);
+
+        this.log.debug(`Sending set smart safe settings command to station ${this.getSerial()} for device ${device.getSerial()} property ${property}`);
+        if (device.isSmartSafe()) {
+            let payload: Buffer;
+            let command: number;
+            switch (property) {
+                case PropertyName.DeviceWrongTryProtection:
+                    payload = SmartSafe.encodeCmdWrongTryProtect(
+                        this.rawStation.member.admin_user_id,
+                        value as boolean,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryAttempts) as number,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryLockdownTime) as number / 60
+                    );
+                    command = SmartSafeCommandCode.SET_CRACK_PROTECT;
+                    break;
+                case PropertyName.DeviceWrongTryAttempts:
+                    payload = SmartSafe.encodeCmdWrongTryProtect(
+                        this.rawStation.member.admin_user_id,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryProtection) as boolean,
+                        value as number,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryLockdownTime) as number / 60
+                    );
+                    command = SmartSafeCommandCode.SET_CRACK_PROTECT;
+                    break;
+                case PropertyName.DeviceWrongTryLockdownTime:
+                    payload = SmartSafe.encodeCmdWrongTryProtect(
+                        this.rawStation.member.admin_user_id,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryProtection) as boolean,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryAttempts) as number,
+                        value as number / 60
+                    );
+                    command = SmartSafeCommandCode.SET_CRACK_PROTECT;
+                    break;
+                case PropertyName.DeviceLeftOpenAlarm:
+                    payload = SmartSafe.encodeCmdLeftOpenAlarm(
+                        this.rawStation.member.admin_user_id,
+                        value as boolean,
+                        device.getPropertyValue(PropertyName.DeviceLeftOpenAlarmDuration) as number
+                    );
+                    command = SmartSafeCommandCode.SET_LOCK_ALARM;
+                    break;
+                case PropertyName.DeviceLeftOpenAlarmDuration:
+                    payload = SmartSafe.encodeCmdLeftOpenAlarm(
+                        this.rawStation.member.admin_user_id,
+                        device.getPropertyValue(PropertyName.DeviceLeftOpenAlarm) as boolean,
+                        value as number
+                    );
+                    command = SmartSafeCommandCode.SET_LOCK_ALARM;
+                    break;
+                case PropertyName.DeviceDualUnlock:
+                    payload = SmartSafe.encodeCmdDualUnlock(
+                        this.rawStation.member.admin_user_id,
+                        value as boolean
+                    );
+                    command = SmartSafeCommandCode.SET_DUAL_UNLOCK;
+                    break;
+                case PropertyName.DevicePowerSave:
+                    payload = SmartSafe.encodeCmdPowerSave(
+                        this.rawStation.member.admin_user_id,
+                        value as boolean
+                    );
+                    command = SmartSafeCommandCode.SET_POWERSAVE;
+                    break;
+                case PropertyName.DeviceInteriorBrightness:
+                    payload = SmartSafe.encodeCmdInteriorBrightness(
+                        this.rawStation.member.admin_user_id,
+                        value as number,
+                        device.getPropertyValue(PropertyName.DeviceInteriorBrightnessDuration) as number
+                    );
+                    command = SmartSafeCommandCode.SET_LIGHT;
+                    break;
+                case PropertyName.DeviceInteriorBrightnessDuration:
+                    payload = SmartSafe.encodeCmdInteriorBrightness(
+                        this.rawStation.member.admin_user_id,
+                        device.getPropertyValue(PropertyName.DeviceInteriorBrightness) as number,
+                        value as number
+                    );
+                    command = SmartSafeCommandCode.SET_LIGHT;
+                    break;
+                case PropertyName.DeviceTamperAlarm:
+                    payload = SmartSafe.encodeCmdTamperAlarm(
+                        this.rawStation.member.admin_user_id,
+                        value as number
+                    );
+                    command = SmartSafeCommandCode.SET_SHAKE;
+                    break;
+                case PropertyName.DeviceRemoteUnlock:
+                case PropertyName.DeviceRemoteUnlockMasterPIN:
+                {
+                    if (!this.pinVerified && value as boolean === true) {
+                        throw new PinNotVerifiedError(`You need to call verifyPIN with correct PIN first to enable this property`);
+                    }
+                    let newValue = 2;
+                    const remoteUnlock = property === PropertyName.DeviceRemoteUnlock ? value as boolean : device.getPropertyValue(PropertyName.DeviceRemoteUnlock) as boolean;
+                    const remoteUnlockMasterPIN = property === PropertyName.DeviceRemoteUnlockMasterPIN ? value as boolean : device.getPropertyValue(PropertyName.DeviceRemoteUnlockMasterPIN) as boolean;
+                    if (remoteUnlock && remoteUnlockMasterPIN) {
+                        newValue = 0;
+                    } else if (remoteUnlock) {
+                        newValue = 1;
+                    }
+                    payload = SmartSafe.encodeCmdRemoteUnlock(
+                        this.rawStation.member.admin_user_id,
+                        newValue
+                    );
+                    command = SmartSafeCommandCode.SET_UNLOCK_MODE;
+                    break;
+                }
+                case PropertyName.DevicePromptVolume:
+                    payload = SmartSafe.encodeCmdPromptVolume(
+                        this.rawStation.member.admin_user_id,
+                        value as number
+                    );
+                    command = SmartSafeCommandCode.SET_VOLUME;
+                    break;
+                case PropertyName.DeviceAlarmVolume:
+                    payload = SmartSafe.encodeCmdAlertVolume(
+                        this.rawStation.member.admin_user_id,
+                        value as number
+                    );
+                    command = SmartSafeCommandCode.SET_VOLUME_ALERT;
+                    break;
+                case PropertyName.DeviceNotificationUnlockByKey:
+                case PropertyName.DeviceNotificationUnlockByPIN:
+                case PropertyName.DeviceNotificationUnlockByFingerprint:
+                case PropertyName.DeviceNotificationUnlockByApp:
+                case PropertyName.DeviceNotificationDualUnlock:
+                case PropertyName.DeviceNotificationDualLock:
+                case PropertyName.DeviceNotificationWrongTryProtect:
+                case PropertyName.DeviceNotificationJammed:
+                    const settingsValues: Array<boolean> = [
+                        property === PropertyName.DeviceNotificationUnlockByKey ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationUnlockByKey) as boolean,
+                        property === PropertyName.DeviceNotificationUnlockByPIN ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationUnlockByPIN) as boolean,
+                        property === PropertyName.DeviceNotificationUnlockByFingerprint ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationUnlockByFingerprint) as boolean,
+                        property === PropertyName.DeviceNotificationUnlockByApp ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationUnlockByApp) as boolean,
+                        property === PropertyName.DeviceNotificationDualUnlock ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationDualUnlock) as boolean,
+                        property === PropertyName.DeviceNotificationDualLock ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationDualLock) as boolean,
+                        property === PropertyName.DeviceNotificationWrongTryProtect ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationWrongTryProtect) as boolean,
+                        property === PropertyName.DeviceNotificationJammed ? value as boolean : device.getPropertyValue(PropertyName.DeviceNotificationJammed) as boolean,
+                    ];
+
+                    let modes = 0;
+                    for (let pos = 0; pos < settingsValues.length; pos++) {
+                        if (settingsValues[pos]) {
+                            modes = (modes | (1 << pos));
+                        }
+                    }
+
+                    payload = SmartSafe.encodeCmdPushNotification(
+                        this.rawStation.member.admin_user_id,
+                        modes
+                    );
+                    command = SmartSafeCommandCode.SET_PUSH;
+                    break;
+                case PropertyName.DeviceScramblePasscode:
+                    payload = SmartSafe.encodeCmdScramblePIN(
+                        this.rawStation.member.admin_user_id,
+                        value as boolean
+                    );
+                    command = SmartSafeCommandCode.SET_SCRAMBLE_PASSWORD;
+                    break;
+                default:
+                    payload = Buffer.from([]);
+                    command = SmartSafeCommandCode.DEFAULT;
+                    break;
+            }
+
+            this.log.debug(`device: ${device.getSerial()} property: ${property} value: ${value} payload: ${payload.toString("hex")}`);
+            await this._sendSmartSafeCommand(device, command, payload, { property: propertyData });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async unlock(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceUnlock
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasCommand(CommandName.DeviceUnlock)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        const payload = SmartSafe.encodeCmdUnlock(this.rawStation.member.admin_user_id);
+        this.log.debug(`Sending trigger device unlock command to station ${this.getSerial()} for device ${device.getSerial()}`, { payload: payload.toString("hex") });
+        await this._sendSmartSafeCommand(device, SmartSafeCommandCode.UNLOCK, payload, { command: commandData });
+    }
+
+    public async verifyPIN(device: Device, pin: string): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceVerifyPIN
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasCommand(CommandName.DeviceVerifyPIN)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        if (!/^[1-6]{4,8}$/.test(pin)) {
+            throw new InvalidCommandValueError(`PIN should contain only numbers (1-6) and be between 4 and 8 long`);
+        }
+        const payload = SmartSafe.encodeCmdVerifyPIN(this.rawStation.member.admin_user_id, pin);
+        this.log.debug(`Sending device verify pin command to station ${this.getSerial()} for device ${device.getSerial()}`, { payload: payload.toString("hex") });
+        await this._sendSmartSafeCommand(device, SmartSafeCommandCode.SET_VERIFY_PIN, payload, { command: commandData });
+    }
+
+    private onDeviceShakeAlarm(channel: number, event: SmartSafeShakeAlarmEvent): void {
+        this.emit("device shake alarm", this._getDeviceSerial(channel), event);
+    }
+
+    private onDevice911Alarm(channel: number, event: SmartSafeAlarm911Event): void {
+        this.emit("device 911 alarm", this._getDeviceSerial(channel), event);
+    }
+
+    private onDeviceJammed(channel: number): void {
+        this.emit("device jammed", this._getDeviceSerial(channel));
+    }
+
+    private onDeviceLowBattery(channel: number): void {
+        this.emit("device low battery", this._getDeviceSerial(channel));
+    }
+
+    private onDeviceWrongTryProtectAlarm(channel: number): void {
+        this.emit("device wrong try-protect alarm", this._getDeviceSerial(channel));
+    }
+
+    public async setVideoTypeStoreToNAS(device: Device, value: VideoTypeStoreToNAS): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceVideoTypeStoreToNAS,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
+        if (device.getPropertyValue(PropertyName.DeviceContinuousRecording) !== true && value === VideoTypeStoreToNAS.ContinuousRecording) {
+            await this.setContinuousRecording(device, true);
+        }
+
+        this.log.debug(`Sending video type store to NAS command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
+        await this.p2pSession.sendCommandWithStringPayload({
+            commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+            value: JSON.stringify({
+                "commandType": CommandType.CMD_INDOOR_NAS_STORAGE_TYPE,
+                "data":{
+                    "enable": 0,
+                    "index": 0,
+                    "status": 0,
+                    "type": 0,
+                    "value": value,
+                    "voiceID": 0,
+                    "zonecount": 0,
+                    "transaction": `${new Date().getTime()}`,
+                },
+            }),
+            channel: device.getChannel()
+        }, {
+            property: propertyData
+        });
+    }
+
+    public async snooze(device: Device, value: SnoozeDetail): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceSnooze,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasCommand(CommandName.DeviceSnooze)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending snooze command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
+        if (device.isDoorbell()) {
+            //TODO: To test if it works
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_SNOOZE_MODE,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "snooze_time": value.snooze_time,
+                    //"startTime": 0,
+                    "chime_onoff": value.snooze_chime !== undefined && value.snooze_chime ? 1 : 0,
+                    "motion_onoff": value.snooze_motion !== undefined && value.snooze_motion ? 1 : 0,
+                    "homebase_onoff": value.snooze_homebase !== undefined && value.snooze_homebase ? 1 : 0,
+                }),
+                channel: device.getChannel()
+            }, {
+                command: commandData
+            });
+        } else {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_SNOOZE_MODE,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "snooze_time": value.snooze_time
+                }),
+                channel: device.getChannel()
+            }, {
+                command: commandData
+            });
+        }
+    }
+
+    public async addUser(device: Device, username: string, shortUserId: string, passcode: string, schedule?: Schedule): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceAddUser,
+            value: {
+                username: username,
+                shortUserId: shortUserId,
+                passcode: passcode,
+                schedule: schedule
+            }
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasCommand(CommandName.DeviceAddUser)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        if (!/^\d{4,8}$/.test(passcode)) {
+            throw new InvalidCommandValueError(`Passcode should contain only numbers and be between 4 and 8 long`);
+        }
+        this.log.debug(`Sending add user command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            // passcode: min 4 max 8
+            // passcode: 13579753 =>  3133353739373533
+            // 04.09.2022 11:36
+            // 01.01.2023 19:36
+            // Mon-Sunday Wednsday No!
+            // {"endDay":"e7070101","endTime":"1324","passcode":"3133353739373533","startDay":"00000000","startTime":"0b24","userId":"0009","week":"77","seq_num":662}
+            //log.b 2: payloadStr: {"endDay":"ffffffff","endTime":"ffff","passcode":"3233353438333333","startDay":"00000000","startTime":"0000","userId":"0008","week":"ff","seq_num":657}
+            //log.b 2: ESLP2pResponse: {"channel":0,"command_type":1950,"payload":"w36zICk5a8pXZ8I6L4ldeI6ZQPWmbEEVZHctBfW0Zx0\u003d","payloadLen":30,"sn":"T8520Q2021340AD6"}
+            //log.b 2: payload full:{"code":0,"passwordId":"0008"} payloadLength:30
+            const nestedPayload = {
+                endDay: schedule !== undefined && schedule.endDateTime !== undefined ? hexDate(schedule.endDateTime) : "ffffffff",
+                endTime: schedule !== undefined && schedule.endDateTime !== undefined ? hexTime(schedule.endDateTime) : "ffff",
+                passcode: encodePasscode(passcode),
+                startDay: schedule !== undefined && schedule.startDateTime !== undefined ? hexDate(schedule.startDateTime) : "00000000",
+                startTime: schedule !== undefined && schedule.startDateTime !== undefined ? hexTime(schedule.startDateTime) : "0000",
+                userId: shortUserId,
+                week: schedule !== undefined && schedule.week !== undefined ? hexWeek(schedule) : "ff",
+                seq_num: this.p2pSession.incLockSequenceNumber()
+            };
+            const command = getLockP2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                CommandType.P2P_ADD_PW,
+                device.getChannel(),
+                this.lockPublicKey,
+                nestedPayload
+            );
+            this.p2pSession.setLockAESKey(CommandType.P2P_ADD_PW, command.aesKey);
+            this.log.debug("Add user...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command, nestedPayload: nestedPayload });
+
+            await this.p2pSession.sendCommandWithStringPayload(command, {
+                command: commandData
+            });
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            const command = getLockV12P2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                ESLCommand.ADD_PW,
+                device.getChannel(),
+                this.lockPublicKey,
+                this.p2pSession.incLockSequenceNumber(),
+                Lock.encodeCmdAddUser(shortUserId, encodePasscode(passcode), username, schedule)
+            );
+            this.log.debug("Add user...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
+
+            await this._sendLockV12P2PCommand(command, {
+                command: commandData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async deleteUser(device: Device, username: string, shortUserId: string): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceDeleteUser,
+            value: {
+                username: username,
+                shortUserId: shortUserId,
+            }
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasCommand(CommandName.DeviceDeleteUser)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending delete user command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            const nestedPayload = {
+                userId: shortUserId,
+                seq_num: this.p2pSession.incLockSequenceNumber()
+            };
+            const command = getLockP2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                CommandType.P2P_DELETE_USER,
+                device.getChannel(),
+                this.lockPublicKey,
+                nestedPayload
+            );
+            this.p2pSession.setLockAESKey(CommandType.P2P_DELETE_USER, command.aesKey);
+            this.log.debug("Delete user...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command, nestedPayload: nestedPayload });
+
+            await this.p2pSession.sendCommandWithStringPayload(command, {
+                command: commandData
+            });
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            const command = getLockV12P2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                ESLCommand.DELETE_USER,
+                device.getChannel(),
+                this.lockPublicKey,
+                this.p2pSession.incLockSequenceNumber(),
+                Lock.encodeCmdDeleteUser(shortUserId)
+            );
+            this.log.debug("Delete user...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
+
+            await this._sendLockV12P2PCommand(command, {
+                command: commandData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async updateUserSchedule(device: Device, username: string, shortUserId: string, schedule: Schedule): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceUpdateUserSchedule,
+            value: {
+                username: username,
+                shortUserId: shortUserId,
+                schedule: schedule
+            }
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasCommand(CommandName.DeviceUpdateUserSchedule)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending update user schedule command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            const nestedPayload = {
+                endDay: schedule !== undefined && schedule.endDateTime !== undefined ? hexDate(schedule.endDateTime) : "ffffffff",
+                endTime: schedule !== undefined && schedule.endDateTime !== undefined ? hexTime(schedule.endDateTime) : "ffff",
+                startDay: schedule !== undefined && schedule.startDateTime !== undefined ? hexDate(schedule.startDateTime) : "00000000",
+                startTime: schedule !== undefined && schedule.startDateTime !== undefined ? hexTime(schedule.startDateTime) : "0000",
+                userId: shortUserId,
+                week: schedule !== undefined && schedule.week !== undefined ? hexWeek(schedule) : "ff",
+                seq_num: this.p2pSession.incLockSequenceNumber()
+            };
+            const command = getLockP2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                CommandType.P2P_UPDATE_USER_TIME,
+                device.getChannel(),
+                this.lockPublicKey,
+                nestedPayload
+            );
+            this.p2pSession.setLockAESKey(CommandType.P2P_UPDATE_USER_TIME, command.aesKey);
+            this.log.debug("Update user time...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command, nestedPayload: nestedPayload });
+
+            await this.p2pSession.sendCommandWithStringPayload(command, {
+                command: commandData
+            });
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            const command = getLockV12P2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                ESLCommand.UPDATE_USER_TIME,
+                device.getChannel(),
+                this.lockPublicKey,
+                this.p2pSession.incLockSequenceNumber(),
+                Lock.encodeCmdUpdateSchedule(shortUserId, schedule)
+            );
+            this.log.debug("Update user time...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
+
+            await this._sendLockV12P2PCommand(command, {
+                command: commandData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async updateUserPasscode(device: Device, username: string, shortUserId: string, passcode: string): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceUpdateUserPasscode,
+            value: {
+                username: username,
+                shortUserId: shortUserId,
+                passcode: passcode
+            }
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasCommand(CommandName.DeviceUpdateUserPasscode)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        if (passcode.length < 4 || passcode.length > 8 || !/^\d+$/.test(passcode)) {
+            throw new InvalidCommandValueError(`Passcode should contain only numbers and be between 4 and 8 long`);
+        }
+        this.log.debug(`Sending update user passcode command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            const nestedPayload = {
+                passcode: encodePasscode(passcode),
+                passwordId: shortUserId,
+                seq_num: this.p2pSession.incLockSequenceNumber()
+            };
+            const command = getLockP2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                CommandType.P2P_UPDATE_PW,
+                device.getChannel(),
+                this.lockPublicKey,
+                nestedPayload
+            );
+            this.p2pSession.setLockAESKey(CommandType.P2P_UPDATE_PW, command.aesKey);
+            this.log.debug("Update user time...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command, nestedPayload: nestedPayload });
+
+            await this.p2pSession.sendCommandWithStringPayload(command, {
+                command: commandData
+            });
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            const command = getLockV12P2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                ESLCommand.UPDATE_PW,
+                device.getChannel(),
+                this.lockPublicKey,
+                this.p2pSession.incLockSequenceNumber(),
+                Lock.encodeCmdModifyPassword(shortUserId, encodePasscode(passcode))
+            );
+            this.log.debug("Update user time...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
+
+            await this._sendLockV12P2PCommand(command, {
+                command: commandData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setLockV12Params(device: Device, property: PropertyName, value: PropertyValue): Promise<void> {
+        const propertyData: PropertyData = {
+            name: property,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        const propertyMetadata = device.getPropertyMetadata(propertyData.name);
+        validValue(propertyMetadata, value);
+
+        this.log.debug(`Sending set lock v12 settings command to station ${this.getSerial()} for device ${device.getSerial()} property ${property}`);
+        if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            let payload: Buffer;
+            switch (property) {
+                case PropertyName.DeviceWrongTryProtection:
+                    payload = Lock.encodeCmdSetLockParamWrongTryProtect(
+                        value as boolean,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryAttempts) as number,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryLockdownTime) as number
+                    );
+                    break;
+                case PropertyName.DeviceWrongTryAttempts:
+                    payload = Lock.encodeCmdSetLockParamWrongTryProtect(
+                        device.getPropertyValue(PropertyName.DeviceWrongTryProtection) as boolean,
+                        value as number,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryLockdownTime) as number
+                    );
+                    break;
+                case PropertyName.DeviceWrongTryLockdownTime:
+                    payload = Lock.encodeCmdSetLockParamWrongTryProtect(
+                        device.getPropertyValue(PropertyName.DeviceWrongTryProtection) as boolean,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryAttempts) as number,
+                        value as number
+                    );
+                    break;
+                case PropertyName.DeviceAutoLock:
+                    payload = Lock.encodeCmdSetLockParamAutoLock(
+                        value as boolean,
+                        device.getPropertyValue(PropertyName.DeviceAutoLockTimer) as number,
+                    );
+                    break;
+                case PropertyName.DeviceAutoLockTimer:
+                    payload = Lock.encodeCmdSetLockParamAutoLock(
+                        device.getPropertyValue(PropertyName.DeviceAutoLock) as boolean,
+                        value as number,
+                    );
+                    break;
+                case PropertyName.DeviceAutoLockSchedule:
+                    payload = Lock.encodeCmdSetLockParamAutoLockSchedule(
+                        value as boolean,
+                        device.getPropertyValue(PropertyName.DeviceAutoLockScheduleStartTime) as string,
+                        device.getPropertyValue(PropertyName.DeviceAutoLockScheduleEndTime) as string,
+                    );
+                    break;
+                case PropertyName.DeviceAutoLockScheduleStartTime:
+                    payload = Lock.encodeCmdSetLockParamAutoLockSchedule(
+                        device.getPropertyValue(PropertyName.DeviceAutoLockSchedule) as boolean,
+                        value as string,
+                        device.getPropertyValue(PropertyName.DeviceAutoLockScheduleEndTime) as string,
+                    );
+                    break;
+                case PropertyName.DeviceAutoLockScheduleEndTime:
+                    payload = Lock.encodeCmdSetLockParamAutoLockSchedule(
+                        device.getPropertyValue(PropertyName.DeviceAutoLockSchedule) as boolean,
+                        device.getPropertyValue(PropertyName.DeviceAutoLockScheduleStartTime) as string,
+                        value as string,
+                    );
+                    break;
+                case PropertyName.DeviceOneTouchLocking:
+                    payload = Lock.encodeCmdSetLockParamOneTouchLock(
+                        value as boolean,
+                    );
+                    break;
+                case PropertyName.DeviceScramblePasscode:
+                    payload = Lock.encodeCmdSetLockParamScramblePasscode(
+                        value as boolean,
+                    );
+                    break;
+                case PropertyName.DeviceSound:
+                    payload = Lock.encodeCmdSetLockParamSound(
+                        value as number,
+                    );
+                    break;
+                default:
+                    payload = Buffer.from([]);
+                    break;
+            }
+
+            this.log.debug(`device: ${device.getSerial()} property: ${property} value: ${value} payload: ${payload.toString("hex")}`);
+            const lockCommand = getLockV12P2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                ESLCommand.SET_LOCK_PARAM,
+                device.getChannel(),
+                this.lockPublicKey,
+                this.p2pSession.incLockSequenceNumber(),
+                Lock.encodeCmdStatus(this.rawStation.member.admin_user_id)
+            );
+            await this._sendLockV12P2PCommand(lockCommand, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setAutoLock(device: Device, value: boolean): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceAutoLock,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending auto lock command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceAutoLock, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            await this.setLockV12Params(device, PropertyName.DeviceAutoLock, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setAutoLockSchedule(device: Device, value: boolean): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceAutoLockSchedule,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending auto lock schedule command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceAutoLockSchedule, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            await this.setLockV12Params(device, PropertyName.DeviceAutoLockSchedule, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setAutoLockScheduleStartTime(device: Device, value: string): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceAutoLockScheduleStartTime,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending auto lock schedule start time command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceAutoLockScheduleStartTime, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            await this.setLockV12Params(device, PropertyName.DeviceAutoLockScheduleStartTime, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setAutoLockScheduleEndTime(device: Device, value: string): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceAutoLockScheduleEndTime,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending auto lock schedule end time command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceAutoLockScheduleEndTime, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            await this.setLockV12Params(device, PropertyName.DeviceAutoLockScheduleEndTime, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setAutoLockTimer(device: Device, value: number): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceAutoLockTimer,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending auto lock timer command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceAutoLockTimer, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            await this.setLockV12Params(device, PropertyName.DeviceAutoLockTimer, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setOneTouchLocking(device: Device, value: boolean): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceOneTouchLocking,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending one touch locking command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceOneTouchLocking, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            await this.setLockV12Params(device, PropertyName.DeviceOneTouchLocking, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setSound(device: Device, value: number): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceSound,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending sound command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceSound, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            await this.setLockV12Params(device, PropertyName.DeviceSound, value);
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setNotification(device: Device, value: boolean): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceNotification,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending notification command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceNotification, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            //TODO: Implmenet LockWifiR10 / LockWifiR20 commnand
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setNotificationLocked(device: Device, value: boolean): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceNotificationLocked,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending notification locked command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceNotificationLocked, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            //TODO: Implmenet LockWifiR10 / LockWifiR20 commnand
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setNotificationUnlocked(device: Device, value: boolean): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceNotificationUnlocked,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending notification unlocked command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            await this.setAdvancedLockParams(device, PropertyName.DeviceNotificationUnlocked, value);
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            //TODO: Implmenet LockWifiR10 / LockWifiR20 commnand
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    private async _sendLockV12P2PCommand(command: LockV12P2PCommand, customData?: CustomData): Promise<void> {
+        this.p2pSession.setLockAESKey(command.bleCommand, command.aesKey);
+        await this.p2pSession.sendCommandWithStringPayload(command.payload, customData);
+    }
+
+    public async queryAllUserId(device: Device): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceQueryAllUserId
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasCommand(commandData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending query all user id command to station ${this.getSerial()} for device ${device.getSerial()}`);
+        if (device.isLockBleNoFinger() || device.isLockBle()) {
+            //TODO: Finish implementation of query all user id for LockBleNoFinger / LockBle
+            /*const key = generateBasicLockAESKey(this.rawStation.member.admin_user_id, this.getSerial());
+            const iv = getLockVectorBytes(this.getSerial());
+            const lockCmd = Lock.encodeESLCmdOnOff(Number.parseInt(this.rawStation.member.short_user_id), this.rawStation.member.nick_name, value);
+            const payload: ESLStationP2PThroughData = {
+                channel: device.getChannel(),
+                lock_cmd: ESLBleCommand.ON_OFF_LOCK,
+                lock_payload: lockCmd.toString("base64"),
+                seq_num: this.p2pSession.incLockSequenceNumber()
+            };
+            const encPayload = encryptLockAESData(key, iv, encodeLockPayload(JSON.stringify(payload)));
+
+            this.log.debug("Locking/unlocking device...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: payload, encPayload: encPayload.toString("hex") });
+
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_DOORLOCK_DATA_PASS_THROUGH,
+                    "mValue3": 0,
+                    "payload": {
+                        "payload": encPayload.toString("base64")
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });*/
+        } else if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+            const nestedPayload = {
+                seq_num: this.p2pSession.incLockSequenceNumber()
+            };
+            const command = getLockP2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                CommandType.P2P_GET_USER_AND_PW_ID,
+                device.getChannel(),
+                this.lockPublicKey,
+                nestedPayload
+            );
+            this.p2pSession.setLockAESKey(CommandType.P2P_GET_USER_AND_PW_ID, command.aesKey);
+            this.log.debug("Querying all user id...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command, nestedPayload: nestedPayload });
+
+            await this.p2pSession.sendCommandWithStringPayload(command, {
+                command: commandData
+            });
+        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            //TODO: Finish implementation of query all user id for r10 / r20
+            /*const command = getLockV12P2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                ESLCommand.GET_USER_ID_AND_PW_ID,
+                device.getChannel(),
+                this.lockPublicKey,
+                this.p2pSession.incLockSequenceNumber(),
+                Lock.encodeCmd(this.rawStation.member.short_user_id, value === true ? 1 : 0, this.rawStation.member.nick_name)
+            );
+            this.log.debug("Querying all user id...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command.payload });
+
+            await this._sendLockV12P2PCommand(command, {
+                command: commandData
+            });*/
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
     }
 
 }

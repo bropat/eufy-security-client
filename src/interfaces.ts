@@ -1,13 +1,13 @@
 import { Readable } from "stream";
 
 import { Device } from "./http/device";
-import { HTTPApiPersistentData, PropertyValue } from "./http/interfaces";
+import { HTTPApiPersistentData, PropertyValue, Schedule } from "./http/interfaces";
 import { Station } from "./http/station";
 import { DeviceSmartLockMessage } from "./mqtt/model";
 import { StreamMetadata } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
 import { TalkbackStream } from "./p2p/talkback";
-import { AlarmEvent } from "./p2p/types";
+import { AlarmEvent, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent } from "./p2p/types";
 import { Credentials, PushMessage } from "./push/models";
 
 export interface EufySecurityConfig {
@@ -49,6 +49,18 @@ export interface EufySecurityEvents {
     "device rings": (device: Device, state: boolean) => void;
     "device locked": (device: Device, state: boolean) => void;
     "device open": (device: Device, state: boolean) => void;
+    "device package delivered": (device: Device, state: boolean) => void;
+    "device package stranded": (device: Device, state: boolean) => void;
+    "device package taken": (device: Device, state: boolean) => void;
+    "device someone loitering": (device: Device, state: boolean) => void;
+    "device radar motion detected": (device: Device, state: boolean) => void;
+    "device 911 alarm": (device: Device, state: boolean, detail: SmartSafeAlarm911Event) => void;
+    "device shake alarm": (device: Device, state: boolean, detail: SmartSafeShakeAlarmEvent) => void;
+    "device wrong try-protect alarm": (device: Device, state: boolean) => void;
+    "device long time not close": (device: Device, state: boolean) => void;
+    "device low battery": (device: Device, state: boolean) => void;
+    "device jammed": (device: Device, state: boolean) => void;
+    "device pin verified": (device: Device, successfull: boolean) => void;
     "station added": (station: Station) => void;
     "station removed": (station: Station) => void;
     "station livestream start": (station: Station, device: Device, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
@@ -68,6 +80,7 @@ export interface EufySecurityEvents {
     "station alarm armed": (station: Station) => void;
     "station alarm arm delay event": (station: Station, armDelay: number) => void;
     "station connect": (station: Station) => void;
+    "station connection error": (station: Station, error: Error) => void;
     "station close": (station: Station) => void;
     "station talkback start": (station: Station, device: Device, talkbackStream: TalkbackStream) => void;
     "station talkback stop": (station: Station, device: Device) => void;
@@ -83,4 +96,10 @@ export interface EufySecurityEvents {
     "mqtt connect": () => void;
     "mqtt close": () => void;
     "mqtt lock message": (message: DeviceSmartLockMessage) => void;
+    "user added": (device: Device, username: string, schedule?: Schedule) => void;
+    "user deleted": (device: Device, username: string) => void;
+    "user error": (device: Device, username: string, error: Error) => void;
+    "user username updated": (device: Device, username: string) => void;
+    "user schedule updated": (device: Device, username: string, schedule: Schedule) => void;
+    "user passcode updated": (device: Device, username: string) => void;
 }

@@ -1,4 +1,5 @@
 export * from "./api";
+export * from "./cache";
 export * from "./device";
 export * from "./interfaces";
 export * from "./models";

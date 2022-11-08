@@ -1,7 +1,8 @@
 import { createCipheriv } from "crypto";
 
 import { Device } from "./device";
-import { NotificationSwitchMode, DeviceType, WifiSignalLevel } from "./types";
+import { Schedule } from "./interfaces";
+import { NotificationSwitchMode, DeviceType, WifiSignalLevel, HB3DetectionTypes } from "./types";
 
 export const isGreaterEqualMinVersion = function(minimal_version: string, current_version: string): boolean {
     if (minimal_version === undefined)
@@ -176,6 +177,39 @@ export const getDistances = function(blocklist: Array<number>): Array<number> {
                 }
                 valueOf = valueOf >> 1;
             }
+        }
+    }
+    return result;
+}
+
+export const isHB3DetectionModeEnabled = function(value: number, type: HB3DetectionTypes): boolean {
+    if (type === HB3DetectionTypes.HUMAN_RECOGNITION) {
+        return (type & value) == type && (value & 65536) == 65536;
+    } else if (type === HB3DetectionTypes.HUMAN_DETECTION) {
+        return (type & value) == type && (value & 1) == 1;
+    }
+    return (type & value) == type;
+}
+
+export const getHB3DetectionMode = function(value: number, type: HB3DetectionTypes, enable: boolean): number {
+    let result = 0;
+    if (!enable) {
+        if (type === HB3DetectionTypes.HUMAN_RECOGNITION) {
+            const tmp = (type & value) == type ? type ^ value : value;
+            result = (value & 65536) == 65536 ? tmp ^ 65536 : tmp;
+        } else if (type === HB3DetectionTypes.HUMAN_DETECTION) {
+            const tmp = (type & value) == type ? type ^ value : value;
+            result = (value & 1) == 1 ? tmp ^ 1 : tmp;
+        } else {
+            result = type ^ value;
+        }
+    } else {
+        if (type === HB3DetectionTypes.HUMAN_RECOGNITION) {
+            result =  type | value | 65536;
+        } else if (type === HB3DetectionTypes.HUMAN_DETECTION) {
+            result =  type | value | 1;
+        } else {
+            result = type | value;
         }
     }
     return result;
@@ -3229,3 +3263,101 @@ export const getAdvancedLockTimezone = function(stationSN: string): string {
     }
     return "";
 };
+
+export class SmartSafeByteWriter {
+
+    private split_byte = -95;
+    private data = Buffer.from([]);
+
+    public write(bytes: Buffer): void {
+        const tmp_data = Buffer.from(bytes);
+        this.data = Buffer.concat([ this.data, Buffer.from([this.split_byte]), Buffer.from([tmp_data.length & 255]), tmp_data]);
+        this.split_byte += 1;
+    }
+
+    public getData(): Buffer {
+        return this.data;
+    }
+
+}
+
+/*export const generateHash = function(data: Buffer): number {
+    let result = 0;
+    for (const value of data) {
+        result = result ^ value;
+    }
+    return result;
+}
+
+export const encodeSmartSafeData = function(command: number, payload: Buffer): Buffer {
+    const header = Buffer.from(SmartSafe.DATA_HEADER);
+    const size = Buffer.allocUnsafe(2);
+    size.writeInt16LE(payload.length + 9);
+    const versionCode = Buffer.from([SmartSafe.VERSION_CODE]);
+    const dataType = Buffer.from([-1]);
+    const commandCode = Buffer.from([command]);
+    const packageFlag = Buffer.from([-64]);
+    const data = Buffer.concat([header, size, versionCode, dataType, commandCode, packageFlag, payload]);
+    const hash = generateHash(data);
+    return Buffer.concat([data, Buffer.from([hash])]);
+}*/
+
+export const encodePasscode = function(pass: string): string {
+    let result = "";
+    for (let i = 0; i < pass.length; i++)
+        result += pass.charCodeAt(i).toString(16);
+    return result;
+}
+
+export const hexDate = function(date: Date): string {
+    const buf = Buffer.allocUnsafe(4);
+    buf.writeUint8(date.getDate());
+    buf.writeUint8(date.getMonth() + 1, 1);
+    buf.writeUint16BE(date.getFullYear(), 2);
+    return buf.readUInt32LE().toString(16).padStart(8, "0");
+}
+
+export const hexTime = function(date: Date): string {
+    const buf = Buffer.allocUnsafe(2);
+    buf.writeUint8(date.getHours());
+    buf.writeUint8(date.getMinutes(), 1);
+    return buf.readUInt16BE().toString(16).padStart(4, "0");
+}
+
+export const hexWeek = function(schedule: Schedule): string {
+    const SUNDAY    = 1;
+    const MONDAY    = 2;
+    const TUESDAY   = 4;
+    const WEDNESDAY = 8;
+    const THUERSDAY = 16;
+    const FRIDAY    = 32;
+    const SATURDAY  = 64;
+
+    let result = 0;
+
+    if (schedule.week !== undefined) {
+        if (schedule.week.sunday) {
+            result |= SUNDAY;
+        }
+        if (schedule.week.monday) {
+            result |= MONDAY;
+        }
+        if (schedule.week.tuesday) {
+            result |= TUESDAY;
+        }
+        if (schedule.week.wednesday) {
+            result |= WEDNESDAY;
+        }
+        if (schedule.week.thursday) {
+            result |= THUERSDAY;
+        }
+        if (schedule.week.friday) {
+            result |= FRIDAY;
+        }
+        if (schedule.week.saturday) {
+            result |= SATURDAY;
+        }
+        return result.toString(16);
+    }
+    return "ff";
+}
