@@ -1692,6 +1692,8 @@ export class IndoorCamera extends Camera {
             this.emit("sound detected", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DevicePetDetected) {
             this.emit("pet detected", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceVehicleDetected) {
+            this.emit("vehicle detected", this, newValue as boolean);
         }
     }
 
