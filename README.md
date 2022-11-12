@@ -85,6 +85,7 @@ Please use GitHub issues for this.
 * (bropat) Added Station alarm properties
 * (bropat) Added `connection error` event to HTTPApi and EufySecurity
 * (bropat) Changed default value of `trustedDeviceName`
+* (martijnpoppen) NEW: HB3 Vehicle Detection (#241)
 
 ### 2.2.2 (2022-11-06)
 
