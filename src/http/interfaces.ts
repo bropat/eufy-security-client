@@ -154,6 +154,7 @@ export interface HTTPApiEvents {
     "houses": (houses: Houses) => void;
     "connect": () => void;
     "close": () => void;
+    "connection error": (error: Error) => void;
     "tfa request": () => void;
     "captcha request": (id: string, captcha: string) => void;
     "auth token invalidated": () => void;

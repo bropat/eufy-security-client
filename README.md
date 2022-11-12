@@ -80,6 +80,12 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.2.3 (2022-11-12)
+
+* (bropat) Added Station alarm properties
+* (bropat) Added `connection error` event to HTTPApi and EufySecurity
+* (bropat) Changed default value of `trustedDeviceName`
+
 ### 2.2.2 (2022-11-06)
 
 * (bropat) Fixed issue identifying alarm delay

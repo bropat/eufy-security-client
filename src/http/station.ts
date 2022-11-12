@@ -143,10 +143,19 @@ export class Station extends TypedEmitter<StationEvents> {
         if (
             (this.properties[name] !== undefined && this.properties[name] !== value)
             || this.properties[name] === undefined) {
-
+            const oldValue = this.properties[name];
             this.properties[name] = value;
             if (this.ready)
                 this.emit("property changed", this, name, value);
+            try {
+                this.handlePropertyChange(this.getPropertyMetadata(name), oldValue, this.properties[name]);
+            } catch (error) {
+                if (error instanceof InvalidPropertyError) {
+                    this.log.error(`Invalid Property ${name} error`, error);
+                } else {
+                    this.log.error(`Property ${name} error`, error);
+                }
+            }
             return true;
         }
         return false;
@@ -157,6 +166,32 @@ export class Station extends TypedEmitter<StationEvents> {
             const param_type = Number.parseInt(paramtype);
             this.updateRawProperty(param_type, values[param_type]);
         });
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
+        if (metadata.name === PropertyName.StationCurrentMode) {
+            //TODO: Finish implementation!
+            if (newValue === AlarmMode.DISARMED) {
+                if (this.hasProperty(PropertyName.StationAlarmArmed)) {
+                    this.updateProperty(PropertyName.StationAlarmArmed, false);
+                }
+                if (this.hasProperty(PropertyName.StationAlarmDelay)) {
+                    this.updateProperty(PropertyName.StationAlarmDelay, 0);
+                }
+                if (this.hasProperty(PropertyName.StationAlarmDelayType)) {
+                    this.updateProperty(PropertyName.StationAlarmDelayType, 0);
+                }
+                if (this.hasProperty(PropertyName.StationAlarm)) {
+                    this.updateProperty(PropertyName.StationAlarm, false);
+                }
+                if (this.hasProperty(PropertyName.StationAlarmType)) {
+                    this.updateProperty(PropertyName.StationAlarmType, 0);
+                }
+            } /*else if (this.hasProperty(PropertyName.StationAlarmArmed)) { //TODO: Type !== HB3 or STATION
+                this.updateProperty(PropertyName.StationAlarmArmed, this.isAlarmArmable(newValue as AlarmMode));
+            }*/
+        }
     }
 
     public updateRawProperty(type: number, value: string): boolean {
@@ -516,14 +551,69 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onAlarmDelay(alarmDelayEvent: AlarmEvent, alarmDelay: number): void {
         this.emit("alarm delay event", this, alarmDelayEvent, alarmDelay);
+        if (this.hasProperty(PropertyName.StationAlarmDelay)) {
+            this.updateProperty(PropertyName.StationAlarmDelay, alarmDelay);
+        }
+        if (this.hasProperty(PropertyName.StationAlarmDelayType)) {
+            this.updateProperty(PropertyName.StationAlarmDelayType, alarmDelayEvent);
+        }
     }
 
     private onAlarmArmed(): void {
         this.emit("alarm armed event", this);
+        if (this.hasProperty(PropertyName.StationAlarmArmDelay)) {
+            this.updateProperty(PropertyName.StationAlarmArmDelay, 0);
+        }
+        /*if (this.hasProperty(PropertyName.StationAlarmArmed) && this.hasProperty(PropertyName.StationCurrentMode)) {
+            this.updateProperty(PropertyName.StationAlarmArmed, this.isAlarmArmable(this.getPropertyValue(PropertyName.StationCurrentMode) as AlarmMode));
+        }*/
+        if (this.hasProperty(PropertyName.StationAlarmArmed)) {
+            this.updateProperty(PropertyName.StationAlarmArmed, true);
+        }
+        if (this.hasProperty(PropertyName.StationAlarmDelay)) {
+            this.updateProperty(PropertyName.StationAlarmDelay, 0);
+        }
+        if (this.hasProperty(PropertyName.StationAlarmDelayType)) {
+            this.updateProperty(PropertyName.StationAlarmDelayType, 0);
+        }
+        if (this.hasProperty(PropertyName.StationAlarm)) {
+            this.updateProperty(PropertyName.StationAlarm, false);
+        }
+        if (this.hasProperty(PropertyName.StationAlarmType)) {
+            this.updateProperty(PropertyName.StationAlarmType, 0);
+        }
     }
 
     private onAlarmEvent(alarmEvent: AlarmEvent): void {
         this.emit("alarm event", this, alarmEvent);
+        if (this.hasProperty(PropertyName.StationAlarmDelay)) {
+            this.updateProperty(PropertyName.StationAlarmDelay, 0);
+        }
+        if (this.hasProperty(PropertyName.StationAlarmDelayType)) {
+            this.updateProperty(PropertyName.StationAlarmDelayType, 0);
+        }
+        switch (alarmEvent) {
+            case AlarmEvent.DEV_STOP:
+            case AlarmEvent.HUB_STOP:
+            case AlarmEvent.HUB_STOP_BY_APP:
+            case AlarmEvent.HUB_STOP_BY_HAND:
+            case AlarmEvent.HUB_STOP_BY_KEYPAD:
+                if (this.hasProperty(PropertyName.StationAlarm)) {
+                    this.updateProperty(PropertyName.StationAlarm, false);
+                }
+                if (this.hasProperty(PropertyName.StationAlarmType)) {
+                    this.updateProperty(PropertyName.StationAlarmType, 0);
+                }
+                break;
+            default:
+                if (this.hasProperty(PropertyName.StationAlarm)) {
+                    this.updateProperty(PropertyName.StationAlarm, true);
+                }
+                if (this.hasProperty(PropertyName.StationAlarmType)) {
+                    this.updateProperty(PropertyName.StationAlarmType, alarmEvent);
+                }
+                break;
+        }
     }
 
     public async setGuardMode(mode: GuardMode): Promise<void> {
@@ -594,6 +684,30 @@ export class Station extends TypedEmitter<StationEvents> {
         const armDelay = this.getArmDelay(mode);
         if (armDelay > 0) {
             this.emit("alarm arm delay event", this, armDelay);
+            if (this.hasProperty(PropertyName.StationAlarmArmDelay)) {
+                this.updateProperty(PropertyName.StationAlarmArmDelay, armDelay);
+            }
+        }
+
+        if (mode === AlarmMode.DISARMED) {
+            if (this.hasProperty(PropertyName.StationAlarmArmDelay)) {
+                this.updateProperty(PropertyName.StationAlarmArmDelay, 0);
+            }
+            if (this.hasProperty(PropertyName.StationAlarmArmed)) {
+                this.updateProperty(PropertyName.StationAlarmArmed, false);
+            }
+            if (this.hasProperty(PropertyName.StationAlarmDelay)) {
+                this.updateProperty(PropertyName.StationAlarmDelay, 0);
+            }
+            if (this.hasProperty(PropertyName.StationAlarmDelayType)) {
+                this.updateProperty(PropertyName.StationAlarmDelayType, 0);
+            }
+            if (this.hasProperty(PropertyName.StationAlarm)) {
+                this.updateProperty(PropertyName.StationAlarm, false);
+            }
+            if (this.hasProperty(PropertyName.StationAlarmType)) {
+                this.updateProperty(PropertyName.StationAlarmType, 0);
+            }
         }
 
         // Trigger refresh Guard Mode
@@ -632,6 +746,43 @@ export class Station extends TypedEmitter<StationEvents> {
         }
         return 0;
     }
+
+    /*private getGuardModeActionSetting(mode: AlarmMode): number {
+        //TODO: This settings are only available on the device properties...
+        let value = 0;
+        try {
+            switch (mode) {
+                case AlarmMode.HOME:
+                    value = Number.parseInt(this.getRawProperty(CommandType.CMD_GET_HOME_ACTION));
+                    break;
+                case AlarmMode.AWAY:
+                    value = Number.parseInt(this.getRawProperty(CommandType.CMD_GET_AWAY_ACTION));
+                    break;
+                case AlarmMode.CUSTOM1:
+                    value = Number.parseInt(this.getRawProperty(CommandType.CMD_GET_CUSTOM1_ACTION));
+                    break;
+                case AlarmMode.CUSTOM2:
+                    value = Number.parseInt(this.getRawProperty(CommandType.CMD_GET_CUSTOM2_ACTION));
+                    break;
+                case AlarmMode.CUSTOM3:
+                    value = Number.parseInt(this.getRawProperty(CommandType.CMD_GET_CUSTOM3_ACTION));
+                    break;
+            }
+        } catch (error) {
+            this.log.debug(`Station ${this.getSerial()} - getGuardModeActionSetting - Error`, { error: error, mode: mode });
+        }
+        return value;
+    }
+
+    private isAlarmArmable(mode: AlarmMode): boolean {
+        const action = this.getGuardModeActionSetting(mode);
+        if ((action & GuardModeSecuritySettingsAction.CAMERA_ALARM) == GuardModeSecuritySettingsAction.CAMERA_ALARM ||
+            (action & GuardModeSecuritySettingsAction.HOMEBASE_ALARM) == GuardModeSecuritySettingsAction.HOMEBASE_ALARM ||
+            (action & GuardModeSecuritySettingsAction.LIGHT_ALARM) == GuardModeSecuritySettingsAction.LIGHT_ALARM) {
+            return true;
+        }
+        return false;
+    }*/
 
     private _getDeviceSerial(channel: number): string {
         if (this.rawStation.devices)

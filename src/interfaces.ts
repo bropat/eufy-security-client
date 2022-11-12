@@ -34,6 +34,7 @@ export interface EufySecurityPersistentData {
     push_persistentIds: string[];
     version: string;
     httpApi?: HTTPApiPersistentData;
+    fallbackTrustedDeviceName?: string;
 }
 
 export interface EufySecurityEvents {
@@ -89,6 +90,7 @@ export interface EufySecurityEvents {
     "push message": (message: PushMessage) => void;
     "connect": () => void;
     "close": () => void;
+    "connection error": (error: Error) => void;
     "tfa request": () => void;
     "captcha request": (id: string, captcha: string) => void;
     "cloud livestream start": (station: Station, device: Device, url: string) => void;

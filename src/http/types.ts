@@ -248,6 +248,17 @@ export enum NotificationSwitchMode {
     KEYPAD = 128,
 }
 
+export enum GuardModeSecuritySettingsAction {
+    VIDEO_RECORDING = 1,
+    CAMERA_ALARM = 2,
+    HOMEBASE_ALARM = 4,
+    NOTIFICATON = 8,
+    PRIVACY = 16,
+    LIGHT_ALARM = 32,
+    PROFESSIONAL_SECURITY = 64,
+}
+
+
 export enum TimeFormat {
     FORMAT_12H = 0,
     FORMAT_24H = 1,
@@ -591,6 +602,12 @@ export enum PropertyName {
     StationCustom2SecuritySettings = "stationCustom2SecuritySettings",
     StationCustom3SecuritySettings = "stationCustom3SecuritySettings",
     StationOffSecuritySettings = "stationOffSecuritySettings",
+    StationAlarm = "alarm",
+    StationAlarmType = "alarmType",
+    StationAlarmArmed = "alarmArmed",
+    StationAlarmArmDelay = "alarmArmDelay",
+    StationAlarmDelay = "alarmDelay",
+    StationAlarmDelayType = "alarmDelayType",
 
 }
 
@@ -5253,6 +5270,102 @@ export const StationTurnOffAlarmWithButtonProperty: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
+export const StationAlarmProperty: PropertyMetadataBoolean = {
+    key: "custom_alarm",
+    name: PropertyName.StationAlarm,
+    label: "Alarm",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+    default: false,
+}
+
+export const StationAlarmTypeProperty: PropertyMetadataNumeric = {
+    key: "custom_alarmType",
+    name: PropertyName.StationAlarmType,
+    label: "Alarm Type",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "None",
+        2: "Theft",
+        3: "Motion",
+        4: "Manual",
+        5: "Overheating",
+        6: "Door",
+        7: "Camera Motion",
+        8: "Motion Sensor",
+        9: "Camera Theft",
+        10: "Camera Manual",
+        11: "Camera Linkage",
+        13: "Keypad",
+        /*22: "App Light",
+        23: "App Light Sound",
+        24: "Motion App Light",
+        25: "Motion App Light Alarm",*/
+    },
+    default: 0,
+}
+
+export const StationAlarmArmedProperty: PropertyMetadataBoolean = {
+    key: "custom_alarmArmed",
+    name: PropertyName.StationAlarmArmed,
+    label: "Alarm Armed",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+    default: false,
+}
+
+export const StationAlarmArmDelayProperty: PropertyMetadataNumeric = {
+    key: "custom_alarmArmDelay",
+    name: PropertyName.StationAlarmArmDelay,
+    label: "Alarm Arm Delay",
+    readable: true,
+    writeable: true,
+    type: "number",
+    default: 0,
+}
+
+export const StationAlarmDelayProperty: PropertyMetadataNumeric = {
+    key: "custom_alarmDelay",
+    name: PropertyName.StationAlarmDelay,
+    label: "Alarm Delay",
+    readable: true,
+    writeable: true,
+    type: "number",
+    default: 0,
+}
+
+export const StationAlarmDelayTypeProperty: PropertyMetadataNumeric = {
+    key: "custom_alarmDelayType",
+    name: PropertyName.StationAlarmDelayType,
+    label: "Alarm Delay Type",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "None",
+        2: "Theft",
+        3: "Motion",
+        4: "Manual",
+        5: "Overheating",
+        6: "Door",
+        7: "Camera Motion",
+        8: "Motion Sensor",
+        9: "Camera Theft",
+        10: "Camera Manual",
+        11: "Camera Linkage",
+        13: "Keypad",
+        /*22: "App Light",
+        23: "App Light Sound",
+        24: "Motion App Light",
+        25: "Motion App Light Alarm",*/
+    },
+    default: 0,
+}
+
 export const StationProperties: Properties = {
     [DeviceType.STATION]: {
         ...BaseStationProperties,
@@ -5275,6 +5388,12 @@ export const StationProperties: Properties = {
         [PropertyName.StationCustom2SecuritySettings]: StationCustom2SecuritySettings,
         [PropertyName.StationCustom3SecuritySettings]: StationCustom3SecuritySettings,
         [PropertyName.StationOffSecuritySettings]: StationOffSecuritySettings,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+        [PropertyName.StationAlarmArmed]: StationAlarmArmedProperty,
+        [PropertyName.StationAlarmArmDelay]: StationAlarmArmDelayProperty,
+        [PropertyName.StationAlarmDelay]: StationAlarmDelayProperty,
+        [PropertyName.StationAlarmDelayType]: StationAlarmDelayTypeProperty,
     },
     [DeviceType.HB3]: {
         ...BaseStationProperties,
@@ -5297,6 +5416,12 @@ export const StationProperties: Properties = {
         [PropertyName.StationCustom2SecuritySettings]: StationCustom2SecuritySettings,
         [PropertyName.StationCustom3SecuritySettings]: StationCustom3SecuritySettings,
         [PropertyName.StationOffSecuritySettings]: StationOffSecuritySettings,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+        [PropertyName.StationAlarmArmed]: StationAlarmArmedProperty,
+        [PropertyName.StationAlarmArmDelay]: StationAlarmArmDelayProperty,
+        [PropertyName.StationAlarmDelay]: StationAlarmDelayProperty,
+        [PropertyName.StationAlarmDelayType]: StationAlarmDelayTypeProperty,
     },
     [DeviceType.INDOOR_CAMERA]: {
         ...BaseStationProperties,
@@ -5305,6 +5430,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.INDOOR_CAMERA_1080]: {
         ...BaseStationProperties,
@@ -5313,6 +5440,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.INDOOR_PT_CAMERA]: {
         ...BaseStationProperties,
@@ -5321,6 +5450,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.INDOOR_COST_DOWN_CAMERA]: {
         ...BaseStationProperties,
@@ -5329,6 +5460,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.INDOOR_PT_CAMERA_1080]: {
         ...BaseStationProperties,
@@ -5337,6 +5470,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P]: {
         ...BaseStationProperties,
@@ -5345,6 +5480,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT]: {
         ...BaseStationProperties,
@@ -5353,6 +5490,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.INDOOR_OUTDOOR_CAMERA_2K]: {
         ...BaseStationProperties,
@@ -5361,6 +5500,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.DOORBELL]: {
         ...BaseStationProperties,
@@ -5385,6 +5526,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.SOLO_CAMERA_PRO]: {
         ...BaseStationProperties,
@@ -5393,6 +5536,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_1080]: {
         ...BaseStationProperties,
@@ -5401,6 +5546,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_2K]: {
         ...BaseStationProperties,
@@ -5409,6 +5556,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR]: {
         ...BaseStationProperties,
@@ -5417,6 +5566,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.FLOODLIGHT]: {
         ...BaseStationProperties,
@@ -5425,6 +5576,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.FLOODLIGHT_CAMERA_8422]: {
         ...BaseStationProperties,
@@ -5433,6 +5586,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.FLOODLIGHT_CAMERA_8423]: {
         ...BaseStationProperties,
@@ -5441,6 +5596,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.FLOODLIGHT_CAMERA_8424]: {
         ...BaseStationProperties,
@@ -5449,6 +5606,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
     [DeviceType.LOCK_WIFI]: {
         ...BaseStationProperties,
