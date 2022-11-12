@@ -45,6 +45,7 @@ export interface EufySecurityEvents {
     "device crying detected": (device: Device, state: boolean) => void;
     "device sound detected": (device: Device, state: boolean) => void;
     "device pet detected": (device: Device, state: boolean) => void;
+    "device vehicle detected": (device: Device, state: boolean) => void;
     "device motion detected": (device: Device, state: boolean) => void;
     "device person detected": (device: Device, state: boolean, person: string) => void;
     "device rings": (device: Device, state: boolean) => void;
