@@ -4748,6 +4748,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceBatteryLow]: DeviceBatteryLowKeypadProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIKeypadProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceBatteryIsCharging]: DeviceBatteryIsChargingKeypadProperty,
     },
     [DeviceType.LOCK_WIFI]: {
