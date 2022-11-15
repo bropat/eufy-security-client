@@ -14,7 +14,7 @@ import { ParameterHelper } from "./parameter";
 import { encryptPassword, getTimezoneGMTString } from "./utils";
 import { InvalidCountryCodeError, InvalidLanguageCodeError } from "./../error";
 import { md5, mergeDeep } from "./../utils";
-import { ApiBaseLoadError } from "./error";
+import { ApiBaseLoadError, ApiGenericError, ApiHTTPResponseCodeError, ApiInvalidResponseError, ApiResponseCodeError } from "./error";
 
 export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
@@ -283,49 +283,57 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
-                        const dataresult: LoginResultResponse = result.data;
+                    if (result.data !== undefined) {
+                        if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                            const dataresult: LoginResultResponse = result.data;
 
-                        this.persistentData.user_id = dataresult.user_id;
-                        this.persistentData.email = dataresult.email;
-                        this.persistentData.nick_name = dataresult.nick_name;
+                            this.persistentData.user_id = dataresult.user_id;
+                            this.persistentData.email = dataresult.email;
+                            this.persistentData.nick_name = dataresult.nick_name;
 
-                        this.setToken(dataresult.auth_token);
-                        this.tokenExpiration = new Date(dataresult.token_expires_at * 1000);
-                        this.headers = {
-                            ...this.headers,
-                            gtoken: md5(dataresult.user_id)
-                        };
-                        /*if (dataresult.server_secret_info?.public_key)
-                            this.serverPublicKey = dataresult.server_secret_info.public_key;*/
-                        this.log.debug("Token data", { token: this.token, tokenExpiration: this.tokenExpiration });
-                        if (!this.connected) {
-                            this.connected = true;
-                            this.emit("connect");
+                            this.setToken(dataresult.auth_token);
+                            this.tokenExpiration = new Date(dataresult.token_expires_at * 1000);
+                            this.headers = {
+                                ...this.headers,
+                                gtoken: md5(dataresult.user_id)
+                            };
+                            /*if (dataresult.server_secret_info?.public_key)
+                                this.serverPublicKey = dataresult.server_secret_info.public_key;*/
+                            this.log.debug("Token data", { token: this.token, tokenExpiration: this.tokenExpiration });
+                            if (!this.connected) {
+                                this.connected = true;
+                                this.emit("connect");
+                            }
+                            this.scheduleRenewAuthToken();
+                        } else if (result.code == ResponseErrorCode.CODE_NEED_VERIFY_CODE) {
+                            this.log.debug(`Send verification code...`);
+                            const dataresult: LoginResultResponse = result.data;
+
+                            this.setToken(dataresult.auth_token);
+                            this.tokenExpiration = new Date(dataresult.token_expires_at * 1000);
+
+                            this.log.debug("Token data", { token: this.token, tokenExpiration: this.tokenExpiration });
+                            await this.sendVerifyCode(VerfyCodeTypes.TYPE_EMAIL);
+                            this.emit("tfa request");
+                        } else if (result.code == ResponseErrorCode.LOGIN_NEED_CAPTCHA || result.code == ResponseErrorCode.LOGIN_CAPTCHA_ERROR) {
+                            const dataresult: CaptchaResponse = result.data;
+                            this.log.debug("Captcha verification received", { captchaId: dataresult.captcha_id, item: dataresult.item });
+                            this.emit("captcha request", dataresult.captcha_id, dataresult.item);
+                        } else {
+                            this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                            this.emit("connection error", new ApiResponseCodeError(`Response code not ok (${result.code}).`));
                         }
-                        this.scheduleRenewAuthToken();
-                    } else if (result.code == ResponseErrorCode.CODE_NEED_VERIFY_CODE) {
-                        this.log.debug(`Send verification code...`);
-                        const dataresult: LoginResultResponse = result.data;
-
-                        this.setToken(dataresult.auth_token);
-                        this.tokenExpiration = new Date(dataresult.token_expires_at * 1000);
-
-                        this.log.debug("Token data", { token: this.token, tokenExpiration: this.tokenExpiration });
-                        await this.sendVerifyCode(VerfyCodeTypes.TYPE_EMAIL);
-                        this.emit("tfa request");
-                    } else if (result.code == ResponseErrorCode.LOGIN_NEED_CAPTCHA || result.code == ResponseErrorCode.LOGIN_CAPTCHA_ERROR) {
-                        const dataresult: CaptchaResponse = result.data;
-                        this.log.debug("Captcha verification received", { captchaId: dataresult.captcha_id, item: dataresult.item });
-                        this.emit("captcha request", dataresult.captcha_id, dataresult.item);
                     } else {
-                        this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                        this.log.error("Response data is missing", {code: result.code, msg: result.msg, data: result.data });
+                        this.emit("connection error", new ApiInvalidResponseError("Response data is missing"));
                     }
                 } else {
                     this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.emit("connection error", new ApiHTTPResponseCodeError(`HTTP response code not ok (${response.status}).`));
                 }
             } catch (error) {
                 this.log.error("Generic Error:", error);
+                this.emit("connection error", new ApiGenericError(`Generic error: ${error}`));
             }
         } else if (!this.connected) {
             try {
@@ -334,9 +342,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     this.connected = true;
                     this.emit("connect");
                     this.scheduleRenewAuthToken();
+                } else {
+                    this.emit("connection error", new ApiInvalidResponseError(`Invalid passport profile response`));
                 }
             } catch (error) {
                 this.log.error("getPassportProfile Error", error);
+                this.emit("connection error", new ApiGenericError(`Get passport profile error: ${error}`));
             }
         }
     }

@@ -1699,10 +1699,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 case CommandType.CMD_SET_TONE_FILE:
                     try {
                         this.log.debug(`Station ${this.rawStation.station_sn} - CMD_SET_TONE_FILE :`, { payload: message.data.toString("hex") });
-                        const alarmEventNumber = message.data.slice(0, 4).readUInt32LE();
-                        if (alarmEventNumber !== 0 && alarmEventNumber !== 1) {
-                            this.emit("alarm event", alarmEventNumber as AlarmEvent);
-                        }
+                        const alarmEventNumber: AlarmEvent = message.data.slice(0, 4).readUInt32LE();
+                        this.emit("alarm event", alarmEventNumber);
                     } catch (error) {
                         this.log.error(`Station ${this.rawStation.station_sn} - CMD_SET_TONE_FILE - Error:`, { error: error, payload: message.data.toString("hex") });
                     }

@@ -23,6 +23,8 @@ import { InvalidPropertyError } from "./http/error";
 import { ServerPushEvent } from "./push/types";
 import { MQTTService } from "./mqtt/service";
 import { TalkbackStream } from "./p2p/talkback";
+import { PhoneModels } from "./http/const";
+import { randomNumber } from "./http/utils";
 
 export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
@@ -93,9 +95,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (this.config.language === undefined) {
             this.config.language = "en";
         }
-        if (this.config.trustedDeviceName === undefined) {
-            this.config.trustedDeviceName = "eufyclient";
-        }
         if (this.config.eventDurationSeconds === undefined) {
             this.config.eventDurationSeconds = 10;
         }
@@ -142,6 +141,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.log.error("Handling update - Error:", error);
         }
 
+        if (this.config.trustedDeviceName === undefined) {
+            if (this.persistentData.fallbackTrustedDeviceName !== undefined) {
+                this.config.trustedDeviceName = this.persistentData.fallbackTrustedDeviceName;
+            } else {
+                const rnd = randomNumber(0, PhoneModels.length);
+                this.persistentData.fallbackTrustedDeviceName = PhoneModels[rnd];
+                this.config.trustedDeviceName = this.persistentData.fallbackTrustedDeviceName;
+            }
+        }
+
         this.api = await HTTPApi.initialize(this.config.country, this.config.username, this.config.password, this.log, this.persistentData.httpApi);
         this.api.setLanguage(this.config.language);
         this.api.setPhoneModel(this.config.trustedDeviceName);
@@ -154,6 +163,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.api.on("captcha request", (id: string, captcha: string) => this.onCaptchaRequest(id, captcha));
         this.api.on("auth token invalidated", () => this.onAuthTokenInvalidated());
         this.api.on("tfa request", () => this.onTfaRequest());
+        this.api.on("connection error", (error: Error) => this.onAPIConnectionError(error));
 
         if (this.persistentData.login_hash && this.persistentData.login_hash != "") {
             this.log.debug("Load previous login_hash:", this.persistentData.login_hash);
@@ -723,6 +733,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         } else {
             this.log.warn("No login data recevied to initialize MQTT connection...");
         }
+    }
+
+    private onAPIConnectionError(error: Error): void {
+        this.emit("connection error", error);
     }
 
     public async startStationLivestream(deviceSN: string): Promise<void> {

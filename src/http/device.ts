@@ -81,9 +81,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     this.log.error(`Property ${name} error`, error);
                 }
             }
-            /*} catch (error) {
-                this.log.error("updateProperty Error:", { name: name, value: value, error: error });
-            }*/
             return true;
         }
         return false;
