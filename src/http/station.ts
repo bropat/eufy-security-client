@@ -131,7 +131,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.updateProperty(property.name, property.default);
             }
         }
-        if (!cloudOnlyProperties) {
+        if (!cloudOnlyProperties && this.rawStation.params) {
             this.rawStation.params.forEach(param => {
                 this.updateRawProperty(param.param_type, param.param_value);
             });
