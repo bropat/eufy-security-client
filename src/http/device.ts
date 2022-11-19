@@ -55,7 +55,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 this.updateProperty(property.name, property.default);
             }
         }
-        if (!cloudOnlyProperties) {
+        if (!cloudOnlyProperties && this.rawDevice.params) {
             this.rawDevice.params.forEach(param => {
                 this.updateRawProperty(param.param_type, param.param_value);
             });
