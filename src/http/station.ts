@@ -7234,4 +7234,40 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
+    public async chimeHombase(value: number): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.StationChime,
+            value: value
+        };
+        if (!this.hasCommand(commandData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
+        if (this.rawStation.devices !== undefined) {
+            this.rawStation.devices.forEach((device) => {
+                if (Device.isDoorbell(device.device_type)) {
+                    throw new NotSupportedError(`This functionality is only supported on stations without registered Doorbells on it (${this.getSerial()})`);
+                }
+            });
+        }
+        this.log.debug(`Sending homebase chime command to station ${this.getSerial()} with value: ${value}`);
+        if (this.isStation()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_BAT_DOORBELL_DINGDONG_R,
+                    "mValue3": 0,
+                    "payload": {
+                        "dingdong_ringtone": value,
+                    }
+                }),
+                channel: 0
+            }, {
+                command: commandData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
+    }
+
 }

@@ -5787,6 +5787,7 @@ export enum CommandName {
     DeviceQueryAllUserId = "deviceQueryAllUserId",
     StationReboot = "stationReboot",
     StationTriggerAlarmSound = "stationTriggerAlarmSound",
+    StationChime = "stationChime",
 }
 
 export const DeviceCommands: Commands = {
@@ -6138,6 +6139,7 @@ export const StationCommands: Commands = {
     [DeviceType.STATION]: [
         CommandName.StationReboot,
         CommandName.StationTriggerAlarmSound,
+        CommandName.StationChime,
     ],
     [DeviceType.HB3]: [
         CommandName.StationReboot,
