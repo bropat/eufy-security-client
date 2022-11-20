@@ -87,6 +87,7 @@ Please use GitHub issues for this.
 * (bropat) Added debug information for analysed audio and video codecs at start of livestream
 * (bropat) Implemented fallback for configured empty string for setting `trustedDeviceName`
 * (bropat) Fixed unknown video codec issue
+* (bropat) Fixed issue #240
 * (martijnpoppen) FIX: keypad wifiSignalLevel property error (#245)
 * (martijnpoppen) FIX: issue when params are not available for rawDevice/rawStation (#246)
 

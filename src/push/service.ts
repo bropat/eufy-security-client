@@ -383,7 +383,11 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
                     normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
                     normalized_message.notification_style = push_data.notification_style;
-                } else if (Device.isIndoorCamera(normalized_message.type) || Device.isSoloCameras(normalized_message.type) || Device.isFloodLightT8420X(normalized_message.type, normalized_message.device_sn)) {
+                } else if (Device.isIndoorCamera(normalized_message.type) ||
+                    Device.isSoloCameras(normalized_message.type) ||
+                    Device.isFloodLightT8420X(normalized_message.type, normalized_message.device_sn) ||
+                    (Device.isFloodLight(normalized_message.type) && normalized_message.type !== DeviceType.FLOODLIGHT)
+                ) {
                     const push_data = message.payload.payload as IndoorPushData;
                     normalized_message.name = push_data.name ? push_data.name : "";
                     normalized_message.channel = push_data.channel;
