@@ -2,7 +2,7 @@ import { TypedEmitter } from "tiny-typed-emitter";
 import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
-import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOhterMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties } from "./types";
+import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOhterMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties } from "./types";
 import { ResultResponse, StreamResponse, DeviceListResponse, Voice } from "./models"
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices } from "./interfaces";
@@ -153,7 +153,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     protected convertRawPropertyValue(property: PropertyMetadataAny, value: string): PropertyValue {
         try {
             if (property.key === ParamType.PRIVATE_MODE || property.key === ParamType.OPEN_DEVICE || property.key === CommandType.CMD_DEVS_SWITCH) {
-                if (this.isIndoorCamera() || this.isWiredDoorbell() || this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8422 || this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424) {
+                if (this.isIndoorCamera() || (this.isWiredDoorbell() && !this.isWiredDoorbellT8200X()) || this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8422 || this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424) {
                     return value !== undefined ? (value === "true" ? true : false) : false;
                 }
                 return value !== undefined ? (value === "0" ? true : false) : false;
@@ -459,6 +459,42 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                         }
                     }
+                    case PropertyName.DeviceSnoozeStartTime: {
+                        const numericProperty = property as PropertyMetadataNumeric;
+                        try {
+                            return value !== undefined && (value as any).startTime !== undefined ? Number.parseInt((value as any).startTime) : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                        } catch (error) {
+                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeTime Error:", { property: property, value: value, error: error });
+                            return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
+                        }
+                    }
+                    case PropertyName.DeviceSnoozeHomebase: {
+                        const booleanProperty = property as PropertyMetadataBoolean;
+                        try {
+                            return value !== undefined && (value as any).homebase_onoff !== undefined ? ((value as any).homebase_onoff === 1 ? true : false) : (booleanProperty.default !== undefined ? booleanProperty.default : false);
+                        } catch (error) {
+                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeHomebase Error:", { property: property, value: value, error: error });
+                            return booleanProperty.default !== undefined ? booleanProperty.default : false;
+                        }
+                    }
+                    case PropertyName.DeviceSnoozeMotion: {
+                        const booleanProperty = property as PropertyMetadataBoolean;
+                        try {
+                            return value !== undefined && (value as any).motion_notify_onoff !== undefined ? ((value as any).motion_notify_onoff === 1 ? true : false) : (booleanProperty.default !== undefined ? booleanProperty.default : false);
+                        } catch (error) {
+                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeMotion Error:", { property: property, value: value, error: error });
+                            return booleanProperty.default !== undefined ? booleanProperty.default : false;
+                        }
+                    }
+                    case PropertyName.DeviceSnoozeChime: {
+                        const booleanProperty = property as PropertyMetadataBoolean;
+                        try {
+                            return value !== undefined && (value as any).chime_onoff !== undefined ? ((value as any).chime_onoff === 1 ? true : false) : (booleanProperty.default !== undefined ? booleanProperty.default : false);
+                        } catch (error) {
+                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeChime Error:", { property: property, value: value, error: error });
+                            return booleanProperty.default !== undefined ? booleanProperty.default : false;
+                        }
+                    }
                 }
             } else if (
                 property.name === PropertyName.DeviceMotionDetectionTypeHuman ||
@@ -537,6 +573,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (this.isFloodLightT8420X()) {
             metadata = {
                 ...FloodlightT8420XDeviceProperties
+            };
+        } else if (this.isWiredDoorbellT8200X()) {
+            metadata = {
+                ...WiredDoorbellT8200XDeviceProperties
             };
         }
         if (this.getStationSerial().startsWith("T8030") && metadata[PropertyName.DeviceMotionDetectionType] !== undefined && this.isCamera()) {
@@ -717,6 +757,12 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     static isWiredDoorbell(type: number): boolean {
         if (type == DeviceType.DOORBELL)
+            return true;
+        return false;
+    }
+
+    static isWiredDoorbellT8200X(type: number, serialnumber: string): boolean {
+        if (type == DeviceType.DOORBELL && serialnumber.startsWith("T8200") && serialnumber.length > 7 && serialnumber.charAt(6) === "6")
             return true;
         return false;
     }
@@ -980,6 +1026,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isWiredDoorbell(): boolean {
         return Device.isWiredDoorbell(this.rawDevice.device_type);
+    }
+
+    public isWiredDoorbellT8200X(): boolean {
+        return Device.isWiredDoorbellT8200X(this.rawDevice.device_type, this.rawDevice.device_sn);
     }
 
     public isWiredDoorbellDual(): boolean {

@@ -1126,7 +1126,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Sending motion detection command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if (device.isIndoorCamera() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isFloodLightT8420X()) {
+        if (device.isIndoorCamera() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isFloodLightT8420X() || device.isWiredDoorbellT8200X()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -1446,7 +1446,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
-        } else if (device.isSoloCameras()) {
+        } else if (device.isSoloCameras() || device.isWiredDoorbellT8200X()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -1628,6 +1628,19 @@ export class Station extends TypedEmitter<StationEvents> {
                         "value":0,
                         "voiceID":0,
                         "zonecount":0
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else if (device.isWiredDoorbellT8200X()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_SET_DETECT_TYPE,
+                    "data":{
+                        "value": value,
                     }
                 }),
                 channel: device.getChannel()
@@ -1889,6 +1902,19 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
+        } else if (device.isWiredDoorbellT8200X()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_INDOOR_SET_RECORD_AUDIO_ENABLE,
+                    "data":{
+                        "enable": value === true ? 1 : 0,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbell()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -1980,6 +2006,19 @@ export class Station extends TypedEmitter<StationEvents> {
                 value: value,
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else if (device.isWiredDoorbellT8200X()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_T8200X_SET_RINGTONE_VOLUME,
+                    "data":{
+                        "status": value,
+                    }
+                }),
                 channel: device.getChannel()
             }, {
                 property: propertyData
@@ -2174,6 +2213,19 @@ export class Station extends TypedEmitter<StationEvents> {
                         "voiceID": 0,
                         "zonecount": 0,
                         "transaction": `${new Date().getTime()}`,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else if (device.isWiredDoorbellT8200X()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_INDOOR_PUSH_NOTIFY_TYPE,
+                    "data": {
+                        "value": value,
                     }
                 }),
                 channel: device.getChannel()
@@ -3436,7 +3488,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         let param_value = value === true ? 0 : 1;
-        if ((device.isIndoorCamera() && !device.isIndoorCamMini()) || device.isWiredDoorbell() || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8422 || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424 || device.isFloodLightT8420X())
+        if ((device.isIndoorCamera() && !device.isIndoorCamMini()) || (device.isWiredDoorbell() && !device.isWiredDoorbellT8200X()) || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8422 || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424 || device.isFloodLightT8420X())
             param_value = value === true ? 1 : 0;
 
         this.log.debug(`Sending enable device command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
@@ -3575,8 +3627,8 @@ export class Station extends TypedEmitter<StationEvents> {
         this.log.debug(`Sending start livestream command to station ${this.getSerial()} for device ${device.getSerial()}`);
         const rsa_key = this.p2pSession.getRSAPrivateKey();
 
-        if (device.isSoloCameras() || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
-            this.log.debug(`Using CMD_DOORBELL_SET_PAYLOAD (solo cams) for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
+        if (device.isSoloCameras() || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 || device.isWiredDoorbellT8200X()) {
+            this.log.debug(`Using CMD_DOORBELL_SET_PAYLOAD (1) for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -3592,7 +3644,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 command: commandData
             });
         } else if (device.isWiredDoorbell() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isIndoorCamera() || (device.getSerial().startsWith("T8420") && isGreaterEqualMinVersion("2.0.4.8", this.getSoftwareVersion()))) {
-            this.log.debug(`Using CMD_DOORBELL_SET_PAYLOAD for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
+            this.log.debug(`Using CMD_DOORBELL_SET_PAYLOAD (2) for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -6503,15 +6555,14 @@ export class Station extends TypedEmitter<StationEvents> {
         }
         this.log.debug(`Sending snooze command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isDoorbell()) {
-            //TODO: To test if it works
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_SNOOZE_MODE,
                 value: JSON.stringify({
                     "account_id": this.rawStation.member.admin_user_id,
                     "snooze_time": value.snooze_time,
-                    //"startTime": 0,
+                    "startTime": `${Math.trunc(new Date().getTime() / 1000)}`,
                     "chime_onoff": value.snooze_chime !== undefined && value.snooze_chime ? 1 : 0,
-                    "motion_onoff": value.snooze_motion !== undefined && value.snooze_motion ? 1 : 0,
+                    "motion_notify_onoff": value.snooze_motion !== undefined && value.snooze_motion ? 1 : 0,
                     "homebase_onoff": value.snooze_homebase !== undefined && value.snooze_homebase ? 1 : 0,
                 }),
                 channel: device.getChannel()

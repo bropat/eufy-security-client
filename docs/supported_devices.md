@@ -26,6 +26,7 @@
 | ![T8423 image](_media/floodlight2pro_small.jpg) | Floodlight Cam 2 Pro (T8423) | :heavy_check_mark: | Firmware: 1.0.7.4 (20211219) |
 | ![T8424 image](_media/floodlight2_small.jpg) | Floodlight Cam 2 (T8424) | :heavy_check_mark: |  |
 | ![T8200 image](_media/wireddoorbell2k_small.jpg) | Wired Doorbell 2k (T8200) | :heavy_check_mark: |  |
+| ![T8200X image](_media/wireddoorbell2k_small.jpg) | Wired Doorbell 2k (T8200X) | :heavy_check_mark: | Firmware: 2.0.6.0 (20220826) |
 | ![T8201 image](_media/wireddoorbell1080p_small.jpg) | Wired Doorbell 1080p (T8201) | :heavy_check_mark: |  |
 | ![T8203 image](_media/wireddoorbelldual_small.jpg) | Video Doorbell Dual (T8203) | :heavy_check_mark: | Firmware: 2.0.4.6 (20220417) |
 | ![T8210 image](_media/batterydoorbell2k_small.jpg) | Battery Doorbell 2K (T8210) | :heavy_check_mark: |  |

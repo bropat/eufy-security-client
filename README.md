@@ -80,6 +80,16 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.3-0 (2022-11-xx)
+
+* (bropat) Added support for Wired Doorbell (T8200X)
+* (bropat) Added new property `snoozeStartTime`, `snoozeHomebase`, `snoozeChime` and `snoozeMotion` to supported devices
+* (bropat) Added debug information for analysed audio and video codecs at start of livestream
+* (bropat) Implemented fallback for configured empty string for setting `trustedDeviceName`
+* (bropat) Fixed unknown video codec issue
+* (martijnpoppen) FIX: keypad wifiSignalLevel property error (#245)
+* (martijnpoppen) FIX: issue when params are not available for rawDevice/rawStation (#246)
+
 ### 2.2.3 (2022-11-12)
 
 * (bropat) Added Station alarm properties

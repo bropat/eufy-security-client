@@ -141,7 +141,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.log.error("Handling update - Error:", error);
         }
 
-        if (this.config.trustedDeviceName === undefined) {
+        if (this.config.trustedDeviceName === undefined || this.config.trustedDeviceName === "") {
             if (this.persistentData.fallbackTrustedDeviceName !== undefined) {
                 this.config.trustedDeviceName = this.persistentData.fallbackTrustedDeviceName;
             } else {
@@ -1565,7 +1565,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         device.updateProperty(PropertyName.DeviceSnoozeTime, snoozeTime);
                     }
                     this.api.refreshAllData().then(() => {
-                        const snoozeStartTime = device.getPropertyValue(PropertyName.DeviceHiddenSnoozeStartTime) as number;
+                        const snoozeStartTime = device.getPropertyValue(PropertyName.DeviceSnoozeStartTime) as number;
                         const currentTime = Math.trunc(new Date().getTime() / 1000);
                         let timeoutMS;
                         if (snoozeStartTime !== undefined && snoozeStartTime !== 0) {
@@ -1576,6 +1576,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         this.deviceSnoozeTimeout[device.getSerial()] = setTimeout(() => {
                             device.updateProperty(PropertyName.DeviceSnooze, false);
                             device.updateProperty(PropertyName.DeviceSnoozeTime, 0);
+                            device.updateProperty(PropertyName.DeviceSnoozeStartTime, 0);
+                            if (device.hasProperty(PropertyName.DeviceSnoozeHomebase)) {
+                                device.updateProperty(PropertyName.DeviceSnoozeHomebase, false);
+                            }
+                            if (device.hasProperty(PropertyName.DeviceSnoozeMotion)) {
+                                device.updateProperty(PropertyName.DeviceSnoozeMotion, false);
+                            }
+                            if (device.hasProperty(PropertyName.DeviceSnoozeChime)) {
+                                device.updateProperty(PropertyName.DeviceSnoozeChime, false);
+                            }
                             delete this.deviceSnoozeTimeout[device.getSerial()];
                         }, timeoutMS);
                     }).catch(error => {
