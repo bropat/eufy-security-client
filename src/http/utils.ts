@@ -5,42 +5,42 @@ import { Device } from "./device";
 import { Schedule } from "./interfaces";
 import { NotificationSwitchMode, DeviceType, WifiSignalLevel, HB3DetectionTypes } from "./types";
 
-const isGreaterEqualMinVersion = function (minimal_version, current_version) {
-    const normalizeVersionString = function (version) {
-        var trimmed = version ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, "$1") : '',
-            pieces = trimmed.split(RegExp("\\.")),
-            partsLength,
-            parts = [],
-            value,
-            piece,
-            num,
-            i;
-        for (i = 0; i < pieces.length; i += 1) {
-            piece = pieces[i].replace(RegExp("\\D"), '');
-            num = parseInt(piece, 10);
+const normalizeVersionString = function (version: string): number[] {
+    const trimmed = version ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, "$1") : "";
+    const pieces = trimmed.split(RegExp("\\."));
+    const parts = [];
+    let value,
+        piece,
+        num,
+        i;
+    for (i = 0; i < pieces.length; i += 1) {
+        piece = pieces[i].replace(RegExp("\\D"), "");
+        num = parseInt(piece, 10);
 
-            if (isNaN(num)) {
-                num = 0;
-            }
-            parts.push(num);
+        if (isNaN(num)) {
+            num = 0;
         }
-        partsLength = parts.length;
-        for (i = partsLength - 1; i >= 0; i -= 1) {
-            value = parts[i];
-            if (value === 0) {
-                parts.length -= 1;
-            } else {
-                break;
-            }
+        parts.push(num);
+    }
+    const partsLength = parts.length;
+    for (i = partsLength - 1; i >= 0; i -= 1) {
+        value = parts[i];
+        if (value === 0) {
+            parts.length -= 1;
+        } else {
+            break;
         }
-        return parts;
-    };
-    
+    }
+    return parts;
+};
+
+export const isGreaterEqualMinVersion = function (minimal_version: string, current_version: string): boolean {
+
     const x = normalizeVersionString(minimal_version);
     const y = normalizeVersionString(current_version);
 
-    var size = Math.min(x.length, y.length),
-        i;
+    const size = Math.min(x.length, y.length);
+    let i;
 
     for (i = 0; i < size; i += 1) {
         if (x[i] !== y[i]) {
