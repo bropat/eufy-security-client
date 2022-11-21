@@ -80,7 +80,7 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 2.3-0 (2022-11-xx)
+### 2.3.0 (2022-11-xx)
 
 * (bropat) Added support for Wired Doorbell (T8200X)
 * (bropat) Added new property `snoozeStartTime`, `snoozeHomebase`, `snoozeChime` and `snoozeMotion` to supported devices
