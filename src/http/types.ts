@@ -1095,7 +1095,7 @@ export const DeviceLastChargingFalseEventsProperty: PropertyMetadataNumeric = {
 export const DeviceBatteryUsageLastWeekProperty: PropertyMetadataNumeric = {
     key: "battery_usage_last_week",
     name: PropertyName.DeviceBatteryUsageLastWeek,
-    label: "False Events since last charging",
+    label: "Battery usage last week",
     readable: true,
     writeable: false,
     type: "number",
@@ -1752,7 +1752,7 @@ export const DeviceRecordingClipLengthFloodlightProperty: PropertyMetadataNumeri
 export const DeviceRecordingRetriggerIntervalProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_DEV_RECORD_INTERVAL,
     name: PropertyName.DeviceRecordingRetriggerInterval,
-    label: "Recording Clip Length",
+    label: "Recording Retrigger Interval",
     readable: true,
     writeable: true,
     type: "number",
