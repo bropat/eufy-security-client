@@ -1710,6 +1710,16 @@ export const DeviceChargingStatusProperty: PropertyMetadataNumeric = {
     },
 }
 
+export const DeviceChargingStatusCamera3cProperty: PropertyMetadataNumeric = {
+    ...DeviceChargingStatusProperty,
+    states: {
+        0: "Unplugged",
+        1: "Charging",
+        3: "Plugged",
+        4: "Solar charging"
+    },
+}
+
 export const DeviceRecordingClipLengthProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_DEV_RECORD_TIMEOUT,
     name: PropertyName.DeviceRecordingClipLength,
@@ -1817,7 +1827,7 @@ export const DeviceVideoStreamingQualityCamera3Property: PropertyMetadataNumeric
     ...DeviceVideoStreamingQualityBatteryDoorbellProperty,
     states: {
         5: "Auto",
-        6: "Low ",
+        6: "Low",
         7: "Medium",
         8: "High",
         10: "Ultra 4K"
@@ -3725,7 +3735,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
         [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
-        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusCamera3cProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
