@@ -1069,7 +1069,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     header.commandId = data.slice(4, 6).readUIntLE(0, 2);
                     header.bytesToRead = data.slice(6, 10).readUIntLE(0, 4);
                     header.channel = data.slice(12, 13).readUInt8();
-                    header.signCode = data.slice(13, 14).readInt8();
+                    header.signCode = data.slice(13, 14).readUInt8();
                     header.type = data.slice(14, 15).readUInt8();
 
                     this.currentMessageBuilder[message.type].header = header;
