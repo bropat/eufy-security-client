@@ -45,6 +45,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private readonly P2P_DATA_HEADER_BYTES = 16;
 
     private readonly MAX_SEQUENCE_NUMBER = 65535;
+    /*
+    * SEQUENCE_PROCESSING_BOUNDARY is used to determine if an incoming sequence number
+    * that is lower than the expected one was already processed.
+    * If it is within the boundary, it is determined as 'already processed',
+    * If it is even lower, it is assumed that the sequence count has reached
+    * MAX_SEQUENCE_NUMBER and restarted at 0.
+    * */
+    private readonly SEQUENCE_PROCESSING_BOUNDARY = 20000; // worth of approx. 90 seconds of continous streaming
 
     private socket: Socket;
     private binded = false;
@@ -127,6 +135,22 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (sequence < this.MAX_SEQUENCE_NUMBER)
             return sequence + 1;
         return 0;
+    }
+
+    private _isBetween(n: number, lowBoundary: number, highBoundary: number): boolean {
+        if (n < lowBoundary) return false;
+        if (n >= highBoundary) return false;
+        return true;
+    }
+
+    private _wasSequenceNumberAlreadyProcessed(expectedSequence: number, receivedSequence: number): boolean {
+        if ((expectedSequence - this.SEQUENCE_PROCESSING_BOUNDARY) > 0) { // complete boundary without squence number reset
+            return this._isBetween(receivedSequence, expectedSequence - this.SEQUENCE_PROCESSING_BOUNDARY, expectedSequence);
+        } else { // there was a sequence number reset recently
+            let isInRangeAfterReset = this._isBetween(receivedSequence, 0, expectedSequence);
+            let isInRangeBeforeReset = this._isBetween(receivedSequence, this.MAX_SEQUENCE_NUMBER + (expectedSequence - this.SEQUENCE_PROCESSING_BOUNDARY), this.MAX_SEQUENCE_NUMBER);
+            return (isInRangeBeforeReset || isInRangeAfterReset);
+        }
     }
 
     private _initialize(): void {
@@ -938,18 +962,16 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
                     this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[message.type]} - Received expected sequence (seqNo: ${message.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
 
-                    for (const element of this.currentMessageState[dataType].queuedData.values()) {
-                        if (this.expectedSeqNo[dataType] === element.seqNo) {
-                            this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[element.type]} - Work off queued data (seqNo: ${element.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
-                            this.expectedSeqNo[dataType]++;
-                            this.parseDataMessage(element);
-                            this.currentMessageState[dataType].queuedData.delete(element.seqNo);
-                        } else {
-                            this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[element.type]} - Work off missing data interrupt queue dismantle (seqNo: ${element.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
-                            break;
-                        }
+                    var queuedMessage = this.currentMessageState[dataType].queuedData.get(this.expectedSeqNo[dataType]);
+                    while (queuedMessage) {
+                        this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[queuedMessage.type]} - Work off queued data (seqNo: ${queuedMessage.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
+                        this.expectedSeqNo[dataType] = this._incrementSequence(this.expectedSeqNo[dataType]);
+                        this.parseDataMessage(queuedMessage);
+                        this.currentMessageState[dataType].queuedData.delete(queuedMessage.seqNo);
+                        queuedMessage = this.currentMessageState[dataType].queuedData.get(this.expectedSeqNo[dataType]);
                     }
-                } else if (this.expectedSeqNo[dataType] > message.seqNo) {
+                    
+                } else if (this._wasSequenceNumberAlreadyProcessed(this.expectedSeqNo[dataType], message.seqNo)) {
                     // We have already seen this message, skip!
                     // This can happen because the device is sending the message till it gets a ACK
                     // which can take some time.
