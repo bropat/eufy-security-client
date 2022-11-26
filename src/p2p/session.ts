@@ -147,8 +147,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if ((expectedSequence - this.SEQUENCE_PROCESSING_BOUNDARY) > 0) { // complete boundary without squence number reset
             return this._isBetween(receivedSequence, expectedSequence - this.SEQUENCE_PROCESSING_BOUNDARY, expectedSequence);
         } else { // there was a sequence number reset recently
-            let isInRangeAfterReset = this._isBetween(receivedSequence, 0, expectedSequence);
-            let isInRangeBeforeReset = this._isBetween(receivedSequence, this.MAX_SEQUENCE_NUMBER + (expectedSequence - this.SEQUENCE_PROCESSING_BOUNDARY), this.MAX_SEQUENCE_NUMBER);
+            const isInRangeAfterReset = this._isBetween(receivedSequence, 0, expectedSequence);
+            const isInRangeBeforeReset = this._isBetween(receivedSequence, this.MAX_SEQUENCE_NUMBER + (expectedSequence - this.SEQUENCE_PROCESSING_BOUNDARY), this.MAX_SEQUENCE_NUMBER);
             return (isInRangeBeforeReset || isInRangeAfterReset);
         }
     }
@@ -960,22 +960,22 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     this.expectedSeqNo[dataType] = this._incrementSequence(this.expectedSeqNo[dataType]);
                     this.parseDataMessage(message);
 
-                    this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[message.type]} - Received expected sequence (seqNo: ${message.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
+                    this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[message.type]} - Received expected sequence (expectedSeqNo: ${this.expectedSeqNo[dataType]} seqNo: ${message.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
 
-                    var queuedMessage = this.currentMessageState[dataType].queuedData.get(this.expectedSeqNo[dataType]);
+                    let queuedMessage = this.currentMessageState[dataType].queuedData.get(this.expectedSeqNo[dataType]);
                     while (queuedMessage) {
-                        this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[queuedMessage.type]} - Work off queued data (seqNo: ${queuedMessage.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
+                        this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[queuedMessage.type]} - Work off queued data (expectedSeqNo: ${this.expectedSeqNo[dataType]} seqNo: ${queuedMessage.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
                         this.expectedSeqNo[dataType] = this._incrementSequence(this.expectedSeqNo[dataType]);
                         this.parseDataMessage(queuedMessage);
                         this.currentMessageState[dataType].queuedData.delete(queuedMessage.seqNo);
                         queuedMessage = this.currentMessageState[dataType].queuedData.get(this.expectedSeqNo[dataType]);
                     }
-                    
+
                 } else if (this._wasSequenceNumberAlreadyProcessed(this.expectedSeqNo[dataType], message.seqNo)) {
                     // We have already seen this message, skip!
                     // This can happen because the device is sending the message till it gets a ACK
                     // which can take some time.
-                    this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[message.type]} - Received already processed sequence (seqNo: ${message.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
+                    this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[message.type]} - Received already processed sequence (expectedSeqNo: ${this.expectedSeqNo[dataType]} seqNo: ${message.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
                     return;
                 } else {
                     if (!this.currentMessageState[dataType].waitForSeqNoTimeout)
@@ -987,9 +987,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
                     if (!this.currentMessageState[dataType].queuedData.get(message.seqNo)) {
                         this.currentMessageState[dataType].queuedData.set(message.seqNo, message);
-                        this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[message.type]} - Received not expected sequence, added to the queue for future processing (seqNo: ${message.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
+                        this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[message.type]} - Received not expected sequence, added to the queue for future processing (expectedSeqNo: ${this.expectedSeqNo[dataType]} seqNo: ${message.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
                     } else {
-                        this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[message.type]} - Received not expected sequence, discarded since already present in queue for future processing (seqNo: ${message.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
+                        this.log.debug(`Station ${this.rawStation.station_sn} - DATA ${P2PDataType[message.type]} - Received not expected sequence, discarded since already present in queue for future processing (expectedSeqNo: ${this.expectedSeqNo[dataType]} seqNo: ${message.seqNo} queuedData.size: ${this.currentMessageState[dataType].queuedData.size})`);
                     }
                 }
             }
