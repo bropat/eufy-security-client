@@ -566,6 +566,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         device.on("long time not close", (device: Device, state: boolean) => this.onDeviceLongTimeNotClose(device, state));
                         device.on("low battery", (device: Device, state: boolean) => this.onDeviceLowBattery(device, state));
                         device.on("jammed", (device: Device, state: boolean) => this.onDeviceJammed(device, state));
+                        device.on("stranger person detected", (device: Device, state: boolean) => this.onDeviceStrangerPersonDetected(device, state));
+                        device.on("dog detected", (device: Device, state: boolean) => this.onDeviceDogDetected(device, state));
+                        device.on("dog lick detected", (device: Device, state: boolean) => this.onDeviceDogLickDetected(device, state));
+                        device.on("dog poop detected", (device: Device, state: boolean) => this.onDeviceDogPoopDetected(device, state));
                         this.addDevice(device);
                     } catch (error) {
                         this.log.error("Error", error);
@@ -1832,6 +1836,22 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onDeviceJammed(device: Device, state: boolean): void {
         this.emit("device jammed", device, state);
+    }
+
+    private onDeviceStrangerPersonDetected(device: Device, state: boolean): void {
+        this.emit("device stranger person detected", device, state);
+    }
+
+    private onDeviceDogDetected(device: Device, state: boolean): void {
+        this.emit("device dog detected", device, state);
+    }
+
+    private onDeviceDogLickDetected(device: Device, state: boolean): void {
+        this.emit("device dog lick detected", device, state);
+    }
+
+    private onDeviceDogPoopDetected(device: Device, state: boolean): void {
+        this.emit("device dog poop detected", device, state);
     }
 
     private onDeviceReady(device: Device): void {

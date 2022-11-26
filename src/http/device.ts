@@ -95,29 +95,33 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
-        if ((metadata.key === ParamType.DETECT_MOTION_SENSITIVE || metadata.key === ParamType.DETECT_MODE) && this.isWiredDoorbell()) {
-            //TODO: Not perfectly solved, can in certain cases briefly trigger a double event where the last event is the correct one
-            const rawSensitivity = this.getRawProperty(ParamType.DETECT_MOTION_SENSITIVE);
-            const rawMode = this.getRawProperty(ParamType.DETECT_MODE);
+        try {
+            if ((metadata.key === ParamType.DETECT_MOTION_SENSITIVE || metadata.key === ParamType.DETECT_MODE) && this.isWiredDoorbell()) {
+                //TODO: Not perfectly solved, can in certain cases briefly trigger a double event where the last event is the correct one
+                const rawSensitivity = this.getRawProperty(ParamType.DETECT_MOTION_SENSITIVE);
+                const rawMode = this.getRawProperty(ParamType.DETECT_MODE);
 
-            if (rawSensitivity !== undefined && rawMode !== undefined) {
-                const sensitivity = Number.parseInt(rawSensitivity);
-                const mode = Number.parseInt(rawMode);
+                if (rawSensitivity !== undefined && rawMode !== undefined) {
+                    const sensitivity = Number.parseInt(rawSensitivity);
+                    const mode = Number.parseInt(rawMode);
 
-                if (mode === 3 && sensitivity === 2) {
-                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 1);
-                } else if (mode === 1 && sensitivity === 1) {
-                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 2);
-                } else if (mode === 1 && sensitivity === 2) {
-                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 3);
-                } else if (mode === 1 && sensitivity === 3) {
-                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 4);
-                } else if (mode === 2 && sensitivity === 1) {
-                    this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 5);
+                    if (mode === 3 && sensitivity === 2) {
+                        this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 1);
+                    } else if (mode === 1 && sensitivity === 1) {
+                        this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 2);
+                    } else if (mode === 1 && sensitivity === 2) {
+                        this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 3);
+                    } else if (mode === 1 && sensitivity === 3) {
+                        this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 4);
+                    } else if (mode === 2 && sensitivity === 1) {
+                        this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 5);
+                    }
                 }
+            } else if (metadata.name === PropertyName.DeviceWifiRSSI) {
+                this.updateProperty(PropertyName.DeviceWifiSignalLevel, calculateWifiSignalLevel(this, newValue as number));
             }
-        } else if (metadata.name === PropertyName.DeviceWifiRSSI) {
-            this.updateProperty(PropertyName.DeviceWifiSignalLevel, calculateWifiSignalLevel(this, newValue as number));
+        } catch (error) {
+            this.log.error(`Device handlePropertyChange error`, error, { metadata: metadata, oldValue: oldValue, newValue: newValue });
         }
     }
 
@@ -1481,8 +1485,24 @@ export class Camera extends Device {
             metadata.name === PropertyName.DeviceIdentityPersonDetected ||
             metadata.name === PropertyName.DeviceStrangerPersonDetected) {
             this.emit("person detected", this, newValue as boolean, this.getPropertyValue(PropertyName.DevicePersonName) as string);
+            if (metadata.name === PropertyName.DeviceStrangerPersonDetected)
+                this.emit("stranger person detected", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceMotionDetected) {
             this.emit("motion detected", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceCryingDetected) {
+            this.emit("crying detected", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceDogDetected) {
+            this.emit("dog detected", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceDogLickDetected) {
+            this.emit("dog lick detected", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceDogPoopDetected) {
+            this.emit("dog poop detected", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DevicePetDetected) {
+            this.emit("pet detected", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceSoundDetected) {
+            this.emit("sound detected", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceVehicleDetected) {
+            this.emit("vehicle detected", this, newValue as boolean);
         }
     }
 
@@ -1606,9 +1626,11 @@ export class Camera extends Device {
                                 }, eventDurationSeconds * 1000));
                                 break;
                             case HB3PairedDevicePushEvent.STRANGER_PERSON_DETECTION:
+                                this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
                                 this.updateProperty(PropertyName.DeviceStrangerPersonDetected, true);
                                 this.clearEventTimeout(DeviceEvent.StrangerPersonDetected);
                                 this.eventTimeouts.set(DeviceEvent.StrangerPersonDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePersonName, "");
                                     this.updateProperty(PropertyName.DeviceStrangerPersonDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.StrangerPersonDetected);
                                 }, eventDurationSeconds * 1000));
@@ -1643,10 +1665,6 @@ export class SoloCamera extends Camera {
     public isMotionDetectionEnabled(): PropertyValue {
         return this.getPropertyValue(PropertyName.DeviceMotionDetection);
     }
-
-    /*protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
-        super.handlePropertyChange(metadata, oldValue, newValue);
-    }*/
 
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
@@ -1729,19 +1747,6 @@ export class IndoorCamera extends Camera {
 
     public isCryingDetected(): boolean {
         return this.getPropertyValue(PropertyName.DeviceCryingDetected) as boolean;
-    }
-
-    protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
-        super.handlePropertyChange(metadata, oldValue, newValue);
-        if (metadata.name === PropertyName.DeviceCryingDetected) {
-            this.emit("crying detected", this, newValue as boolean);
-        } else if (metadata.name === PropertyName.DeviceSoundDetected) {
-            this.emit("sound detected", this, newValue as boolean);
-        } else if (metadata.name === PropertyName.DevicePetDetected) {
-            this.emit("pet detected", this, newValue as boolean);
-        } else if (metadata.name === PropertyName.DeviceVehicleDetected) {
-            this.emit("vehicle detected", this, newValue as boolean);
-        }
     }
 
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
