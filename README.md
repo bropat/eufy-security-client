@@ -80,16 +80,21 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 2.3.0 (2022-11-xx)
+### 2.3.0 (2022-11-26)
 
 * (bropat) Added support for Wired Doorbell (T8200X)
 * (bropat) Added new property `snoozeStartTime`, `snoozeHomebase`, `snoozeChime` and `snoozeMotion` to supported devices
 * (bropat) Added debug information for analysed audio and video codecs at start of livestream
 * (bropat/martijnpoppen) Added new command `stationChime` for supported stations
 * (bropat) Implemented fallback for configured empty string for setting `trustedDeviceName`
+* (bropat) Implemented missing Homebase 3 notification events
 * (bropat) Fixed unknown video codec issue
 * (bropat) Fixed issue #240
 * (smitty078) Fixed issue #251
+* (thieren) Fixed issue #256 (#255)
+* (tyware) Fixed issue #257
+* (bropat) Fixed issue #258
+* (PhilippEngler) Change DeviceChargingStatusProperty value for eufyCam 3c (#254)
 * (PhilippEngler) Fixed doubled property labels (#253)
 * (martijnpoppen) FIX: keypad wifiSignalLevel property error (#245)
 * (martijnpoppen) FIX: issue when params are not available for rawDevice/rawStation (#246)
