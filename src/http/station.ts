@@ -7234,7 +7234,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
-    public async chimeHombase(value: number): Promise<void> {
+    public async chimeHomebase(value: number): Promise<void> {
         const commandData: CommandData = {
             name: CommandName.StationChime,
             value: value
