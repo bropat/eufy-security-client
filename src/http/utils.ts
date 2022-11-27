@@ -5,37 +5,53 @@ import { Device } from "./device";
 import { Schedule } from "./interfaces";
 import { NotificationSwitchMode, DeviceType, WifiSignalLevel, HB3DetectionTypes } from "./types";
 
-export const isGreaterEqualMinVersion = function(minimal_version: string, current_version: string): boolean {
-    if (minimal_version === undefined)
-        minimal_version = "";
-    if (current_version === undefined)
-        current_version = "";
+const normalizeVersionString = function (version: string): number[] {
+    const trimmed = version ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, "$1") : "";
+    const pieces = trimmed.split(RegExp("\\."));
+    const parts = [];
+    let value,
+        piece,
+        num,
+        i;
+    for (i = 0; i < pieces.length; i += 1) {
+        piece = pieces[i].replace(RegExp("\\D"), "");
+        num = parseInt(piece, 10);
 
-    minimal_version = minimal_version.replace(/\D+/g, "");
-    current_version = current_version.replace(/\D+/g, "");
-
-    if (minimal_version === "")
-        return false;
-    if (current_version === "")
-        return false;
-
-    let min_version = 0;
-    let curr_version = 0;
-
-    try {
-        min_version = Number.parseInt(minimal_version);
-    } catch (error) {
+        if (isNaN(num)) {
+            num = 0;
+        }
+        parts.push(num);
     }
-    try {
-        curr_version = Number.parseInt(current_version);
-    } catch (error) {
+    const partsLength = parts.length;
+    for (i = partsLength - 1; i >= 0; i -= 1) {
+        value = parts[i];
+        if (value === 0) {
+            parts.length -= 1;
+        } else {
+            break;
+        }
     }
+    return parts;
+};
 
-    if (curr_version === 0 || min_version === 0 || curr_version < min_version) {
-        return false;
+export const isGreaterEqualMinVersion = function (minimal_version: string, current_version: string): boolean {
+
+    const x = normalizeVersionString(minimal_version);
+    const y = normalizeVersionString(current_version);
+
+    const size = Math.min(x.length, y.length);
+    let i;
+
+    for (i = 0; i < size; i += 1) {
+        if (x[i] !== y[i]) {
+            return x[i] < y[i] ? true : false;
+        }
     }
-    return true;
-}
+    if (x.length === y.length) {
+        return true;
+    }
+    return (x.length < y.length) ? true : false;
+};
 
 export const pad = function(num: number): string {
     const norm = Math.floor(Math.abs(num));

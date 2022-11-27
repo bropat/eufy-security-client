@@ -48,6 +48,10 @@ export interface EufySecurityEvents {
     "device vehicle detected": (device: Device, state: boolean) => void;
     "device motion detected": (device: Device, state: boolean) => void;
     "device person detected": (device: Device, state: boolean, person: string) => void;
+    "device stranger person detected": (device: Device, state: boolean) => void;
+    "device dog detected": (device: Device, state: boolean) => void;
+    "device dog lick detected": (device: Device, state: boolean) => void;
+    "device dog poop detected": (device: Device, state: boolean) => void;
     "device rings": (device: Device, state: boolean) => void;
     "device locked": (device: Device, state: boolean) => void;
     "device open": (device: Device, state: boolean) => void;

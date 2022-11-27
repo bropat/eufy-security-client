@@ -208,6 +208,10 @@ export interface DeviceEvents {
     "sound detected": (device: Device, state: boolean) => void;
     "crying detected": (device: Device, state: boolean) => void;
     "vehicle detected": (device: Device, state: boolean) => void;
+    "dog detected": (device: Device, state: boolean) => void;
+    "dog lick detected": (device: Device, state: boolean) => void;
+    "dog poop detected": (device: Device, state: boolean) => void;
+    "stranger person detected": (device: Device, state: boolean) => void;
     "rings": (device: Device, state: boolean) => void;
     "locked": (device: Device, state: boolean) => void;
     "open": (device: Device, state: boolean) => void;

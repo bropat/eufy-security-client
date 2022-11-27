@@ -5,7 +5,7 @@ import { isValid as isValidCountry } from "i18n-iso-countries";
 import { isValid as isValidLanguage } from "@cospired/i18n-iso-languages";
 import { createECDH, ECDH } from "crypto";
 import * as schedule from "node-schedule";
-import * as pThrottle from "p-throttle";
+import pThrottle from "p-throttle";
 
 import { ResultResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry, ApiResponse, CaptchaResponse, LoginRequest, HouseDetail, DeviceListResponse, StationListResponse, HouseInviteListResponse, HouseListResponse, PassportProfileResponse, UsersResponse, User, AddUserResponse } from "./models"
 import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites, HTTPApiRequest, HTTPApiPersistentData, Houses, LoginOptions } from "./interfaces";

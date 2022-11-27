@@ -141,7 +141,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.log.error("Handling update - Error:", error);
         }
 
-        if (this.config.trustedDeviceName === undefined) {
+        if (this.config.trustedDeviceName === undefined || this.config.trustedDeviceName === "") {
             if (this.persistentData.fallbackTrustedDeviceName !== undefined) {
                 this.config.trustedDeviceName = this.persistentData.fallbackTrustedDeviceName;
             } else {
@@ -566,6 +566,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         device.on("long time not close", (device: Device, state: boolean) => this.onDeviceLongTimeNotClose(device, state));
                         device.on("low battery", (device: Device, state: boolean) => this.onDeviceLowBattery(device, state));
                         device.on("jammed", (device: Device, state: boolean) => this.onDeviceJammed(device, state));
+                        device.on("stranger person detected", (device: Device, state: boolean) => this.onDeviceStrangerPersonDetected(device, state));
+                        device.on("dog detected", (device: Device, state: boolean) => this.onDeviceDogDetected(device, state));
+                        device.on("dog lick detected", (device: Device, state: boolean) => this.onDeviceDogLickDetected(device, state));
+                        device.on("dog poop detected", (device: Device, state: boolean) => this.onDeviceDogPoopDetected(device, state));
                         this.addDevice(device);
                     } catch (error) {
                         this.log.error("Error", error);
@@ -1565,7 +1569,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         device.updateProperty(PropertyName.DeviceSnoozeTime, snoozeTime);
                     }
                     this.api.refreshAllData().then(() => {
-                        const snoozeStartTime = device.getPropertyValue(PropertyName.DeviceHiddenSnoozeStartTime) as number;
+                        const snoozeStartTime = device.getPropertyValue(PropertyName.DeviceSnoozeStartTime) as number;
                         const currentTime = Math.trunc(new Date().getTime() / 1000);
                         let timeoutMS;
                         if (snoozeStartTime !== undefined && snoozeStartTime !== 0) {
@@ -1576,6 +1580,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         this.deviceSnoozeTimeout[device.getSerial()] = setTimeout(() => {
                             device.updateProperty(PropertyName.DeviceSnooze, false);
                             device.updateProperty(PropertyName.DeviceSnoozeTime, 0);
+                            device.updateProperty(PropertyName.DeviceSnoozeStartTime, 0);
+                            if (device.hasProperty(PropertyName.DeviceSnoozeHomebase)) {
+                                device.updateProperty(PropertyName.DeviceSnoozeHomebase, false);
+                            }
+                            if (device.hasProperty(PropertyName.DeviceSnoozeMotion)) {
+                                device.updateProperty(PropertyName.DeviceSnoozeMotion, false);
+                            }
+                            if (device.hasProperty(PropertyName.DeviceSnoozeChime)) {
+                                device.updateProperty(PropertyName.DeviceSnoozeChime, false);
+                            }
                             delete this.deviceSnoozeTimeout[device.getSerial()];
                         }, timeoutMS);
                     }).catch(error => {
@@ -1822,6 +1836,22 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onDeviceJammed(device: Device, state: boolean): void {
         this.emit("device jammed", device, state);
+    }
+
+    private onDeviceStrangerPersonDetected(device: Device, state: boolean): void {
+        this.emit("device stranger person detected", device, state);
+    }
+
+    private onDeviceDogDetected(device: Device, state: boolean): void {
+        this.emit("device dog detected", device, state);
+    }
+
+    private onDeviceDogLickDetected(device: Device, state: boolean): void {
+        this.emit("device dog lick detected", device, state);
+    }
+
+    private onDeviceDogPoopDetected(device: Device, state: boolean): void {
+        this.emit("device dog poop detected", device, state);
     }
 
     private onDeviceReady(device: Device): void {
