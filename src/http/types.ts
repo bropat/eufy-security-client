@@ -242,7 +242,7 @@ export enum AlarmTone {
 }
 
 export enum NotificationSwitchMode {
-    APP = 16,
+    APP = 144,
     GEOFENCE = 32,
     SCHEDULE = 64,
     KEYPAD = 128,
