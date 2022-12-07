@@ -3,7 +3,6 @@ import NodeRSA from "node-rsa";
 import * as CryptoJS from "crypto-js"
 import { randomBytes, createCipheriv, createECDH, ECDH, createHmac, createDecipheriv } from "crypto";
 import * as os from "os";
-import MediaInfoFactory from "mediainfo.js";
 
 import { P2PMessageParts, P2PMessageState, P2PQueueMessage } from "./interfaces";
 import { CommandType, ESLCommand, ESLBleCommand, LockV12P2PCommand, P2PDataTypeHeader, SmartSafeCommandCode, VideoCodec } from "./types";
@@ -433,19 +432,6 @@ export const getVideoCodec = (data: Buffer): VideoCodec => {
         return VideoCodec.H264;
     }
     return VideoCodec.UNKNOWN; // Maybe return h264 as Eufy does?
-}
-
-export const analyzeCodec = async (data: Buffer): Promise<any> => {
-    if (data !== undefined && data.length > 0) {
-        const mediainfo = await MediaInfoFactory({ chunkSize: data.byteLength });
-        mediainfo.openBufferInit(data.byteLength, 0);
-        const result = mediainfo.openBufferContinue(data, data.byteLength);
-        mediainfo.openBufferFinalize();
-        if (result) {
-            return JSON.parse(mediainfo.inform());
-        }
-    }
-    return {};
 }
 
 export const checkT8420 = (serialNumber: string): boolean => {
