@@ -25,6 +25,7 @@ import { MQTTService } from "./mqtt/service";
 import { TalkbackStream } from "./p2p/talkback";
 import { PhoneModels } from "./http/const";
 import { randomNumber } from "./http/utils";
+import { initMediaInfo } from "./p2p/utils";
 
 export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
@@ -83,6 +84,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     static async initialize(config: EufySecurityConfig, log: Logger = dummyLogger): Promise<EufySecurity> {
         const eufySecurity = new EufySecurity(config, log);
         await eufySecurity._initializeInternals();
+        await initMediaInfo();
         return eufySecurity;
     }
 
