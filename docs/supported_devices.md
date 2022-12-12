@@ -39,6 +39,10 @@
 | ![T8411 image](_media/indoorcamp24_small.jpg) | Indoor Cam Pan&Tilt 1080p (T8411) |:heavy_check_mark:  |  |
 | ![T8401 image](_media/soloindoorcamc24_small.jpg) | Indoor Cam 1080p (T8401) | :heavy_check_mark: |  |
 | ![T8414 image](_media/indoorcammini_small.jpg) | Indoor Cam Mini (T8414) | :heavy_check_mark: | Firmware: 3.1.1.7 (20220427) |
+| ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8150) | :heavy_check_mark: | Firmware:  () |
+| ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8151) | :heavy_exclamation_mark: |  |
+| ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8152) | :heavy_exclamation_mark: |  |
+| ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8153) | :heavy_exclamation_mark: |  |
 | ![T8500 image](_media/smartlock_t8500_small.jpg) | Smart Lock (T8500) | :x: |  |
 | ![T8500 with Wi-Fi Bridge image](_media/smartlock_t8500_wifibridge_small.jpg) | Smart Lock (T8500) with Wi-Fi Bridge | :heavy_check_mark: :wrench: |  |
 | ![T8510 image](_media/smartlock_touch_t8510_small.jpg) | Smart Lock Touch (T8510) | :x: |  |

@@ -7,7 +7,7 @@ import { ResultResponse, StreamResponse, DeviceListResponse, Voice } from "./mod
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices } from "./interfaces";
 import { CommandType, ESLAnkerBleConstant } from "../p2p/types";
-import { calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, hexDate, hexTime, hexWeek, isHB3DetectionModeEnabled, SmartSafeByteWriter } from "./utils";
+import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, hexDate, hexTime, hexWeek, isHB3DetectionModeEnabled, SmartSafeByteWriter } from "./utils";
 import { eslTimestamp, getCurrentTimeInSeconds } from "../p2p/utils";
 import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent, HB3PairedDevicePushEvent } from "../push/types";
 import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
@@ -101,7 +101,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 const rawSensitivity = this.getRawProperty(ParamType.DETECT_MOTION_SENSITIVE);
                 const rawMode = this.getRawProperty(ParamType.DETECT_MODE);
 
-                if (rawSensitivity !== undefined && rawMode !== undefined) {
+                if (rawSensitivity !== undefined && rawMode !== undefined && this.hasProperty(PropertyName.DeviceMotionDetectionSensitivity)) {
                     const sensitivity = Number.parseInt(rawSensitivity);
                     const mode = Number.parseInt(rawMode);
 
@@ -117,8 +117,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 5);
                     }
                 }
-            } else if (metadata.name === PropertyName.DeviceWifiRSSI) {
+            } else if (metadata.name === PropertyName.DeviceWifiRSSI && this.hasProperty(PropertyName.DeviceWifiSignalLevel)) {
                 this.updateProperty(PropertyName.DeviceWifiSignalLevel, calculateWifiSignalLevel(this, newValue as number));
+            } else if (metadata.name === PropertyName.DeviceCellularRSSI && this.hasProperty(PropertyName.DeviceCellularSignalLevel)) {
+                this.updateProperty(PropertyName.DeviceCellularSignalLevel, calculateCellularSignalLevel(newValue as number));
             }
         } catch (error) {
             this.log.error(`Device handlePropertyChange error`, error, { metadata: metadata, oldValue: oldValue, newValue: newValue });
@@ -514,6 +516,25 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     this.log.error("Convert HB3 motion detection type Error:", { property: property, value: value, error: error });
                     return booleanProperty.default !== undefined ? booleanProperty.default : false;
                 }
+            } else if (property.key === CommandType.CELLULAR_INFO) {
+                switch (property.name) {
+                    case PropertyName.DeviceCellularSignal: {
+                        const stringProperty = property as PropertyMetadataString;
+                        return value !== undefined && (value as any).Signal !== undefined ? String((value as any).Signal) : (stringProperty.default !== undefined ? stringProperty.default : "");
+                    }
+                    case PropertyName.DeviceCellularBand: {
+                        const stringProperty = property as PropertyMetadataString;
+                        return value !== undefined && (value as any).band !== undefined ? String((value as any).band) : (stringProperty.default !== undefined ? stringProperty.default : "");
+                    }
+                    case PropertyName.DeviceCellularIMEI: {
+                        const stringProperty = property as PropertyMetadataString;
+                        return value !== undefined && (value as any).imei !== undefined ? String((value as any).imei) : (stringProperty.default !== undefined ? stringProperty.default : "");
+                    }
+                    case PropertyName.DeviceCellularICCID: {
+                        const stringProperty = property as PropertyMetadataString;
+                        return value !== undefined && (value as any).iccid !== undefined ? String((value as any).iccid) : (stringProperty.default !== undefined ? stringProperty.default : "");
+                    }
+                }
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
@@ -726,7 +747,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SMART_SAFE_7400 ||
             type == DeviceType.SMART_SAFE_7401 ||
             type == DeviceType.SMART_SAFE_7402 ||
-            type == DeviceType.SMART_SAFE_7403)
+            type == DeviceType.SMART_SAFE_7403 ||
+            type == DeviceType.CAMERA_FG)
             //TODO: Add other battery devices
             return true;
         return false;
@@ -910,6 +932,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
             Device.isSoloCameraSpotlight1080(type) ||
             Device.isSoloCameraSpotlight2k(type) ||
             Device.isSoloCameraSpotlightSolar(type);
+    }
+
+    static isStarlight4GLTE(type: number): boolean {
+        return DeviceType.CAMERA_FG == type;
     }
 
     static isIndoorOutdoorCamera1080p(type: number): boolean {
@@ -1118,6 +1144,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isSoloCameraSpotlightSolar(): boolean {
         return Device.isSoloCameraSpotlightSolar(this.rawDevice.device_type);
+    }
+
+    public isStarlight4GLTE(): boolean {
+        return Device.isStarlight4GLTE(this.rawDevice.device_type);
     }
 
     public isIndoorOutdoorCamera1080p(): boolean {

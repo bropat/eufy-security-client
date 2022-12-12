@@ -50,7 +50,7 @@ export enum DeviceType {
     INDOOR_COST_DOWN_CAMERA = 100,
     CAMERA_GUN = 101,
     CAMERA_SNAIL = 102,
-    CAMERA_FG = 110,
+    CAMERA_FG = 110, //T8150
     SMART_SAFE_7400 = 140,
     SMART_SAFE_7401 = 141,
     SMART_SAFE_7402 = 142,
@@ -264,7 +264,7 @@ export enum TimeFormat {
     FORMAT_24H = 1,
 }
 
-export enum WifiSignalLevel {
+export enum SignalLevel {
     NO_SIGNAL = 0,
     WEAK = 1,
     NORMAL = 2,
@@ -578,6 +578,12 @@ export enum PropertyName {
     DeviceDetectionStatisticsWorkingDays = "detectionStatisticsWorkingDays",
     DeviceDetectionStatisticsDetectedEvents = "detectionStatisticsDetectedEvents",
     DeviceDetectionStatisticsRecordedEvents = "detectionStatisticsRecordedEvents",
+    DeviceCellularRSSI = "cellularRSSI",
+    DeviceCellularSignalLevel = "cellularSignalLevel",
+    DeviceCellularSignal = "cellularSignal",
+    DeviceCellularBand = "cellularBand",
+    DeviceCellularIMEI = "cellularIMEI",
+    DeviceCellularICCID = "cellularICCID",
 
     DeviceHiddenMotionDetectionSensitivity = "hidden-motionDetectionSensitivity",
     DeviceHiddenMotionDetectionMode = "hidden-motionDetectionMode",
@@ -829,7 +835,7 @@ export const DeviceNightvisionProperty: PropertyMetadataNumeric = {
     states: {
         0: "Off",
         1: "B&W Night Vision",
-        2: "Spotlight Night Vision",
+        2: "Color Night Vision",
     },
 }
 
@@ -859,6 +865,69 @@ export const DeviceWifiSignalLevelProperty: PropertyMetadataNumeric = {
         3: "Strong",
         4: "Full",
     },
+}
+
+export const DeviceCellularRSSIProperty: PropertyMetadataNumeric = {
+    key: CommandType.CELLULAR_SIGNAL_STRENGTH,
+    name: PropertyName.DeviceCellularRSSI,
+    label: "Cellular RSSI",
+    readable: true,
+    writeable: false,
+    type: "number",
+    unit: "dBm",
+}
+
+export const DeviceCellularSignalLevelProperty: PropertyMetadataNumeric = {
+    key: "custom_cellularSignalLevel",
+    name: PropertyName.DeviceCellularSignalLevel,
+    label: "Cellular Signal Level",
+    readable: true,
+    writeable: false,
+    type: "number",
+    min: 1,
+    max: 4,
+    states: {
+        1: "Weak",
+        2: "Normal",
+        3: "Strong",
+        4: "Full",
+    },
+}
+
+export const DeviceCellularSignalProperty: PropertyMetadataString = {
+    key: CommandType.CELLULAR_INFO,
+    name: PropertyName.DeviceCellularSignal,
+    label: "Cellular Signal",
+    readable: true,
+    writeable: false,
+    type: "string",
+}
+
+export const DeviceCellularBandProperty: PropertyMetadataString = {
+    key: CommandType.CELLULAR_INFO,
+    name: PropertyName.DeviceCellularBand,
+    label: "Cellular Band",
+    readable: true,
+    writeable: false,
+    type: "string",
+}
+
+export const DeviceCellularIMEIProperty: PropertyMetadataString = {
+    key: CommandType.CELLULAR_INFO,
+    name: PropertyName.DeviceCellularIMEI,
+    label: "Cellular IMEI",
+    readable: true,
+    writeable: false,
+    type: "string",
+}
+
+export const DeviceCellularICCIDProperty: PropertyMetadataString = {
+    key: CommandType.CELLULAR_INFO,
+    name: PropertyName.DeviceCellularICCID,
+    label: "Cellular ICCID",
+    readable: true,
+    writeable: false,
+    type: "string",
 }
 
 export const DeviceWifiRSSILockProperty: PropertyMetadataNumeric = {
@@ -1576,6 +1645,11 @@ export const DeviceAudioRecordingProperty: PropertyMetadataBoolean = {
 export const DeviceAudioRecordingIndoorSoloFloodlightProperty: PropertyMetadataBoolean = {
     ...DeviceAudioRecordingProperty,
     key: CommandType.CMD_INDOOR_SET_RECORD_AUDIO_ENABLE,
+}
+
+export const DeviceAudioRecordingStarlight4gLTEProperty: PropertyMetadataBoolean = {
+    ...DeviceAudioRecordingProperty,
+    commandId: CommandType.CMD_INDOOR_SET_RECORD_AUDIO_ENABLE,
 }
 
 export const DeviceAudioRecordingWiredDoorbellProperty: PropertyMetadataBoolean = {
@@ -4673,6 +4747,52 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
         [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
+    [DeviceType.CAMERA_FG]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
+        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
+        [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+        [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
+        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
+        [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeSoloProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingStarlight4gLTEProperty,
+        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
+        [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
+        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
+        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
+        [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualitySoloProperty,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityProperty,
+        [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
+        //[PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        //[PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivitySoloProperty,
+        [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
+        [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
+        [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
+        [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
+        [PropertyName.DeviceState]: DeviceStateProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+        [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
+        [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
+        [PropertyName.DeviceCellularRSSI]: DeviceCellularRSSIProperty,
+        [PropertyName.DeviceCellularSignalLevel]: DeviceCellularSignalLevelProperty,
+        [PropertyName.DeviceCellularSignal]: DeviceCellularSignalProperty,
+        [PropertyName.DeviceCellularBand]: DeviceCellularBandProperty,
+        [PropertyName.DeviceCellularIMEI]: DeviceCellularIMEIProperty,
+        [PropertyName.DeviceCellularICCID]: DeviceCellularICCIDProperty,
+    },
     [DeviceType.SOLO_CAMERA]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
@@ -5647,6 +5767,18 @@ export const StationProperties: Properties = {
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
     },
+    [DeviceType.CAMERA_FG]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+        [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+        //[PropertyName.StationNotificationSwitchModeSchedule]: StationNotificationSwitchModeScheduleProperty,
+        //[PropertyName.StationNotificationSwitchModeApp]: StationNotificationSwitchModeAppProperty,
+    },
     [DeviceType.SOLO_CAMERA]: {
         ...BaseStationProperties,
         [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
@@ -6003,6 +6135,15 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceCalibrate,
         CommandName.DeviceSetDefaultAngle,
         CommandName.DeviceSetPrivacyAngle,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
+    ],
+    [DeviceType.CAMERA_FG]: [
+        CommandName.DeviceStartLivestream,
+        CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
         CommandName.DeviceSnooze,
