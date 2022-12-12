@@ -372,6 +372,10 @@ export interface EventRecordResponse {
 
 export interface StreamResponse {
     url: string;
+    domain:  string;
+    stream_name:  string;
+    time:  string;
+    token:  string;
 }
 
 export interface EventRecordRequest {
