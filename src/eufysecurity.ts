@@ -190,6 +190,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.api.setToken(this.persistentData.cloud_token);
             this.api.setTokenExpiration(new Date(this.persistentData.cloud_token_expiration));
         }
+        if (this.persistentData.httpApi !== undefined && (this.persistentData.httpApi.clientPrivateKey === undefined || this.persistentData.httpApi.clientPrivateKey === "" || this.persistentData.httpApi.serverPublicKey === undefined || this.persistentData.httpApi.serverPublicKey === "")) {
+            this.log.debug("Incomplete persistent data for v2 encrypted cloud api communication. Invalidate authenticated session data.");
+            this.persistentData.cloud_token = "";
+            this.persistentData.cloud_token_expiration = 0;
+            this.persistentData.httpApi = undefined;
+        }
         if (!this.persistentData.openudid || this.persistentData.openudid == "") {
             this.persistentData.openudid = generateUDID();
             this.log.debug("Generated new openudid:", this.persistentData.openudid);

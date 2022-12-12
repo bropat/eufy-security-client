@@ -1,4 +1,4 @@
-import { createCipheriv } from "crypto";
+import { createCipheriv, createDecipheriv } from "crypto";
 import { timeZoneData } from "./const";
 
 import { Device } from "./device";
@@ -161,11 +161,19 @@ export const calculateCellularSignalLevel = function(rssi: number): SignalLevel 
     return rssi >= -105 ? SignalLevel.NORMAL : SignalLevel.WEAK;
 }
 
-export const encryptPassword = (password: string, key: Buffer): string => {
+export const encryptAPIData = (data: string, key: Buffer): string => {
     const cipher = createCipheriv("aes-256-cbc", key, key.slice(0, 16));
     return (
-        cipher.update(password, "utf8", "base64") +
+        cipher.update(data, "utf8", "base64") +
         cipher.final("base64")
+    );
+}
+
+export const decryptAPIData = (data: string, key: Buffer): Buffer => {
+    const cipher = createDecipheriv("aes-256-cbc", key, key.slice(0, 16));
+    return Buffer.concat([
+        cipher.update(data, "base64"),
+        cipher.final()]
     );
 }
 

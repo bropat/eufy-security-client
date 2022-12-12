@@ -11,7 +11,7 @@ import { ResultResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventR
 import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites, HTTPApiRequest, HTTPApiPersistentData, Houses, LoginOptions } from "./interfaces";
 import { EventFilterType, PublicKeyType, ResponseErrorCode, StorageType, VerfyCodeTypes } from "./types";
 import { ParameterHelper } from "./parameter";
-import { encryptPassword, getTimezoneGMTString } from "./utils";
+import { encryptAPIData, decryptAPIData, getTimezoneGMTString } from "./utils";
 import { InvalidCountryCodeError, InvalidLanguageCodeError } from "./../error";
 import { md5, mergeDeep } from "./../utils";
 import { ApiBaseLoadError, ApiGenericError, ApiHTTPResponseCodeError, ApiInvalidResponseError, ApiResponseCodeError } from "./error";
@@ -20,11 +20,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     private static apiDomainBase = "https://extend.eufylife.com";
 
+    private readonly SERVER_PUBLIC_KEY = "04c5c00c4f8d1197cc7c3167c52bf7acb054d722f0ef08dcd7e0883236e0d72a3868d9750cb47fa4619248f3d83f0f662671dadc6e2d31c2f41db0161651c7c076";
+
     private apiBase;
     private username: string;
     private password: string;
     private ecdh: ECDH = createECDH("prime256v1");
-    private serverPublicKey = "04c5c00c4f8d1197cc7c3167c52bf7acb054d722f0ef08dcd7e0883236e0d72a3868d9750cb47fa4619248f3d83f0f662671dadc6e2d31c2f41db0161651c7c076";
 
     private token: string|null = null;
     private tokenExpiration: Date|null = null;
@@ -47,11 +48,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         user_id: "",
         email: "",
         nick_name: "",
-        device_public_keys: {}
+        device_public_keys: {},
+        clientPrivateKey: "",
+        serverPublicKey: ""
     };
 
     private headers: Record<string, string> = {
-        App_version: "v4.4.3_1447",
+        App_version: "v4.5.1_1523",
         Os_type: "android",
         Os_version: "31",
         Phone_model: "ONEPLUS A3003",
@@ -81,8 +84,18 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         this.headers.timezone = getTimezoneGMTString();
         this.headers.country = country.toUpperCase();
 
-        if (persistentData)
+        if (persistentData) {
             this.persistentData = persistentData;
+        }
+        if (this.persistentData.serverPublicKey === undefined || this.persistentData.serverPublicKey === "") {
+            this.persistentData.serverPublicKey = this.SERVER_PUBLIC_KEY;
+        }
+        if (this.persistentData.clientPrivateKey === undefined || this.persistentData.clientPrivateKey === "") {
+            this.ecdh.generateKeys();
+            this.persistentData.clientPrivateKey = this.ecdh.getPrivateKey().toString("hex");
+        } else {
+            this.ecdh.setPrivateKey(Buffer.from(this.persistentData.clientPrivateKey, "hex"));
+        }
 
         this.requestEufyCloud = got.extend({
             prefixUrl: this.apiBase,
@@ -258,7 +271,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         this.log.debug("Login and get an access token", { token: this.token, tokenExpiration: this.tokenExpiration });
         if (!this.token || (this.tokenExpiration && (new Date()).getTime() >= this.tokenExpiration.getTime()) || options.verifyCode || options.captcha || options.force) {
             try {
-                this.ecdh.generateKeys();
                 const data: LoginRequest = {
                     ab: this.headers.country,
                     client_secret_info: {
@@ -266,7 +278,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     },
                     enc: 0,
                     email: this.username,
-                    password:  encryptPassword(this.password, this.ecdh.computeSecret(Buffer.from(this.serverPublicKey, "hex"))),
+                    password:  encryptAPIData(this.password, this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex"))),
                     time_zone: new Date().getTimezoneOffset() !== 0 ? -new Date().getTimezoneOffset() * 60 * 1000 : 0,
                     transaction: `${new Date().getTime()}`
                 };
@@ -297,8 +309,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 ...this.headers,
                                 gtoken: md5(dataresult.user_id)
                             };
-                            /*if (dataresult.server_secret_info?.public_key)
-                                this.serverPublicKey = dataresult.server_secret_info.public_key;*/
+                            if (dataresult.server_secret_info?.public_key)
+                                this.persistentData.serverPublicKey = dataresult.server_secret_info.public_key;
                             this.log.debug("Token data", { token: this.token, tokenExpiration: this.tokenExpiration });
                             if (!this.connected) {
                                 this.connected = true;
@@ -450,7 +462,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             try {
                 const response = await this.request({
                     method: "post",
-                    endpoint: "v1/house/station_list",
+                    endpoint: "v2/house/station_list",
                     data: {
                         device_sn: "",
                         num: 1000,
@@ -466,7 +478,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
                     if (result.code == 0) {
-                        return result.data as Array<StationListResponse>;
+                        //TODO: Handle decryption exception resetting session auth information to reauthenticate
+                        return JSON.parse(decryptAPIData(result.data, this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex"))).toString()) as Array<StationListResponse>;
                     } else {
                         this.log.error("Response code not ok", {code: result.code, msg: result.msg });
                     }
@@ -485,7 +498,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             try {
                 const response = await this.request({
                     method: "post",
-                    endpoint: "v1/house/device_list",
+                    endpoint: "v2/house/device_list",
                     data: {
                         device_sn: "",
                         num: 1000,
@@ -501,7 +514,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
                     if (result.code == 0) {
-                        return result.data as Array<DeviceListResponse>;
+                        //TODO: Handle decryption exception resetting session auth information to reauthenticate
+                        return JSON.parse(decryptAPIData(result.data, this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex"))).toString()) as Array<DeviceListResponse>;
                     } else {
                         this.log.error("Response code not ok", {code: result.code, msg: result.msg });
                     }

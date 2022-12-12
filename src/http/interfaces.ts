@@ -120,7 +120,9 @@ export interface HTTPApiPersistentData {
     nick_name: string;
     device_public_keys: {
         [index: string]: string;
-    }
+    },
+    clientPrivateKey: string;
+    serverPublicKey: string;
 }
 
 export interface CaptchaOptions {
