@@ -1366,7 +1366,7 @@ export class Camera extends Device {
         try {
             const response = await this.api.request({
                 method: "post",
-                endpoint: "v1/web/equipment/start_stream",
+                endpoint: "v2/web/equipment/start_stream",
                 data: {
                     device_sn: this.rawDevice.device_sn,
                     station_sn: this.rawDevice.station_sn,
@@ -1381,10 +1381,13 @@ export class Camera extends Device {
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
                 if (result.code == 0) {
-                    const dataresult: StreamResponse = result.data;
+                    const dataresult: StreamResponse = this.api.decryptAPIData(result.data)
                     this._isStreaming = true;
                     this.log.info(`Livestream of camera ${this.rawDevice.device_sn} started`);
-                    return dataresult.url;
+
+                    //rtmp://p2p-vir-7.eufylife.com/hls/REDACTED==?time=1649675937&token=REDACTED
+                    return `rtmp://${dataresult.domain}/hls/${dataresult.stream_name}==?time=${dataresult.time}&token=${dataresult.token}`
+
                 } else {
                     this.log.error("Response code not ok", { code: result.code, msg: result.msg });
                 }
@@ -1407,7 +1410,7 @@ export class Camera extends Device {
         try {
             const response = await this.api.request({
                 method: "post",
-                endpoint: "v1/web/equipment/stop_stream",
+                endpoint: "v2/web/equipment/stop_stream",
                 data: {
                     device_sn: this.rawDevice.device_sn,
                     station_sn: this.rawDevice.station_sn,

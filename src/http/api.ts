@@ -479,7 +479,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     const result: ResultResponse = response.data;
                     if (result.code == 0) {
                         //TODO: Handle decryption exception resetting session auth information to reauthenticate
-                        return JSON.parse(decryptAPIData(result.data, this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex"))).toString()) as Array<StationListResponse>;
+                        return this.decryptAPIData(result.data) as Array<StationListResponse>;
                     } else {
                         this.log.error("Response code not ok", {code: result.code, msg: result.msg });
                     }
@@ -515,7 +515,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     const result: ResultResponse = response.data;
                     if (result.code == 0) {
                         //TODO: Handle decryption exception resetting session auth information to reauthenticate
-                        return JSON.parse(decryptAPIData(result.data, this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex"))).toString()) as Array<DeviceListResponse>;
+                        return this.decryptAPIData(result.data) as Array<DeviceListResponse>;
                     } else {
                         this.log.error("Response code not ok", {code: result.code, msg: result.msg });
                     }
@@ -1011,6 +1011,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             }
         }
         return "";
+    }
+
+    public decryptAPIData(data: string) {
+        return JSON.parse(decryptAPIData(data, this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex"))).toString());
     }
 
     public async getSensorHistory(stationSN: string, deviceSN: string): Promise<Array<SensorHistoryEntry>> {
