@@ -1181,13 +1181,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         try {
             const response = await this.request({
                 method: "get",
-                endpoint: "v1/passport/profile"
+                endpoint: "v2/passport/profile"
             });
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
                 if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                     if (result.data) {
-                        const profile = result.data as PassportProfileResponse;
+                        const profile = this.decryptAPIData(result.data) as PassportProfileResponse;
                         this.persistentData.user_id = profile.user_id;
                         this.persistentData.nick_name = profile.nick_name;
                         this.persistentData.email = profile.email;
