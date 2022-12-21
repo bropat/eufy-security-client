@@ -863,7 +863,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
                     if (result.code == 0) {
-                        const dataresult: Array<EventRecordResponse> = result.data;
+                        //TODO: Handle decryption exception resetting session auth information to reauthenticate
+                        const dataresult: Array<EventRecordResponse> = this.decryptAPIData(result.data);
                         if (dataresult) {
                             dataresult.forEach(record => {
                                 this.log.debug(`${functionName} - Record:`, record);
@@ -884,29 +885,29 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
 
     public async getVideoEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        return this._getEvents("getVideoEvents", "v1/event/app/get_all_video_record", startTime, endTime, filter, maxResults);
+        return this._getEvents("getVideoEvents", "v2/event/app/get_all_video_record", startTime, endTime, filter, maxResults);
     }
 
     public async getAlarmEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        return this._getEvents("getAlarmEvents", "v1/event/app/get_all_alarm_record", startTime, endTime, filter, maxResults);
+        return this._getEvents("getAlarmEvents", "v2/event/app/get_all_alarm_record", startTime, endTime, filter, maxResults);
     }
 
     public async getHistoryEvents(startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        return this._getEvents("getHistoryEvents", "v1/event/app/get_all_history_record", startTime, endTime, filter, maxResults);
+        return this._getEvents("getHistoryEvents", "v2/event/app/get_all_history_record", startTime, endTime, filter, maxResults);
     }
 
     public async getAllVideoEvents(filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        const fifthyYearsInMilliseconds = 15 * 365 * 24 * 60 * 60 * 1000;
+        const fifteenYearsInMilliseconds = 15 * 365 * 24 * 60 * 60 * 1000;
         return this.getVideoEvents(new Date(new Date().getTime() - fifthyYearsInMilliseconds), new Date(), filter, maxResults);
     }
 
     public async getAllAlarmEvents(filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        const fifthyYearsInMilliseconds = 15 * 365 * 24 * 60 * 60 * 1000;
+        const fifteenYearsInMilliseconds = 15 * 365 * 24 * 60 * 60 * 1000;
         return this.getAlarmEvents(new Date(new Date().getTime() - fifthyYearsInMilliseconds), new Date(), filter, maxResults);
     }
 
     public async getAllHistoryEvents(filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
-        const fifthyYearsInMilliseconds = 15 * 365 * 24 * 60 * 60 * 1000;
+        const fifteenYearsInMilliseconds = 15 * 365 * 24 * 60 * 60 * 1000;
         return this.getHistoryEvents(new Date(new Date().getTime() - fifthyYearsInMilliseconds), new Date(), filter, maxResults);
     }
 
