@@ -1181,17 +1181,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         try {
             const response = await this.request({
                 method: "get",
-                endpoint: "v1/passport/profile"
+                endpoint: "v2/passport/profile"
             });
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
                 if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
-                    if (result.data) {
-                        const profile = result.data as PassportProfileResponse;
-                        this.persistentData.user_id = profile.user_id;
-                        this.persistentData.nick_name = profile.nick_name;
-                        this.persistentData.email = profile.email;
-                        return profile;
+                    const dataresult: PassportProfileResponse = this.decryptAPIData(result.data);
+                    if (dataresult) {
+                        this.persistentData.user_id = dataresult.user_id;
+                        this.persistentData.nick_name = dataresult.nick_name;
+                        this.persistentData.email = dataresult.email;
+                        return dataresult;
                     }
                 } else {
                     this.log.error("Response code not ok", {code: result.code, msg: result.msg });
