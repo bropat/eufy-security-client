@@ -278,7 +278,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     },
                     enc: 0,
                     email: this.username,
-                    password:  encryptAPIData(this.password, this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex"))),
+                    password:  encryptAPIData(this.password, this.ecdh.computeSecret(Buffer.from(this.SERVER_PUBLIC_KEY, "hex"))),
                     time_zone: new Date().getTimezoneOffset() !== 0 ? -new Date().getTimezoneOffset() * 60 * 1000 : 0,
                     transaction: `${new Date().getTime()}`
                 };
@@ -1057,7 +1057,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             try {
                 const response = await this.request({
                     method: "post",
-                    endpoint: "v1/house/detail",
+                    endpoint: "v2/house/detail",
                     data: {
                         house_id: houseID,
                         transaction: `${new Date().getTime().toString()}`
@@ -1067,7 +1067,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     const result: ResultResponse = response.data;
                     if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                         if (result.data) {
-                            return result.data as HouseDetail;
+                            return this.decryptAPIData(result.data) as HouseDetail;
                         }
                     } else {
                         this.log.error("Response code not ok", {code: result.code, msg: result.msg });
@@ -1181,13 +1181,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         try {
             const response = await this.request({
                 method: "get",
-                endpoint: "v1/passport/profile"
+                endpoint: "v2/passport/profile"
             });
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
                 if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                     if (result.data) {
-                        const profile = result.data as PassportProfileResponse;
+                        const profile = this.decryptAPIData(result.data) as PassportProfileResponse;
                         this.persistentData.user_id = profile.user_id;
                         this.persistentData.nick_name = profile.nick_name;
                         this.persistentData.email = profile.email;
