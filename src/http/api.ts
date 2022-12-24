@@ -278,7 +278,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     },
                     enc: 0,
                     email: this.username,
-                    password:  encryptAPIData(this.password, this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex"))),
+                    password:  encryptAPIData(this.password, this.ecdh.computeSecret(Buffer.from(this.SERVER_PUBLIC_KEY, "hex"))),
                     time_zone: new Date().getTimezoneOffset() !== 0 ? -new Date().getTimezoneOffset() * 60 * 1000 : 0,
                     transaction: `${new Date().getTime()}`
                 };
