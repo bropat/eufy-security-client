@@ -50,7 +50,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         nick_name: "",
         device_public_keys: {},
         clientPrivateKey: "",
-        serverPublicKey: ""
+        serverPublicKey: this.SERVER_PUBLIC_KEY
     };
 
     private headers: Record<string, string> = {
@@ -87,14 +87,27 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (persistentData) {
             this.persistentData = persistentData;
         }
-        if (this.persistentData.serverPublicKey === undefined || this.persistentData.serverPublicKey === "") {
-            this.persistentData.serverPublicKey = this.SERVER_PUBLIC_KEY;
-        }
         if (this.persistentData.clientPrivateKey === undefined || this.persistentData.clientPrivateKey === "") {
             this.ecdh.generateKeys();
             this.persistentData.clientPrivateKey = this.ecdh.getPrivateKey().toString("hex");
         } else {
-            this.ecdh.setPrivateKey(Buffer.from(this.persistentData.clientPrivateKey, "hex"));
+            try {
+                this.ecdh.setPrivateKey(Buffer.from(this.persistentData.clientPrivateKey, "hex"));
+            } catch (error) {
+                this.log.debug(`Invalid client private key, generate new client private key...`, error);
+                this.ecdh.generateKeys();
+                this.persistentData.clientPrivateKey = this.ecdh.getPrivateKey().toString("hex");
+            }
+        }
+        if (this.persistentData.serverPublicKey === undefined || this.persistentData.serverPublicKey === "") {
+            this.persistentData.serverPublicKey = this.SERVER_PUBLIC_KEY;
+        } else {
+            try {
+                this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex"))
+            } catch (error) {
+                this.log.debug(`Invalid server public key, fallback to default server public key...`, error);
+                this.persistentData.serverPublicKey = this.SERVER_PUBLIC_KEY;
+            }
         }
 
         this.requestEufyCloud = got.extend({
@@ -299,8 +312,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                             const dataresult: LoginResultResponse = result.data;
 
+                            if (dataresult.server_secret_info?.public_key)
+                                this.persistentData.serverPublicKey = dataresult.server_secret_info.public_key;
+
                             this.persistentData.user_id = dataresult.user_id;
-                            this.persistentData.email = dataresult.email;
+                            this.persistentData.email = this.decryptAPIData(dataresult.email, false);
                             this.persistentData.nick_name = dataresult.nick_name;
 
                             this.setToken(dataresult.auth_token);
@@ -309,9 +325,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 ...this.headers,
                                 gtoken: md5(dataresult.user_id)
                             };
-                            if (dataresult.server_secret_info?.public_key)
-                                this.persistentData.serverPublicKey = dataresult.server_secret_info.public_key;
-                            this.log.debug("Token data", { token: this.token, tokenExpiration: this.tokenExpiration });
+                            this.log.debug("Token data", { token: this.token, tokenExpiration: this.tokenExpiration, serverPublicKey: this.persistentData.serverPublicKey });
                             if (!this.connected) {
                                 this.connected = true;
                                 this.emit("connect");
@@ -473,13 +487,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         transaction: `${new Date().getTime()}`
                     }
                 });
-                this.log.debug("Stations - Response:", response.data);
-
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
                     if (result.code == 0) {
-                        //TODO: Handle decryption exception resetting session auth information to reauthenticate
-                        return this.decryptAPIData(result.data) as Array<StationListResponse>;
+                        const stationList = this.decryptAPIData(result.data) as Array<StationListResponse>;
+                        this.log.debug("Decrypted station list data", stationList);
+                        return stationList;
                     } else {
                         this.log.error("Response code not ok", {code: result.code, msg: result.msg });
                     }
@@ -509,13 +522,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         transaction: `${new Date().getTime()}`
                     }
                 });
-                this.log.debug("Devices - Response:", response.data);
-
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
                     if (result.code == 0) {
-                        //TODO: Handle decryption exception resetting session auth information to reauthenticate
-                        return this.decryptAPIData(result.data) as Array<DeviceListResponse>;
+                        const deviceList = this.decryptAPIData(result.data) as Array<DeviceListResponse>;
+                        this.log.debug("Decrypted device list data", deviceList);
+                        return deviceList;
                     } else {
                         this.log.error("Response code not ok", {code: result.code, msg: result.msg });
                     }
@@ -534,8 +546,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         const houses = await this.getHouseList();
         if (houses && houses.length > 0) {
             houses.forEach(element => {
-                this.log.debug(`Houses - element: ${JSON.stringify(element)}`);
-                this.log.debug(`Houses - house name: ${element.house_name}`);
                 this.houses[element.house_id] = element;
             });
             if (Object.keys(this.houses).length > 0)
@@ -550,8 +560,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         const stations = await this.getStationList();
         if (stations && stations.length > 0) {
             stations.forEach(element => {
-                this.log.debug(`Stations - element: ${JSON.stringify(element)}`);
-                this.log.debug(`Stations - device_type: ${element.device_type}`);
                 this.hubs[element.station_sn] = element;
             });
             if (Object.keys(this.hubs).length > 0)
@@ -602,7 +610,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 headers: internalResponse.headers,
                 data: internalResponse.body,
             };
-            this.log.debug("Response:", { response: response.data });
+            this.log.debug("Response:", { token: this.token, request: request, response: response.data });
 
             return response;
         } catch (error) {
@@ -863,7 +871,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
                     if (result.code == 0) {
-                        //TODO: Handle decryption exception resetting session auth information to reauthenticate
                         const dataresult: Array<EventRecordResponse> = this.decryptAPIData(result.data);
                         if (dataresult) {
                             dataresult.forEach(record => {
@@ -898,17 +905,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public async getAllVideoEvents(filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
         const fifteenYearsInMilliseconds = 15 * 365 * 24 * 60 * 60 * 1000;
-        return this.getVideoEvents(new Date(new Date().getTime() - fifthyYearsInMilliseconds), new Date(), filter, maxResults);
+        return this.getVideoEvents(new Date(new Date().getTime() - fifteenYearsInMilliseconds), new Date(), filter, maxResults);
     }
 
     public async getAllAlarmEvents(filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
         const fifteenYearsInMilliseconds = 15 * 365 * 24 * 60 * 60 * 1000;
-        return this.getAlarmEvents(new Date(new Date().getTime() - fifthyYearsInMilliseconds), new Date(), filter, maxResults);
+        return this.getAlarmEvents(new Date(new Date().getTime() - fifteenYearsInMilliseconds), new Date(), filter, maxResults);
     }
 
     public async getAllHistoryEvents(filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
         const fifteenYearsInMilliseconds = 15 * 365 * 24 * 60 * 60 * 1000;
-        return this.getHistoryEvents(new Date(new Date().getTime() - fifthyYearsInMilliseconds), new Date(), filter, maxResults);
+        return this.getHistoryEvents(new Date(new Date().getTime() - fifteenYearsInMilliseconds), new Date(), filter, maxResults);
     }
 
     public isConnected(): boolean {
@@ -1014,8 +1021,24 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         return "";
     }
 
-    public decryptAPIData(data: string) {
-        return JSON.parse(decryptAPIData(data, this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex"))).toString());
+    public decryptAPIData(data: string, json = true): any {
+        let decryptedData: Buffer | undefined;
+        try {
+            decryptedData = decryptAPIData(data, this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex")));
+        } catch (error) {
+            this.log.error("Data decryption error, invalidating session data and reconnecting...", error);
+            this.persistentData.serverPublicKey = this.SERVER_PUBLIC_KEY;
+            this.invalidateToken();
+            this.emit("close");
+        }
+        if (decryptedData) {
+            if (json)
+                return JSON.parse(decryptedData.toString());
+            return decryptedData.toString();
+        }
+        if (json)
+            return {};
+        return undefined;
     }
 
     public async getSensorHistory(stationSN: string, deviceSN: string): Promise<Array<SensorHistoryEntry>> {
@@ -1058,7 +1081,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             try {
                 const response = await this.request({
                     method: "post",
-                    endpoint: "v1/house/detail",
+                    endpoint: "v2/house/detail",
                     data: {
                         house_id: houseID,
                         transaction: `${new Date().getTime().toString()}`
@@ -1068,7 +1091,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     const result: ResultResponse = response.data;
                     if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                         if (result.data) {
-                            return result.data as HouseDetail;
+                            const houseDetail = this.decryptAPIData(result.data) as HouseDetail;
+                            this.log.debug("Decrypted house detail data", houseDetail);
+                            return houseDetail;
                         }
                     } else {
                         this.log.error("Response code not ok", {code: result.code, msg: result.msg });
@@ -1128,7 +1153,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     const result: ResultResponse = response.data;
                     if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                         if (result.data) {
-                            return result.data as Array<HouseInviteListResponse>;
+                            const houseInviteList = this.decryptAPIData(result.data) as Array<HouseInviteListResponse>;
+                            this.log.debug("Decrypted house invite list data", houseInviteList);
+                            return houseInviteList;
                         }
                     } else {
                         this.log.error("Response code not ok", {code: result.code, msg: result.msg });
@@ -1189,6 +1216,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                     if (result.data) {
                         const profile = this.decryptAPIData(result.data) as PassportProfileResponse;
+                        this.log.debug("Decrypted passport profile data", profile);
                         this.persistentData.user_id = profile.user_id;
                         this.persistentData.nick_name = profile.nick_name;
                         this.persistentData.email = profile.email;
