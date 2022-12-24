@@ -80,6 +80,21 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.4.0 (2022-12-24)
+
+* (bropat) Implemented new encrypted cloud API communication (v2)
+* (bropat) Added support for 4G LTE Starlight camera (T8150; #209; #231)
+* (bropat) Implemented client-side termination of the stream (live/download; #258)
+* (bropat) Fixed issue #271
+* (bropat) Fixed issue #283
+* (bropat) Fixed issue #287
+* (martijnpoppen) FIX: webAPi stream request (#275)
+* (martijnpoppen) FIX: support V2 for getPassportProfile (V1 deprecated; #282)
+* (martijnpoppen) FIX: always encrypt login with server key. (#285)
+* (PhilippEngler) update _getEvents for v2 (#286)
+* (bropat) Fixed wrong variable names in pull request (#286)
+* (bropat) Updated versions of the package dependencies
+
 ### 2.3.0 (2022-11-26)
 
 * (bropat) Added support for Wired Doorbell (T8200X)
@@ -656,7 +671,7 @@ Please use GitHub issues for this.
 
 MIT License
 
-Copyright (c) 2021 bropat <patrick.broetto@gmail.com>
+Copyright (c) 2022 bropat <patrick.broetto@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
