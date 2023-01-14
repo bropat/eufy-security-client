@@ -265,6 +265,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         const serial = station.getSerial();
         if (serial && !Object.keys(this.stations).includes(serial)) {
             this.stations[serial] = station;
+            this.getStorageInfo(serial);
             this.emit("station added", station);
         } else {
             this.log.debug(`Station with this serial ${station.getSerial()} exists already and couldn't be added again!`);
@@ -293,9 +294,15 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 this.stations[hub.station_sn].setConnectionType(this.config.p2pConnectionSetup);
                 this.stations[hub.station_sn].connect();
             }
+            this.getStorageInfo(hub.station_sn);
         } else {
             this.log.debug(`Station with this serial ${hub.station_sn} doesn't exists and couldn't be updated!`);
         }
+    }
+
+    private async getStorageInfo(stationSerial : string) : Promise<void>
+    {
+        await this.stations[stationSerial].getStorageInfoEx();
     }
 
     private addDevice(device: Device): void {
@@ -451,6 +458,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         station.on("device low battery", (deviceSN: string) => this.onStationDeviceLowBattery(deviceSN));
                         station.on("device wrong try-protect alarm", (deviceSN: string) => this.onStationDeviceWrongTryProtectAlarm(deviceSN));
                         station.on("device pin verified", (deviceSN: string, successfull: boolean) => this.onStationDevicePinVerified(deviceSN, successfull));
+                        station.on("sd info ex", (station: Station, sdStatus: number, sdCapacity: number, sdCapacityAvailable: number) => this.onStationSdInfoEx(station, sdStatus, sdCapacity, sdCapacityAvailable));
                         this.addStation(station);
                     } catch (error) {
                         this.log.error("Error", error);
@@ -2197,6 +2205,19 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }).catch((error) => {
             this.log.error(`onStationDevicePinVerified device ${deviceSN} error`, error);
         });
+    }
+
+    private onStationSdInfoEx(station : Station, sdStatus : number, sdCapacity : number, sdCapacityAvailable : number)
+    {
+        if(station.hasProperty(PropertyName.StationSdStatus)) {
+            station.updateProperty(PropertyName.StationSdStatus, sdStatus);
+        }
+        if(station.hasProperty(PropertyName.StationSdCapacity)) {
+            station.updateProperty(PropertyName.StationSdCapacity, sdCapacity);
+        }
+        if(station.hasProperty(PropertyName.StationSdCapacityAvailable)) {
+            station.updateProperty(PropertyName.StationSdCapacityAvailable, sdCapacityAvailable);
+        }
     }
 
 }

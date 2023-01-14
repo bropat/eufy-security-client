@@ -1222,6 +1222,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 }
                             } else if (msg_state.commandType === CommandType.CMD_STOP_TALKBACK || (msg_state.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD && msg_state.nestedCommandType === IndoorSoloSmartdropCommandType.CMD_END_SPEAK)) {
                                 this.stopTalkback(msg_state.channel);
+                            } else if (msg_state.commandType === CommandType.CMD_SDINFO_EX){
+                                this.emit("sd info ex", message.data.slice(0, 4).readUInt32LE(), message.data.slice(4, 8).readUInt32LE(), message.data.slice(8, 12).readUInt32LE());
                             }
                         }
                     } else {

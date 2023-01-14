@@ -82,6 +82,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("jammed", (channel: number) => this.onDeviceJammed(channel));
         this.p2pSession.on("low battery", (channel: number) => this.onDeviceLowBattery(channel));
         this.p2pSession.on("wrong try-protect alarm", (channel: number) => this.onDeviceWrongTryProtectAlarm(channel));
+        this.p2pSession.on("sd info ex", (sdStatus, sdCapacity, sdCapacityAvailable) => this.onSdInfoEx(sdStatus, sdCapacity, sdCapacityAvailable));
         this.update(this.rawStation);
         this.ready = true;
         setImmediate(() => {
@@ -667,13 +668,13 @@ export class Station extends TypedEmitter<StationEvents> {
         });
     }
 
-    public async getStorageInfo(): Promise<void> {
+    public async getStorageInfoEx(): Promise<void> {
         this.log.debug(`Sending get storage info command to station ${this.getSerial()}`);
-        //TODO: Verify channel! Should be 255...
         await this.p2pSession.sendCommandWithIntString({
             commandType: CommandType.CMD_SDINFO_EX,
             value: 0,
             valueSub: 0,
+            channel: 255,
             strValue: this.rawStation.member.admin_user_id
         });
     }
@@ -6545,6 +6546,10 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onDeviceWrongTryProtectAlarm(channel: number): void {
         this.emit("device wrong try-protect alarm", this._getDeviceSerial(channel));
+    }
+
+    private onSdInfoEx(sdStatus: number, sdCapacity: number, sdAvailableCapacity: number): void {
+        this.emit("sd info ex", this, sdStatus, sdCapacity, sdAvailableCapacity);
     }
 
     public async setVideoTypeStoreToNAS(device: Device, value: VideoTypeStoreToNAS): Promise<void> {

@@ -199,6 +199,7 @@ export interface StationEvents {
     "device low battery": (deviceSN: string) => void;
     "device wrong try-protect alarm": (deviceSN: string) => void;
     "device pin verified": (deviceSN: string, successfull: boolean) => void;
+    "sd info ex": (station: Station, sdStatus: number, sdCapacity: number, sdCapacityAvailable: number) => void;
 }
 
 export interface DeviceEvents {

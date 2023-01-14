@@ -39,6 +39,7 @@ export interface P2PClientProtocolEvents {
     "shake alarm": (channel: number, detail: SmartSafeShakeAlarmEvent) => void;
     "911 alarm": (channel: number, detail: SmartSafeAlarm911Event) => void;
     "wrong try-protect alarm": (channel: number) => void;
+    "sd info ex": (sdStatus: number, sdCapacity: number, sdCapacityAvailable: number) => void;
 }
 
 export interface P2PQueueMessage {

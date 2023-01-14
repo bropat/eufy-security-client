@@ -617,6 +617,9 @@ export enum PropertyName {
     StationAlarmArmDelay = "alarmArmDelay",
     StationAlarmDelay = "alarmDelay",
     StationAlarmDelayType = "alarmDelayType",
+    StationSdStatus = "sdStatus",
+    StationSdCapacity = "sdCapacity",
+    StationSdCapacityAvailable = "sdCapacityAvailable",
 
 }
 
@@ -5614,6 +5617,36 @@ export const StationAlarmDelayTypeProperty: PropertyMetadataNumeric = {
     default: 0,
 }
 
+export const StationSdStatusProperty: PropertyMetadataNumeric = {
+    key: "sd_status",
+    name: PropertyName.StationSdStatus,
+    label: "SD Status",
+    readable: true,
+    writeable: false,
+    type: "number",
+    default: undefined,
+}
+
+export const StationSdCapacityProperty: PropertyMetadataNumeric = {
+    key: "sd_capacity",
+    name: PropertyName.StationSdCapacity,
+    label: "SD Capacity",
+    readable: true,
+    writeable: false,
+    type: "number",
+    default: undefined,
+}
+
+export const StationSdAvailableCapacityProperty: PropertyMetadataNumeric = {
+    key: "sd_capacity_available",
+    name: PropertyName.StationSdCapacityAvailable,
+    label: "SD Capacity Available",
+    readable: true,
+    writeable: false,
+    type: "number",
+    default: undefined,
+}
+
 export const StationProperties: Properties = {
     [DeviceType.STATION]: {
         ...BaseStationProperties,
@@ -5642,6 +5675,9 @@ export const StationProperties: Properties = {
         [PropertyName.StationAlarmArmDelay]: StationAlarmArmDelayProperty,
         [PropertyName.StationAlarmDelay]: StationAlarmDelayProperty,
         [PropertyName.StationAlarmDelayType]: StationAlarmDelayTypeProperty,
+        [PropertyName.StationSdStatus]: StationSdStatusProperty,
+        [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
+        [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
     },
     [DeviceType.HB3]: {
         ...BaseStationProperties,
@@ -5670,6 +5706,9 @@ export const StationProperties: Properties = {
         [PropertyName.StationAlarmArmDelay]: StationAlarmArmDelayProperty,
         [PropertyName.StationAlarmDelay]: StationAlarmDelayProperty,
         [PropertyName.StationAlarmDelayType]: StationAlarmDelayTypeProperty,
+        [PropertyName.StationSdStatus]: StationSdStatusProperty,
+        [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
+        [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
     },
     [DeviceType.INDOOR_CAMERA]: {
         ...BaseStationProperties,
@@ -5700,6 +5739,9 @@ export const StationProperties: Properties = {
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
         [PropertyName.StationAlarm]: StationAlarmProperty,
         [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+        [PropertyName.StationSdStatus]: StationSdStatusProperty,
+        [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
+        [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
     },
     [DeviceType.INDOOR_COST_DOWN_CAMERA]: {
         ...BaseStationProperties,
