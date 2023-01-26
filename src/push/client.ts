@@ -8,6 +8,7 @@ import { dummyLogger, Logger } from "ts-log";
 import { Message, MessageTag, RawPushMessage } from "./models";
 import { PushClientParser } from "./parser";
 import { PushClientEvents } from "./interfaces";
+import { isValidJson } from "./utils";
 
 export class PushClient extends TypedEmitter<PushClientEvents> {
 
@@ -256,8 +257,11 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
         const messageData: Record<string, any> = {};
         appData.forEach((kv: { key: string; value: any }) => {
             if (kv.key === "payload") {
-                const payload = JSON.parse(Buffer.from(kv.value, "base64").toString("utf8"));
-                messageData[kv.key] = payload;
+                if(isValidJson(Buffer.from(kv.value, "base64").toString("utf8"))) {
+                    const payload = JSON.parse(Buffer.from(kv.value, "base64").toString("utf8"));
+                    messageData[kv.key] = payload;
+                }
+                
             } else {
                 messageData[kv.key] = kv.value;
             }

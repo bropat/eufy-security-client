@@ -81,3 +81,12 @@ export function convertTimestampMs(timestamp: number): number {
     }
     return timestamp;
 }
+
+export function isValidJson(str: any) {
+    try {
+        JSON.parse(str);
+    } catch (e) {
+        return false;
+    }
+    return true;
+}
