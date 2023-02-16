@@ -94,6 +94,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private secondaryCommandTimeout?: NodeJS.Timeout;
     private connectTime: number | null = null;
     private lastPong: number | null = null;
+    private lastPongData: Buffer | undefined = undefined;
     private connectionType: P2PConnectionType = P2PConnectionType.QUICKEST;
 
     private energySavingDevice = false;
@@ -159,6 +160,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.connected = false;
         this.connecting = false;
         this.lastPong = null;
+        this.lastPongData = undefined;
         this.connectTime = null;
         this.seqNumber = 0;
         this.offsetDataSeqNumber = 0;
@@ -468,7 +470,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this.log.warn(`Station ${this.rawStation.station_sn} - Heartbeat check failed. Connection seems lost. Try to reconnect...`);
             this._disconnected();
         }
-        await this.sendMessage(`Send ping to station ${this.rawStation.station_sn}`, address, RequestMessageType.PING);
+        await this.sendMessage(`Send ping to station ${this.rawStation.station_sn}`, address, RequestMessageType.PING, this.lastPongData);
     }
 
     public sendCommandWithIntString(p2pcommand: P2PCommand, customData?: CustomData): void {
@@ -764,6 +766,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this.connected = true;
                 this.connectTime = new Date().getTime();
                 this.lastPong = null;
+                this.lastPongData = undefined;
 
                 this.connectAddress = { host: rinfo.address, port: rinfo.port };
                 if (isPrivateIp(rinfo.address))
@@ -873,6 +876,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         } else if (hasHeader(msg, ResponseMessageType.PONG)) {
             // Response to a ping from our side
             this.lastPong = new Date().getTime();
+
+            if (msg.length > 4)
+                this.lastPongData = msg.slice(4);
+            else
+                this.lastPongData = undefined;
+
             return;
         } else if (hasHeader(msg, ResponseMessageType.PING)) {
             // Response with PONG to keep alive
