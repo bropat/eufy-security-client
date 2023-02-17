@@ -10,7 +10,7 @@ import { PushNotificationServiceEvents } from "./interfaces";
 import { Device } from "../http/device";
 import { DeviceType } from "../http/types";
 import { getAbsoluteFilePath } from "../http/utils";
-import { isEmpty } from "../utils";
+import { isEmpty, parseJSON } from "../utils";
 
 export class PushNotificationService extends TypedEmitter<PushNotificationServiceEvents> {
 
@@ -470,25 +470,27 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 }
             }
         } else if (message.payload.doorbell !== undefined) {
-            const push_data = JSON.parse(message.payload.doorbell) as DoorbellPushData;
-            normalized_message.name = "Doorbell";
-            normalized_message.type = 5;
-            normalized_message.event_time = push_data.create_time !== undefined ? convertTimestampMs(push_data.create_time) : push_data.create_time;
-            normalized_message.station_sn = push_data.device_sn;
-            normalized_message.device_sn = push_data.device_sn;
-            normalized_message.title = push_data.title;
-            normalized_message.content = push_data.content;
-            normalized_message.push_time = push_data.event_time !== undefined ? convertTimestampMs(push_data.event_time) : push_data.event_time;
-            normalized_message.channel = push_data.channel;
-            normalized_message.cipher = push_data.cipher;
-            normalized_message.event_session = push_data.event_session;
-            normalized_message.event_type = push_data.event_type;
-            normalized_message.file_path = push_data.file_path;
-            normalized_message.pic_url = push_data.pic_url;
-            normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
-            normalized_message.doorbell_url = push_data.url;
-            normalized_message.doorbell_url_ex = push_data.url_ex;
-            normalized_message.doorbell_video_url = push_data.video_url;
+            const push_data = parseJSON(message.payload.doorbell, this.log) as DoorbellPushData;
+            if (push_data !== undefined) {
+                normalized_message.name = "Doorbell";
+                normalized_message.type = 5;
+                normalized_message.event_time = push_data.create_time !== undefined ? convertTimestampMs(push_data.create_time) : push_data.create_time;
+                normalized_message.station_sn = push_data.device_sn;
+                normalized_message.device_sn = push_data.device_sn;
+                normalized_message.title = push_data.title;
+                normalized_message.content = push_data.content;
+                normalized_message.push_time = push_data.event_time !== undefined ? convertTimestampMs(push_data.event_time) : push_data.event_time;
+                normalized_message.channel = push_data.channel;
+                normalized_message.cipher = push_data.cipher;
+                normalized_message.event_session = push_data.event_session;
+                normalized_message.event_type = push_data.event_type;
+                normalized_message.file_path = push_data.file_path;
+                normalized_message.pic_url = push_data.pic_url;
+                normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
+                normalized_message.doorbell_url = push_data.url;
+                normalized_message.doorbell_url_ex = push_data.url_ex;
+                normalized_message.doorbell_video_url = push_data.video_url;
+            }
         }
         return normalized_message;
     }

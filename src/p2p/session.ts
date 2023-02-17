@@ -20,6 +20,7 @@ import { SmartSafeEvent } from "../push/types";
 import { SmartSafeEventValueDetail } from "../push/models";
 import { BleCommandFactory } from "./ble";
 import { CommandName, Station } from "../http";
+import { parseJSON } from "../utils";
 
 export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
@@ -1471,9 +1472,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     break;
                 case CommandType.CMD_CAMERA_INFO:
                     try {
-                        const data = message.data.toString().replace(/\0/g, "");
+                        const data = message.data.toString("utf8");
                         this.log.debug(`Station ${this.rawStation.station_sn} - Camera info`, { cameraInfo: data });
-                        this.emit("camera info", JSON.parse(data) as CmdCameraInfoResponse);
+                        this.emit("camera info", parseJSON(data, this.log) as CmdCameraInfoResponse);
                     } catch (error) {
                         this.log.error(`Station ${this.rawStation.station_sn} - Camera info - Error:`, error);
                     }
@@ -1499,7 +1500,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         this.log.debug(`Station ${this.rawStation.station_sn} - CMD_DOORBELL_NOTIFY_PAYLOAD`, { payload: message.data.toString() });
                         //TODO: Finish implementation, emit an event...
                         //VDBStreamInfo (1005) and VoltageEvent (1015)
-                        //this.emit("", JSON.parse(message.data.toString()) as xy);
+                        //this.emit("", parseJSON(message.data.toString(), this.log) as xy);
                     } catch (error) {
                         this.log.error(`Station ${this.rawStation.station_sn} - CMD_DOORBELL_NOTIFY_PAYLOAD - Error:`, error);
                     }
@@ -1552,176 +1553,178 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 case CommandType.CMD_NOTIFY_PAYLOAD:
                     try {
                         this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD`, { payload: message.data.toString() });
-                        const json: CmdNotifyPayload = JSON.parse(message.data.toString()) as CmdNotifyPayload;
-                        if (this.rawStation.station_sn.startsWith("T8520")) {
-                            //TODO: Implement notification payload or T8520
-                            if (json.cmd === CommandType.P2P_ADD_PW || json.cmd === CommandType.P2P_QUERY_PW || json.cmd === CommandType.P2P_GET_LOCK_PARAM || json.cmd === CommandType.P2P_GET_USER_AND_PW_ID) {
-                                // encrypted data
-                                //TODO: Handle decryption of encrypted Data (AES) - For decryption use the cached aeskey used for sending the command!
-                                const aesKey = this.getLockAESKey(json.cmd);
-                                if (aesKey !== undefined) {
-                                    const decryptedPayload = decryptPayloadData(Buffer.from(json.payload as string, "base64"), Buffer.from(aesKey, "hex"), Buffer.from(getLockVectorBytes(this.rawStation.station_sn), "hex")).toString()
-                                    this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD Lock - Received`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, decryptedPayload: decryptedPayload, aesKey: aesKey });
-                                    switch (json.cmd) {
-                                        case CommandType.P2P_ADD_PW:
-                                            // decryptedPayload: {"code":0,"passwordId":"002C"}
-                                            break;
-                                    }
-                                }
-                            } else if (json.cmd === CommandType.P2P_QUERY_STATUS_IN_LOCK) {
-                                // Example: {"code":0,"slBattery":"82","slState":"4","trigger":2}
-                                const payload: ESLAdvancedLockStatusNotification = json.payload as ESLAdvancedLockStatusNotification;
-                                this.emit("parameter", message.channel, CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL, payload.slBattery);
-                                this.emit("parameter", message.channel, CommandType.CMD_SMARTLOCK_QUERY_STATUS, payload.slState);
-                            } else {
-                                this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD - Not implemented`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, message: message.data.toString() });
-                            }
-                        } else if (json.cmd === CommandType.CMD_DOORLOCK_P2P_SEQ) {
-                            const payload: ESLStationP2PThroughData = json.payload as ESLStationP2PThroughData;
-                            switch (payload.lock_cmd) {
-                                case 0:
-                                    if (payload.seq_num !== undefined) {
-                                        this.lockSeqNumber = payload.seq_num;
-                                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD - Lock sequence number`, { lockSeqNumber: this.lockSeqNumber });
-                                    }
-                                    break;
-                                default:
-                                    this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD - Not implemented`, { message: message.data.toString() });
-                                    break;
-                            }
-                        } else if (json.cmd === CommandType.CMD_DOORLOCK_DATA_PASS_THROUGH) {
-                            const payload: ESLStationP2PThroughData = json.payload as ESLStationP2PThroughData;
-                            if (this.deviceSNs[message.channel] !== undefined) {
-                                if (payload.lock_payload !== undefined) {
-                                    const decoded = decodeBase64(decodeLockPayload(Buffer.from(payload.lock_payload)));
-                                    const key = generateBasicLockAESKey(this.deviceSNs[message.channel].adminUserId, this.rawStation.station_sn);
-                                    const iv = getLockVectorBytes(this.rawStation.station_sn);
-
-                                    this.log.debug(`Station ${this.rawStation.station_sn} - CMD_DOORLOCK_DATA_PASS_THROUGH`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, key: key, iv: iv, decoded: decoded.toString("hex") });
-
-                                    payload.lock_payload = decryptLockAESData(key, iv, decoded).toString("hex");
-
-                                    switch (payload.lock_cmd) {
-                                        case ESLBleCommand.NOTIFY:
-                                            const notifyBuffer = Buffer.from(payload.lock_payload, "hex");
-                                            this.emit("parameter", message.channel, CommandType.CMD_GET_BATTERY, notifyBuffer.slice(3, 4).readInt8().toString());
-                                            this.emit("parameter", message.channel, CommandType.CMD_DOORLOCK_GET_STATE, notifyBuffer.slice(6, 7).readInt8().toString());
-                                            break;
-                                        default:
-                                            this.log.debug(`Station ${this.rawStation.station_sn} - CMD_DOORLOCK_DATA_PASS_THROUGH - Not implemented`, { message: message.data.toString() });
-                                            break;
-                                    }
-                                }
-                            }
-                        } else if (json.cmd === CommandType.CMD_SET_PAYLOAD_LOCKV12) {
-                            const payload: ESLBleV12P2PThroughData = json.payload as ESLBleV12P2PThroughData;
-                            if (payload.lock_payload !== undefined) {
-                                const fac = new BleCommandFactory(payload.lock_payload);
-                                if (fac.getCommandCode() !== ESLBleCommand.NOTIFY) {
-                                    const aesKey = this.getLockAESKey(fac.getCommandCode()!);
-                                    this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD Lock V12 - Received`, { fac: fac.toString(), aesKey: aesKey });
-                                    let data = fac.getData()!;
+                        const json: CmdNotifyPayload = parseJSON(message.data.toString("utf-8"), this.log) as CmdNotifyPayload;
+                        if (json !== undefined) {
+                            if (this.rawStation.station_sn.startsWith("T8520")) {
+                                //TODO: Implement notification payload or T8520
+                                if (json.cmd === CommandType.P2P_ADD_PW || json.cmd === CommandType.P2P_QUERY_PW || json.cmd === CommandType.P2P_GET_LOCK_PARAM || json.cmd === CommandType.P2P_GET_USER_AND_PW_ID) {
+                                    // encrypted data
+                                    //TODO: Handle decryption of encrypted Data (AES) - For decryption use the cached aeskey used for sending the command!
+                                    const aesKey = this.getLockAESKey(json.cmd);
                                     if (aesKey !== undefined) {
-                                        data = decryptPayloadData(data,  Buffer.from(aesKey, "hex"), Buffer.from(getLockVectorBytes(this.rawStation.station_sn), "hex"))
+                                        const decryptedPayload = decryptPayloadData(Buffer.from(json.payload as string, "base64"), Buffer.from(aesKey, "hex"), Buffer.from(getLockVectorBytes(this.rawStation.station_sn), "hex")).toString()
+                                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD Lock - Received`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, decryptedPayload: decryptedPayload, aesKey: aesKey });
+                                        switch (json.cmd) {
+                                            case CommandType.P2P_ADD_PW:
+                                                // decryptedPayload: {"code":0,"passwordId":"002C"}
+                                                break;
+                                        }
                                     }
-                                    const returnCode = data.readInt8(0);
-                                    if (this.lastChannel !== undefined && this.lastCustomData !== undefined) {
-                                        const result: CommandResult = {
-                                            channel: this.lastChannel,
-                                            command_type: Number.parseInt(ESLCommand[ESLBleCommand[fac.getCommandCode()!] as unknown as number]),
-                                            return_code: returnCode,
-                                            customData: this.lastCustomData
-                                        };
-
-                                        this.emit("secondary command", result);
-                                    }
-                                    this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD Lock V12 return code: ${returnCode}`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, decoded: data, bleCommandCode: ESLBleCommand[fac.getCommandCode()!], returnCode: returnCode, channel: this.lastChannel, customData: this.lastCustomData });
-                                    this._clearSecondaryCommandTimeout();
-                                    this.sendQueuedMessage();
+                                } else if (json.cmd === CommandType.P2P_QUERY_STATUS_IN_LOCK) {
+                                    // Example: {"code":0,"slBattery":"82","slState":"4","trigger":2}
+                                    const payload: ESLAdvancedLockStatusNotification = json.payload as ESLAdvancedLockStatusNotification;
+                                    this.emit("parameter", message.channel, CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL, payload.slBattery);
+                                    this.emit("parameter", message.channel, CommandType.CMD_SMARTLOCK_QUERY_STATUS, payload.slState);
                                 } else {
-                                    this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD Lock V12 - Received notify`, { fac: fac.toString() });
+                                    this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD - Not implemented`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, message: message.data.toString() });
                                 }
-                            } else {
-                                this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD Lock V12 - Unexpected response`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, message: message.data.toString() });
-                            }
-                        } else if (Device.isSmartSafe(this.rawStation.device_type)) {
-                            this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe`, { commandIdName: CommandType[json.cmd], commandId: json.cmd });
-                            switch (json.cmd) {
-                                case CommandType.CMD_SMARTSAFE_SETTINGS:
-                                {
-                                    const payload = json.payload as SmartSafeSettingsNotification;
-                                    try {
-                                        const data = decodeSmartSafeData(this.rawStation.station_sn, Buffer.from(payload.data, "hex"));
-                                        const returnCode = data.data.readInt8(0);
+                            } else if (json.cmd === CommandType.CMD_DOORLOCK_P2P_SEQ) {
+                                const payload: ESLStationP2PThroughData = json.payload as ESLStationP2PThroughData;
+                                switch (payload.lock_cmd) {
+                                    case 0:
+                                        if (payload.seq_num !== undefined) {
+                                            this.lockSeqNumber = payload.seq_num;
+                                            this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD - Lock sequence number`, { lockSeqNumber: this.lockSeqNumber });
+                                        }
+                                        break;
+                                    default:
+                                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD - Not implemented`, { message: message.data.toString() });
+                                        break;
+                                }
+                            } else if (json.cmd === CommandType.CMD_DOORLOCK_DATA_PASS_THROUGH) {
+                                const payload: ESLStationP2PThroughData = json.payload as ESLStationP2PThroughData;
+                                if (this.deviceSNs[message.channel] !== undefined) {
+                                    if (payload.lock_payload !== undefined) {
+                                        const decoded = decodeBase64(decodeLockPayload(Buffer.from(payload.lock_payload)));
+                                        const key = generateBasicLockAESKey(this.deviceSNs[message.channel].adminUserId, this.rawStation.station_sn);
+                                        const iv = getLockVectorBytes(this.rawStation.station_sn);
+
+                                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_DOORLOCK_DATA_PASS_THROUGH`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, key: key, iv: iv, decoded: decoded.toString("hex") });
+
+                                        payload.lock_payload = decryptLockAESData(key, iv, decoded).toString("hex");
+
+                                        switch (payload.lock_cmd) {
+                                            case ESLBleCommand.NOTIFY:
+                                                const notifyBuffer = Buffer.from(payload.lock_payload, "hex");
+                                                this.emit("parameter", message.channel, CommandType.CMD_GET_BATTERY, notifyBuffer.slice(3, 4).readInt8().toString());
+                                                this.emit("parameter", message.channel, CommandType.CMD_DOORLOCK_GET_STATE, notifyBuffer.slice(6, 7).readInt8().toString());
+                                                break;
+                                            default:
+                                                this.log.debug(`Station ${this.rawStation.station_sn} - CMD_DOORLOCK_DATA_PASS_THROUGH - Not implemented`, { message: message.data.toString() });
+                                                break;
+                                        }
+                                    }
+                                }
+                            } else if (json.cmd === CommandType.CMD_SET_PAYLOAD_LOCKV12) {
+                                const payload: ESLBleV12P2PThroughData = json.payload as ESLBleV12P2PThroughData;
+                                if (payload.lock_payload !== undefined) {
+                                    const fac = new BleCommandFactory(payload.lock_payload);
+                                    if (fac.getCommandCode() !== ESLBleCommand.NOTIFY) {
+                                        const aesKey = this.getLockAESKey(fac.getCommandCode()!);
+                                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD Lock V12 - Received`, { fac: fac.toString(), aesKey: aesKey });
+                                        let data = fac.getData()!;
+                                        if (aesKey !== undefined) {
+                                            data = decryptPayloadData(data,  Buffer.from(aesKey, "hex"), Buffer.from(getLockVectorBytes(this.rawStation.station_sn), "hex"))
+                                        }
+                                        const returnCode = data.readInt8(0);
                                         if (this.lastChannel !== undefined && this.lastCustomData !== undefined) {
                                             const result: CommandResult = {
                                                 channel: this.lastChannel,
-                                                command_type: payload.prj_id,
+                                                command_type: Number.parseInt(ESLCommand[ESLBleCommand[fac.getCommandCode()!] as unknown as number]),
                                                 return_code: returnCode,
                                                 customData: this.lastCustomData
                                             };
 
                                             this.emit("secondary command", result);
                                         }
-                                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe return code: ${data.data.readInt8(0)}`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, decoded: data, commandCode: SmartSafeCommandCode[data.commandCode], returnCode: returnCode, channel: this.lastChannel, customData: this.lastCustomData });
-                                    } catch (error) {
-                                        this.log.error(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe Error:`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, channel: this.lastChannel, customData: this.lastCustomData, payload: payload, error: error });
+                                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD Lock V12 return code: ${returnCode}`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, decoded: data, bleCommandCode: ESLBleCommand[fac.getCommandCode()!], returnCode: returnCode, channel: this.lastChannel, customData: this.lastCustomData });
+                                        this._clearSecondaryCommandTimeout();
+                                        this.sendQueuedMessage();
+                                    } else {
+                                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD Lock V12 - Received notify`, { fac: fac.toString() });
                                     }
-                                    this._clearSecondaryCommandTimeout();
-                                    this.sendQueuedMessage();
-                                    break;
+                                } else {
+                                    this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD Lock V12 - Unexpected response`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, message: message.data.toString() });
                                 }
-                                case CommandType.CMD_SMARTSAFE_STATUS_UPDATE:
-                                {
-                                    const payload = json.payload as SmartSafeStatusNotification;
-                                    switch (payload.event_type) {
-                                        case SmartSafeEvent.LOCK_STATUS:
-                                        {
-                                            const eventValues = payload.event_value as SmartSafeEventValueDetail;
+                            } else if (Device.isSmartSafe(this.rawStation.device_type)) {
+                                this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe`, { commandIdName: CommandType[json.cmd], commandId: json.cmd });
+                                switch (json.cmd) {
+                                    case CommandType.CMD_SMARTSAFE_SETTINGS:
+                                    {
+                                        const payload = json.payload as SmartSafeSettingsNotification;
+                                        try {
+                                            const data = decodeSmartSafeData(this.rawStation.station_sn, Buffer.from(payload.data, "hex"));
+                                            const returnCode = data.data.readInt8(0);
+                                            if (this.lastChannel !== undefined && this.lastCustomData !== undefined) {
+                                                const result: CommandResult = {
+                                                    channel: this.lastChannel,
+                                                    command_type: payload.prj_id,
+                                                    return_code: returnCode,
+                                                    customData: this.lastCustomData
+                                                };
 
-                                            this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe Status update - LOCK_STATUS`, { eventValues: eventValues });
-                                            /*
-                                                type values:
-                                                    1: Unlocked by PIN
-                                                    2: Unlocked by User
-                                                    3: Unlocked by key
-                                                    4: Unlocked by App
-                                                    5: Unlocked by Dual Unlock
-                                            */
-                                            if (eventValues.action === 0) {
-                                                this.emit("parameter", message.channel, CommandType.CMD_SMARTSAFE_LOCK_STATUS, "0");
-                                            } else if (eventValues.action === 1) {
-                                                this.emit("parameter", message.channel, CommandType.CMD_SMARTSAFE_LOCK_STATUS, "1");
-                                            } else if (eventValues.action === 2) {
-                                                this.emit("jammed", message.channel);
-                                            } else if (eventValues.action === 3) {
-                                                this.emit("low battery", message.channel);
+                                                this.emit("secondary command", result);
                                             }
-                                            break;
+                                            this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe return code: ${data.data.readInt8(0)}`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, decoded: data, commandCode: SmartSafeCommandCode[data.commandCode], returnCode: returnCode, channel: this.lastChannel, customData: this.lastCustomData });
+                                        } catch (error) {
+                                            this.log.error(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe Error:`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, channel: this.lastChannel, customData: this.lastCustomData, payload: payload, error: error });
                                         }
-                                        case SmartSafeEvent.SHAKE_ALARM:
-                                            this.emit("shake alarm", message.channel, payload.event_value as number);
-                                            break;
-                                        case SmartSafeEvent.ALARM_911:
-                                            this.emit("911 alarm", message.channel, payload.event_value as number);
-                                            break;
-                                        //case SmartSafeEvent.BATTERY_STATUS:
-                                        //    break;
-                                        case SmartSafeEvent.INPUT_ERR_MAX:
-                                            this.emit("wrong try-protect alarm", message.channel);
-                                            break;
-                                        default:
-                                            this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe Status update - Not implemented`, { message: message.data.toString() });
-                                            break;
+                                        this._clearSecondaryCommandTimeout();
+                                        this.sendQueuedMessage();
+                                        break;
                                     }
-                                    break;
+                                    case CommandType.CMD_SMARTSAFE_STATUS_UPDATE:
+                                    {
+                                        const payload = json.payload as SmartSafeStatusNotification;
+                                        switch (payload.event_type) {
+                                            case SmartSafeEvent.LOCK_STATUS:
+                                            {
+                                                const eventValues = payload.event_value as SmartSafeEventValueDetail;
+
+                                                this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe Status update - LOCK_STATUS`, { eventValues: eventValues });
+                                                /*
+                                                    type values:
+                                                        1: Unlocked by PIN
+                                                        2: Unlocked by User
+                                                        3: Unlocked by key
+                                                        4: Unlocked by App
+                                                        5: Unlocked by Dual Unlock
+                                                */
+                                                if (eventValues.action === 0) {
+                                                    this.emit("parameter", message.channel, CommandType.CMD_SMARTSAFE_LOCK_STATUS, "0");
+                                                } else if (eventValues.action === 1) {
+                                                    this.emit("parameter", message.channel, CommandType.CMD_SMARTSAFE_LOCK_STATUS, "1");
+                                                } else if (eventValues.action === 2) {
+                                                    this.emit("jammed", message.channel);
+                                                } else if (eventValues.action === 3) {
+                                                    this.emit("low battery", message.channel);
+                                                }
+                                                break;
+                                            }
+                                            case SmartSafeEvent.SHAKE_ALARM:
+                                                this.emit("shake alarm", message.channel, payload.event_value as number);
+                                                break;
+                                            case SmartSafeEvent.ALARM_911:
+                                                this.emit("911 alarm", message.channel, payload.event_value as number);
+                                                break;
+                                            //case SmartSafeEvent.BATTERY_STATUS:
+                                            //    break;
+                                            case SmartSafeEvent.INPUT_ERR_MAX:
+                                                this.emit("wrong try-protect alarm", message.channel);
+                                                break;
+                                            default:
+                                                this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe Status update - Not implemented`, { message: message.data.toString() });
+                                                break;
+                                        }
+                                        break;
+                                    }
+                                    default:
+                                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe - Not implemented`, { message: message.data.toString() });
+                                        break;
                                 }
-                                default:
-                                    this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe - Not implemented`, { message: message.data.toString() });
-                                    break;
+                            } else {
+                                this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD - Not implemented`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, message: message.data.toString() });
                             }
-                        } else {
-                            this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD - Not implemented`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, message: message.data.toString() });
                         }
                     } catch (error) {
                         this.log.error(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD Error:`, { error: error, payload: message.data.toString() });

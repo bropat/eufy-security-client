@@ -13,7 +13,7 @@ import { EventFilterType, PublicKeyType, ResponseErrorCode, StorageType, VerfyCo
 import { ParameterHelper } from "./parameter";
 import { encryptAPIData, decryptAPIData, getTimezoneGMTString } from "./utils";
 import { InvalidCountryCodeError, InvalidLanguageCodeError } from "./../error";
-import { md5, mergeDeep } from "./../utils";
+import { md5, mergeDeep, parseJSON } from "./../utils";
 import { ApiBaseLoadError, ApiGenericError, ApiHTTPResponseCodeError, ApiInvalidResponseError, ApiResponseCodeError } from "./error";
 
 export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
@@ -943,7 +943,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             const invites: Invites = {};
                             result.data.forEach((invite: Invite) => {
                                 invites[invite.invite_id] = invite;
-                                invites[invite.invite_id].devices = JSON.parse((invites[invite.invite_id].devices as unknown) as string);
+                                let data = parseJSON((invites[invite.invite_id].devices as unknown) as string, this.log);
+                                if (data === undefined)
+                                    data = [];
+                                invites[invite.invite_id].devices = data;
                             });
                             return invites;
                         }
@@ -1033,7 +1036,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         }
         if (decryptedData) {
             if (json)
-                return JSON.parse(decryptedData.toString());
+                return parseJSON(decryptedData.toString("utf-8"), this.log);
             return decryptedData.toString();
         }
         if (json)

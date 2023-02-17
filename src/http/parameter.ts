@@ -2,6 +2,7 @@ import { Logger } from "ts-log";
 
 import { CommandType } from "../p2p/types";
 import { decodeBase64 } from "../p2p/utils";
+import { parseJSON } from "../utils";
 import { ParamType } from "./types";
 
 export class ParameterHelper {
@@ -21,7 +22,7 @@ export class ParameterHelper {
                 type === CommandType.CELLULAR_INFO) {
                 try {
                     if (typeof value === "string") {
-                        return JSON.parse(decodeBase64(value).toString("utf8"));
+                        return parseJSON(decodeBase64(value).toString("utf8"), log);
                     } else {
                         return value; //return object
                     }
@@ -41,7 +42,7 @@ export class ParameterHelper {
                 type === CommandType.CMD_DOORBELL_DUAL_PACKAGE_GUARD_VOICE) {
                 if (typeof value === "string") {
                     try {
-                        return JSON.parse(value); //return object
+                        return parseJSON(value, log); //return object
                     } catch(error) {
                         log.error(`Error readValue param ${type} `, error, type, value);
                     }

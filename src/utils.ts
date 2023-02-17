@@ -144,3 +144,12 @@ export const mergeDeep = function (target: Record<string, any> | undefined,	sour
     }
     return target;
 }
+
+export const parseJSON = function(data: string, log: Logger): any {
+    try {
+        return JSON.parse(data.replace(/[\0]+$/g, ""));
+    } catch(error) {
+        log.error("JSON parse error", data, error);
+    }
+    return undefined;
+}
