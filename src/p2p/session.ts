@@ -6,7 +6,7 @@ import { Logger } from "ts-log";
 import { SortedMap } from "sweet-collections";
 
 import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, ESLStationP2PThroughData, SmartSafeSettingsNotification, SmartSafeStatusNotification, CustomData, ESLBleV12P2PThroughData } from "./models";
-import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateBasicLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildVoidCommandPayload, isP2PQueueMessage, buildTalkbackAudioFrameHeader, getLocalIpAddress, decodeP2PCloudIPs, getLockV12P2PCommand, decodeSmartSafeData, decryptPayloadData, analyzeCodec } from "./utils";
+import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateBasicLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildVoidCommandPayload, isP2PQueueMessage, buildTalkbackAudioFrameHeader, getLocalIpAddress, decodeP2PCloudIPs, getLockV12P2PCommand, decodeSmartSafeData, decryptPayloadData } from "./utils";
 import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, P2PConnectionType, ChargingType, AlarmEvent, IndoorSoloSmartdropCommandType, SmartSafeCommandCode, ESLCommand, ESLBleCommand } from "./types";
 import { AlarmMode } from "../http/types";
 import { P2PDataMessage, P2PDataMessageAudio, P2PDataMessageBuilder, P2PMessageState, P2PDataMessageVideo, P2PMessage, P2PDataHeader, P2PDataMessageState, P2PClientProtocolEvents, DeviceSerial, P2PQueueMessage, P2PCommand, P2PVideoMessageState } from "./interfaces";
@@ -1368,11 +1368,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 this.log.debug(`Station ${this.rawStation.station_sn} - CMD_VIDEO_FRAME - Fallback, video codec extracted from video data`, { commandIdName: CommandType[message.commandId], commandId: message.commandId, channel: message.channel, metadata: videoMetaData });
                             }
                         }
-                        analyzeCodec(video_data).then((result: string) => {
-                            this.log.debug(`Station ${this.rawStation.station_sn} - CMD_VIDEO_FRAME - Analyzed codec`, { metadata: videoMetaData, videoCodec: VideoCodec[this.currentMessageState[message.dataType].p2pStreamMetadata.videoCodec], analyzedCodec: result });
-                        }).catch((error: Error) => {
-                            this.log.debug(`Station ${this.rawStation.station_sn} - CMD_VIDEO_FRAME - Analyzed codec Error`, { metadata: videoMetaData, videoCodec: VideoCodec[this.currentMessageState[message.dataType].p2pStreamMetadata.videoCodec], error: error });
-                        });
                         this.currentMessageState[message.dataType].p2pStreamFirstVideoDataReceived = true;
                         this.currentMessageState[message.dataType].waitForAudioData = setTimeout(() => {
                             this.currentMessageState[message.dataType].waitForAudioData = undefined;
@@ -1440,11 +1435,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         }
                         this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived = true;
                         this.currentMessageState[message.dataType].p2pStreamMetadata.audioCodec = audioMetaData.audioType === 0 ? AudioCodec.AAC : audioMetaData.audioType === 1 ? AudioCodec.AAC_LC : audioMetaData.audioType === 7 ? AudioCodec.AAC_ELD : AudioCodec.UNKNOWN;
-                        analyzeCodec(audio_data).then((result: string) => {
-                            this.log.debug(`Station ${this.rawStation.station_sn} - CMD_AUDIO_FRAME - Analyzed codec`, { metadata: audioMetaData, audioCodec: AudioCodec[this.currentMessageState[message.dataType].p2pStreamMetadata.audioCodec], analyzedCodec: result });
-                        }).catch((error: Error) => {
-                            this.log.debug(`Station ${this.rawStation.station_sn} - CMD_AUDIO_FRAME - Analyzed codec Error`, { metadata: audioMetaData, audioCodec: AudioCodec[this.currentMessageState[message.dataType].p2pStreamMetadata.audioCodec], error: error });
-                        });
                     }
                     if (this.currentMessageState[message.dataType].p2pStreamNotStarted) {
                         if (this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived && this.currentMessageState[message.dataType].p2pStreamFirstVideoDataReceived) {

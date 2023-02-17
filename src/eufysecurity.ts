@@ -25,7 +25,6 @@ import { MQTTService } from "./mqtt/service";
 import { TalkbackStream } from "./p2p/talkback";
 import { PhoneModels } from "./http/const";
 import { randomNumber } from "./http/utils";
-import { initMediaInfo } from "./p2p/utils";
 
 export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
@@ -84,7 +83,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     static async initialize(config: EufySecurityConfig, log: Logger = dummyLogger): Promise<EufySecurity> {
         const eufySecurity = new EufySecurity(config, log);
         await eufySecurity._initializeInternals();
-        await initMediaInfo();
         return eufySecurity;
     }
 
@@ -2207,8 +2205,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         });
     }
 
-    private onStationSdInfoEx(station : Station, sdStatus : number, sdCapacity : number, sdCapacityAvailable : number)
-    {
+    private onStationSdInfoEx(station : Station, sdStatus : number, sdCapacity : number, sdCapacityAvailable : number): void {
         if(station.hasProperty(PropertyName.StationSdStatus)) {
             station.updateProperty(PropertyName.StationSdStatus, sdStatus);
         }

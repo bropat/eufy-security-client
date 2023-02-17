@@ -3,8 +3,6 @@ import NodeRSA from "node-rsa";
 import * as CryptoJS from "crypto-js"
 import { randomBytes, createCipheriv, createECDH, ECDH, createHmac, createDecipheriv } from "crypto";
 import * as os from "os";
-import MediaInfoFactory from "mediainfo.js";
-import { MediaInfo } from "mediainfo.js/dist/types";
 
 import { P2PMessageParts, P2PMessageState, P2PQueueMessage } from "./interfaces";
 import { CommandType, ESLCommand, ESLBleCommand, LockV12P2PCommand, P2PDataTypeHeader, SmartSafeCommandCode, VideoCodec } from "./types";
@@ -14,7 +12,6 @@ import { Device, Lock, SmartSafe } from "../http/device";
 import { BleCommandFactory } from "./ble";
 
 export const MAGIC_WORD = "XZYH";
-export let MEDIA_INFO: MediaInfo | null = null;
 
 export const isPrivateIp = (ip: string): boolean =>
     /^(::f{4}:)?10\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/i.test(ip) ||
@@ -435,39 +432,6 @@ export const getVideoCodec = (data: Buffer): VideoCodec => {
         return VideoCodec.H264;
     }
     return VideoCodec.UNKNOWN; // Maybe return h264 as Eufy does?
-}
-
-export const initMediaInfo = async (): Promise<MediaInfo> => {
-    if (MEDIA_INFO !== null && MEDIA_INFO !== undefined) {
-        return MEDIA_INFO;
-    }
-
-    return new Promise((resolve, reject) => {
-        MediaInfoFactory({
-            //chunkSize: 256 * 1024
-        }, mediainfo => {
-            MEDIA_INFO = mediainfo;
-            resolve(mediainfo);
-        }, error => {
-            reject(error);
-        })
-    });
-}
-
-export const analyzeCodec = async (data: Buffer): Promise<any> => {
-    if (data !== undefined && data.length > 0) {
-        try {
-            const mediainfo = await initMediaInfo();
-            mediainfo.openBufferInit(data.byteLength, 0);
-            const result = mediainfo.openBufferContinue(data, data.byteLength);
-            mediainfo.openBufferFinalize();
-            if (result) {
-                return JSON.parse(mediainfo.inform());
-            }
-        } catch (error) {
-        }
-    }
-    return {};
 }
 
 export const checkT8420 = (serialNumber: string): boolean => {
