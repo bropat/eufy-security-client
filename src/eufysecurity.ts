@@ -418,7 +418,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             if (stationsSNs.includes(hub.station_sn)) {
                 this.updateStation(hub);
             } else {
-                const station = Station.initialize(this.api, hub);
+                let ipAddress: string | undefined;
+                if (this.config.stationIPAddresses !== undefined) {
+                    ipAddress = this.config.stationIPAddresses[hub.station_sn];
+                }
+                const station = Station.initialize(this.api, hub, ipAddress);
                 promises.push(station.then((station: Station) => {
                     try {
                         station.on("connect", (station: Station) => this.onStationConnect(station));

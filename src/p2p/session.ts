@@ -28,7 +28,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private readonly MAX_COMMAND_RESULT_WAIT = 30 * 1000;
     private readonly MAX_AKNOWLEDGE_TIMEOUT = 15 * 1000;
     private readonly MAX_LOOKUP_TIMEOUT = 15 * 1000;
-    private readonly LOOKUP_RETRY_TIMEOUT = 150;
+    private readonly LOOKUP_RETRY_TIMEOUT = 3 * 1000;
     private readonly MAX_EXPECTED_SEQNO_WAIT = 20 * 1000;
     private readonly HEARTBEAT_INTERVAL = 5 * 1000;
     private readonly MAX_COMMAND_QUEUE_TIMEOUT = 120 * 1000;
@@ -104,6 +104,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private connectAddress: Address | undefined = undefined;
     private localIPAddress: string | undefined = undefined;
+    private preferredIPAddress: string | undefined = undefined;
     private dskKey = "";
     private dskExpiration: Date | null = null;
     private log: Logger;
@@ -116,10 +117,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private lockAESKeys: Map<number, string> = new Map<number, string>();
     private channel = 255;
 
-    constructor(rawStation: StationListResponse, api: HTTPApi, publicKey = "") {
+    constructor(rawStation: StationListResponse, api: HTTPApi, ipAddress?:string, publicKey = "") {
         super();
         this.api = api;
         this.lockPublicKey = publicKey;
+        this.preferredIPAddress = ipAddress;
         this.log = api.getLog();
         this.cloudAddresses = decodeP2PCloudIPs(rawStation.app_conn);
         this.log.debug("Loaded P2P cloud ip addresses", this.cloudAddresses);
@@ -412,11 +414,15 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
 
     private lookup(host?: string): void {
-        if (host === undefined && this.localIPAddress !== undefined) {
-            host = this.localIPAddress;
-        } else {
-            const localIP = getLocalIpAddress();
-            host = localIP.substring(0, localIP.lastIndexOf(".") + 1).concat("255")
+        if (host === undefined) {
+            if (this.preferredIPAddress !== undefined) {
+                host = this.preferredIPAddress;
+            } else if (this.localIPAddress !== undefined) {
+                host = this.localIPAddress;
+            } else {
+                const localIP = getLocalIpAddress();
+                host = localIP.substring(0, localIP.lastIndexOf(".") + 1).concat("255")
+            }
         }
         this.localLookup(host);
         this.cloudLookup();

@@ -44,13 +44,13 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private pinVerified = false;
 
-    protected constructor(api: HTTPApi, station: StationListResponse, publicKey = "") {
+    protected constructor(api: HTTPApi, station: StationListResponse, ipAddress?: string, publicKey = "") {
         super();
         this.api = api;
         this.rawStation = station;
         this.lockPublicKey = publicKey;
         this.log = api.getLog();
-        this.p2pSession = new P2PClientProtocol(this.rawStation, this.api, publicKey);
+        this.p2pSession = new P2PClientProtocol(this.rawStation, this.api, ipAddress, publicKey);
         this.p2pSession.on("connect", (address: Address) => this.onConnect(address));
         this.p2pSession.on("close", () => this.onDisconnect());
         this.p2pSession.on("timeout", () => this.onTimeout());
@@ -90,12 +90,12 @@ export class Station extends TypedEmitter<StationEvents> {
         });
     }
 
-    static async initialize(api: HTTPApi, stationData: StationListResponse): Promise<Station> {
+    static async initialize(api: HTTPApi, stationData: StationListResponse, ipAddress?: string): Promise<Station> {
         let publicKey: string | undefined;
         if (Device.isLock(stationData.device_type)) {
             publicKey = await api.getPublicKey(stationData.station_sn, PublicKeyType.LOCK);
         }
-        const station = new Station(api, stationData, publicKey);
+        const station = new Station(api, stationData, ipAddress, publicKey);
         return station;
     }
 

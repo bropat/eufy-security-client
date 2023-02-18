@@ -10,6 +10,10 @@ import { TalkbackStream } from "./p2p/talkback";
 import { AlarmEvent, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent } from "./p2p/types";
 import { Credentials, PushMessage } from "./push/models";
 
+export interface StationIPAddresses {
+    [index: string]: string;
+}
+
 export interface EufySecurityConfig {
     username: string;
     password: string;
@@ -21,6 +25,7 @@ export interface EufySecurityConfig {
     pollingIntervalMinutes: number;
     eventDurationSeconds: number;
     acceptInvitations?: boolean;
+    stationIPAddresses?: StationIPAddresses;
 }
 
 export interface EufySecurityPersistentData {
