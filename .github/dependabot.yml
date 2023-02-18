@@ -8,3 +8,8 @@ updates:
       - "npm dependencies"
     allow:
       - dependency-type: "production"
+    ignore:
+      - dependency-name: "got"
+        versions: [">=12.x"]
+      - dependency-name: "p-throttle"
+        versions: [">=5.x"]
