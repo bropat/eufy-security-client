@@ -80,6 +80,15 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.4.1 (2022-02-19)
+
+* (bropat) Added support for configuring a suggested IP address for a station
+* (bropat) Fixed json parse issue with null-terminated strings
+* (bropat) Fixed p2p keepalive issue
+* (bropat/martijnpoppen) Fixed Invalid Property personDetected error for some floodlight cams
+* (PhilippEngler) Finished implementation of getStorageInfo
+* (bropat) Removed dependency mediainfo.js
+
 ### 2.4.0 (2022-12-24)
 
 * (bropat) Implemented new encrypted cloud API communication (v2)

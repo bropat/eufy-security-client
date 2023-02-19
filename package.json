@@ -40,7 +40,7 @@
     "node": ">=14.17.0"
   },
   "dependencies": {
-    "got": "~11.8",
+    "got": "^11.8.6",
     "protobuf-typescript": "^6.8.8",
     "qs": "^6.11.0",
     "node-rsa": "^1.1.1",
@@ -53,7 +53,7 @@
     "sweet-collections": "^1.1.0",
     "mqtt": "^4.3.7",
     "node-schedule": "^2.1.1",
-    "p-throttle": "~4.1.1"
+    "p-throttle": "^4.1.1"
   },
   "devDependencies": {
     "@types/node": "^16.18.12",
