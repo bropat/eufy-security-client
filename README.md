@@ -80,7 +80,7 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 2.4.1 (2022-02-19)
+### 2.4.1 (2023-02-19)
 
 * (bropat) Added support for configuring a suggested IP address for a station
 * (bropat) Fixed json parse issue with null-terminated strings
