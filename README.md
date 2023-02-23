@@ -80,7 +80,12 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 2.4.1 (2022-02-19)
+### 2.4.2 (2023-02-23)
+
+* (bropat) Improved local discovery of stations over p2p
+* (bropat) Fixed issue in API communication when no stations and devices are found
+
+### 2.4.1 (2023-02-19)
 
 * (bropat) Added support for configuring a suggested IP address for a station
 * (bropat) Fixed json parse issue with null-terminated strings
