@@ -405,10 +405,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             }, this.MAX_AKNOWLEDGE_TIMEOUT);
     }
 
-    private _connect(address: Address): void {
+    private _connect(address: Address, p2p_did: string): void {
         this.log.debug(`Station ${this.rawStation.station_sn} - CHECK_CAM - Connecting to host ${address.host} on port ${address.port}...`);
         for (let i = 0; i < 4; i++)
-            this.sendCamCheck(address);
+            this.sendCamCheck(address, p2p_did);
 
         this._startConnectTimeout();
     }
@@ -460,8 +460,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         }
     }
 
-    private async sendCamCheck(address: Address): Promise<void> {
-        const payload = buildCheckCamPayload(this.rawStation.p2p_did);
+    private async sendCamCheck(address: Address, p2p_did: string): Promise<void> {
+        const payload = buildCheckCamPayload(p2p_did);
         await this.sendMessage(`Send cam check to station ${this.rawStation.station_sn}`, address, RequestMessageType.CHECK_CAM, payload);
     }
 
@@ -731,8 +731,16 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             if (!this.connected) {
                 this._clearLookupTimeout();
                 this._clearLookupRetryTimeout();
-                this.log.debug(`Station ${this.rawStation.station_sn} - LOCAL_LOOKUP_RESP - Got response`, { ip: rinfo.address, port: rinfo.port });
-                this._connect({ host: rinfo.address, port: rinfo.port });
+
+                const p2pDid = `${msg.slice(4, 12).toString("utf8").replace(/[\0]+$/g, "")}-${msg.slice(12, 16).readUInt32BE()}-${msg.slice(16, 24).toString("utf8").replace(/[\0]+$/g, "")}`;
+                this.log.debug(`Station ${this.rawStation.station_sn} - LOCAL_LOOKUP_RESP - Got response`, { ip: rinfo.address, port: rinfo.port, p2pDid: p2pDid });
+
+                if (p2pDid === this.rawStation.p2p_did) {
+                    this.log.debug(`Station ${this.rawStation.station_sn} - LOCAL_LOOKUP_RESP - Wanted device was found, connect to it`, { ip: rinfo.address, port: rinfo.port, p2pDid: p2pDid });
+                    this._connect({ host: rinfo.address, port: rinfo.port }, p2pDid);
+                } else {
+                    this.log.debug(`Station ${this.rawStation.station_sn} - LOCAL_LOOKUP_RESP - Unwanted device was found, don't connect to it`, { ip: rinfo.address, port: rinfo.port, p2pDid: p2pDid });
+                }
             }
         } else if (hasHeader(msg, ResponseMessageType.LOOKUP_ADDR)) {
             if (!this.connected) {
@@ -754,13 +762,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         this._clearLookupTimeout();
                         this._clearLookupRetryTimeout();
                         this.log.debug(`Station ${this.rawStation.station_sn} - ONLY_LOCAL - Try to connect to ${ip}:${port}...`);
-                        this._connect({ host: ip, port: port });
+                        this._connect({ host: ip, port: port }, this.rawStation.p2p_did);
                     }
                 } else if (this.connectionType === P2PConnectionType.QUICKEST) {
                     this._clearLookupTimeout();
                     this._clearLookupRetryTimeout();
                     this.log.debug(`Station ${this.rawStation.station_sn} - QUICKEST - Try to connect to ${ip}:${port}...`);
-                    this._connect({ host: ip, port: port });
+                    this._connect({ host: ip, port: port }, this.rawStation.p2p_did);
                 }
             }
         } else if (hasHeader(msg, ResponseMessageType.CAM_ID) || hasHeader(msg, ResponseMessageType.CAM_ID2)) {
