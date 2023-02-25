@@ -732,7 +732,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this._clearLookupTimeout();
                 this._clearLookupRetryTimeout();
 
-                const p2pDid = `${msg.slice(4, 12).toString("utf8").replace(/[\0]+$/g, "")}-${msg.slice(12, 16).readUInt32BE()}-${msg.slice(16, 24).toString("utf8").replace(/[\0]+$/g, "")}`;
+                const p2pDid = `${msg.slice(4, 12).toString("utf8").replace(/[\0]+$/g, "")}-${msg.slice(12, 16).readUInt32BE().toString().padStart(6, '0')}-${msg.slice(16, 24).toString("utf8").replace(/[\0]+$/g, "")}`;
                 this.log.debug(`Station ${this.rawStation.station_sn} - LOCAL_LOOKUP_RESP - Got response`, { ip: rinfo.address, port: rinfo.port, p2pDid: p2pDid });
 
                 if (p2pDid === this.rawStation.p2p_did) {
