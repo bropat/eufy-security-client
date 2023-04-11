@@ -80,6 +80,12 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.4.3 (2023-04-11)
+
+* (martijnpoppen) FIX: HB3 connected sensors not reporting (#314)
+* (PhilippEngler) Fix problem when the P2PDID number is starting with zeros
+* (bropat) Updated versions of the package dependencies
+
 ### 2.4.2 (2023-02-23)
 
 * (bropat) Improved local discovery of stations over p2p
