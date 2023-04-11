@@ -6132,7 +6132,7 @@ export class Station extends TypedEmitter<StationEvents> {
             this.p2pSession.startTalkback(device.getChannel());
             this.emit("command result", this, {
                 channel: device.getChannel(),
-                command_type: 0,
+                command_type: CommandType.CMD_START_TALKBACK,
                 return_code: 0,
                 customData: {
                     command: commandData
@@ -6177,7 +6177,7 @@ export class Station extends TypedEmitter<StationEvents> {
             this.p2pSession.stopTalkback(device.getChannel());
             this.emit("command result", this, {
                 channel: device.getChannel(),
-                command_type: 0,
+                command_type: CommandType.CMD_STOP_TALKBACK,
                 return_code: 0,
                 customData: {
                     command: commandData
