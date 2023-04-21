@@ -776,10 +776,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (!station.isLiveStreaming(camera)) {
             await station.startLivestream(camera);
 
-            this.cameraStationLivestreamTimeout.set(deviceSN, setTimeout(() => {
-                this.log.info(`Stopping the station stream for the device ${deviceSN}, because we have reached the configured maximum stream timeout (${this.cameraMaxLivestreamSeconds} seconds)`);
-                this.stopStationLivestream(deviceSN);
-            }, this.cameraMaxLivestreamSeconds * 1000));
+            if (this.cameraMaxLivestreamSeconds > 0) {
+                this.cameraStationLivestreamTimeout.set(deviceSN, setTimeout(() => {
+                    this.log.info(`Stopping the station stream for the device ${deviceSN}, because we have reached the configured maximum stream timeout (${this.cameraMaxLivestreamSeconds} seconds)`);
+                    this.stopStationLivestream(deviceSN);
+                }, this.cameraMaxLivestreamSeconds * 1000));
+            }
         } else {
             this.log.warn(`The station stream for the device ${deviceSN} cannot be started, because it is already streaming!`);
         }
