@@ -798,10 +798,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (!camera.isStreaming()) {
             const url = await camera.startStream();
             if (url !== "") {
-                this.cameraCloudLivestreamTimeout.set(deviceSN, setTimeout(() => {
-                    this.log.info(`Stopping the station stream for the device ${deviceSN}, because we have reached the configured maximum stream timeout (${this.cameraMaxLivestreamSeconds} seconds)`);
-                    this.stopCloudLivestream(deviceSN);
-                }, this.cameraMaxLivestreamSeconds * 1000));
+                if (this.cameraMaxLivestreamSeconds > 0) {
+                    this.cameraCloudLivestreamTimeout.set(deviceSN, setTimeout(() => {
+                        this.log.info(`Stopping the station stream for the device ${deviceSN}, because we have reached the configured maximum stream timeout (${this.cameraMaxLivestreamSeconds} seconds)`);
+                        this.stopCloudLivestream(deviceSN);
+                    }, this.cameraMaxLivestreamSeconds * 1000));
+                }
                 this.emit("cloud livestream start", station, camera, url);
             } else {
                 this.log.error(`Failed to start cloud stream for the device ${deviceSN}`);
