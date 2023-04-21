@@ -1,5 +1,6 @@
 import * as crypto from "crypto";
 import { Logger } from "ts-log";
+import EventEmitter from "events";
 
 import { EufySecurityPersistentData } from "./interfaces";
 import { InvalidPropertyValueError } from "./error";
@@ -152,4 +153,20 @@ export const parseJSON = function(data: string, log: Logger): any {
         log.error("JSON parse error", data, error);
     }
     return undefined;
+}
+
+export function waitForEvent<T>(emitter: EventEmitter, event: string): Promise<T> {
+    return new Promise((resolve, reject) => {
+        const success = (val: T): void => {
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define
+            emitter.off("error", fail);
+            resolve(val);
+        };
+        const fail = (err: Error): void => {
+            emitter.off(event, success);
+            reject(err);
+        };
+        emitter.once(event, success);
+        emitter.once("error", fail);
+    });
 }

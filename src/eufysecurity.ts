@@ -3,6 +3,7 @@ import { dummyLogger, Logger } from "ts-log";
 import * as fse from "fs-extra";
 import * as path from "path";
 import { Readable } from "stream";
+import EventEmitter from "events";
 
 import { EufySecurityEvents, EufySecurityConfig, EufySecurityPersistentData } from "./interfaces";
 import { HTTPApi } from "./http/api";
@@ -16,7 +17,7 @@ import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, I
 import { AlarmEvent, ChargingType, CommandType, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent } from "./p2p/types";
 import { StreamMetadata } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
-import { generateSerialnumber, generateUDID, handleUpdate, md5, parseValue, removeLastChar } from "./utils";
+import { generateSerialnumber, generateUDID, handleUpdate, md5, parseValue, removeLastChar, waitForEvent } from "./utils";
 import { DeviceNotFoundError, StationNotFoundError, ReadOnlyPropertyError, NotSupportedError, AddUserError, DeleteUserError, UpdateUserUsernameError, UpdateUserPasscodeError, UpdateUserScheduleError } from "./error";
 import { libVersion } from ".";
 import { InvalidPropertyError } from "./http/error";
@@ -70,8 +71,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         [dataType: string]: NodeJS.Timeout;
     } = {};
 
-    private loadingStations?: Promise<unknown>;
-    private loadingDevices?: Promise<unknown>;
+    private stationsLoaded = false;
+    private devicesLoaded = false;
+    private loadingEmitter = new EventEmitter();
 
     private constructor(config: EufySecurityConfig, log: Logger = dummyLogger) {
         super();
@@ -284,8 +286,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private async updateStation(hub: StationListResponse): Promise<void> {
-        if (this.loadingStations !== undefined)
-            await this.loadingStations;
+        if (!this.stationsLoaded)
+            await waitForEvent(this.loadingEmitter, "stations loaded");
         if (Object.keys(this.stations).includes(hub.station_sn)) {
             this.stations[hub.station_sn].update(hub, this.stations[hub.station_sn] !== undefined && !this.stations[hub.station_sn].isIntegratedDevice() && this.stations[hub.station_sn].isConnected());
             if (!this.stations[hub.station_sn].isConnected() && !this.stations[hub.station_sn].isEnergySavingDevice()) {
@@ -328,8 +330,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private async updateDevice(device: DeviceListResponse): Promise<void> {
-        if (this.loadingDevices !== undefined)
-            await this.loadingDevices;
+        if (!this.devicesLoaded)
+            await waitForEvent(this.loadingEmitter, "devices loaded");
         if (Object.keys(this.devices).includes(device.device_sn))
             this.devices[device.device_sn].update(device, this.stations[device.station_sn] !== undefined && !this.stations[device.station_sn].isIntegratedDevice() && this.stations[device.station_sn].isConnected())
         else
@@ -337,8 +339,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async getDevices(): Promise<Array<Device>> {
-        if (this.loadingDevices !== undefined)
-            await this.loadingDevices;
+        if (!this.devicesLoaded)
+            await waitForEvent(this.loadingEmitter, "devices loaded");
         const arr: Array<Device> = [];
         Object.keys(this.devices).forEach((serialNumber: string) => {
             arr.push(this.devices[serialNumber]);
@@ -347,16 +349,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async getDevice(deviceSN: string): Promise<Device> {
-        if (this.loadingDevices !== undefined)
-            await this.loadingDevices;
+        if (!this.devicesLoaded)
+            await waitForEvent(this.loadingEmitter, "devices loaded");
         if (Object.keys(this.devices).includes(deviceSN))
             return this.devices[deviceSN];
         throw new DeviceNotFoundError(`Device with this serial ${deviceSN} doesn't exists!`);
     }
 
     public async getStationDevice(stationSN: string, channel: number): Promise<Device> {
-        if (this.loadingDevices !== undefined)
-            await this.loadingDevices;
+        if (!this.devicesLoaded)
+            await waitForEvent(this.loadingEmitter, "devices loaded");
         for (const device of Object.values(this.devices)) {
             if ((device.getStationSerial() === stationSN && device.getChannel() === channel) || (device.getStationSerial() === stationSN && device.getSerial() === stationSN)) {
                 return device;
@@ -366,8 +368,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async getStations(): Promise<Array<Station>> {
-        if (this.loadingStations !== undefined)
-            await this.loadingStations;
+        if (!this.stationsLoaded)
+            await waitForEvent(this.loadingEmitter, "stations loaded");
         const arr: Array<Station> = [];
         Object.keys(this.stations).forEach((serialNumber: string) => {
             arr.push(this.stations[serialNumber]);
@@ -376,8 +378,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     public async getStation(stationSN: string): Promise<Station> {
-        if (this.loadingStations !== undefined)
-            await this.loadingStations;
+        if (!this.stationsLoaded)
+            await waitForEvent(this.loadingEmitter, "stations loaded");
         if (Object.keys(this.stations).includes(stationSN))
             return this.stations[stationSN];
         throw new StationNotFoundError(`No station with serial number: ${stationSN}!`);
@@ -469,8 +471,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }));
             }
         }
-        this.loadingStations = Promise.all(promises).then(() => {
-            this.loadingStations = undefined;
+        Promise.all(promises).then(() => {
+            this.stationsLoaded = true;
+            this.loadingEmitter.emit("stations loaded");
         });
         for (const stationSN of stationsSNs) {
             if (!newStationsSNs.includes(stationSN)) {
@@ -596,7 +599,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }));
             }
         }
-        this.loadingDevices = Promise.all(promises).then((devices) => {
+        Promise.all(promises).then((devices) => {
             devices.forEach((device) => {
                 this.getStation(device.getStationSerial()).then((station: Station) => {
                     if (!station.isConnected()) {
@@ -607,7 +610,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     this.log.error("Error trying to connect to station afte device loaded", error);
                 });
             });
-            this.loadingDevices = undefined;
+            this.devicesLoaded = true;
+            this.loadingEmitter.emit("devices loaded");
         });
         for (const deviceSN of deviceSNs) {
             if (!newDeviceSNs.includes(deviceSN)) {
