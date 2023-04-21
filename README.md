@@ -80,6 +80,12 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.4.4 (2023-04-21)
+
+* (bropat) Implemented feature request #313
+* (bropat) Fixed issue #316
+* (bropat) Updated versions of the package dependencies
+
 ### 2.4.3 (2023-04-11)
 
 * (martijnpoppen) FIX: HB3 connected sensors not reporting (#314)
