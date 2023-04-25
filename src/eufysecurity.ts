@@ -420,6 +420,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             if (stationsSNs.includes(hub.station_sn)) {
                 this.updateStation(hub);
             } else {
+                this.stationsLoaded = false;
                 let ipAddress: string | undefined;
                 if (this.config.stationIPAddresses !== undefined) {
                     ipAddress = this.config.stationIPAddresses[hub.station_sn];
@@ -534,6 +535,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             if (deviceSNs.includes(device.device_sn)) {
                 this.updateDevice(device);
             } else {
+                this.devicesLoaded = false;
                 let new_device: Promise<Device>;
 
                 if (Device.isIndoorCamera(device.device_type)) {
