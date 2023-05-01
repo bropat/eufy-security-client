@@ -1,9 +1,14 @@
 import { createCipheriv, createDecipheriv } from "crypto";
 import { timeZoneData } from "./const";
+import md5 from "crypto-js/md5";
+import enc_hex from "crypto-js/enc-hex";
+import sha256 from "crypto-js/sha256";
+import imageType from "image-type";
 
 import { Device } from "./device";
-import { Schedule } from "./interfaces";
+import { Picture, Schedule } from "./interfaces";
 import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes } from "./types";
+import { HTTPApi } from "./api";
 
 const normalizeVersionString = function (version: string): number[] {
     const trimmed = version ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, "$1") : "";
@@ -69,6 +74,13 @@ export const getAbsoluteFilePath = function(device_type:number, channel: number,
         return `/mnt/data/Camera${String(channel).padStart(2,"0")}/${filename}.dat`;
     }
     return `/media/mmcblk0p1/Camera${String(channel).padStart(2,"0")}/${filename}.dat`;
+}
+
+export const getImageFilePath = function(device_type:number, channel: number, filename: string): string {
+    if (device_type === DeviceType.FLOODLIGHT) {
+        return `/mnt/data/video/${filename}_c${String(channel).padStart(2,"0")}.jpg`;
+    }
+    return `/media/mmcblk0p1/video/${filename}_c${String(channel).padStart(2,"0")}.jpg`;
 }
 
 export const isNotificationSwitchMode = function(value: number, mode: NotificationSwitchMode): boolean {
@@ -377,7 +389,114 @@ export const hexWeek = function(schedule: Schedule): string {
     return "ff";
 }
 
-
 export const randomNumber = function(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+export const getIdSuffix = function(p2pDid: string): number {
+    let result = 0;
+    const match = p2pDid.match(/^[A-Z]+-(\d+)-[A-Z]+$/);
+    if (match?.length == 2) {
+        const num1 = Number.parseInt(match[1][0]);
+        const num2 = Number.parseInt(match[1][1]);
+        const num3 = Number.parseInt(match[1][3]);
+        const num4 = Number.parseInt(match[1][5]);
+
+        result = num1 + num2 + num3;
+        if (num3 < 5) {
+            result = result + num3;
+        }
+        result = result + num4;
+    }
+    return result;
+};
+
+export const getImageBaseCode = function(serialnumber: string, p2pDid: string): string {
+    let nr = 0;
+    try {
+        nr = Number.parseInt(`0x${serialnumber[serialnumber.length - 1]}`);
+    } catch (error) {
+    }
+    nr = (nr + 10) % 10;
+    const base = serialnumber.substring(nr);
+    return `${base}${getIdSuffix(p2pDid)}`;
+};
+
+export const getImageSeed = function(p2pDid: string, code: string): string {
+    try {
+        const ncode = Number.parseInt(code.substring(2));
+        const prefix = 1000 - getIdSuffix(p2pDid);
+        return md5(`${prefix}${ncode}`).toString(enc_hex).toUpperCase();
+    } catch(error) {
+        //TODO: raise custom exception
+    }
+    return ``;
+};
+
+export const getImageKey = function(serialnumber: string, p2pDid: string, code: string): string {
+    const basecode = getImageBaseCode(serialnumber, p2pDid);
+    const seed = getImageSeed(p2pDid, code);
+    const data = `01${basecode}${seed}`;
+    const hash = sha256(data);
+    const hashBytes = [...Buffer.from(hash.toString(enc_hex), "hex")];
+    const startByte = hashBytes[10];
+    for(let i = 0; i < 32; i++) {
+        const byte = hashBytes[i];
+        let fixed_byte = startByte;
+        if (i < 31) {
+            fixed_byte = hashBytes[i + 1];
+        }
+        if ((i == 31) || ((i & 1) != 0)) {
+            hashBytes[10] = fixed_byte;
+            if ((126 < byte) || (126 < hashBytes[10])) {
+                if (byte < hashBytes[10] || (byte - hashBytes[10]) == 0) {
+                    hashBytes[i] = hashBytes[10] - byte;
+                } else {
+                    hashBytes[i] = byte - hashBytes[10];
+                }
+            }
+        } else if ((byte < 125) || (fixed_byte < 125)) {
+            hashBytes[i] = fixed_byte + byte;
+        }
+    }
+    return `${Buffer.from(hashBytes.slice(16)).toString("hex").toUpperCase()}`;
+};
+
+export const decodeImage = function(p2pDid: string, data: Buffer): Buffer {
+    if (data.length >= 12) {
+        const header = data.slice(0, 12).toString();
+        if (header === "eufysecurity") {
+            const serialnumber = data.slice(13, 29).toString();
+            const code = data.slice(30, 40).toString();
+            const imageKey = getImageKey(serialnumber, p2pDid, code);
+            const otherData = data.slice(41);
+            const encryptedData = otherData.slice(0, 256);
+            const cipher = createDecipheriv("aes-128-ecb", Buffer.from(imageKey, "utf-8").slice(0, 16), null);
+            cipher.setAutoPadding(false);
+            const decryptedData =  Buffer.concat([
+                cipher.update(encryptedData),
+                cipher.final()]
+            );
+            decryptedData.copy(otherData);
+            return otherData;
+        }
+    }
+    return data;
+};
+
+export const getImagePath = function(path: string): string {
+    const splittedPath = path.split("~");
+    if (splittedPath.length === 2) {
+        return splittedPath[1];
+    }
+    return path;
+};
+
+export const getImage = async function(api: HTTPApi, serial: string, url: string): Promise<Picture> {
+    const image = await api.getImage(serial, url);
+    const type = await imageType(image);
+    return {
+        data: image,
+        type: type !== null ? type : { ext: "unknown", mime: "application/octet-stream" }
+    };
+};

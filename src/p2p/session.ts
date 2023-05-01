@@ -5,7 +5,7 @@ import { Readable } from "stream";
 import { Logger } from "ts-log";
 import { SortedMap } from "sweet-collections";
 
-import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, ESLStationP2PThroughData, SmartSafeSettingsNotification, SmartSafeStatusNotification, CustomData, ESLBleV12P2PThroughData } from "./models";
+import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, ESLStationP2PThroughData, SmartSafeSettingsNotification, SmartSafeStatusNotification, CustomData, ESLBleV12P2PThroughData, CmdDatabaseImageResponse } from "./models";
 import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateBasicLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildVoidCommandPayload, isP2PQueueMessage, buildTalkbackAudioFrameHeader, getLocalIpAddress, decodeP2PCloudIPs, getLockV12P2PCommand, decodeSmartSafeData, decryptPayloadData } from "./utils";
 import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, P2PConnectionType, ChargingType, AlarmEvent, IndoorSoloSmartdropCommandType, SmartSafeCommandCode, ESLCommand, ESLBleCommand } from "./types";
 import { AlarmMode } from "../http/types";
@@ -13,7 +13,7 @@ import { P2PDataMessage, P2PDataMessageAudio, P2PDataMessageBuilder, P2PMessageS
 import { DskKeyResponse, ResultResponse, StationListResponse } from "../http/models";
 import { HTTPApi } from "../http/api";
 import { Device, Lock } from "../http/device";
-import { getAdvancedLockTimezone } from "../http/utils";
+import { decodeImage, getAdvancedLockTimezone } from "../http/utils";
 import { TalkbackStream } from "./talkback";
 import { LivestreamError, TalkbackError } from "../error";
 import { SmartSafeEvent } from "../push/types";
@@ -1769,6 +1769,16 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     break;
                 case CommandType.CMD_PING:
                     // Ignore
+                    break;
+                case CommandType.CMD_DATABASE_IMAGE:
+                    // Received data for preview image download
+                    try {
+                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_DATABASE_IMAGE`, { message: message.data.toString("utf-8") });
+                        const image = parseJSON(message.data.toString("utf-8"), this.log) as CmdDatabaseImageResponse;
+                        this.emit("image download", image.file, decodeImage(this.rawStation.p2p_did, Buffer.from(image.content, "base64")));
+                    } catch (error) {
+                        this.log.error(`Station ${this.rawStation.station_sn} - CMD_DATABASE_IMAGE - Error:`, error);
+                    }
                     break;
                 default:
                     this.log.debug(`Station ${this.rawStation.station_sn} - Not implemented - CONTROL message`, { commandIdName: CommandType[message.commandId], commandId: message.commandId, channel: message.channel, data: message.data.toString("hex") });

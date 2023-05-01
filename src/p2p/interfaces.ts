@@ -40,6 +40,7 @@ export interface P2PClientProtocolEvents {
     "911 alarm": (channel: number, detail: SmartSafeAlarm911Event) => void;
     "wrong try-protect alarm": (channel: number) => void;
     "sd info ex": (sdStatus: number, sdCapacity: number, sdCapacityAvailable: number) => void;
+    "image download": (file: string, image: Buffer) => void;
 }
 
 export interface P2PQueueMessage {

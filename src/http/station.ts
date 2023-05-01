@@ -6,7 +6,7 @@ import { HTTPApi } from "./api";
 import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode, VideoTypeStoreToNAS, HB3DetectionTypes } from "./types";
 import { SnoozeDetail, StationListResponse, StationSecuritySettings } from "./models"
 import { ParameterHelper } from "./parameter";
-import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValues, StationEvents, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule } from "./interfaces";
+import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValues, StationEvents, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, PropertyMetadataObject } from "./interfaces";
 import { encodePasscode, getBlocklist, getHB3DetectionMode, hexDate, hexTime, hexWeek, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
 import { StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
@@ -83,6 +83,10 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("low battery", (channel: number) => this.onDeviceLowBattery(channel));
         this.p2pSession.on("wrong try-protect alarm", (channel: number) => this.onDeviceWrongTryProtectAlarm(channel));
         this.p2pSession.on("sd info ex", (sdStatus, sdCapacity, sdCapacityAvailable) => this.onSdInfoEx(sdStatus, sdCapacity, sdCapacityAvailable));
+        this.p2pSession.on("image download", (file, image) => this.onImageDownload(file, image));
+    }
+
+    protected initializeState(): void {
         this.update(this.rawStation);
         this.ready = true;
         setImmediate(() => {
@@ -90,13 +94,16 @@ export class Station extends TypedEmitter<StationEvents> {
         });
     }
 
-    static async initialize(api: HTTPApi, stationData: StationListResponse, ipAddress?: string): Promise<Station> {
+    public initialize(): void {
+        this.initializeState();
+    }
+
+    static async getInstance(api: HTTPApi, stationData: StationListResponse, ipAddress?: string): Promise<Station> {
         let publicKey: string | undefined;
         if (Device.isLock(stationData.device_type)) {
             publicKey = await api.getPublicKey(stationData.station_sn, PublicKeyType.LOCK);
         }
-        const station = new Station(api, stationData, ipAddress, publicKey);
-        return station;
+        return new Station(api, stationData, ipAddress, publicKey);
     }
 
     public getStateID(state: string, level = 2): string {
@@ -146,8 +153,7 @@ export class Station extends TypedEmitter<StationEvents> {
             || this.properties[name] === undefined) {
             const oldValue = this.properties[name];
             this.properties[name] = value;
-            if (this.ready)
-                this.emit("property changed", this, name, value);
+            this.emit("property changed", this, name, value, this.ready);
             try {
                 this.handlePropertyChange(this.getPropertyMetadata(name), oldValue, this.properties[name]);
             } catch (error) {
@@ -327,6 +333,9 @@ export class Station extends TypedEmitter<StationEvents> {
             } else if (property.type === "string") {
                 const stringProperty = property as PropertyMetadataString;
                 return value !== undefined ? value : (stringProperty.default !== undefined ? stringProperty.default : "");
+            } else if (property.type === "object") {
+                const objectProperty = property as PropertyMetadataObject;
+                return value !== undefined ? value : (objectProperty.default !== undefined ? objectProperty.default : undefined);
             }
         } catch (error) {
             this.log.error("Convert Error:", { property: property, value: value, error: error });
@@ -362,7 +371,12 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public getProperties(): PropertyValues {
-        return this.properties;
+        const result: PropertyValues = {};
+        for (const property of Object.keys(this.properties)) {
+            if (!property.startsWith("hidden-"))
+                result[property] = this.properties[property];
+        }
+        return result;
     }
 
     public getPropertiesMetadata(): IndexedProperty {
@@ -7318,6 +7332,34 @@ export class Station extends TypedEmitter<StationEvents> {
         } else {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
+    }
+
+    private onImageDownload(file: string, image: Buffer): void {
+        this.emit("image download", this, file, image);
+    }
+
+    public async downloadImage(cover_path: string): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.StationDownloadImage
+        };
+        if (!this.hasCommand(CommandName.StationDownloadImage)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
+        this.log.debug(`Sending download image command to station ${this.getSerial()}`);
+        await this.p2pSession.sendCommandWithStringPayload({
+            commandType: CommandType.CMD_SET_PAYLOAD,
+            value: JSON.stringify({
+                account_id: this.rawStation.member.admin_user_id,
+                cmd: CommandType.CMD_DATABASE_IMAGE,
+                mChannel: Station.CHANNEL, //TODO: Check indoor devices
+                payload: [{ "file": cover_path }],
+                "transaction": cover_path
+            }),
+            channel: Station.CHANNEL, //TODO: Check indoor devices
+            strValueSub: this.rawStation.member.admin_user_id,
+        }, {
+            command: commandData
+        });
     }
 
 }

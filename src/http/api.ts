@@ -11,7 +11,7 @@ import { ResultResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventR
 import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites, HTTPApiRequest, HTTPApiPersistentData, Houses, LoginOptions } from "./interfaces";
 import { EventFilterType, PublicKeyType, ResponseErrorCode, StorageType, VerfyCodeTypes } from "./types";
 import { ParameterHelper } from "./parameter";
-import { encryptAPIData, decryptAPIData, getTimezoneGMTString } from "./utils";
+import { encryptAPIData, decryptAPIData, getTimezoneGMTString, decodeImage } from "./utils";
 import { InvalidCountryCodeError, InvalidLanguageCodeError } from "./../error";
 import { md5, mergeDeep, parseJSON } from "./../utils";
 import { ApiBaseLoadError, ApiGenericError, ApiHTTPResponseCodeError, ApiInvalidResponseError, ApiResponseCodeError } from "./error";
@@ -54,7 +54,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     };
 
     private headers: Record<string, string> = {
-        App_version: "v4.5.1_1523",
+        App_version: "v4.6.0_1630",
         Os_type: "android",
         Os_version: "31",
         Phone_model: "ONEPLUS A3003",
@@ -602,11 +602,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     public async request(request: HTTPApiRequest): Promise<ApiResponse> {
-        this.log.debug("Request:", { method: request.method, endpoint: request.endpoint, token: this.token, data: request.data });
+        this.log.debug("Request:", { method: request.method, endpoint: request.endpoint, responseType: request.responseType, token: this.token, data: request.data });
         try {
             const internalResponse = await this.requestEufyCloud(request.endpoint, {
                 method: request.method,
                 json: request.data,
+                responseType: request.responseType !== undefined ? request.responseType : "json"
             });
             const response: ApiResponse = {
                 status: internalResponse.statusCode,
@@ -877,6 +878,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (result.code == 0) {
                         if (result.data) {
                             const dataresult: Array<EventRecordResponse> = this.decryptAPIData(result.data);
+                            this.log.debug(`${functionName} - Decrypted data:`, dataresult);
                             if (dataresult) {
                                 dataresult.forEach(record => {
                                     this.log.debug(`${functionName} - Record:`, record);
@@ -1384,5 +1386,32 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         }
         return false;
     }
+
+    public async getImage(deviceSN: string, url: string): Promise<Buffer> {
+        if (this.connected) {
+            try {
+                const device = this.devices[deviceSN];
+                if (device) {
+                    const station = this.hubs[device.station_sn];
+                    if (station) {
+                        const response = await this.request({
+                            method: "GET",
+                            endpoint: new URL(url),
+                            responseType: "buffer"
+                        });
+                        if (response.status == 200) {
+                            return decodeImage(station.p2p_did, response.data as Buffer);
+                        } else {
+                            this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                        }
+                    }
+                }
+            } catch (error) {
+                this.log.error("Generic Error:", error);
+            }
+        }
+        return Buffer.alloc(0);
+    }
+
 
 }

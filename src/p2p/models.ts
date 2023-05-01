@@ -164,3 +164,8 @@ export interface SmartSafeP2PCommandType {
     value: string;
     channel: number;
 }
+
+export interface CmdDatabaseImageResponse {
+    file: string;
+    content: string;
+}

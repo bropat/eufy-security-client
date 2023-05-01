@@ -1,7 +1,7 @@
 import { Readable } from "stream";
 
 import { Device } from "./http/device";
-import { HTTPApiPersistentData, PropertyValue, Schedule } from "./http/interfaces";
+import { HTTPApiPersistentData, Picture, PropertyValue, Schedule } from "./http/interfaces";
 import { Station } from "./http/station";
 import { DeviceSmartLockMessage } from "./mqtt/model";
 import { StreamMetadata } from "./p2p/interfaces";
@@ -95,6 +95,7 @@ export interface EufySecurityEvents {
     "station close": (station: Station) => void;
     "station talkback start": (station: Station, device: Device, talkbackStream: TalkbackStream) => void;
     "station talkback stop": (station: Station, device: Device) => void;
+    "station image download": (station: Station, file: string, image: Picture) => void;
     "push connect": () => void;
     "push close": () => void;
     "push message": (message: PushMessage) => void;
