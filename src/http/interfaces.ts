@@ -4,7 +4,7 @@ import { ImageType as ImageFileExtension } from "image-type";
 
 import { StreamMetadata } from "../p2p/interfaces";
 import { CommandResult } from "../p2p/models";
-import { AlarmEvent, ChargingType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent } from "../p2p/types";
+import { AlarmEvent, ChargingType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "../p2p/types";
 import { Camera, Device } from "./device";
 import { Cipher, Voice, Invite, DeviceListResponse, StationListResponse, HouseListResponse } from "./models";
 import { Station } from "./station";
@@ -217,7 +217,7 @@ export interface StationEvents {
     "device low battery": (deviceSN: string) => void;
     "device wrong try-protect alarm": (deviceSN: string) => void;
     "device pin verified": (deviceSN: string, successfull: boolean) => void;
-    "sd info ex": (station: Station, sdStatus: number, sdCapacity: number, sdCapacityAvailable: number) => void;
+    "sd info ex": (station: Station, sdStatus: TFCardStatus, sdCapacity: number, sdCapacityAvailable: number) => void;
     "image download": (station: Station, file: string, image: Buffer) => void;
 }
 

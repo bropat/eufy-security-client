@@ -5664,7 +5664,7 @@ export const StationAlarmDelayTypeProperty: PropertyMetadataNumeric = {
 }
 
 export const StationSdStatusProperty: PropertyMetadataNumeric = {
-    key: "sd_status",
+    key: CommandType.CMD_GET_TFCARD_STATUS,
     name: PropertyName.StationSdStatus,
     label: "SD Status",
     readable: true,

@@ -15,7 +15,7 @@ import { CommandName, DeviceType, HB3DetectionTypes, NotificationSwitchMode, Not
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
 import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WiredDoorbellCamera } from "./http/device";
-import { AlarmEvent, ChargingType, CommandType, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent } from "./p2p/types";
+import { AlarmEvent, ChargingType, CommandType, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
 import { StreamMetadata } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
 import { generateSerialnumber, generateUDID, handleUpdate, md5, parseValue, removeLastChar, waitForEvent } from "./utils";
@@ -301,9 +301,15 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
     }
 
-    private async getStorageInfo(stationSerial : string) : Promise<void>
-    {
-        await this.stations[stationSerial].getStorageInfoEx();
+    private async getStorageInfo(stationSerial : string) : Promise<void> {
+        try {
+            const station = await this.getStation(stationSerial);
+            if (station.isStation() || (station.hasProperty(PropertyName.StationSdStatus) && station.getPropertyValue(PropertyName.StationSdStatus) !== undefined && station.getPropertyValue(PropertyName.StationSdStatus) !== TFCardStatus.REMOVE)) {
+                await station.getStorageInfoEx();
+            }
+        } catch (error) {
+            this.log.error("getStorageInfo Error", error);
+        }
     }
 
     private addDevice(device: Device): void {
@@ -475,7 +481,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         station.on("device low battery", (deviceSN: string) => this.onStationDeviceLowBattery(deviceSN));
                         station.on("device wrong try-protect alarm", (deviceSN: string) => this.onStationDeviceWrongTryProtectAlarm(deviceSN));
                         station.on("device pin verified", (deviceSN: string, successfull: boolean) => this.onStationDevicePinVerified(deviceSN, successfull));
-                        station.on("sd info ex", (station: Station, sdStatus: number, sdCapacity: number, sdCapacityAvailable: number) => this.onStationSdInfoEx(station, sdStatus, sdCapacity, sdCapacityAvailable));
+                        station.on("sd info ex", (station: Station, sdStatus: TFCardStatus, sdCapacity: number, sdCapacityAvailable: number) => this.onStationSdInfoEx(station, sdStatus, sdCapacity, sdCapacityAvailable));
                         station.on("image download", (station: Station, file: string, image: Buffer) => this.onStationImageDownload(station, file, image));
                         this.addStation(station);
                         station.initialize();
@@ -2247,7 +2253,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         });
     }
 
-    private onStationSdInfoEx(station : Station, sdStatus : number, sdCapacity : number, sdCapacityAvailable : number): void {
+    private onStationSdInfoEx(station: Station, sdStatus: TFCardStatus, sdCapacity: number, sdCapacityAvailable: number): void {
         if(station.hasProperty(PropertyName.StationSdStatus)) {
             station.updateProperty(PropertyName.StationSdStatus, sdStatus);
         }

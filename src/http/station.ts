@@ -10,7 +10,7 @@ import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, Ra
 import { encodePasscode, getBlocklist, getHB3DetectionMode, hexDate, hexTime, hexWeek, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
 import { StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
-import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLBleCommand, ESLCommand, IndoorSoloSmartdropCommandType, LockV12P2PCommand, P2PConnectionType, PanTiltDirection, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
+import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLBleCommand, ESLCommand, IndoorSoloSmartdropCommandType, LockV12P2PCommand, P2PConnectionType, PanTiltDirection, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, TFCardStatus, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
 import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData, CustomData, CommandData } from "../p2p/models";
 import { Device, DoorbellCamera, Lock, SmartSafe } from "./device";
 import { encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, getLockVectorBytes, isPrivateIp, getSmartSafeP2PCommand, getLockV12P2PCommand, getLockP2PCommand } from "../p2p/utils";
@@ -84,6 +84,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("wrong try-protect alarm", (channel: number) => this.onDeviceWrongTryProtectAlarm(channel));
         this.p2pSession.on("sd info ex", (sdStatus, sdCapacity, sdCapacityAvailable) => this.onSdInfoEx(sdStatus, sdCapacity, sdCapacityAvailable));
         this.p2pSession.on("image download", (file, image) => this.onImageDownload(file, image));
+        this.p2pSession.on("tfcard status", (channel, status) => this.onTFCardStatus(channel, status));
     }
 
     protected initializeState(): void {
@@ -391,6 +392,10 @@ export class Station extends TypedEmitter<StationEvents> {
             metadata[PropertyName.StationAutoEndAlarm] = StationAutoEndAlarmProperty;
             metadata[PropertyName.StationTurnOffAlarmWithButton] = StationTurnOffAlarmWithButtonProperty;
         }
+        for (const property of Object.keys(metadata)) {
+            if (property.startsWith("hidden-"))
+                delete metadata[property];
+        }
         return metadata;
     }
 
@@ -493,6 +498,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 if (message.alarm_type !== undefined)
                     this.emit("alarm event", this, message.alarm_type);
             }
+        } else if (message.msg_type === CusPushEvent.TFCARD && message.station_sn === this.getSerial() && message.tfcard_status !== undefined) {
+            this.updateRawProperty(CommandType.CMD_GET_TFCARD_STATUS, message.tfcard_status.toString());
         }
     }
 
@@ -7340,7 +7347,8 @@ export class Station extends TypedEmitter<StationEvents> {
 
     public async downloadImage(cover_path: string): Promise<void> {
         const commandData: CommandData = {
-            name: CommandName.StationDownloadImage
+            name: CommandName.StationDownloadImage,
+            value: cover_path
         };
         if (!this.hasCommand(CommandName.StationDownloadImage)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
@@ -7358,8 +7366,12 @@ export class Station extends TypedEmitter<StationEvents> {
             channel: Station.CHANNEL, //TODO: Check indoor devices
             strValueSub: this.rawStation.member.admin_user_id,
         }, {
-            command: commandData
+            command: commandData,
         });
+    }
+
+    private onTFCardStatus(channel: number, status: TFCardStatus): void {
+        this.updateRawProperty(CommandType.CMD_GET_TFCARD_STATUS, status.toString());
     }
 
 }

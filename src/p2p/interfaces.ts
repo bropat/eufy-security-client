@@ -5,7 +5,7 @@ import { SortedMap } from "sweet-collections";
 import { AlarmMode } from "../http/types";
 import { Address, CmdCameraInfoResponse, CommandResult, CustomData } from "./models";
 import { TalkbackStream } from "./talkback";
-import { AlarmEvent, AudioCodec, ChargingType, CommandType, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, VideoCodec } from "./types";
+import { AlarmEvent, AudioCodec, ChargingType, CommandType, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus, VideoCodec } from "./types";
 
 export interface P2PClientProtocolEvents {
     "alarm mode": (mode: AlarmMode) => void;
@@ -39,8 +39,9 @@ export interface P2PClientProtocolEvents {
     "shake alarm": (channel: number, detail: SmartSafeShakeAlarmEvent) => void;
     "911 alarm": (channel: number, detail: SmartSafeAlarm911Event) => void;
     "wrong try-protect alarm": (channel: number) => void;
-    "sd info ex": (sdStatus: number, sdCapacity: number, sdCapacityAvailable: number) => void;
+    "sd info ex": (sdStatus: TFCardStatus, sdCapacity: number, sdCapacityAvailable: number) => void;
     "image download": (file: string, image: Buffer) => void;
+    "tfcard status": (channel: number, status: TFCardStatus) => void;
 }
 
 export interface P2PQueueMessage {

@@ -641,10 +641,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
             //TODO: Check with future devices if this property overriding is correct (for example with indoor cameras etc.)
             newMetadata[PropertyName.DeviceEnabled] = DeviceEnabledSoloProperty;
 
-            return newMetadata;
+            metadata = newMetadata;
+        } else if (metadata === undefined) {
+            metadata = GenericDeviceProperties;
         }
-        if (metadata === undefined)
-            return GenericDeviceProperties;
+        for (const property of Object.keys(metadata)) {
+            if (property.startsWith("hidden-"))
+                delete metadata[property];
+        }
         return metadata;
     }
 
@@ -1943,7 +1947,7 @@ export class DoorbellCamera extends Camera {
 
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined) {
+        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
             if (message.device_sn === this.getSerial()) {
                 try {
                     if (!isEmpty(message.pic_url)) {
@@ -2125,7 +2129,7 @@ export class FloodlightCamera extends Camera {
 
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined) {
+        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
             if (message.device_sn === this.getSerial()) {
                 try {
                     if (!isEmpty(message.pic_url)) {
