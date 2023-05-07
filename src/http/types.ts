@@ -3667,6 +3667,7 @@ export const DevicePictureProperty: PropertyMetadataObject = {
     readable: true,
     writeable: false,
     type: "object",
+    default: null,
 }
 
 export const FloodlightT8420XDeviceProperties: IndexedProperty = {
