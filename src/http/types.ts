@@ -331,6 +331,55 @@ export enum IndoorMiniDetectionTypes {
     ALL_MOTION = 4,
 }
 
+export enum VideoType {
+    RECEIVED_RING = 1000,
+    MISSED_RING = 1001,
+    MOTION = 1002,
+    PERSON = 1003,
+    PET = 1004,
+    CRYING = 1005,
+    SOUND = 1006,
+    PUTDOWN_PACKAGE = 65536,
+    TAKE_PACKAGE = 131072,
+    DETECT_PACKAGE = 262144,
+    RECEIVED_RING_ACK = 524288,
+    RECEIVED_RING_MISS = 1048576,
+    RECEIVED_CAR_GUARD = 2097152,
+}
+
+export enum MediaType {
+    NONE = -1,
+    H264 = 0,
+    H265 = 1,
+}
+
+export enum RecordType {
+    MOTION = 256,
+    PERSON = 512,
+    PET = 1024,
+    CRY = 2048,
+    SOUND = 4096,
+    VEHICLE = 16384,
+    CAR_GUARD = 131072,
+}
+
+export enum MicStatus {
+    CLOSED = 0,
+    OPENED = 1,
+}
+
+export enum TriggerType {
+    MOTION1 = 0,
+    MOTION2 = 1,
+    MOTION3 = 2,
+    PERSON = 4,
+    RING = 8,
+    SENSOR = 16,
+    UNKNOWN = 32,
+    MISSED_RING = 64,
+    ANSWER_RING = 128,
+}
+
 export interface EventFilterType {
     deviceSN?: string;
     stationSN?: string;
@@ -6019,6 +6068,11 @@ export enum CommandName {
     StationTriggerAlarmSound = "stationTriggerAlarmSound",
     StationChime = "stationChime",
     StationDownloadImage = "stationDownloadImage",
+
+    StationDatabaseQueryLatestInfo = "stationDatabaseQueryLatestInfo",
+    StationDatabaseQueryLocal = "stationDatabaseQueryLocal",
+    StationDatabaseDelete = "stationDatabaseDelete",
+    StationDatabaseCountByDate = "stationDatabaseCoundByDate",
 }
 
 export const DeviceCommands: Commands = {

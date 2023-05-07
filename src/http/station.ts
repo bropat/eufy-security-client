@@ -1,6 +1,7 @@
 import { TypedEmitter } from "tiny-typed-emitter";
 import { Readable } from "stream";
 import { Logger } from "ts-log";
+import date from "date-and-time";
 
 import { HTTPApi } from "./api";
 import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode, VideoTypeStoreToNAS, HB3DetectionTypes } from "./types";
@@ -10,7 +11,7 @@ import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, Ra
 import { encodePasscode, getBlocklist, getHB3DetectionMode, hexDate, hexTime, hexWeek, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
 import { StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
-import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLBleCommand, ESLCommand, IndoorSoloSmartdropCommandType, LockV12P2PCommand, P2PConnectionType, PanTiltDirection, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, TFCardStatus, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
+import { AlarmEvent, ChargingType, CommandType, ErrorCode, ESLBleCommand, ESLCommand, FilterDetectType, FilterEventType, FilterStorageType, IndoorSoloSmartdropCommandType, LockV12P2PCommand, P2PConnectionType, PanTiltDirection, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, TFCardStatus, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4 } from "../p2p/types";
 import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData, CustomData, CommandData } from "../p2p/models";
 import { Device, DoorbellCamera, Lock, SmartSafe } from "./device";
 import { encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, getLockVectorBytes, isPrivateIp, getSmartSafeP2PCommand, getLockV12P2PCommand, getLockP2PCommand } from "../p2p/utils";
@@ -7372,6 +7373,169 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onTFCardStatus(channel: number, status: TFCardStatus): void {
         this.updateRawProperty(CommandType.CMD_GET_TFCARD_STATUS, status.toString());
+    }
+
+    public async databaseQueryLatestInfo(): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.StationDatabaseQueryLatestInfo,
+        };
+        if (!this.hasCommand(commandData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
+
+        this.log.debug(`Sending database query latest info command to station ${this.getSerial()}`); //with value: ${value}`);
+        if (this.isStation()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_DATABASE,
+                    "mChannel": 0,
+                    "mValue3": 0,
+                    "payload": {
+                        "cmd": CommandType.CMD_DATABASE_QUERY_LATEST_INFO,
+                        "table": "history_record_info",
+                        "transaction": `${new Date().getTime()}`
+                    }
+                }),
+                channel: 0
+            }, {
+                command: commandData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
+    }
+
+    public async databaseQueryLocal(serialNumbers: Array<string>, startDate: Date, endDate: Date, eventType: FilterEventType = 0, detectionType: FilterDetectType = 0, storageType: FilterStorageType = 0): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.StationDatabaseQueryLocal,
+            value: {
+                serialNumbers: serialNumbers,
+                eventType: eventType,
+                detectionType: detectionType
+            }
+        };
+        if (!this.hasCommand(commandData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
+
+        this.log.debug(`Sending database query local command to station ${this.getSerial()}`); //with value: ${value}`);
+        if (this.isStation()) {
+            const devices: Array<{ device_sn: string; }> = [];
+            for(const serial of serialNumbers) {
+                devices.push({ device_sn: serial });
+            }
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_DATABASE,
+                    "mChannel": 0,
+                    "mValue3": 0,
+                    "payload": {
+                        "cmd": CommandType.CMD_DATABASE_QUERY_LOCAL,
+                        "payload":{
+                            "count": 20,
+                            "detection_type": detectionType,
+                            "device_info": devices,
+                            "end_date": date.format(endDate, "YYYYMMDD"),
+                            "event_type": eventType,
+                            "flag": 0,
+                            "res_unzip": 1,
+                            "start_date": date.format(startDate, "YYYYMMDD"),
+                            "start_time": `${date.format(endDate, "YYYYMMDD")}000000`,
+                            "storage_cloud": storageType === FilterStorageType.NONE || (storageType !== FilterStorageType.LOCAL && storageType !== FilterStorageType.CLOUD) ? -1 : storageType,
+                            "ai_type": 0
+                        },
+                        "transaction": `${new Date().getTime()}`
+                    }
+                }),
+                channel: 0
+            }, {
+                command: commandData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
+    }
+
+    public async databaseDelete(ids: Array<number>): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.StationDatabaseDelete,
+            value: ids
+        };
+        if (!this.hasCommand(commandData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
+
+        this.log.debug(`Sending database delete command to station ${this.getSerial()}`); //with value: ${value}`);
+        if (this.isStation()) {
+            const lids: Array<{ "id": number; }> = [];
+            for (const id of ids) {
+                lids.push({ "id": id });
+            }
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_DATABASE,
+                    "mChannel": 0,
+                    "mValue3": 0,
+                    "payload": {
+                        "cmd": CommandType.CMD_DATABASE_DELETE,
+                        "payload": lids,
+                        "table": "history_record_info",
+                        "transaction": `${new Date().getTime()}`
+                    }
+                }),
+                channel: 0
+            }, {
+                command: commandData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
+    }
+
+    public async databaseCountByDate(startDate: Date, endDate: Date): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.StationDatabaseCountByDate,
+            value: {
+                startDate: startDate,
+                endDate: endDate
+            }
+        };
+        if (!this.hasCommand(commandData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
+
+        this.log.debug(`Sending database count by date command to station ${this.getSerial()}`); //with value: ${value}`);
+        if (this.isStation()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_DATABASE,
+                    "mChannel": 0,
+                    "mValue3": 0,
+                    "payload": {
+                        "cmd": CommandType.CMD_DATABASE_DELETE,
+                        "payload": {
+                            "end_date": date.format(startDate, "YYYYMMDD"),
+                            "start_date": date.format(endDate, "YYYYMMDD"),
+                        },
+                        "table": "history_record_info",
+                        "transaction": `${new Date().getTime()}`
+                    }
+                }),
+                channel: 0
+            }, {
+                command: commandData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
+        }
     }
 
 }
