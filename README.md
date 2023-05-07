@@ -80,6 +80,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.5.1 (2023-05-07)
+
+* (bropat) Fixed issue in downloading `cover_path` picture for supported devices
+
 ### 2.5.0 (2023-05-07)
 
 * (bropat) **Breaking Change** `picture_url` property is now hidden and was replaced by `picture` property for supported devices
