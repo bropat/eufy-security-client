@@ -1801,9 +1801,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 });
             } else if (name === PropertyName.DeviceRTSPStream && (value as boolean) === false) {
                 device.setCustomPropertyValue(PropertyName.DeviceRTSPStreamUrl, "");
-            } else if (name === PropertyName.DevicePictureUrl) { // && device.hasProperty(PropertyName.DevicePicture)) {
+            } else if (name === PropertyName.DevicePictureUrl && value !== "") {
                 const picture = device.getPropertyValue(PropertyName.DevicePicture);
-                if (picture === undefined || (picture && (picture as Picture).data?.length === 0)) {
+                if (picture === undefined || picture === null || (picture && (picture as Picture).data?.length === 0)) {
                     this.getStation(device.getStationSerial()).then((station: Station) => {
                         station.downloadImage(value as string);
                     }).catch((error) => {
@@ -2275,7 +2275,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         this.getDevicesFromStation(station.getSerial()).then((devices: Device[]) => {
             for (const device of devices) {
-                if (device.getPropertyValue(PropertyName.DevicePictureUrl) === file && device.getPropertyValue(PropertyName.DevicePicture) === undefined) {
+                if (device.getPropertyValue(PropertyName.DevicePictureUrl) === file && (device.getPropertyValue(PropertyName.DevicePicture) === undefined || device.getPropertyValue(PropertyName.DevicePicture) === null)) {
                     this.log.debug(`onStationImageDownload - Set first picture for device ${device.getSerial()} file: ${file} picture_ext: ${picture.type.ext} picture_mime: ${picture.type.mime}`);
                     device.updateProperty(PropertyName.DevicePicture, picture);
                     break;

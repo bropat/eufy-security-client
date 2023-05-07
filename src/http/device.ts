@@ -51,7 +51,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public update(device: DeviceListResponse, cloudOnlyProperties = false): void {
         this.rawDevice = device;
-        const metadata = this.getPropertiesMetadata();
+        const metadata = this.getPropertiesMetadata(true);
         for (const property of Object.values(metadata)) {
             if (this.rawDevice[property.key] !== undefined && typeof property.key === "string") {
                 this.updateProperty(property.name, property.key === "cover_path" ? getImagePath(this.rawDevice[property.key]) : this.rawDevice[property.key] as PropertyValue);
@@ -74,7 +74,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             this.properties[name] = value;
             this.emit("property changed", this, name, value, this.ready);
             try {
-                this.handlePropertyChange(this.getPropertyMetadata(name), oldValue, this.properties[name]);
+                this.handlePropertyChange(this.getPropertyMetadata(name, true), oldValue, this.properties[name]);
             } catch (error) {
                 if (error instanceof InvalidPropertyError) {
                     this.log.error(`Invalid Property ${name} error`, error);
@@ -137,7 +137,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             if (this.ready)
                 this.emit("raw property changed", this, type, this.rawProperties[type] as string);
 
-            const metadata = this.getPropertiesMetadata();
+            const metadata = this.getPropertiesMetadata(true);
 
             for (const property of Object.values(metadata)) {
                 if (property.key === type) {
@@ -565,8 +565,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return value;
     }
 
-    public getPropertyMetadata(name: string): PropertyMetadataAny {
-        const property = this.getPropertiesMetadata()[name];
+    public getPropertyMetadata(name: string, hidden = false): PropertyMetadataAny {
+        const property = this.getPropertiesMetadata(hidden)[name];
         if (property !== undefined)
             return property;
         throw new InvalidPropertyError(`Property ${name} invalid`);
@@ -597,8 +597,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return result;
     }
 
-    public getPropertiesMetadata(): IndexedProperty {
-        let metadata = DeviceProperties[this.getDeviceType()];
+    public getPropertiesMetadata(hidden = false): IndexedProperty {
+        let metadata = {
+            ...DeviceProperties[this.getDeviceType()]
+        };
         if (this.isFloodLightT8420X()) {
             metadata = {
                 ...FloodlightT8420XDeviceProperties
@@ -643,17 +645,21 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
             metadata = newMetadata;
         } else if (metadata === undefined) {
-            metadata = GenericDeviceProperties;
+            metadata = {
+                ...GenericDeviceProperties
+            };
         }
-        for (const property of Object.keys(metadata)) {
-            if (property.startsWith("hidden-"))
-                delete metadata[property];
+        if (!hidden) {
+            for (const property of Object.keys(metadata)) {
+                if (property.startsWith("hidden-"))
+                    delete metadata[property];
+            }
         }
         return metadata;
     }
 
-    public hasProperty(name: string): boolean {
-        return this.getPropertiesMetadata()[name] !== undefined;
+    public hasProperty(name: string, hidden = false): boolean {
+        return this.getPropertiesMetadata(hidden)[name] !== undefined;
     }
 
     public getCommands(): Array<CommandName> {
@@ -1916,8 +1922,8 @@ export class DoorbellCamera extends Camera {
         return this.voices;
     }
 
-    public getPropertiesMetadata(): IndexedProperty {
-        let metadata = super.getPropertiesMetadata();
+    public getPropertiesMetadata(hidden = false): IndexedProperty {
+        let metadata = super.getPropertiesMetadata(hidden);
         metadata = this.loadMetadataVoiceStates(PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponseVoice, metadata);
         metadata = this.loadMetadataVoiceStates(PropertyName.DeviceDeliveryGuardPackageGuardingVoiceResponseVoice, metadata);
         metadata = this.loadMetadataVoiceStates(PropertyName.DeviceRingAutoResponseVoiceResponseVoice, metadata);

@@ -132,7 +132,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.rawStation = station;
         this.p2pSession.updateRawStation(station);
 
-        const metadata = this.getPropertiesMetadata();
+        const metadata = this.getPropertiesMetadata(true);
         for(const property of Object.values(metadata)) {
             if (this.rawStation[property.key] !== undefined && typeof property.key === "string") {
                 this.updateProperty(property.name, this.rawStation[property.key] as PropertyValue);
@@ -156,7 +156,7 @@ export class Station extends TypedEmitter<StationEvents> {
             this.properties[name] = value;
             this.emit("property changed", this, name, value, this.ready);
             try {
-                this.handlePropertyChange(this.getPropertyMetadata(name), oldValue, this.properties[name]);
+                this.handlePropertyChange(this.getPropertyMetadata(name, true), oldValue, this.properties[name]);
             } catch (error) {
                 if (error instanceof InvalidPropertyError) {
                     this.log.error(`Invalid Property ${name} error`, error);
@@ -223,7 +223,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }
 
-            const metadata = this.getPropertiesMetadata();
+            const metadata = this.getPropertiesMetadata(true);
 
             for(const property of Object.values(metadata)) {
                 if (property.key === type) {
@@ -344,8 +344,8 @@ export class Station extends TypedEmitter<StationEvents> {
         return value;
     }
 
-    public getPropertyMetadata(name: string): PropertyMetadataAny {
-        const property = this.getPropertiesMetadata()[name];
+    public getPropertyMetadata(name: string, hidden = false): PropertyMetadataAny {
+        const property = this.getPropertiesMetadata(hidden)[name];
         if (property !== undefined)
             return property;
         throw new InvalidPropertyError(`Property ${name} invalid`);
@@ -380,10 +380,14 @@ export class Station extends TypedEmitter<StationEvents> {
         return result;
     }
 
-    public getPropertiesMetadata(): IndexedProperty {
-        let metadata = StationProperties[this.getDeviceType()];
+    public getPropertiesMetadata(hidden = false): IndexedProperty {
+        let metadata = {
+            ...StationProperties[this.getDeviceType()]
+        };
         if (metadata === undefined) {
-            metadata = StationProperties[DeviceType.STATION];
+            metadata = {
+                ...StationProperties[DeviceType.STATION]
+            };
         }
         if (this.hasDeviceWithType(DeviceType.KEYPAD)) {
             metadata[PropertyName.StationGuardMode] = StationGuardModeKeyPadProperty;
@@ -392,15 +396,17 @@ export class Station extends TypedEmitter<StationEvents> {
             metadata[PropertyName.StationAutoEndAlarm] = StationAutoEndAlarmProperty;
             metadata[PropertyName.StationTurnOffAlarmWithButton] = StationTurnOffAlarmWithButtonProperty;
         }
-        for (const property of Object.keys(metadata)) {
-            if (property.startsWith("hidden-"))
-                delete metadata[property];
+        if (!hidden) {
+            for (const property of Object.keys(metadata)) {
+                if (property.startsWith("hidden-"))
+                    delete metadata[property];
+            }
         }
         return metadata;
     }
 
-    public hasProperty(name: string): boolean {
-        return this.getPropertiesMetadata()[name] !== undefined;
+    public hasProperty(name: string, hidden = false): boolean {
+        return this.getPropertiesMetadata(hidden)[name] !== undefined;
     }
 
     public getCommands(): Array<CommandName> {
@@ -7353,7 +7359,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!this.hasCommand(CommandName.StationDownloadImage)) {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
-        this.log.debug(`Sending download image command to station ${this.getSerial()}`);
+        this.log.debug(`Sending download image command to station ${this.getSerial()} for file ${cover_path}`);
         await this.p2pSession.sendCommandWithStringPayload({
             commandType: CommandType.CMD_SET_PAYLOAD,
             value: JSON.stringify({
