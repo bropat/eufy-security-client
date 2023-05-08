@@ -343,7 +343,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 this.log.error(`Type ${DeviceType[normalized_message.type]} CusPush - push_time - Error:`, error);
             }
 
-            if (normalized_message.type === DeviceType.HB3) {
+            if ((normalized_message.station_sn.startsWith("T8030") && !Device.isSensor(normalized_message.type)) || normalized_message.type === DeviceType.HB3) {
                 const push_data = message.payload.payload as PlatformPushMode;
                 normalized_message.name = push_data.name ? push_data.name : "";
                 normalized_message.channel = push_data.channel !== undefined ? push_data.channel : 0;
