@@ -979,7 +979,7 @@ export enum DatabaseReturnCode {
     SUCCESSFUL = 0,
 }
 
-export enum StorageType {
+export enum P2PStorageType {
     NONE = 0,
     EMMC = 1,
     HD = 2,

@@ -5,7 +5,7 @@ import { SortedMap } from "sweet-collections";
 import { AlarmMode, DeviceType, MicStatus, TriggerType, VideoType } from "../http/types";
 import { Address, CmdCameraInfoResponse, CommandResult, CustomData } from "./models";
 import { TalkbackStream } from "./talkback";
-import { AlarmEvent, AudioCodec, ChargingType, CommandType, DatabaseReturnCode, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, StorageType, TFCardStatus, VideoCodec } from "./types";
+import { AlarmEvent, AudioCodec, ChargingType, CommandType, DatabaseReturnCode, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, P2PStorageType, TFCardStatus, VideoCodec } from "./types";
 
 export interface P2PClientProtocolEvents {
     "alarm mode": (mode: AlarmMode) => void;
@@ -45,7 +45,7 @@ export interface P2PClientProtocolEvents {
     "database query latest": (returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLatestInfo>) => void;
     "database query local": (returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => void;
     "database count by date": (returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => void;
-    //"database delete": (returnCode: DatabaseReturnCode, data: ) => void;
+    "database delete": (returnCode: DatabaseReturnCode, failedIds: Array<any>) => void;
 }
 
 export interface P2PQueueMessage {
@@ -199,7 +199,7 @@ export interface P2PDatabaseQueryLocalHistoryRecordInfo {
     start_time: string;
     end_time: string;
     frame_num: number;
-    storage_type: StorageType;
+    storage_type: P2PStorageType;
     storage_cloud: boolean;
     cipher_id: number;
     vision: number;
@@ -250,7 +250,7 @@ export interface P2PDatabaseQueryLocalRecordCropPictureInfo {
     reserve2_int: number;
     reserve2_date: string;
     reserve2_string: string;
-    storage_type: StorageType;
+    storage_type: P2PStorageType;
     storage_status: number;
     storage_label: string;
     table_version: string; //1.2.1
@@ -263,6 +263,7 @@ export interface P2PDatabaseQueryLocalResponse {
 }
 
 export interface P2PDatabaseDeleteResponse {
+    //TODO: Check data type / format of this response
     failed_delete: Array<any>;
 }
 
@@ -305,7 +306,7 @@ export interface HistoryRecordInfo {
     start_time: Date;
     end_time: Date;
     frame_num: number;
-    storage_type: StorageType;
+    storage_type: P2PStorageType;
     storage_cloud: boolean;
     cipher_id: number;
     vision: number;
@@ -344,7 +345,7 @@ export interface CropPictureInfo {
     group_id: number;
     crop_id: number;
     start_time: Date;
-    storage_type: StorageType;
+    storage_type: P2PStorageType;
     storage_status: number;
     storage_label: string;
     table_version: string; //1.2.1
