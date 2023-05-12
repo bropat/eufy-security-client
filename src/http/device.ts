@@ -839,7 +839,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (type == DeviceType.FLOODLIGHT ||
             type == DeviceType.FLOODLIGHT_CAMERA_8422 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8423 ||
-            type == DeviceType.FLOODLIGHT_CAMERA_8424)
+            type == DeviceType.FLOODLIGHT_CAMERA_8424 ||
+            type == DeciceType.WALL_LIGHT_CAM)
             return true;
         return false;
     }

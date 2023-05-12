@@ -55,6 +55,7 @@ export enum DeviceType {
     SMART_SAFE_7401 = 141,
     SMART_SAFE_7402 = 142,
     SMART_SAFE_7403 = 143,
+    WALL_LIGHT_CAM = 151,
 }
 
 export enum ParamType {
