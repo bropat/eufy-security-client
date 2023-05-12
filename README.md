@@ -80,6 +80,12 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.6.0 (2023-05-12)
+
+* (bropat) Implemented access to local event history (database on station)
+* (bropat) Implemented download of first picture from local database for supported devices
+* (martijnpoppen) FIX: HB3 notifications - (exclude sensors) #324
+
 ### 2.5.1 (2023-05-07)
 
 * (bropat) Fixed issue in downloading `cover_path` picture for supported devices
