@@ -2,10 +2,10 @@ import * as NodeRSA from "node-rsa";
 import { Readable } from "stream";
 import { SortedMap } from "sweet-collections";
 
-import { AlarmMode } from "../http/types";
+import { AlarmMode, DeviceType, MicStatus, TriggerType, VideoType } from "../http/types";
 import { Address, CmdCameraInfoResponse, CommandResult, CustomData } from "./models";
 import { TalkbackStream } from "./talkback";
-import { AlarmEvent, AudioCodec, ChargingType, CommandType, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus, VideoCodec } from "./types";
+import { AlarmEvent, AudioCodec, ChargingType, CommandType, DatabaseReturnCode, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, P2PStorageType, TFCardStatus, VideoCodec } from "./types";
 
 export interface P2PClientProtocolEvents {
     "alarm mode": (mode: AlarmMode) => void;
@@ -42,6 +42,10 @@ export interface P2PClientProtocolEvents {
     "sd info ex": (sdStatus: TFCardStatus, sdCapacity: number, sdCapacityAvailable: number) => void;
     "image download": (file: string, image: Buffer) => void;
     "tfcard status": (channel: number, status: TFCardStatus) => void;
+    "database query latest": (returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLatestInfo>) => void;
+    "database query local": (returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => void;
+    "database count by date": (returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => void;
+    "database delete": (returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => void;
 }
 
 export interface P2PQueueMessage {
@@ -170,4 +174,188 @@ export interface P2PVideoMessageState {
     data: Buffer;
     retries: number;
     timeout?: NodeJS.Timeout;
+}
+
+export interface P2PDatabaseQueryLatestInfoResponse {
+    device_sn: string;
+    payload: {
+        event_count: number;
+        crop_hb3_path: string;
+        crop_cloud_path: string;
+    }
+}
+
+export interface P2PDatabaseCountByDateResponse {
+    days: string;
+    count: number;
+}
+
+export interface P2PDatabaseQueryLocalHistoryRecordInfo {
+    record_id: number;
+    account: string;
+    station_sn: string;
+    device_sn: string;
+    device_type: DeviceType;
+    start_time: string;
+    end_time: string;
+    frame_num: number;
+    storage_type: P2PStorageType;
+    storage_cloud: boolean;
+    cipher_id: number;
+    vision: number;
+    video_type: VideoType;
+    has_lock: boolean;
+    automation_id: number;
+    trigger_type: TriggerType;
+    push_mode: number;
+    mic_status: MicStatus;
+    res_change: number;
+    res_best_width: number;
+    res_best_height: number;
+    self_learning: number;
+    int_reserve: number;
+    int_extra: number;
+    storage_path: string;
+    thumb_path: string;
+    write_status: number;
+    str_extra: string;
+    cloud_path: string;
+    folder_size: number;
+    storage_status: number;
+    storage_label: string;
+    time_zone: string;
+    mp4_cloud: string;
+    snapshot_cloud: string;
+    table_version: string; //1.2.1
+    update_time: string;
+}
+
+export interface P2PDatabaseQueryLocalRecordCropPictureInfo {
+    picture_id: number;
+    record_id: number;
+    station_sn: string;
+    device_sn: string;
+    detection_type: number;
+    person_id: number;
+    crop_path: string;
+    event_time: string;
+    str_reserve: string;
+    person_recog_flag: boolean;
+    crop_pic_quality: number;
+    pic_marking_flag: boolean;
+    group_id: number;
+    int_reserve: number;
+    crop_id: number;
+    start_time: string;
+    reserve2_int: number;
+    reserve2_date: string;
+    reserve2_string: string;
+    storage_type: P2PStorageType;
+    storage_status: number;
+    storage_label: string;
+    table_version: string; //1.2.1
+    update_time: string;
+}
+
+export interface P2PDatabaseQueryLocalResponse {
+    payload: Array<P2PDatabaseQueryLocalHistoryRecordInfo>|Array<P2PDatabaseQueryLocalRecordCropPictureInfo>;
+    table_name: string;
+}
+
+export interface P2PDatabaseDeleteResponse {
+    // failed_delete seems never populated... Always "[]"
+    failed_delete: Array<unknown>;
+}
+
+export interface P2PDatabaseResponse {
+    data: Array<P2PDatabaseQueryLatestInfoResponse>|Array<P2PDatabaseCountByDateResponse>|Array<P2PDatabaseQueryLocalResponse>|P2PDatabaseDeleteResponse;
+    start_id?: number;
+    end_id?: number;
+    count?: number;
+    transaction: string;
+    table: string;
+    cmd: number;
+    mIntRet: DatabaseReturnCode;
+    version: string; //1.1.0.1
+    msg: string;
+}
+
+export interface DatabaseQueryLatestInfoBase {
+    device_sn: string;
+    event_count: number;
+}
+
+export interface DatabaseQueryLatestInfoCloud extends DatabaseQueryLatestInfoBase {
+    crop_cloud_path: string;
+}
+
+export interface DatabaseQueryLatestInfoLocal extends DatabaseQueryLatestInfoBase {
+    crop_local_path: string;
+}
+
+export type DatabaseQueryLatestInfo = DatabaseQueryLatestInfoCloud | DatabaseQueryLatestInfoLocal;
+
+export interface DatabaseCountByDate {
+    day: Date;
+    count: number;
+}
+
+export interface HistoryRecordInfo {
+    device_type: DeviceType;
+    account: string;
+    start_time: Date;
+    end_time: Date;
+    frame_num: number;
+    storage_type: P2PStorageType;
+    storage_cloud: boolean;
+    cipher_id: number;
+    vision: number;
+    video_type: VideoType;
+    has_lock: boolean;
+    automation_id: number;
+    trigger_type: TriggerType;
+    push_mode: number;
+    mic_status: MicStatus;
+    res_change: number;
+    res_best_width: number;
+    res_best_height: number;
+    self_learning: number;
+    storage_path: string;
+    thumb_path: string;
+    write_status: number;
+    cloud_path: string;
+    folder_size: number;
+    storage_status: number;
+    storage_label: string;
+    time_zone: string;
+    mp4_cloud: string;
+    snapshot_cloud: string;
+    table_version: string; //1.2.1
+}
+
+export interface CropPictureInfo {
+    picture_id: number;
+    detection_type: number;
+    person_id: number;
+    crop_path: string;
+    event_time: Date|null;
+    person_recog_flag: boolean;
+    crop_pic_quality: number;
+    pic_marking_flag: boolean;
+    group_id: number;
+    crop_id: number;
+    start_time: Date;
+    storage_type: P2PStorageType;
+    storage_status: number;
+    storage_label: string;
+    table_version: string; //1.2.1
+    update_time: string;
+}
+
+export interface DatabaseQueryLocal {
+    record_id: number;
+    station_sn: string;
+    device_sn?: string;
+    history: HistoryRecordInfo;
+    picture: Array<CropPictureInfo>;
 }

@@ -54,7 +54,8 @@
     "mqtt": "^4.3.7",
     "node-schedule": "^2.1.1",
     "p-throttle": "^4.1.1",
-    "image-type": "^4.1.0"
+    "image-type": "^4.1.0",
+    "date-and-time": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^16.18.25",
