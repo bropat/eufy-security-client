@@ -7396,7 +7396,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
 
-        this.log.debug(`Sending database query latest info command to station ${this.getSerial()}`); //with value: ${value}`);
+        this.log.debug(`Sending database query latest info command to station ${this.getSerial()}`);
         await this.p2pSession.sendCommandWithStringPayload({
             commandType: CommandType.CMD_SET_PAYLOAD,
             value: JSON.stringify({
@@ -7429,7 +7429,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
 
-        this.log.debug(`Sending database query local command to station ${this.getSerial()}`); //with value: ${value}`);
+        this.log.debug(`Sending database query local command to station ${this.getSerial()}`, { serialNumbers: serialNumbers, startDate: startDate, endDate: endDate, eventType: eventType, detectionType:detectionType, storageType: storageType });
         const devices: Array<{ device_sn: string; }> = [];
         for(const serial of serialNumbers) {
             devices.push({ device_sn: serial });
@@ -7456,6 +7456,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         "storage_cloud": storageType === FilterStorageType.NONE || (storageType !== FilterStorageType.LOCAL && storageType !== FilterStorageType.CLOUD) ? -1 : storageType,
                         "ai_type": 0
                     },
+                    "table": "history_record_info",
                     "transaction": `${new Date().getTime()}`
                 }
             }),
@@ -7474,7 +7475,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
 
-        this.log.debug(`Sending database delete command to station ${this.getSerial()}`); //with value: ${value}`);
+        this.log.debug(`Sending database delete command to station ${this.getSerial()}`, { ids: ids });
         const lids: Array<{ "id": number; }> = [];
         for (const id of ids) {
             lids.push({ "id": id });
@@ -7511,7 +7512,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${this.getSerial()}`);
         }
 
-        this.log.debug(`Sending database count by date command to station ${this.getSerial()}`); //with value: ${value}`);
+        this.log.debug(`Sending database count by date command to station ${this.getSerial()}`, { startDate: startDate, endDate: endDate });
         await this.p2pSession.sendCommandWithStringPayload({
             commandType: CommandType.CMD_SET_PAYLOAD,
             value: JSON.stringify({
@@ -7520,10 +7521,10 @@ export class Station extends TypedEmitter<StationEvents> {
                 "mChannel": 0,
                 "mValue3": 0,
                 "payload": {
-                    "cmd": CommandType.CMD_DATABASE_DELETE,
+                    "cmd": CommandType.CMD_DATABASE_COUNT_BY_DATE,
                     "payload": {
-                        "end_date": date.format(startDate, "YYYYMMDD"),
-                        "start_date": date.format(endDate, "YYYYMMDD"),
+                        "end_date": date.format(endDate, "YYYYMMDD"),
+                        "start_date": date.format(startDate, "YYYYMMDD"),
                     },
                     "table": "history_record_info",
                     "transaction": `${new Date().getTime()}`
@@ -7547,7 +7548,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.emit("database count by date", this, returnCode, data);
     }
 
-    private onDatabaseDelete(returnCode: DatabaseReturnCode, failedIds: Array<any>): void {
+    private onDatabaseDelete(returnCode: DatabaseReturnCode, failedIds: Array<unknown>): void {
         this.emit("database delete", this, returnCode, failedIds);
     }
 

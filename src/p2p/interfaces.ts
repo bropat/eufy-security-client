@@ -45,7 +45,7 @@ export interface P2PClientProtocolEvents {
     "database query latest": (returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLatestInfo>) => void;
     "database query local": (returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => void;
     "database count by date": (returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => void;
-    "database delete": (returnCode: DatabaseReturnCode, failedIds: Array<any>) => void;
+    "database delete": (returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => void;
 }
 
 export interface P2PQueueMessage {
@@ -263,8 +263,8 @@ export interface P2PDatabaseQueryLocalResponse {
 }
 
 export interface P2PDatabaseDeleteResponse {
-    //TODO: Check data type / format of this response
-    failed_delete: Array<any>;
+    // failed_delete seems never populated... Always "[]"
+    failed_delete: Array<unknown>;
 }
 
 export interface P2PDatabaseResponse {

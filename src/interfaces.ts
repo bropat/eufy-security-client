@@ -99,7 +99,7 @@ export interface EufySecurityEvents {
     "station database query latest": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLatestInfo>) => void;
     "station database query local": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => void;
     "station database count by date": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => void;
-    "station database delete": (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<any>) => void;
+    "station database delete": (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => void;
     "push connect": () => void;
     "push close": () => void;
     "push message": (message: PushMessage) => void;

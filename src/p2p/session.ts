@@ -1797,7 +1797,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         switch(databaseResponse.cmd) {
                             case CommandType.CMD_DATABASE_QUERY_LATEST_INFO:
                             {
-                                const data = databaseResponse.data as Array<P2PDatabaseQueryLatestInfoResponse>;
+                                let data: Array<P2PDatabaseQueryLatestInfoResponse> = [];
+                                if (databaseResponse.data !== undefined && databaseResponse.data as unknown as string !== "[]")
+                                    data = databaseResponse.data as Array<P2PDatabaseQueryLatestInfoResponse>;
                                 const result: Array<DatabaseQueryLatestInfo> = [];
                                 for (const record of data) {
                                     if (record.payload.crop_hb3_path !== "") {
@@ -1818,7 +1820,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 break;
                             }
                             case CommandType.CMD_DATABASE_COUNT_BY_DATE: {
-                                const data = databaseResponse.data as Array<P2PDatabaseCountByDateResponse>;
+                                let data: Array<P2PDatabaseCountByDateResponse> = [];
+                                if (databaseResponse.data !== undefined && databaseResponse.data as unknown as string !== "[]")
+                                    data = databaseResponse.data as Array<P2PDatabaseCountByDateResponse>;
                                 const result: Array<DatabaseCountByDate> = [];
                                 for (const record of data) {
                                     result.push({
@@ -1830,7 +1834,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 break;
                             }
                             case CommandType.CMD_DATABASE_QUERY_LOCAL: {
-                                const data = databaseResponse.data as Array<P2PDatabaseQueryLocalResponse>;
+                                let data: Array<P2PDatabaseQueryLocalResponse> = [];
+                                if (databaseResponse.data !== undefined && databaseResponse.data as unknown as string !== "[]")
+                                    data = databaseResponse.data as Array<P2PDatabaseQueryLocalResponse>;
                                 const result: SortedMap<number, Partial<DatabaseQueryLocal>> = new SortedMap<number, Partial<DatabaseQueryLocal>>((a: number, b: number) => a - b);
                                 for (const record of data) {
                                     for (const tableRecord of record.payload) {
@@ -1908,7 +1914,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             }
                             case CommandType.CMD_DATABASE_DELETE: {
                                 const data = databaseResponse.data as P2PDatabaseDeleteResponse;
-                                this.emit("database delete", databaseResponse.mIntRet, data.failed_delete);
+                                let failed_delete: Array<unknown> = [];
+                                if (databaseResponse.data !== undefined && data.failed_delete as unknown as string !== "[]")
+                                    failed_delete = data.failed_delete;
+                                this.emit("database delete", databaseResponse.mIntRet, failed_delete);
                                 break;
                             }
                             default:

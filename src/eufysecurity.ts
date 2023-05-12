@@ -486,7 +486,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         station.on("database query latest", (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLatestInfo>) => this.onStationDatabaseQueryLatest(station, returnCode, data));
                         station.on("database query local", (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => this.onStationDatabaseQueryLocal(station, returnCode, data));
                         station.on("database count by date", (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => this.onStationDatabaseCountByDate(station, returnCode, data));
-                        station.on("database delete", (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<any>) => this.onStationDatabaseDelete(station, returnCode, failedIds));
+                        station.on("database delete", (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => this.onStationDatabaseDelete(station, returnCode, failedIds));
                         this.addStation(station);
                         station.initialize();
                     } catch (error) {
@@ -2319,7 +2319,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.emit("station database count by date", station, returnCode, data);
     }
 
-    private onStationDatabaseDelete(station: Station, returnCode: DatabaseReturnCode, failedIds: Array<any>): void {
+    private onStationDatabaseDelete(station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>): void {
         this.emit("station database delete", station, returnCode, failedIds);
     }
 

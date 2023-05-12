@@ -222,7 +222,7 @@ export interface StationEvents {
     "database query latest": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLatestInfo>) => void;
     "database query local": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => void;
     "database count by date": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => void;
-    "database delete": (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<any>) => void;
+    "database delete": (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => void;
 }
 
 export interface DeviceEvents {
