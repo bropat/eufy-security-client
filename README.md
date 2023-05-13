@@ -80,6 +80,12 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.6.1 (2023-05-13)
+
+* (bropat) Fixed an issue that caused the event "livestream started" to be emit twice
+* (bropat) Added some missing properties (package detection) for doorbell solo (T8203)
+* (bropat) Migrated from dependency protobuf-typescript to protobufjs
+
 ### 2.6.0 (2023-05-12)
 
 * (bropat) Implemented access to local event history (database on station)
