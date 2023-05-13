@@ -4341,6 +4341,10 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSnoozeChime]: DeviceSnoozeChimeProperty,
         [PropertyName.DeviceSnoozeMotion]: DeviceSnoozeMotionProperty,
         [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+        [PropertyName.DevicePackageDelivered]: DevicePackageDeliveredProperty,
+        [PropertyName.DevicePackageStranded]: DevicePackageStrandedProperty,
+        [PropertyName.DevicePackageTaken]: DevicePackageTakenProperty,
+        [PropertyName.DeviceSomeoneLoitering]: DeviceSomeoneLoiteringProperty,
     },
     [DeviceType.FLOODLIGHT]: { // T8420 Firmware: 1.0.0.35 Hardware: 2.2 (20211219)
         ...GenericDeviceProperties,
