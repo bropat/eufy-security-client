@@ -1,6 +1,6 @@
-import * as Long from "long";
+import Long from "long";
 import * as path from "path";
-import { load, Root } from "protobuf-typescript";
+import { load, Root } from "protobufjs";
 import * as tls from "tls";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { dummyLogger, Logger } from "ts-log";

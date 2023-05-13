@@ -41,7 +41,8 @@
   },
   "dependencies": {
     "got": "^11.8.6",
-    "protobuf-typescript": "^6.8.8",
+    "long": "^5.2.3",
+    "protobufjs": "^7.2.3",
     "qs": "^6.11.1",
     "node-rsa": "^1.1.1",
     "crypto-js": "^4.1.1",
