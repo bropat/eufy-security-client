@@ -1384,14 +1384,16 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             }
                         }
                         this.currentMessageState[message.dataType].p2pStreamFirstVideoDataReceived = true;
-                        this.currentMessageState[message.dataType].waitForAudioData = setTimeout(() => {
-                            this.currentMessageState[message.dataType].waitForAudioData = undefined;
-                            this.currentMessageState[message.dataType].p2pStreamMetadata.audioCodec = AudioCodec.NONE;
-                            this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived = true;
-                            if (this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived && this.currentMessageState[message.dataType].p2pStreamFirstVideoDataReceived) {
-                                this.emitStreamStartEvent(message.dataType);
-                            }
-                        }, this.AUDIO_CODEC_ANALYZE_TIMEOUT);
+                        if (!this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived) {
+                            this.currentMessageState[message.dataType].waitForAudioData = setTimeout(() => {
+                                this.currentMessageState[message.dataType].waitForAudioData = undefined;
+                                this.currentMessageState[message.dataType].p2pStreamMetadata.audioCodec = AudioCodec.NONE;
+                                this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived = true;
+                                if (this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived && this.currentMessageState[message.dataType].p2pStreamFirstVideoDataReceived && this.currentMessageState[message.dataType].p2pStreamNotStarted) {
+                                    this.emitStreamStartEvent(message.dataType);
+                                }
+                            }, this.AUDIO_CODEC_ANALYZE_TIMEOUT);
+                        }
                     }
                     if (this.currentMessageState[message.dataType].p2pStreamNotStarted) {
                         if (this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived && this.currentMessageState[message.dataType].p2pStreamFirstVideoDataReceived) {
@@ -1444,10 +1446,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     const audio_data = Buffer.from(message.data.slice(16));
                     this.log.debug(`Station ${this.rawStation.station_sn} - CMD_AUDIO_FRAME`, { dataSize: message.data.length, metadata: audioMetaData, audioDataSize: audio_data.length });
 
+                    if (this.currentMessageState[message.dataType].waitForAudioData !== undefined) {
+                        clearTimeout(this.currentMessageState[message.dataType].waitForAudioData!);
+                    }
                     if (!this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived) {
-                        if (this.currentMessageState[message.dataType].waitForAudioData !== undefined) {
-                            clearTimeout(this.currentMessageState[message.dataType].waitForAudioData!);
-                        }
                         this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived = true;
                         this.currentMessageState[message.dataType].p2pStreamMetadata.audioCodec = audioMetaData.audioType === 0 ? AudioCodec.AAC : audioMetaData.audioType === 1 ? AudioCodec.AAC_LC : audioMetaData.audioType === 7 ? AudioCodec.AAC_ELD : AudioCodec.UNKNOWN;
                     }
