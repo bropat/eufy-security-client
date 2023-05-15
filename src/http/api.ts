@@ -552,11 +552,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             houses.forEach(element => {
                 this.houses[element.house_id] = element;
             });
-            if (Object.keys(this.houses).length > 0)
-                this.emit("houses", this.houses);
         } else {
             this.log.info("No houses found.");
         }
+        this.emit("houses", this.houses);
     }
 
     public async refreshStationData(): Promise<void> {
@@ -566,11 +565,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             stations.forEach(element => {
                 this.hubs[element.station_sn] = element;
             });
-            if (Object.keys(this.hubs).length > 0)
-                this.emit("hubs", this.hubs);
         } else {
             this.log.info("No stations found.");
         }
+        this.emit("hubs", this.hubs);
     }
 
     public async refreshDeviceData(): Promise<void> {
@@ -580,11 +578,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             devices.forEach(element => {
                 this.devices[element.device_sn] = element;
             });
-            if (Object.keys(this.devices).length > 0)
-                this.emit("devices", this.devices);
         } else {
             this.log.info("No devices found.");
         }
+        this.emit("devices", this.devices);
     }
 
     public async refreshAllData(): Promise<void> {

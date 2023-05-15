@@ -500,6 +500,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.stationsLoaded = true;
             this.loadingEmitter.emit("stations loaded");
         });
+        if (promises.length === 0) {
+            this.stationsLoaded = true;
+            this.loadingEmitter.emit("stations loaded");
+        }
         for (const stationSN of stationsSNs) {
             if (!newStationsSNs.includes(stationSN)) {
                 this.getStation(stationSN).then((station: Station) => {
@@ -640,6 +644,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.devicesLoaded = true;
             this.loadingEmitter.emit("devices loaded");
         });
+        if (promises.length === 0) {
+            this.devicesLoaded = true;
+            this.loadingEmitter.emit("devices loaded");
+        }
         for (const deviceSN of deviceSNs) {
             if (!newDeviceSNs.includes(deviceSN)) {
                 this.getDevice(deviceSN).then((device: Device) => {
