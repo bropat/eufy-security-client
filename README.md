@@ -80,6 +80,11 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.6.2 (2023-05-16)
+
+* (bropat) Fixed issue waiting for device/station loading event in some cases
+* (martijnpoppen) FIX: doorbell push not parsed when connected to HB3 #325
+
 ### 2.6.1 (2023-05-13)
 
 * (bropat) Fixed an issue that caused the event "livestream started" to be emit twice
