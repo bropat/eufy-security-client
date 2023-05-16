@@ -14,7 +14,7 @@ import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, Sta
 import { CommandName, DeviceType, HB3DetectionTypes, NotificationSwitchMode, NotificationType, PropertyName } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
-import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WiredDoorbellCamera } from "./http/device";
+import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera } from "./http/device";
 import { AlarmEvent, ChargingType, CommandType, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
 import { StreamMetadata } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
@@ -580,6 +580,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     new_device = Keypad.getInstance(this.api, device);
                 } else if (Device.isSmartSafe(device.device_type)) {
                     new_device = SmartSafe.getInstance(this.api, device);
+                } else if (Device.isWallLightCam(device.device_type)) {
+                    new_device = WallLightCam.getInstance(this.api, device);
                 } else {
                     new_device = UnknownDevice.getInstance(this.api, device);
                 }

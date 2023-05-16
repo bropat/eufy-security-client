@@ -19,7 +19,8 @@ export class ParameterHelper {
                 type === CommandType.ARM_DELAY_CUS2 ||
                 type === CommandType.ARM_DELAY_CUS3 ||
                 type === CommandType.ARM_DELAY_OFF ||
-                type === CommandType.CELLULAR_INFO) {
+                type === CommandType.CELLULAR_INFO ||
+                type === ParamType.CAMERA_WIFI_IP) {
                 try {
                     if (typeof value === "string") {
                         return parseJSON(decodeBase64(value).toString("utf8"), log);

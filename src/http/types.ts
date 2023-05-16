@@ -135,6 +135,7 @@ export enum ParamType {
 
     PRIVATE_MODE = 99904,
     CUSTOM_RTSP_URL = 999991,
+    CAMERA_WIFI_IP = 1176
 }
 
 export enum AlarmMode {
@@ -5321,6 +5322,40 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLongTimeNotCloseAlert]: DeviceLongTimeNotCloseAlertProperty,
         [PropertyName.DeviceWrongTryProtectAlert]: DeviceWrongTryProtectAlertProperty,
     },
+    [DeviceType.WALL_LIGHT_CAM]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkBatteryDoorbellCamera1Property,
+        [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
+        [PropertyName.DevicePicture]: DevicePictureProperty,
+        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceLightSettingsEnable]: DeviceFloodlightLightSettingsEnableProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceLightSettingsBrightnessMotion]: DeviceFloodlightLightSettingsBrightnessMotionProperty,
+        [PropertyName.DeviceLightSettingsBrightnessSchedule]: DeviceFloodlightLightSettingsBrightnessScheduleProperty,
+        [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredProperty,
+        [PropertyName.DeviceLightSettingsMotionTriggeredDistance]: DeviceFloodlightLightSettingsMotionTriggeredDistanceProperty,
+        [PropertyName.DeviceLightSettingsMotionTriggeredTimer]: DeviceFloodlightLightSettingsMotionTriggeredTimerProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityFloodlightT8420Property,
+        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
+        [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeFloodlightT8420Property,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingFloodlightT8420Property,
+        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthFloodlightProperty,
+        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalFloodlightProperty,
+        [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceMotionDetectionTestMode]: DeviceMotionDetectionTestModeProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+    }
 }
 
 export const StationNameProperty: PropertyMetadataString = {

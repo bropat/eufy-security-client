@@ -439,7 +439,7 @@ export class Station extends TypedEmitter<StationEvents> {
             else
                 return true;
         }
-        return Device.isWiredDoorbellDual(this.getDeviceType()) || Device.isFloodLight(this.getDeviceType()) || Device.isWiredDoorbell(this.getDeviceType()) || Device.isIndoorCamera(this.getDeviceType()) || Device.isSoloCameras(this.getDeviceType());
+        return Device.isWiredDoorbellDual(this.getDeviceType()) || Device.isFloodLight(this.getDeviceType()) || Device.isWiredDoorbell(this.getDeviceType()) || Device.isIndoorCamera(this.getDeviceType()) || Device.isSoloCameras(this.getDeviceType()) || Device.isWallLightCam(this.getDeviceType());
     }
 
     public getDeviceType(): number {
@@ -998,7 +998,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
-        } else if (device.isIndoorCamera() || device.isFloodLight()) {
+        } else if (device.isIndoorCamera() || device.isFloodLight() || device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -1168,7 +1168,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Sending motion detection command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if (device.isIndoorCamera() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isFloodLightT8420X() || device.isWiredDoorbellT8200X() || device.isStarlight4GLTE()) {
+        if (device.isIndoorCamera() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isFloodLightT8420X() || device.isWiredDoorbellT8200X() || device.isStarlight4GLTE() || device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -1439,7 +1439,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.log.debug(`Sending switch light command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isFloodLight() || device.isSoloCameraSpotlight1080() || device.isSoloCameraSpotlight2k() ||
             device.isSoloCameraSpotlightSolar() || device.isCamera2C() || device.isCamera2CPro() ||
-            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k() || device.isCamera3() || device.isCamera3C()) {
+            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k() || device.isCamera3() || device.isCamera3C() || device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
                 value: value === true ? 1 : 0,
@@ -1484,7 +1484,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Sending motion detection sensitivity command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if ((device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isIndoorCamera() || device.isFloodLightT8420X()) {
+        if ((device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isIndoorCamera() || device.isFloodLightT8420X()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -1672,7 +1672,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
-        } else if (device.isFloodLight() || device.isIndoorCamera()) {
+        } else if (device.isFloodLight() || device.isIndoorCamera()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -1923,7 +1923,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
-        } else if (device.isFloodLight() || device.isIndoorCamera() || device.isSoloCameras() || device.isStarlight4GLTE()) {
+        } else if (device.isFloodLight() || device.isIndoorCamera() || device.isSoloCameras() || device.isStarlight4GLTE()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -2256,7 +2256,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Sending notification type command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if (device.isFloodLight() || device.isIndoorCamera() || device.isSoloCameras() || device.isStarlight4GLTE()) {
+        if (device.isFloodLight() || device.isIndoorCamera() || device.isSoloCameras() || device.isStarlight4GLTE()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -2802,7 +2802,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Sending video streaming quality command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if (device.isIndoorCamera() || device.isSoloCameras() || device.isFloodLight() || device.isWiredDoorbell() || device.isStarlight4GLTE()) {
+        if (device.isIndoorCamera() || device.isSoloCameras() || device.isFloodLight() || device.isWiredDoorbell() || device.isStarlight4GLTE()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -2845,7 +2845,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Sending video recording quality command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if (device.isIndoorCamera() || device.isWiredDoorbell() || device.isFloodLight() || device.isSoloCameras() || device.isStarlight4GLTE()) {
+        if (device.isIndoorCamera() || device.isWiredDoorbell() || device.isFloodLight() || device.isSoloCameras() || device.isStarlight4GLTE()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -2947,7 +2947,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.log.debug(`Sending floodlight light settings brightness manual command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         if (device.isFloodLight() || device.isSoloCameraSpotlight1080() || device.isSoloCameraSpotlight2k() ||
             device.isSoloCameraSpotlightSolar() || device.isCamera2C() || device.isCamera2CPro() ||
-            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k() || device.isCamera3() || device.isCamera3C()) {
+            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k() || device.isCamera3() || device.isCamera3C()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_FLOODLIGHT_BRIGHT_VALUE,
                 value: value,
@@ -2977,7 +2977,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Sending floodlight light settings brightness motion command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if (device.isFloodLight()) {
+        if (device.isFloodLight()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR,
                 value: value,
@@ -3007,7 +3007,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Sending floodlight light settings brightness schedule command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if (device.isFloodLight()) {
+        if (device.isFloodLight()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_SCH,
                 value: value,
@@ -3037,7 +3037,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Sending floodlight light settings motion triggered command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
-        if (device.isFloodLight()) {
+        if (device.isFloodLight()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_LIGHT_CTRL_PIR_SWITCH,
                 value: value === true ? 1 : 0,
@@ -3083,7 +3083,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
 
         this.log.debug(`Sending floodlight light settings motion triggered distance command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${newValue}`);
-        if (device.isFloodLight()) {
+        if (device.isFloodLight()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_PIRSENSITIVITY,
                 value: newValue,
@@ -3113,7 +3113,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, seconds);
 
         this.log.debug(`Sending floodlight light settings motion triggered timer command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${seconds}`);
-        if (device.isFloodLight()) {
+        if (device.isFloodLight()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_LIGHT_CTRL_PIR_TIME,
                 value: seconds,
@@ -3511,7 +3511,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
-        } else if (device.isIndoorCamera() || device.isFloodLight()) {
+        } else if (device.isIndoorCamera() || device.isFloodLight()|| device.isWallLightCam()) {
             if (!Object.values(WatermarkSetting4).includes(value as WatermarkSetting4)) {
                 this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting4);
                 return;
@@ -3716,7 +3716,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 command: commandData
             });
-        } else if (device.isWiredDoorbell() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isIndoorCamera() || (device.getSerial().startsWith("T8420") && isGreaterEqualMinVersion("2.0.4.8", this.getSoftwareVersion()))) {
+        } else if (device.isWiredDoorbell()|| device.isWallLightCam() || (device.isFloodLight() && device.getDeviceType() !== DeviceType.FLOODLIGHT) || device.isIndoorCamera() || (device.getSerial().startsWith("T8420") && isGreaterEqualMinVersion("2.0.4.8", this.getSoftwareVersion()))) {
             this.log.debug(`Using CMD_DOORBELL_SET_PAYLOAD (2) for station ${this.getSerial()} (main_sw_version: ${this.getSoftwareVersion()})`);
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -6137,7 +6137,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new LivestreamNotRunningError(`Livestream for device ${device.getSerial()} is not running`);
         }
         this.log.debug(`Sending start talkback command to station ${this.getSerial()} for device ${device.getSerial()}`);
-        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isWiredDoorbell() || device.isSmartDrop() || device.isStarlight4GLTE()) {
+        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isWiredDoorbell() || device.isSmartDrop() || device.isStarlight4GLTE()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -6182,7 +6182,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new LivestreamNotRunningError(`Livestream for device ${device.getSerial()} is not running`);
         }
         this.log.debug(`Sending stop talkback command to station ${this.getSerial()} for device ${device.getSerial()}`);
-        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isWiredDoorbell() || device.isSmartDrop() || device.isStarlight4GLTE()) {
+        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isWiredDoorbell() || device.isSmartDrop() || device.isStarlight4GLTE()|| device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
