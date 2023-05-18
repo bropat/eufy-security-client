@@ -3,7 +3,7 @@ import { TypedEmitter } from "tiny-typed-emitter";
 import { dummyLogger, Logger } from "ts-log";
 import * as fse from "fs-extra";
 import * as path from "path";
-import { load, Root } from "protobuf-typescript";
+import { load, Root } from "protobufjs";
 
 import { MQTTServiceEvents } from "./interface";
 import { DeviceSmartLockMessage } from "./model";

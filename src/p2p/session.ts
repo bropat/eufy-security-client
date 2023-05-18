@@ -4,12 +4,13 @@ import * as NodeRSA from "node-rsa";
 import { Readable } from "stream";
 import { Logger } from "ts-log";
 import { SortedMap } from "sweet-collections";
+import date from "date-and-time";
 
 import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, ESLStationP2PThroughData, SmartSafeSettingsNotification, SmartSafeStatusNotification, CustomData, ESLBleV12P2PThroughData, CmdDatabaseImageResponse } from "./models";
 import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateBasicLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildVoidCommandPayload, isP2PQueueMessage, buildTalkbackAudioFrameHeader, getLocalIpAddress, decodeP2PCloudIPs, getLockV12P2PCommand, decodeSmartSafeData, decryptPayloadData } from "./utils";
 import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, P2PConnectionType, ChargingType, AlarmEvent, IndoorSoloSmartdropCommandType, SmartSafeCommandCode, ESLCommand, ESLBleCommand, TFCardStatus } from "./types";
 import { AlarmMode } from "../http/types";
-import { P2PDataMessage, P2PDataMessageAudio, P2PDataMessageBuilder, P2PMessageState, P2PDataMessageVideo, P2PMessage, P2PDataHeader, P2PDataMessageState, P2PClientProtocolEvents, DeviceSerial, P2PQueueMessage, P2PCommand, P2PVideoMessageState } from "./interfaces";
+import { P2PDataMessage, P2PDataMessageAudio, P2PDataMessageBuilder, P2PMessageState, P2PDataMessageVideo, P2PMessage, P2PDataHeader, P2PDataMessageState, P2PClientProtocolEvents, DeviceSerial, P2PQueueMessage, P2PCommand, P2PVideoMessageState, P2PDatabaseResponse, P2PDatabaseQueryLatestInfoResponse, P2PDatabaseDeleteResponse, DatabaseQueryLatestInfo, DatabaseCountByDate, P2PDatabaseCountByDateResponse, P2PDatabaseQueryLocalResponse, DatabaseQueryLocal, P2PDatabaseQueryLocalHistoryRecordInfo, P2PDatabaseQueryLocalRecordCropPictureInfo } from "./interfaces";
 import { DskKeyResponse, ResultResponse, StationListResponse } from "../http/models";
 import { HTTPApi } from "../http/api";
 import { Device, Lock } from "../http/device";
@@ -1383,14 +1384,16 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             }
                         }
                         this.currentMessageState[message.dataType].p2pStreamFirstVideoDataReceived = true;
-                        this.currentMessageState[message.dataType].waitForAudioData = setTimeout(() => {
-                            this.currentMessageState[message.dataType].waitForAudioData = undefined;
-                            this.currentMessageState[message.dataType].p2pStreamMetadata.audioCodec = AudioCodec.NONE;
-                            this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived = true;
-                            if (this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived && this.currentMessageState[message.dataType].p2pStreamFirstVideoDataReceived) {
-                                this.emitStreamStartEvent(message.dataType);
-                            }
-                        }, this.AUDIO_CODEC_ANALYZE_TIMEOUT);
+                        if (!this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived) {
+                            this.currentMessageState[message.dataType].waitForAudioData = setTimeout(() => {
+                                this.currentMessageState[message.dataType].waitForAudioData = undefined;
+                                this.currentMessageState[message.dataType].p2pStreamMetadata.audioCodec = AudioCodec.NONE;
+                                this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived = true;
+                                if (this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived && this.currentMessageState[message.dataType].p2pStreamFirstVideoDataReceived && this.currentMessageState[message.dataType].p2pStreamNotStarted) {
+                                    this.emitStreamStartEvent(message.dataType);
+                                }
+                            }, this.AUDIO_CODEC_ANALYZE_TIMEOUT);
+                        }
                     }
                     if (this.currentMessageState[message.dataType].p2pStreamNotStarted) {
                         if (this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived && this.currentMessageState[message.dataType].p2pStreamFirstVideoDataReceived) {
@@ -1443,10 +1446,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     const audio_data = Buffer.from(message.data.slice(16));
                     this.log.debug(`Station ${this.rawStation.station_sn} - CMD_AUDIO_FRAME`, { dataSize: message.data.length, metadata: audioMetaData, audioDataSize: audio_data.length });
 
+                    if (this.currentMessageState[message.dataType].waitForAudioData !== undefined) {
+                        clearTimeout(this.currentMessageState[message.dataType].waitForAudioData!);
+                    }
                     if (!this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived) {
-                        if (this.currentMessageState[message.dataType].waitForAudioData !== undefined) {
-                            clearTimeout(this.currentMessageState[message.dataType].waitForAudioData!);
-                        }
                         this.currentMessageState[message.dataType].p2pStreamFirstAudioDataReceived = true;
                         this.currentMessageState[message.dataType].p2pStreamMetadata.audioCodec = audioMetaData.audioType === 0 ? AudioCodec.AAC : audioMetaData.audioType === 1 ? AudioCodec.AAC_LC : audioMetaData.audioType === 7 ? AudioCodec.AAC_ELD : AudioCodec.UNKNOWN;
                     }
@@ -1787,6 +1790,144 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         this.emit("tfcard status", message.channel, tfCardStatus);
                     } catch (error) {
                         this.log.error(`Station ${this.rawStation.station_sn} - CMD_GET_TFCARD_STATUS - Error:`, { error: error, payload: message.data.toString("hex") });
+                    }
+                    break;
+                case CommandType.CMD_DATABASE:
+                    try {
+                        this.log.debug(`Station ${this.rawStation.station_sn} - CMD_DATABASE :`, { payload: message.data.toString() });
+                        const databaseResponse = parseJSON(message.data.toString("utf-8"), this.log) as P2PDatabaseResponse;
+                        switch(databaseResponse.cmd) {
+                            case CommandType.CMD_DATABASE_QUERY_LATEST_INFO:
+                            {
+                                let data: Array<P2PDatabaseQueryLatestInfoResponse> = [];
+                                if (databaseResponse.data !== undefined && databaseResponse.data as unknown as string !== "[]")
+                                    data = databaseResponse.data as Array<P2PDatabaseQueryLatestInfoResponse>;
+                                const result: Array<DatabaseQueryLatestInfo> = [];
+                                for (const record of data) {
+                                    if (record.payload.crop_hb3_path !== "") {
+                                        result.push({
+                                            device_sn: record.device_sn,
+                                            event_count: record.payload.event_count,
+                                            crop_local_path: record.payload.crop_hb3_path
+                                        });
+                                    } else {
+                                        result.push({
+                                            device_sn: record.device_sn,
+                                            event_count: record.payload.event_count,
+                                            crop_cloud_path: record.payload.crop_cloud_path
+                                        });
+                                    }
+                                }
+                                this.emit("database query latest", databaseResponse.mIntRet, result);
+                                break;
+                            }
+                            case CommandType.CMD_DATABASE_COUNT_BY_DATE: {
+                                let data: Array<P2PDatabaseCountByDateResponse> = [];
+                                if (databaseResponse.data !== undefined && databaseResponse.data as unknown as string !== "[]")
+                                    data = databaseResponse.data as Array<P2PDatabaseCountByDateResponse>;
+                                const result: Array<DatabaseCountByDate> = [];
+                                for (const record of data) {
+                                    result.push({
+                                        day: date.parse(record.days, "YYYYMMDD"),
+                                        count: record.count
+                                    });
+                                }
+                                this.emit("database count by date", databaseResponse.mIntRet ,result);
+                                break;
+                            }
+                            case CommandType.CMD_DATABASE_QUERY_LOCAL: {
+                                let data: Array<P2PDatabaseQueryLocalResponse> = [];
+                                if (databaseResponse.data !== undefined && databaseResponse.data as unknown as string !== "[]")
+                                    data = databaseResponse.data as Array<P2PDatabaseQueryLocalResponse>;
+                                const result: SortedMap<number, Partial<DatabaseQueryLocal>> = new SortedMap<number, Partial<DatabaseQueryLocal>>((a: number, b: number) => a - b);
+                                for (const record of data) {
+                                    for (const tableRecord of record.payload) {
+                                        let tmpRecord = result.get(tableRecord.record_id);
+                                        if (tmpRecord === undefined) {
+                                            tmpRecord = {
+                                                record_id: tableRecord.record_id,
+                                                device_sn: tableRecord.device_sn,
+                                                station_sn: tableRecord.station_sn,
+                                            };
+                                        }
+                                        if (record.table_name === "history_record_info") {
+                                            tmpRecord.history = {
+                                                device_type: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).device_type,
+                                                account: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).account,
+                                                start_time: date.parse((tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).start_time, "YYYY-MM-DD HH:mm:ss"),
+                                                end_time: date.parse((tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).end_time, "YYYY-MM-DD HH:mm:ss"),
+                                                frame_num: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).frame_num,
+                                                storage_type: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).storage_type,
+                                                storage_cloud: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).storage_cloud,
+                                                cipher_id: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).cipher_id,
+                                                vision: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).vision,
+                                                video_type: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).video_type,
+                                                has_lock: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).has_lock,
+                                                automation_id: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).automation_id,
+                                                trigger_type: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).trigger_type,
+                                                push_mode: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).push_mode,
+                                                mic_status: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).mic_status,
+                                                res_change: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).res_change,
+                                                res_best_width: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).res_best_width,
+                                                res_best_height: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).res_best_height,
+                                                self_learning: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).self_learning,
+                                                storage_path: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).storage_path,
+                                                thumb_path: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).thumb_path,
+                                                write_status: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).write_status,
+                                                cloud_path: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).cloud_path,
+                                                folder_size: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).folder_size,
+                                                storage_status: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).storage_status,
+                                                storage_label: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).storage_label,
+                                                time_zone: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).time_zone,
+                                                mp4_cloud: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).mp4_cloud,
+                                                snapshot_cloud: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).snapshot_cloud,
+                                                table_version: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).table_version,
+                                            };
+                                        } else if (record.table_name === "record_crop_picture_info") {
+                                            if (tmpRecord.picture === undefined) {
+                                                tmpRecord.picture = [];
+                                            }
+                                            tmpRecord.picture.push({
+                                                picture_id: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).picture_id,
+                                                detection_type: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).detection_type,
+                                                person_id: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).person_id,
+                                                crop_path: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).crop_path,
+                                                event_time: date.parse((tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).event_time, "YYYY-MM-DD HH:mm:ss"),
+                                                person_recog_flag: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).person_recog_flag,
+                                                crop_pic_quality: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).crop_pic_quality,
+                                                pic_marking_flag: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).pic_marking_flag,
+                                                group_id: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).group_id,
+                                                crop_id: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).crop_id,
+                                                start_time: date.parse((tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).start_time, "YYYY-MM-DD HH:mm:ss"),
+                                                storage_type: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).storage_type,
+                                                storage_status: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).storage_status,
+                                                storage_label: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).storage_label,
+                                                table_version: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).table_version,
+                                                update_time: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).update_time,
+                                            });
+                                        } else {
+                                            this.log.debug(`Station ${this.rawStation.station_sn} - Not implemented - CMD_DATABASE_QUERY_LOCAL - table_name: ${record.table_name}`);
+                                        }
+                                        result.set(tableRecord.record_id, tmpRecord);
+                                    }
+                                }
+                                this.emit("database query local", databaseResponse.mIntRet, Array.from(result.values()) as DatabaseQueryLocal[]);
+                                break;
+                            }
+                            case CommandType.CMD_DATABASE_DELETE: {
+                                const data = databaseResponse.data as P2PDatabaseDeleteResponse;
+                                let failed_delete: Array<unknown> = [];
+                                if (databaseResponse.data !== undefined && data.failed_delete as unknown as string !== "[]")
+                                    failed_delete = data.failed_delete;
+                                this.emit("database delete", databaseResponse.mIntRet, failed_delete);
+                                break;
+                            }
+                            default:
+                                this.log.debug(`Station ${this.rawStation.station_sn} - Not implemented - CMD_DATABASE message`, { commandIdName: CommandType[message.commandId], commandId: message.commandId, channel: message.channel, databaseResponse: databaseResponse });
+                                break;
+                        }
+                    } catch (error) {
+                        this.log.error(`Station ${this.rawStation.station_sn} - CMD_DATABASE - Error:`, { error: error, payload: message.data.toString() });
                     }
                     break;
                 default:

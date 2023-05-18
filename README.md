@@ -80,6 +80,23 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.6.2 (2023-05-16)
+
+* (bropat) Fixed issue waiting for device/station loading event in some cases
+* (martijnpoppen) FIX: doorbell push not parsed when connected to HB3 #325
+
+### 2.6.1 (2023-05-13)
+
+* (bropat) Fixed an issue that caused the event "livestream started" to be emit twice
+* (bropat) Added some missing properties (package detection) for doorbell solo (T8203)
+* (bropat) Migrated from dependency protobuf-typescript to protobufjs
+
+### 2.6.0 (2023-05-12)
+
+* (bropat) Implemented access to local event history (database on station)
+* (bropat) Implemented download of first picture from local database for supported devices
+* (martijnpoppen) FIX: HB3 notifications - (exclude sensors) #324
+
 ### 2.5.1 (2023-05-07)
 
 * (bropat) Fixed issue in downloading `cover_path` picture for supported devices

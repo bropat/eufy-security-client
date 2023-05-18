@@ -14,9 +14,9 @@ import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, Sta
 import { CommandName, DeviceType, HB3DetectionTypes, NotificationSwitchMode, NotificationType, PropertyName } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
-import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera } from "./http/device";
-import { AlarmEvent, ChargingType, CommandType, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
-import { StreamMetadata } from "./p2p/interfaces";
+import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WiredDoorbellCamera } from "./http/device";
+import { AlarmEvent, ChargingType, CommandType, DatabaseReturnCode, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
+import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata, DatabaseQueryLatestInfoLocal, DatabaseQueryLatestInfoCloud } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
 import { generateSerialnumber, generateUDID, handleUpdate, md5, parseValue, removeLastChar, waitForEvent } from "./utils";
 import { DeviceNotFoundError, StationNotFoundError, ReadOnlyPropertyError, NotSupportedError, AddUserError, DeleteUserError, UpdateUserUsernameError, UpdateUserPasscodeError, UpdateUserScheduleError } from "./error";
@@ -483,6 +483,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         station.on("device pin verified", (deviceSN: string, successfull: boolean) => this.onStationDevicePinVerified(deviceSN, successfull));
                         station.on("sd info ex", (station: Station, sdStatus: TFCardStatus, sdCapacity: number, sdCapacityAvailable: number) => this.onStationSdInfoEx(station, sdStatus, sdCapacity, sdCapacityAvailable));
                         station.on("image download", (station: Station, file: string, image: Buffer) => this.onStationImageDownload(station, file, image));
+                        station.on("database query latest", (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLatestInfo>) => this.onStationDatabaseQueryLatest(station, returnCode, data));
+                        station.on("database query local", (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => this.onStationDatabaseQueryLocal(station, returnCode, data));
+                        station.on("database count by date", (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => this.onStationDatabaseCountByDate(station, returnCode, data));
+                        station.on("database delete", (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => this.onStationDatabaseDelete(station, returnCode, failedIds));
                         this.addStation(station);
                         station.initialize();
                     } catch (error) {
@@ -496,6 +500,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.stationsLoaded = true;
             this.loadingEmitter.emit("stations loaded");
         });
+        if (promises.length === 0) {
+            this.stationsLoaded = true;
+            this.loadingEmitter.emit("stations loaded");
+        }
         for (const stationSN of stationsSNs) {
             if (!newStationsSNs.includes(stationSN)) {
                 this.getStation(stationSN).then((station: Station) => {
@@ -638,6 +646,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.devicesLoaded = true;
             this.loadingEmitter.emit("devices loaded");
         });
+        if (promises.length === 0) {
+            this.devicesLoaded = true;
+            this.loadingEmitter.emit("devices loaded");
+        }
         for (const deviceSN of deviceSNs) {
             if (!newDeviceSNs.includes(deviceSN)) {
                 this.getDevice(deviceSN).then((device: Device) => {
@@ -2286,6 +2298,39 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }).catch((error) => {
             this.log.error(`onStationImageDownload - Set first picture error`, error);
         });
+    }
+
+    private onStationDatabaseQueryLatest(station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLatestInfo>): void {
+        if (returnCode === DatabaseReturnCode.SUCCESSFUL) {
+            for(const element of data) {
+                if ((element.device_sn !== "" && !station.isStation()) || (station.isStation() && element.device_sn !== station.getSerial())) {
+                    this.getDevice(element.device_sn).then((device) => {
+                        const raw = device.getRawDevice();
+                        if ("crop_local_path" in element) {
+                            raw.cover_path = (element as DatabaseQueryLatestInfoLocal).crop_local_path;
+                        } else if ("crop_cloud_path" in element) {
+                            raw.cover_path = (element as DatabaseQueryLatestInfoCloud).crop_cloud_path;
+                        }
+                        device.update(raw);
+                    }).catch((error) => {
+                        this.log.error("onStationDatabaseQueryLatest Error:", error);
+                    });
+                }
+            }
+        }
+        this.emit("station database query latest", station, returnCode, data);
+    }
+
+    private onStationDatabaseQueryLocal(station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>): void {
+        this.emit("station database query local", station, returnCode, data);
+    }
+
+    private onStationDatabaseCountByDate(station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>): void {
+        this.emit("station database count by date", station, returnCode, data);
+    }
+
+    private onStationDatabaseDelete(station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>): void {
+        this.emit("station database delete", station, returnCode, failedIds);
     }
 
 }

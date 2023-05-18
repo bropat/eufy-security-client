@@ -514,7 +514,7 @@ export enum CommandType {
     CELLULAR_SIGNAL_STRENGTH = 7006,
     CMD_DATABASE_COUNT = 10005,
     CMD_DATABASE_COUNT_BY_DEVICE = 10012,
-    CMD_DATABASE_COUNT_by_DATE = 10008,
+    CMD_DATABASE_COUNT_BY_DATE = 10008,
     CMD_DATABASE_DELETE = 10001,
     CMD_DATABASE_DOWNLOAD = 8001,
     CMD_DATABASE_IMAGE = 1308,
@@ -524,7 +524,10 @@ export enum CommandType {
     CMD_DATABASE_QUERY_COMBINATION_WITH_AI = 10011,
     CMD_DATABASE_QUERY_LATEST_INFO = 10013,
     CMD_DATABASE_SYNC = 10003,
-    CMD_DATABASE_UPDATE = 10002
+    CMD_DATABASE_UPDATE = 10002,
+    CMD_DATABASE = 1306,
+    CMD_SYNC_QUERY_RECENT_PACKAGE_INFO = 10018,
+    CMD_DATABASE_QUERY_LOCAL = 10017,
 }
 
 export enum MessageType {
@@ -969,6 +972,53 @@ export enum SmartSafeBatteryTemperatureEvent {
 export enum SmartSafeBatteryStatusEvent {
     NOT_CHARGING = 0,
     CHARGING = 1,
+}
+
+export enum DatabaseReturnCode {
+    ERROR_DB_NOT_READY = -1100,
+    SUCCESSFUL = 0,
+}
+
+export enum P2PStorageType {
+    NONE = 0,
+    EMMC = 1,
+    HD = 2,
+    SDCARD = 3,
+    SENSOR = 4,
+    ALARM = 5,
+}
+
+export enum FilterStorageType {
+    NONE = 0,
+    LOCAL = 1,
+    CLOUD = 2,
+}
+
+export enum FilterEventType {
+    ALL = 0,
+    VIDEO = 1,
+    ALERT = 2,
+}
+
+export enum FeatureTag {
+    USER = 0,
+    STRANGER = 1,
+    SELF_LEARNING_NO_CONFIRM = 2,
+    SELF_LEARNING_CONFIRM = 3,
+    SELF_LEARNING_ERROR_CONFIRM = 4,
+}
+
+export enum FilterDetectType {
+    NOT_SUPPORT = 0,
+    PERSON_FACE = 1,
+    PERSON_BODY = 2,
+    VEHICLE = 4,
+    PET = 8,
+    SOUND = 128,
+    CRYING = 256,
+    PACKAGE = 512,
+    PACKAGE_PICK_UP = 512,
+    PACKAGE_DELIVERED = 1024,
 }
 
 /*export interface Mapping {

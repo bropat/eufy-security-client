@@ -2,9 +2,9 @@ import { Readable } from "stream";
 import { Method } from "got";
 import { ImageType as ImageFileExtension } from "image-type";
 
-import { StreamMetadata } from "../p2p/interfaces";
+import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata } from "../p2p/interfaces";
 import { CommandResult } from "../p2p/models";
-import { AlarmEvent, ChargingType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "../p2p/types";
+import { AlarmEvent, ChargingType, DatabaseReturnCode, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "../p2p/types";
 import { Camera, Device } from "./device";
 import { Cipher, Voice, Invite, DeviceListResponse, StationListResponse, HouseListResponse } from "./models";
 import { Station } from "./station";
@@ -219,6 +219,10 @@ export interface StationEvents {
     "device pin verified": (deviceSN: string, successfull: boolean) => void;
     "sd info ex": (station: Station, sdStatus: TFCardStatus, sdCapacity: number, sdCapacityAvailable: number) => void;
     "image download": (station: Station, file: string, image: Buffer) => void;
+    "database query latest": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLatestInfo>) => void;
+    "database query local": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => void;
+    "database count by date": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => void;
+    "database delete": (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => void;
 }
 
 export interface DeviceEvents {
