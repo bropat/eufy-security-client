@@ -1818,7 +1818,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 const picture = device.getPropertyValue(PropertyName.DevicePicture);
                 if (picture === undefined || picture === null || (picture && (picture as Picture).data?.length === 0)) {
                     this.getStation(device.getStationSerial()).then((station: Station) => {
-                        station.downloadImage(value as string);
+                        if (station.hasCommand(CommandName.StationDownloadImage)) {
+                            station.downloadImage(value as string);
+                        }
                     }).catch((error) => {
                         this.log.error(`Device property changed error (device: ${device.getSerial()} name: ${name}) - station download image (station: ${device.getStationSerial()} image_path: ${value})`, error);
                     });
