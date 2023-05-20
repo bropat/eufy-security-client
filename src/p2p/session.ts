@@ -6,7 +6,7 @@ import { Logger } from "ts-log";
 import { SortedMap } from "sweet-collections";
 import date from "date-and-time";
 
-import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, ESLStationP2PThroughData, SmartSafeSettingsNotification, SmartSafeStatusNotification, CustomData, ESLBleV12P2PThroughData, CmdDatabaseImageResponse } from "./models";
+import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, ESLStationP2PThroughData, SmartSafeSettingsNotification, SmartSafeStatusNotification, CustomData, ESLBleV12P2PThroughData, CmdDatabaseImageResponse, EntrySensorStatus } from "./models";
 import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateBasicLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildVoidCommandPayload, isP2PQueueMessage, buildTalkbackAudioFrameHeader, getLocalIpAddress, decodeP2PCloudIPs, getLockV12P2PCommand, decodeSmartSafeData, decryptPayloadData } from "./utils";
 import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, P2PConnectionType, ChargingType, AlarmEvent, IndoorSoloSmartdropCommandType, SmartSafeCommandCode, ESLCommand, ESLBleCommand, TFCardStatus } from "./types";
 import { AlarmMode } from "../http/types";
@@ -1728,6 +1728,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     default:
                                         this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD SmartSafe - Not implemented`, { message: message.data.toString() });
                                         break;
+                                }
+                            } else if (json.cmd === CommandType.CMD_ENTRY_SENSOR_STATUS) {
+                                // {"cmd":1550,"payload":{"status":1}}
+                                const payload = json.payload as EntrySensorStatus;
+                                this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD EntrySensor Status update`, { status: payload?.status });
+                                if (payload) {
+                                    this.emit("sensor status", message.channel, payload.status);
                                 }
                             } else {
                                 this.log.debug(`Station ${this.rawStation.station_sn} - CMD_NOTIFY_PAYLOAD - Not implemented`, { commandIdName: CommandType[json.cmd], commandId: json.cmd, message: message.data.toString() });

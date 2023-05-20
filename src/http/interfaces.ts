@@ -223,6 +223,7 @@ export interface StationEvents {
     "database query local": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => void;
     "database count by date": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => void;
     "database delete": (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => void;
+    "sensor status": (station: Station, channel: number, status: number) => void;
 }
 
 export interface DeviceEvents {

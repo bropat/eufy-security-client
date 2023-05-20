@@ -487,6 +487,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         station.on("database query local", (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => this.onStationDatabaseQueryLocal(station, returnCode, data));
                         station.on("database count by date", (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => this.onStationDatabaseCountByDate(station, returnCode, data));
                         station.on("database delete", (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => this.onStationDatabaseDelete(station, returnCode, failedIds));
+                        station.on("sensor status", (station: Station, channel: number, status: number) => this.onStationSensorStatus(station, channel, status));
                         this.addStation(station);
                         station.initialize();
                     } catch (error) {
@@ -2329,6 +2330,17 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onStationDatabaseDelete(station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>): void {
         this.emit("station database delete", station, returnCode, failedIds);
+    }
+
+    private onStationSensorStatus(station: Station, channel: number, status: number): void {
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
+            if (device.hasProperty(PropertyName.DeviceSensorOpen)) {
+                const metadataSensorOpen = device.getPropertyMetadata(PropertyName.DeviceSensorOpen);
+                device.updateRawProperty(metadataSensorOpen.key as number, status.toString());
+            }
+        }).catch((error) => {
+            this.log.error(`Station sensor status error (station: ${station.getSerial()} channel: ${channel})`, error);
+        });
     }
 
 }

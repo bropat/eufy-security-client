@@ -90,6 +90,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("database query local", (returnCode, data) => this.onDatabaseQueryLocal(returnCode, data));
         this.p2pSession.on("database count by date", (returnCode, data) => this.onDatabaseCountByDate(returnCode, data));
         this.p2pSession.on("database delete", (returnCode, failedIds) => this.onDatabaseDelete(returnCode, failedIds));
+        this.p2pSession.on("sensor status", (channel: number, status: number) => this.onSensorStatus(channel, status));
     }
 
     protected initializeState(): void {
@@ -7550,6 +7551,10 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onDatabaseDelete(returnCode: DatabaseReturnCode, failedIds: Array<unknown>): void {
         this.emit("database delete", this, returnCode, failedIds);
+    }
+
+    private onSensorStatus(channel: number, status: number): void {
+        this.emit("sensor status", this, channel, status);
     }
 
 }
