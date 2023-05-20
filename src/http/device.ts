@@ -67,9 +67,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
         this.log.debug("Normalized Properties", { deviceSN: this.getSerial(), properties: this.properties });
     }
 
-    public updateProperty(name: string, value: PropertyValue): boolean {
+    public updateProperty(name: string, value: PropertyValue, force = false): boolean {
         if ((this.properties[name] !== undefined && this.properties[name] !== value)
-            || this.properties[name] === undefined) {
+            || this.properties[name] === undefined || force) {
             const oldValue = this.properties[name];
             this.properties[name] = value;
             this.emit("property changed", this, name, value, this.ready);
@@ -1559,7 +1559,7 @@ export class Camera extends Device {
                     if (!isEmpty(message.pic_url)) {
                         getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                             if (image.data.length > 0) {
-                                this.updateProperty(PropertyName.DevicePicture, image);
+                                this.updateProperty(PropertyName.DevicePicture, image, true);
                             }
                         }).catch((error) => {
                             this.log.debug(`CusPushEvent.SECURITY - Device: ${message.device_sn} - Get picture - Error:`, error);
@@ -1593,7 +1593,7 @@ export class Camera extends Device {
                         if (!isEmpty(message.pic_url)) {
                             getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                                 if (image.data.length > 0) {
-                                    this.updateProperty(PropertyName.DevicePicture, image);
+                                    this.updateProperty(PropertyName.DevicePicture, image, true);
                                 }
                             }).catch((error) => {
                                 this.log.debug(`HB3PairedDevicePushEvent - Device: ${message.device_sn} - Get picture - Error:`, error);
@@ -1731,7 +1731,7 @@ export class SoloCamera extends Camera {
                     if (!isEmpty(message.pic_url)) {
                         getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                             if (image.data.length > 0) {
-                                this.updateProperty(PropertyName.DevicePicture, image);
+                                this.updateProperty(PropertyName.DevicePicture, image, true);
                             }
                         }).catch((error) => {
                             this.log.debug(`SoloPushEvent - Device: ${message.device_sn} - Get picture - Error:`, error);
@@ -1819,7 +1819,7 @@ export class IndoorCamera extends Camera {
                     if (!isEmpty(message.pic_url)) {
                         getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                             if (image.data.length > 0) {
-                                this.updateProperty(PropertyName.DevicePicture, image);
+                                this.updateProperty(PropertyName.DevicePicture, image, true);
                             }
                         }).catch((error) => {
                             this.log.debug(`IndoorPushEvent - Device: ${message.device_sn} - Get picture - Error:`, error);
@@ -1959,7 +1959,7 @@ export class DoorbellCamera extends Camera {
                     if (!isEmpty(message.pic_url)) {
                         getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                             if (image.data.length > 0) {
-                                this.updateProperty(PropertyName.DevicePicture, image);
+                                this.updateProperty(PropertyName.DevicePicture, image, true);
                             }
                         }).catch((error) => {
                             this.log.debug(`DoorbellPushEvent - Device: ${message.device_sn} - Get picture - Error:`, error);
@@ -2141,7 +2141,7 @@ export class FloodlightCamera extends Camera {
                     if (!isEmpty(message.pic_url)) {
                         getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                             if (image.data.length > 0) {
-                                this.updateProperty(PropertyName.DevicePicture, image);
+                                this.updateProperty(PropertyName.DevicePicture, image, true);
                             }
                         }).catch((error) => {
                             this.log.debug(`FloodlightPushEvent - Device: ${message.device_sn} - Get picture - Error:`, error);
