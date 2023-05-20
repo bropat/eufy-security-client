@@ -154,10 +154,10 @@ export class Station extends TypedEmitter<StationEvents> {
         this.log.debug("Normalized Properties", { stationSN: this.getSerial(), properties: this.properties });
     }
 
-    public updateProperty(name: string, value: PropertyValue): boolean {
+    public updateProperty(name: string, value: PropertyValue, force = false): boolean {
         if (
             (this.properties[name] !== undefined && this.properties[name] !== value)
-            || this.properties[name] === undefined) {
+            || this.properties[name] === undefined || force) {
             const oldValue = this.properties[name];
             this.properties[name] = value;
             this.emit("property changed", this, name, value, this.ready);
