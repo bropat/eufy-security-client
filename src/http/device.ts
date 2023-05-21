@@ -503,13 +503,13 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         }
                     }
                 }
-            } else if (
+            } else if ((
                 property.name === PropertyName.DeviceMotionDetectionTypeHuman ||
                 property.name === PropertyName.DeviceMotionDetectionTypeHumanRecognition ||
                 property.name === PropertyName.DeviceMotionDetectionTypePet ||
                 property.name === PropertyName.DeviceMotionDetectionTypeVehicle ||
                 property.name === PropertyName.DeviceMotionDetectionTypeAllOtherMotions
-            ) {
+            ) && this.getStationSerial().startsWith("T8030")) {
                 const booleanProperty = property as PropertyMetadataBoolean;
                 try {
                     return isHB3DetectionModeEnabled(Number.parseInt(value), property.name === PropertyName.DeviceMotionDetectionTypeHuman ? HB3DetectionTypes.HUMAN_DETECTION : property.name === PropertyName.DeviceMotionDetectionTypeHumanRecognition ? HB3DetectionTypes.HUMAN_RECOGNITION : property.name === PropertyName.DeviceMotionDetectionTypePet ? HB3DetectionTypes.PET_DETECTION : property.name === PropertyName.DeviceMotionDetectionTypeVehicle ? HB3DetectionTypes.VEHICLE_DETECTION : HB3DetectionTypes.ALL_OTHER_MOTION);
@@ -729,7 +729,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_COST_DOWN_CAMERA ||
             type == DeviceType.FLOODLIGHT_CAMERA_8422 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8423 ||
-            type == DeviceType.FLOODLIGHT_CAMERA_8424)
+            type == DeviceType.FLOODLIGHT_CAMERA_8424 ||
+            type == DeviceType.WALL_LIGHT_CAM)
             return true;
         return false;
     }
@@ -839,8 +840,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (type == DeviceType.FLOODLIGHT ||
             type == DeviceType.FLOODLIGHT_CAMERA_8422 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8423 ||
-            type == DeviceType.FLOODLIGHT_CAMERA_8424 ||
-            type == DeviceType.WALL_LIGHT_CAM)
+            type == DeviceType.FLOODLIGHT_CAMERA_8424)
             return true;
         return false;
     }
@@ -2209,27 +2209,8 @@ export class WallLightCam extends Camera {
             switch (property.key) {
                 case CommandType.CMD_DEV_RECORD_AUTOSTOP:
                     return value !== undefined ? (value === "0" ? true : false) : false;
-                case CommandType.CMD_FLOODLIGHT_SET_AUTO_CALIBRATION:
-                    return value !== undefined ? (value === "0" ? true : false) : false;
-                case CommandType.CMD_RECORD_AUDIO_SWITCH:
-                    return value !== undefined ? (value === "0" ? true : false) : false;
                 case CommandType.CMD_SET_AUDIO_MUTE_RECORD:
-                    return value !== undefined ? (value === "0" ? true : false) : false;
-                case CommandType.CMD_SET_PIRSENSITIVITY:
-                    switch (Number.parseInt(value)) {
-                        case FloodlightMotionTriggeredDistance.MIN:
-                            return 1;
-                        case FloodlightMotionTriggeredDistance.LOW:
-                            return 2;
-                        case FloodlightMotionTriggeredDistance.MEDIUM:
-                            return 3;
-                        case FloodlightMotionTriggeredDistance.HIGH:
-                            return 4;
-                        case FloodlightMotionTriggeredDistance.MAX:
-                            return 5;
-                        default:
-                            return 5;
-                    }
+                    return value !== undefined ? (value === "1" ? true : false) : false;
             }
         } catch (error) {
             this.log.error("Convert Error:", { property: property, value: value, error: error });

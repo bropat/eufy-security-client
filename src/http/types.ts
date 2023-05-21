@@ -135,7 +135,6 @@ export enum ParamType {
 
     PRIVATE_MODE = 99904,
     CUSTOM_RTSP_URL = 999991,
-    CAMERA_WIFI_IP = 1176
 }
 
 export enum AlarmMode {
@@ -236,6 +235,11 @@ export enum NotificationType {
     MOST_EFFICIENT = 1,
     INCLUDE_THUMBNAIL = 2,
     FULL_EFFECT = 3,
+}
+
+export enum WalllightNotificationType {
+    ONLY_TEXT = 1,
+    WITH_THUMBNAIL = 2,
 }
 
 export enum AlarmTone {
@@ -382,6 +386,17 @@ export enum TriggerType {
     ANSWER_RING = 128,
 }
 
+export enum DailyLightingType {
+    COLD = 0,
+    WARM = 1,
+    VERY_WARM = 2,
+}
+
+export enum MotionActivationMode {
+    SMART = 0,
+    FAST = 1,
+}
+
 export interface EventFilterType {
     deviceSN?: string;
     stationSN?: string;
@@ -502,10 +517,19 @@ export enum PropertyName {
     DeviceLightSettingsBrightnessSchedule = "lightSettingsBrightnessSchedule",
     DeviceLightSettingsColorTemperatureSchedule = "lightSettingsColorTemperatureSchedule",  // Flooglight T8423
     DeviceLightSettingsMotionTriggered = "lightSettingsMotionTriggered",
-    DeviceLightSettingsMotionActivationMode = "lightSettingsMotionActivationMode",  // Flooglight T8423
+    DeviceLightSettingsMotionActivationMode = "lightSettingsMotionActivationMode",  // Flooglight T8423 / Walllight T84A1
     DeviceLightSettingsMotionTriggeredDistance = "lightSettingsMotionTriggeredDistance",
     DeviceLightSettingsMotionTriggeredTimer = "lightSettingsMotionTriggeredTimer",
     //DeviceLightSettingsSunsetToSunrise = "lightSettingsSunsetToSunrise",
+    DeviceLightSettingsManualDailyLighting = "lightSettingsManualDailyLighting",  // Walllight T84A1
+    DeviceLightSettingsManualColoredLighting = "lightSettingsManualColoredLighting",  // Walllight T84A1
+    DeviceLightSettingsManualDynamicLighting = "lightSettingsManualDynamicLighting",  // Walllight T84A1
+    DeviceLightSettingsMotionDailyLighting = "lightSettingsMotionDailyLighting",  // Walllight T84A1
+    DeviceLightSettingsMotionColoredLighting = "lightSettingsMotionColoredLighting",  // Walllight T84A1
+    DeviceLightSettingsMotionDynamicLighting = "lightSettingsMotionDynamicLighting",  // Walllight T84A1
+    DeviceLightSettingsScheduleDailyLighting = "lightSettingsScheduleDailyLighting",  // Walllight T84A1
+    DeviceLightSettingsScheduleColoredLighting = "lightSettingsScheduleColoredLighting",  // Walllight T84A1
+    DeviceLightSettingsScheduleDynamicLighting = "lightSettingsScheduleDynamicLighting",  // Walllight T84A1
     DeviceChimeIndoor = "chimeIndoor",  //BatteryDoorbell, WiredDoorbell
     DeviceChimeHomebase = "chimeHomebase",  //BatteryDoorbell
     DeviceChimeHomebaseRingtoneVolume = "chimeHomebaseRingtoneVolume",  //BatteryDoorbell
@@ -878,6 +902,11 @@ export const DeviceAutoNightvisionProperty: PropertyMetadataBoolean = {
 export const DeviceAutoNightvisionWiredDoorbellProperty: PropertyMetadataBoolean = {
     ...DeviceAutoNightvisionProperty,
     key: ParamType.NIGHT_VISUAL,
+}
+
+export const DeviceAutoNightvisionWalllightProperty: PropertyMetadataBoolean = {
+    ...DeviceAutoNightvisionProperty,
+    commandId: CommandType.CMD_SET_NIGHT_VISION_TYPE,
 }
 
 export const DeviceNightvisionProperty: PropertyMetadataNumeric = {
@@ -1377,6 +1406,11 @@ export const DeviceMotionHB3DetectionTypeHumanProperty: PropertyMetadataBoolean 
     type: "boolean",
 }
 
+export const DeviceMotionDetectionTypeHumanWallLightProperty: PropertyMetadataBoolean = {
+    ...DeviceMotionHB3DetectionTypeHumanProperty,
+    key: CommandType.CMD_WALL_LIGHT_MOTION_DETECTION_TYPE_HUMAN,
+}
+
 export const DeviceMotionHB3DetectionTypeHumanRecognitionProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
     name: PropertyName.DeviceMotionDetectionTypeHumanRecognition,
@@ -1411,6 +1445,11 @@ export const DeviceMotionHB3DetectionTypeAllOhterMotionsProperty: PropertyMetada
     readable: true,
     writeable: true,
     type: "boolean",
+}
+
+export const DeviceMotionDetectionTypeAllOhterMotionsWalllightProperty: PropertyMetadataBoolean = {
+    ...DeviceMotionHB3DetectionTypeAllOhterMotionsProperty,
+    key: CommandType.CMD_WALL_LIGHT_MOTION_DETECTION_TYPE_ALL,
 }
 
 export const DeviceMotionDetectionTypeProperty: PropertyMetadataNumeric = {
@@ -1782,6 +1821,15 @@ export const DeviceSpeakerVolumeFloodlightT8420Property: PropertyMetadataNumeric
     max: 63,
 }
 
+export const DeviceSpeakerVolumeWalllightProperty: PropertyMetadataNumeric = {
+    ...DeviceSpeakerVolumeProperty,
+    key: CommandType.CMD_WALL_LIGHT_SPEAKER_VOLUME,
+    states: {
+        1: "Low",
+        2: "Medium",
+        3: "High"
+    },
+}
 
 export const DeviceRingtoneVolumeBatteryDoorbellProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_BAT_DOORBELL_SET_RINGTONE_VOLUME,
@@ -1888,6 +1936,13 @@ export const DeviceRecordingClipLengthFloodlightProperty: PropertyMetadataNumeri
     default: 100,
 }
 
+export const DeviceRecordingClipLengthWalllightProperty: PropertyMetadataNumeric = {
+    ...DeviceRecordingClipLengthProperty,
+    min: 30,
+    max: 120,
+    default: 60,
+}
+
 export const DeviceRecordingRetriggerIntervalProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_DEV_RECORD_INTERVAL,
     name: PropertyName.DeviceRecordingRetriggerInterval,
@@ -1971,6 +2026,11 @@ export const DeviceVideoStreamingQualitySoloProperty: PropertyMetadataNumeric = 
     commandId: ParamType.COMMAND_VIDEO_QUALITY,
 }
 
+export const DeviceVideoStreamingQualityWalllightProperty: PropertyMetadataNumeric = {
+    ...DeviceVideoStreamingQualitySoloProperty,
+    commandId: CommandType.CMD_SET_RESOLUTION,
+}
+
 export const DeviceVideoStreamingQualityCamera3Property: PropertyMetadataNumeric = {
     ...DeviceVideoStreamingQualityBatteryDoorbellProperty,
     states: {
@@ -2015,6 +2075,16 @@ export const DeviceVideoRecordingQualityProperty: PropertyMetadataNumeric = {
         3: "2K HD",
     },
     commandId: ParamType.COMMAND_VIDEO_RECORDING_QUALITY,
+}
+
+export const DeviceVideoRecordingQualityWalllightProperty: PropertyMetadataNumeric = {
+    ...DeviceVideoRecordingQualityIndoorProperty,
+    key: CommandType.CMD_SET_RECORD_QUALITY,
+    states: {
+        2: "Full HD (1080P)",
+        3: "2K HD",
+    },
+    commandId: CommandType.CMD_SET_RECORD_QUALITY,
 }
 
 export const DeviceVideoRecordingQualityT8200XProperty: PropertyMetadataNumeric = {
@@ -2146,6 +2216,16 @@ export const DeviceNotificationTypeWiredDoorbellProperty: PropertyMetadataNumeri
     commandId: ParamType.COMMAND_NOTIFICATION_TYPE,
 }
 
+export const DeviceNotificationTypeWalllightProperty: PropertyMetadataNumeric = {
+    ...DeviceNotificationTypeProperty,
+    key: CommandType.CMD_WALL_LIGHT_NOTIFICATION_TYPE,
+    commandId: CommandType.CMD_WALL_LIGHT_NOTIFICATION_TYPE,
+    states: {
+        1: "Text Only",
+        2: "With Thumbnail",
+    },
+}
+
 export const DeviceRotationSpeedProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_INDOOR_PAN_SPEED,
     name: PropertyName.DeviceRotationSpeed,
@@ -2210,6 +2290,11 @@ export const DeviceNotificationPersonProperty: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
+export const DeviceNotificationPersonWalllightProperty: PropertyMetadataBoolean = {
+    ...DeviceNotificationPersonProperty,
+    key: CommandType.CMD_WALL_LIGHT_NOTIFICATION_TYPE_HUMAN,
+}
+
 export const DeviceNotificationPetProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_INDOOR_AI_PET_ENABLE,
     name: PropertyName.DeviceNotificationPet,
@@ -2226,6 +2311,11 @@ export const DeviceNotificationAllOtherMotionProperty: PropertyMetadataBoolean =
     readable: true,
     writeable: true,
     type: "boolean",
+}
+
+export const DeviceNotificationAllOtherMotionWalllightProperty: PropertyMetadataBoolean = {
+    ...DeviceNotificationAllOtherMotionProperty,
+    key: CommandType.CMD_WALL_LIGHT_NOTIFICATION_TYPE_ALL,
 }
 
 export const DeviceNotificationAllSoundProperty: PropertyMetadataBoolean = {
@@ -2680,6 +2770,11 @@ export const DeviceNotificationProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: true,
     type: "boolean",
+}
+
+export const DeviceNotificationWalllightProperty: PropertyMetadataBoolean = {
+    ...DeviceNotificationProperty,
+    key: CommandType.CMD_WALL_LIGHT_NOTIFICATION,
 }
 
 export const DeviceNotificationUnlockedProperty: PropertyMetadataBoolean = {
@@ -3670,6 +3765,102 @@ export const DevicePictureProperty: PropertyMetadataObject = {
     writeable: false,
     type: "object",
     default: null,
+}
+
+export const DeviceLightSettingsManualDailyLightingProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_DAILY_LIGHTING,
+    name: PropertyName.DeviceLightSettingsManualDailyLighting,
+    label: "Light Setting Manual Daily Lighting",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        "0": "Cold",
+        "1": "Warm",
+        "2": "Very warm",
+    },
+}
+
+export const DeviceLightSettingsManualColoredLightingProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_COLORED_LIGHTING,
+    name: PropertyName.DeviceLightSettingsManualColoredLighting,
+    label: "Light Setting Manual Colored Lighting",
+    readable: true,
+    writeable: true,
+    type: "number",
+}
+
+export const DeviceLightSettingsManualDynamicLightingProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_DYNAMIC_LIGHTING,
+    name: PropertyName.DeviceLightSettingsManualDynamicLighting,
+    label: "Light Setting Manual Dynamic Lighting",
+    readable: true,
+    writeable: true,
+    type: "number",
+}
+
+export const DeviceLightSettingsMotionDailyLightingProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_DAILY_LIGHTING,
+    name: PropertyName.DeviceLightSettingsMotionDailyLighting,
+    label: "Light Setting Motion Daily Lighting",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        "0": "Cold",
+        "1": "Warm",
+        "2": "Very warm",
+    },
+}
+
+export const DeviceLightSettingsMotionColoredLightingProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_COLORED_LIGHTING,
+    name: PropertyName.DeviceLightSettingsMotionColoredLighting,
+    label: "Light Setting Motion Colored Lighting",
+    readable: true,
+    writeable: true,
+    type: "number",
+}
+
+export const DeviceLightSettingsMotionDynamicLightingProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_DYNAMIC_LIGHTING,
+    name: PropertyName.DeviceLightSettingsMotionDynamicLighting,
+    label: "Light Setting Motion Dynamic Lighting",
+    readable: true,
+    writeable: true,
+    type: "number",
+}
+
+export const DeviceLightSettingsScheduleDailyLightingProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_DAILY_LIGHTING,
+    name: PropertyName.DeviceLightSettingsScheduleDailyLighting,
+    label: "Light Setting Schedule Daily Lighting",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        "0": "Cold",
+        "1": "Warm",
+        "2": "Very warm",
+    },
+}
+
+export const DeviceLightSettingsScheduleColoredLightingProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_COLORED_LIGHTING,
+    name: PropertyName.DeviceLightSettingsScheduleColoredLighting,
+    label: "Light Setting Schedule Colored Lighting",
+    readable: true,
+    writeable: true,
+    type: "number",
+}
+
+export const DeviceLightSettingsScheduleDynamicLightingProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_DYNAMIC_LIGHTING,
+    name: PropertyName.DeviceLightSettingsScheduleDynamicLighting,
+    label: "Light Setting Schedule Dynamic Lighting",
+    readable: true,
+    writeable: true,
+    type: "number",
 }
 
 export const FloodlightT8420XDeviceProperties: IndexedProperty = {
@@ -5377,37 +5568,50 @@ export const DeviceProperties: Properties = {
     },
     [DeviceType.WALL_LIGHT_CAM]: {
         ...GenericDeviceProperties,
-        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
-        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
-        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
-        [PropertyName.DeviceWatermark]: DeviceWatermarkBatteryDoorbellCamera1Property,
+        [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionWalllightProperty,
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+        [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
         [PropertyName.DevicePicture]: DevicePictureProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
         [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
-        [PropertyName.DeviceLightSettingsEnable]: DeviceFloodlightLightSettingsEnableProperty,
         [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceLightSettingsManualDailyLighting]: DeviceLightSettingsManualDailyLightingProperty,
+        //[PropertyName.DeviceLightSettingsManualColoredLighting]: DeviceLightSettingsManualColoredLightingProperty, //6381
+        [PropertyName.DeviceLightSettingsManualDynamicLighting]: DeviceLightSettingsManualDynamicLightingProperty,
         [PropertyName.DeviceLightSettingsBrightnessMotion]: DeviceFloodlightLightSettingsBrightnessMotionProperty,
         [PropertyName.DeviceLightSettingsBrightnessSchedule]: DeviceFloodlightLightSettingsBrightnessScheduleProperty,
+        [PropertyName.DeviceLightSettingsScheduleDailyLighting]: DeviceLightSettingsScheduleDailyLightingProperty,
+        //[PropertyName.DeviceLightSettingsScheduleColoredLighting]: DeviceLightSettingsScheduleColoredLightingProperty,
+        [PropertyName.DeviceLightSettingsScheduleDynamicLighting]: DeviceLightSettingsScheduleDynamicLightingProperty,
         [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredProperty,
-        [PropertyName.DeviceLightSettingsMotionTriggeredDistance]: DeviceFloodlightLightSettingsMotionTriggeredDistanceProperty,
         [PropertyName.DeviceLightSettingsMotionTriggeredTimer]: DeviceFloodlightLightSettingsMotionTriggeredTimerProperty,
-        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityFloodlightT8420Property,
-        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
-        [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
-        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeFloodlightT8420Property,
-        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingFloodlightT8420Property,
-        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthFloodlightProperty,
-        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalFloodlightProperty,
+        [PropertyName.DeviceLightSettingsMotionDailyLighting]: DeviceLightSettingsMotionDailyLightingProperty,
+        //[PropertyName.DeviceLightSettingsMotionColoredLighting]: DeviceLightSettingsMotionColoredLightingProperty,
+        [PropertyName.DeviceLightSettingsMotionDynamicLighting]: DeviceLightSettingsMotionDynamicLightingProperty,
+        [PropertyName.DeviceLightSettingsMotionActivationMode]: DeviceLightSettingsMotionActivationModeProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeWalllightProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
+        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthWalllightProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
-        [PropertyName.DeviceMotionDetectionTestMode]: DeviceMotionDetectionTestModeProperty,
         [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
         [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
         [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityWalllightProperty,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityWalllightProperty,
+        [PropertyName.DeviceNotificationPerson]: DeviceNotificationPersonWalllightProperty,
+        [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionWalllightProperty,
+        [PropertyName.DeviceMotionDetectionTypeHuman]: DeviceMotionDetectionTypeHumanWallLightProperty,
+        [PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionDetectionTypeAllOhterMotionsWalllightProperty,
+        [PropertyName.DeviceNotification]: DeviceNotificationWalllightProperty,
+        [PropertyName.DeviceNotificationType]: DeviceNotificationTypeWalllightProperty,
     }
 }
 
@@ -5545,6 +5749,20 @@ export const StationAlarmVolumeProperty: PropertyMetadataNumeric = {
     min: 1,
     max: 26,
     default: 26,
+}
+
+export const StationAlarmVolumeWalllightProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_WALL_LIGHT_ALERT_VOLUME,
+    name: PropertyName.StationAlarmVolume,
+    label: "Alarm Volume",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        1: "Low",
+        2: "Medium",
+        3: "High"
+    },
 }
 
 export const StationPromptVolumeProperty: PropertyMetadataNumeric = {
@@ -6047,6 +6265,17 @@ export const StationProperties: Properties = {
         [PropertyName.StationAlarm]: StationAlarmProperty,
         [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
+    [DeviceType.WALL_LIGHT_CAM]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+        [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+        [PropertyName.StationAlarmVolume]: StationAlarmVolumeWalllightProperty,
+    },
     [DeviceType.LOCK_WIFI]: {
         ...BaseStationProperties,
     },
@@ -6414,6 +6643,15 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStopTalkback,
         CommandName.DeviceSnooze,
     ],
+    [DeviceType.WALL_LIGHT_CAM]: [
+        CommandName.DeviceStartLivestream,
+        CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
+    ],
     [DeviceType.KEYPAD]: [],
     [DeviceType.LOCK_BLE]: [],
     [DeviceType.LOCK_BLE_NO_FINGER]: [],
@@ -6650,6 +6888,15 @@ export const StationCommands: Commands = {
         CommandName.StationDatabaseDelete,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8424]: [
+        CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
+        CommandName.StationDownloadImage,
+        CommandName.StationDatabaseQueryLatestInfo,
+        CommandName.StationDatabaseQueryLocal,
+        CommandName.StationDatabaseCountByDate,
+        CommandName.StationDatabaseDelete,
+    ],
+    [DeviceType.WALL_LIGHT_CAM]: [
         CommandName.StationReboot,
         CommandName.StationTriggerAlarmSound,
         CommandName.StationDownloadImage,
