@@ -80,6 +80,14 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.7.0 (2023-05-xx)
+
+* (bropat) Added support for Wired Wall Light Cam S100 (T84A1; #318)
+* (bropat) Implemented entry sensor status update over p2p connection
+* (bropat) Added missing station command support for 4G LTE Starlight (T8151)
+* (bropat) Fixed image property not updating correctly
+* (bropat) Fixed issue of executing the download image command only if supported
+
 ### 2.6.2 (2023-05-16)
 
 * (bropat) Fixed issue waiting for device/station loading event in some cases
