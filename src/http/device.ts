@@ -839,13 +839,20 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (type == DeviceType.FLOODLIGHT ||
             type == DeviceType.FLOODLIGHT_CAMERA_8422 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8423 ||
-            type == DeviceType.FLOODLIGHT_CAMERA_8424)
+            type == DeviceType.FLOODLIGHT_CAMERA_8424 ||
+            type == DeviceType.WALL_LIGHT_CAM)
             return true;
         return false;
     }
 
     static isFloodLightT8420X(type: number, serialnumber: string): boolean {
         if (type == DeviceType.FLOODLIGHT && serialnumber.startsWith("T8420") && serialnumber.length > 7 && serialnumber.charAt(6) === "6")
+            return true;
+        return false;
+    }
+
+    static isWallLightCam(type: number): boolean{
+        if(type == DeviceType.WALL_LIGHT_CAM)
             return true;
         return false;
     }
@@ -1064,6 +1071,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return Device.isFloodLightT8420X(this.rawDevice.device_type, this.rawDevice.device_sn);
     }
 
+    public isWallLightCam(): boolean {
+        return Device.isWallLightCam(this.rawDevice.device_type);
+    }
+
     public isDoorbell(): boolean {
         return Device.isDoorbell(this.rawDevice.device_type);
     }
@@ -1248,7 +1259,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (this.isLock() || this.isSmartDrop()) {
             return this.rawDevice.device_sn === this.rawDevice.station_sn;
         }
-        return this.isWiredDoorbellDual() || this.isFloodLight() ||this.isWiredDoorbell() || this.isIndoorCamera() || this.isSoloCameras();
+        return this.isWiredDoorbellDual() || this.isFloodLight() ||this.isWiredDoorbell() || this.isIndoorCamera() || this.isSoloCameras() || this.isWallLightCam();
     }
 
     public hasBattery(): boolean {
@@ -2172,6 +2183,99 @@ export class FloodlightCamera extends Camera {
                     }
                 } catch (error) {
                     this.log.debug(`FloodlightPushEvent - Device: ${message.device_sn} Error:`, error);
+                }
+            }
+        }
+    }
+
+}
+
+export class WallLightCam extends Camera {
+
+    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<WallLightCam> {
+        return new WallLightCam(api, device);
+    }
+
+    public isLedEnabled(): PropertyValue {
+        return this.getPropertyValue(PropertyName.DeviceStatusLed);
+    }
+
+    public isMotionDetectionEnabled(): PropertyValue {
+        return this.getPropertyValue(PropertyName.DeviceMotionDetection);
+    }
+
+    protected convertRawPropertyValue(property: PropertyMetadataAny, value: string): PropertyValue {
+        try {
+            switch (property.key) {
+                case CommandType.CMD_DEV_RECORD_AUTOSTOP:
+                    return value !== undefined ? (value === "0" ? true : false) : false;
+                case CommandType.CMD_FLOODLIGHT_SET_AUTO_CALIBRATION:
+                    return value !== undefined ? (value === "0" ? true : false) : false;
+                case CommandType.CMD_RECORD_AUDIO_SWITCH:
+                    return value !== undefined ? (value === "0" ? true : false) : false;
+                case CommandType.CMD_SET_AUDIO_MUTE_RECORD:
+                    return value !== undefined ? (value === "0" ? true : false) : false;
+                case CommandType.CMD_SET_PIRSENSITIVITY:
+                    switch (Number.parseInt(value)) {
+                        case FloodlightMotionTriggeredDistance.MIN:
+                            return 1;
+                        case FloodlightMotionTriggeredDistance.LOW:
+                            return 2;
+                        case FloodlightMotionTriggeredDistance.MEDIUM:
+                            return 3;
+                        case FloodlightMotionTriggeredDistance.HIGH:
+                            return 4;
+                        case FloodlightMotionTriggeredDistance.MAX:
+                            return 5;
+                        default:
+                            return 5;
+                    }
+            }
+        } catch (error) {
+            this.log.error("Convert Error:", { property: property, value: value, error: error });
+        }
+        return super.convertRawPropertyValue(property, value);
+    }
+
+    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(message, eventDurationSeconds);
+        if (message.type !== undefined && message.event_type !== undefined) {
+            if (message.device_sn === this.getSerial()) {
+                try {
+                    if (!isEmpty(message.pic_url)) {
+                        getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
+                            if (image.data.length > 0) {
+                                this.updateProperty(PropertyName.DevicePicture, image);
+                            }
+                        }).catch((error) => {
+                            this.log.debug(`WallLightCamPushEvent - Device: ${message.device_sn} - Get picture - Error:`, error);
+                        });
+                    }
+                    switch (message.event_type) {
+                        case IndoorPushEvent.MOTION_DETECTION:
+                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                            this.clearEventTimeout(DeviceEvent.MotionDetected);
+                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                            }, eventDurationSeconds * 1000));
+                            break;
+                        case IndoorPushEvent.FACE_DETECTION:
+                            this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
+                            this.updateProperty(PropertyName.DevicePersonDetected, true);
+                            this.clearEventTimeout(DeviceEvent.PersonDetected);
+                            this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePersonName, "");
+                                this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                            }, eventDurationSeconds * 1000));
+                            break;
+                        default:
+                            this.log.debug("Unhandled WallLightCam push event", message);
+                            break;
+                    }
+                } catch (error) {
+                    this.log.debug(`WallLightCamPushEvent - Device: ${message.device_sn} Error:`, error);
                 }
             }
         }
