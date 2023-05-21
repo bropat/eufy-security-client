@@ -14,7 +14,7 @@ import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, Sta
 import { CommandName, DeviceType, HB3DetectionTypes, NotificationSwitchMode, NotificationType, PropertyName } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
-import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WiredDoorbellCamera } from "./http/device";
+import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera } from "./http/device";
 import { AlarmEvent, ChargingType, CommandType, DatabaseReturnCode, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata, DatabaseQueryLatestInfoLocal, DatabaseQueryLatestInfoCloud } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
@@ -577,6 +577,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     new_device = WiredDoorbellCamera.getInstance(this.api, device);
                 } else if (Device.isFloodLight(device.device_type)) {
                     new_device = FloodlightCamera.getInstance(this.api, device);
+                } else if (Device.isWallLightCam(device.device_type)) {
+                    new_device = WallLightCam.getInstance(this.api, device);
                 } else if (Device.isCamera(device.device_type)) {
                     new_device = Camera.getInstance(this.api, device);
                 } else if (Device.isLock(device.device_type)) {
@@ -1485,7 +1487,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 await station.setMotionDetectionTypeHB3(device, HB3DetectionTypes.HUMAN_RECOGNITION, value as boolean);
                 break;
             case PropertyName.DeviceMotionDetectionTypeHuman:
-                await station.setMotionDetectionTypeHB3(device, HB3DetectionTypes.HUMAN_DETECTION, value as boolean);
+                if (device.isWallLightCam()) {
+                    await station.setMotionDetectionTypeHuman(device, value as boolean);
+                } else {
+                    await station.setMotionDetectionTypeHB3(device, HB3DetectionTypes.HUMAN_DETECTION, value as boolean);
+                }
                 break;
             case PropertyName.DeviceMotionDetectionTypePet:
                 await station.setMotionDetectionTypeHB3(device, HB3DetectionTypes.PET_DETECTION, value as boolean);
@@ -1494,7 +1500,38 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 await station.setMotionDetectionTypeHB3(device, HB3DetectionTypes.VEHICLE_DETECTION, value as boolean);
                 break;
             case PropertyName.DeviceMotionDetectionTypeAllOtherMotions:
-                await station.setMotionDetectionTypeHB3(device, HB3DetectionTypes.ALL_OTHER_MOTION, value as boolean);
+                if (device.isWallLightCam()) {
+                    await station.setMotionDetectionTypeAllOtherMotions(device, value as boolean);
+                } else {
+                    await station.setMotionDetectionTypeHB3(device, HB3DetectionTypes.ALL_OTHER_MOTION, value as boolean);
+                }
+                break;
+            case PropertyName.DeviceLightSettingsManualDailyLighting:
+                await station.setLightSettingsManualDailyLighting(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsManualColoredLighting:
+                await station.setLightSettingsManualColoredLighting(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsManualDynamicLighting:
+                await station.setLightSettingsManualDynamicLighting(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsMotionDailyLighting:
+                await station.setLightSettingsMotionDailyLighting(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsMotionColoredLighting:
+                await station.setLightSettingsMotionColoredLighting(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsMotionDynamicLighting:
+                await station.setLightSettingsMotionDynamicLighting(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsScheduleDailyLighting:
+                await station.setLightSettingsScheduleDailyLighting(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsScheduleColoredLighting:
+                await station.setLightSettingsScheduleColoredLighting(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsScheduleDynamicLighting:
+                await station.setLightSettingsScheduleDynamicLighting(device, value as number);
                 break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
