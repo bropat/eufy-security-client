@@ -119,6 +119,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 limit: 3,
                 methods: ["GET", "POST"],
                 statusCodes: [
+                    404,
                     408,
                     413,
                     423,

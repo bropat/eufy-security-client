@@ -53,6 +53,7 @@
 | ![T7400 image](_media/smartsafe_s10_t7400_small.jpg) | Smart Safe S10 (T7400) | :heavy_check_mark: | Firmware: 1.0.3.4 (20221029) |
 | ![T7401 image](_media/smartsafe_s12_t7401_small.jpg) | Smart Safe S12 (T7401) | :heavy_exclamation_mark: |  |
 | ![T8790 image](_media/smartdrop_t8790_small.jpg) | SmartDrop (T8790) |  |  |
+| ![T8452 image](_media/garage_camera_t8452_small.jpg) | Garage-Control Cam (T8452) | :heavy_check_mark: | Firmware: 1.2.3.1 (20230521) |
 
 ## Legend
 

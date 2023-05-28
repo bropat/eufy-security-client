@@ -109,6 +109,17 @@ export enum IndoorPushEvent {
     VEHICLE_DETECTION = 3107
 }
 
+export enum GarageDoorPushEvent {
+    CLOSED_DOOR_BY_APP = 1,
+    OPEN_DOOR_BY_APP = 2,
+    CLOSED_DOOR_WITHOUT_APP = 3,
+    OPEN_DOOR_WITHOUT_APP = 4,
+    TIMEOUT_DOOR_OPEN_WARNING = 5,
+    TIMEOUT_CLOSED_DOOR = 6,
+    TIMEOUT_DOOR_OPEN_WARNING_MINUTES = 7,
+    LOW_BATTERY = 8
+}
+
 export enum SmartSafeEvent {
     ALARM_911 = 1946161152,
     BASE = 1946161152,

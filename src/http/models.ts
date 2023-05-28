@@ -599,3 +599,29 @@ export interface AddUserResponse {
     user_id: string;
     short_user_id: string;
 }
+
+export interface GarageDoorSensorsProperty {
+    cmd: number;
+    data: {
+        door_1: {
+            power: number;
+            mac_address: string;
+            version: string;
+            name: string;
+            sn: string;
+            playalarm: number;
+            ota: number;
+            needota: number;
+        },
+        door_2: {
+            power: number;
+            mac_address: string;
+            version: string;
+            name: string;
+            sn: string;
+            playalarm: number;
+            ota: number;
+            needota: number;
+        }
+    };
+}

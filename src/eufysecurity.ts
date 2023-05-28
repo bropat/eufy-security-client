@@ -14,7 +14,7 @@ import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, Sta
 import { CommandName, DeviceType, HB3DetectionTypes, NotificationSwitchMode, NotificationType, PropertyName } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
-import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera } from "./http/device";
+import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, GarageCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera } from "./http/device";
 import { AlarmEvent, ChargingType, CommandType, DatabaseReturnCode, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata, DatabaseQueryLatestInfoLocal, DatabaseQueryLatestInfoCloud } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
@@ -488,6 +488,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         station.on("database count by date", (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => this.onStationDatabaseCountByDate(station, returnCode, data));
                         station.on("database delete", (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => this.onStationDatabaseDelete(station, returnCode, failedIds));
                         station.on("sensor status", (station: Station, channel: number, status: number) => this.onStationSensorStatus(station, channel, status));
+                        station.on("garage door status", (station: Station, channel: number, doorId: number, status: number) => this.onStationGarageDoorStatus(station, channel, doorId, status));
                         this.addStation(station);
                         station.initialize();
                     } catch (error) {
@@ -579,6 +580,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     new_device = FloodlightCamera.getInstance(this.api, device);
                 } else if (Device.isWallLightCam(device.device_type)) {
                     new_device = WallLightCam.getInstance(this.api, device);
+                } else if (Device.isGarageCamera(device.device_type)) {
+                    new_device = GarageCamera.getInstance(this.api, device);
                 } else if (Device.isCamera(device.device_type)) {
                     new_device = Camera.getInstance(this.api, device);
                 } else if (Device.isLock(device.device_type)) {
@@ -1533,6 +1536,15 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             case PropertyName.DeviceLightSettingsScheduleDynamicLighting:
                 await station.setLightSettingsScheduleDynamicLighting(device, value as number);
                 break;
+            case PropertyName.DeviceDoorControlWarning:
+                await station.setDoorControlWarning(device, value as boolean);
+                break;
+            case PropertyName.DeviceDoor1Open:
+                await station.openDoor(device, value as boolean, 1);
+                break;
+            case PropertyName.DeviceDoor2Open:
+                await station.openDoor(device, value as boolean, 2);
+                break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
                     throw new ReadOnlyPropertyError(`Property ${name} is read only`);
@@ -1656,9 +1668,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.getStationDevice(station.getSerial(), result.channel).then((device: Device) => {
                 if ((result.customData !== undefined && result.customData.property !== undefined && !device.isLockWifiR10() && !device.isLockWifiR20() && !device.isLockWifiVideo() && !device.isSmartSafe()) ||
                     (result.customData !== undefined && result.customData.property !== undefined && device.isSmartSafe() && result.command_type !== CommandType.CMD_SMARTSAFE_SETTINGS)) {
-                    if (device.hasProperty(result.customData.property.name)) {
+                    if (device.hasProperty(result.customData.property.name) && typeof result.customData.property.value !== "object") {
                         device.updateProperty(result.customData.property.name, result.customData.property.value);
-                    } else if (station.hasProperty(result.customData.property.name)) {
+                    } else if (station.hasProperty(result.customData.property.name) && typeof result.customData.property.value !== "object") {
                         station.updateProperty(result.customData.property.name, result.customData.property.value);
                     }
                 } else if (result.customData !== undefined && result.customData.command !== undefined && result.customData.command.name === CommandName.DeviceSnooze) {
@@ -2379,6 +2391,14 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             }
         }).catch((error) => {
             this.log.error(`Station sensor status error (station: ${station.getSerial()} channel: ${channel})`, error);
+        });
+    }
+
+    private onStationGarageDoorStatus(station: Station, channel: number, doorId:number, status: number): void {
+        this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
+            device.updateRawProperty(CommandType.CMD_CAMERA_GARAGE_DOOR_STATUS, status.toString());
+        }).catch((error) => {
+            this.log.error(`Station garage door status error (station: ${station.getSerial()} channel: ${channel})`, error);
         });
     }
 

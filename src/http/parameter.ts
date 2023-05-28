@@ -39,7 +39,8 @@ export class ParameterHelper {
                 type === CommandType.CMD_DOORBELL_DUAL_RADAR_WD_DISTANCE ||
                 type === CommandType.CMD_DOORBELL_DUAL_RADAR_WD_TIME ||
                 type === CommandType.CMD_DOORBELL_DUAL_DELIVERY_GUARD_SWITCH ||
-                type === CommandType.CMD_DOORBELL_DUAL_PACKAGE_GUARD_VOICE) {
+                type === CommandType.CMD_DOORBELL_DUAL_PACKAGE_GUARD_VOICE ||
+                type === CommandType.CMD_CAMERA_GARAGE_DOOR_SENSORS) {
                 if (typeof value === "string") {
                     try {
                         return parseJSON(value, log); //return object
