@@ -549,6 +549,7 @@ export enum CommandType {
     CMD_CAMERA_GARAGE_DOOR_STATUS = 7500,
     //CMD_CAMERA_GARAGE_DOOR_UNKNOWN1 = 7501,
     //CMD_CAMERA_GARAGE_DOOR_UNKNOWN2 = 7502,
+    CMD_CAMERA_GARAGE_DOOR_CALIBRATE = 7505,
     //CMD_CAMERA_GARAGE_DOOR_UNKNOWN3 = 7506,
     CMD_CAMERA_GARAGE_DOOR_SENSORS = 7503,
 }
@@ -1048,6 +1049,12 @@ export enum FilterDetectType {
     PACKAGE = 512,
     PACKAGE_PICK_UP = 512,
     PACKAGE_DELIVERED = 1024,
+}
+
+export enum CalibrateGarageType {
+    ROLLER_DOOR = 1,
+    SECTIONAL_DOOR = 2,
+    TILT_DOOR = 3,
 }
 
 /*export interface Mapping {

@@ -6740,6 +6740,7 @@ export enum CommandName {
     DeviceSnooze = "deviceSnooze",
     DeviceVerifyPIN = "deviceVerifyPIN",
     DeviceQueryAllUserId = "deviceQueryAllUserId",
+    DeviceCalibrateGarageDoor = "deviceCalibrateGarageDoor",
     StationReboot = "stationReboot",
     StationTriggerAlarmSound = "stationTriggerAlarmSound",
     StationChime = "stationChime",
@@ -7066,6 +7067,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
         CommandName.DeviceSnooze,
+        CommandName.DeviceCalibrateGarageDoor,
     ],
     [DeviceType.CAMERA_GARAGE_T8453]: [
         CommandName.DeviceStartLivestream,
@@ -7075,6 +7077,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
         CommandName.DeviceSnooze,
+        CommandName.DeviceCalibrateGarageDoor,
     ],
     [DeviceType.CAMERA_GARAGE_T8453_COMMON]: [
         CommandName.DeviceStartLivestream,
@@ -7084,6 +7087,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
         CommandName.DeviceSnooze,
+        CommandName.DeviceCalibrateGarageDoor,
     ],
     [DeviceType.KEYPAD]: [],
     [DeviceType.LOCK_BLE]: [],

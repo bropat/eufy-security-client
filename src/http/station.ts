@@ -11,7 +11,7 @@ import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, Ra
 import { encodePasscode, getBlocklist, getHB3DetectionMode, hexDate, hexTime, hexWeek, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
-import { AlarmEvent, ChargingType, CommandType, DatabaseReturnCode, ErrorCode, ESLBleCommand, ESLCommand, FilterDetectType, FilterEventType, FilterStorageType, IndoorSoloSmartdropCommandType, LockV12P2PCommand, P2PConnectionType, PanTiltDirection, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, TFCardStatus, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4, WatermarkSetting5 } from "../p2p/types";
+import { AlarmEvent, CalibrateGarageType, ChargingType, CommandType, DatabaseReturnCode, ErrorCode, ESLBleCommand, ESLCommand, FilterDetectType, FilterEventType, FilterStorageType, IndoorSoloSmartdropCommandType, LockV12P2PCommand, P2PConnectionType, PanTiltDirection, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, TFCardStatus, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4, WatermarkSetting5 } from "../p2p/types";
 import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData, CustomData, CommandData } from "../p2p/models";
 import { Device, DoorbellCamera, Lock, SmartSafe } from "./device";
 import { encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, getLockVectorBytes, isPrivateIp, getSmartSafeP2PCommand, getLockV12P2PCommand, getLockP2PCommand } from "../p2p/utils";
@@ -8277,6 +8277,36 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onGarageDoorStatus(channel: number, doorId: number, status: number): void {
         this.emit("garage door status", this, channel, doorId, status);
+    }
+
+    public async calibrateGarageDoor(device: Device, doorId: number, type: CalibrateGarageType): Promise<void> {
+        const commandData: CommandData = {
+            name: CommandName.DeviceCalibrateGarageDoor
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasCommand(CommandName.DeviceCalibrateGarageDoor)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        this.log.debug(`Sending calibrate garage door command to station ${this.getSerial()} for device ${device.getSerial()} doorId ${doorId} type ${CalibrateGarageType[type]}`);
+        if (device.isGarageCamera()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_CAMERA_GARAGE_DOOR_CALIBRATE,
+                    "data": {
+                        "door_id": doorId,
+                        "type": type
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                command: commandData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
     }
 
 }
