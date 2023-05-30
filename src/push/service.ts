@@ -343,7 +343,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 this.log.error(`Type ${DeviceType[normalized_message.type]} CusPush - push_time - Error:`, error);
             }
 
-            const excludeDevices = !Device.isBatteryDoorbell(normalized_message.type) && !Device.isWiredDoorbellDual(normalized_message.type) && !Device.isSensor(normalized_message.type);
+            const excludeDevices = !Device.isDoorbell(normalized_message.type) && !Device.isSensor(normalized_message.type);
             if ((normalized_message.station_sn.startsWith("T8030") && excludeDevices) || normalized_message.type === DeviceType.HB3) {
                 const push_data = message.payload.payload as PlatformPushMode;
                 normalized_message.name = push_data.name ? push_data.name : "";
