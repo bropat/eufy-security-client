@@ -432,7 +432,7 @@ export enum PropertyName {
     DeviceWifiRSSI = "wifiRssi",
     DeviceWifiSignalLevel = "wifiSignalLevel",
     DeviceEnabled = "enabled",
-    DeviceAntitheftDetection= "antitheftDetection",
+    DeviceAntitheftDetection = "antitheftDetection",
     DeviceAutoNightvision = "autoNightvision",
     DeviceNightvision = "nightvision",
     DeviceStatusLed = "statusLed",
@@ -1052,7 +1052,7 @@ export const DeviceStatusLedDoorbellProperty: PropertyMetadataBoolean = {
 
 export const DeviceStatusLedT8200XProperty: PropertyMetadataBoolean = {
     ...DeviceStatusLedProperty,
-    key:ParamType.COMMAND_LED_NIGHT_OPEN,
+    key: ParamType.COMMAND_LED_NIGHT_OPEN,
     commandId: ParamType.COMMAND_LED_NIGHT_OPEN,
 };
 
@@ -6616,6 +6616,16 @@ export const StationCommands: Commands = {
     [DeviceType.FLOODLIGHT_CAMERA_8424]: [
         CommandName.StationReboot,
         CommandName.StationTriggerAlarmSound,
+        CommandName.StationDownloadImage,
+        CommandName.StationDatabaseQueryLatestInfo,
+        CommandName.StationDatabaseQueryLocal,
+        CommandName.StationDatabaseCountByDate,
+        CommandName.StationDatabaseDelete,
+    ],
+    [DeviceType.CAMERA_FG]: [
+        CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
+        CommandName.StationChime,
         CommandName.StationDownloadImage,
         CommandName.StationDatabaseQueryLatestInfo,
         CommandName.StationDatabaseQueryLocal,
