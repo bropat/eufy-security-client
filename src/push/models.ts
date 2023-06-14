@@ -44,6 +44,7 @@ export interface CusPushData {
     user_id?: string;
     user_name?: string;                 // Username
     bat_low?: string;
+    msg_type: number;
 }
 
 export interface EufyPushMessage {
@@ -201,28 +202,6 @@ export interface DoorbellPushData {
 }
 
 export interface IndoorPushData {
-    a: number;
-    channel: number;
-    cipher: number;
-    create_time: number;
-    trigger_time: number;
-    device_sn: string;
-    event_type: number;
-    file_path: string;
-    msg_type: number;
-    name: string;
-    notification_style: number;
-    pic_url: string;
-    push_count: number;
-    session_id: string;
-    storage_type: number;
-    t: number;
-    tfcard_status: number;
-    timeout: number;
-    unique_id: string;
-}
-
-export interface Starlight4GLTEPushData {
     a: number;
     channel: number;
     cipher: number;

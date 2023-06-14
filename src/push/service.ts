@@ -4,7 +4,7 @@ import { dummyLogger, Logger } from "ts-log";
 import { TypedEmitter } from "tiny-typed-emitter";
 
 import { buildCheckinRequest, convertTimestampMs, generateFid, parseCheckinResponse, sleep } from "./utils";
-import { CheckinResponse, Credentials, CusPushData, DoorbellPushData, FidInstallationResponse, FidTokenResponse, GcmRegisterResponse, IndoorPushData, RawPushMessage, PushMessage, BatteryDoorbellPushData, LockPushData, SmartSafeData, PlatformPushMode, Starlight4GLTEPushData } from "./models";
+import { CheckinResponse, Credentials, CusPushData, DoorbellPushData, FidInstallationResponse, FidTokenResponse, GcmRegisterResponse, IndoorPushData, RawPushMessage, PushMessage, BatteryDoorbellPushData, LockPushData, SmartSafeData, PlatformPushMode } from "./models";
 import { PushClient } from "./client";
 import { PushNotificationServiceEvents } from "./interfaces";
 import { Device } from "../http/device";
@@ -384,23 +384,6 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
                     normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
                     normalized_message.notification_style = push_data.notification_style;
-                } else if (Device.isStarlight4GLTE(normalized_message.type)) {
-                    const push_data = message.payload.payload as Starlight4GLTEPushData;
-                    normalized_message.name = push_data.name ? push_data.name : "";
-                    normalized_message.channel = push_data.channel;
-                    normalized_message.cipher = push_data.cipher;
-                    normalized_message.event_session = push_data.session_id;
-                    normalized_message.event_type = push_data.event_type;
-                    //normalized_message.file_path = push_data.file_path !== undefined && push_data.file_path !== "" && push_data.channel !== undefined ? getAbsoluteFilePath(normalized_message.type, push_data.channel, push_data.file_path) : "";
-                    normalized_message.file_path = push_data.file_path;
-                    normalized_message.pic_url = push_data.pic_url !== undefined ? push_data.pic_url : "";
-                    normalized_message.push_count = push_data.push_count !== undefined ? push_data.push_count : 1;
-                    normalized_message.notification_style = push_data.notification_style;
-                    normalized_message.msg_type = push_data.msg_type;
-                    normalized_message.timeout = push_data.timeout;
-                    normalized_message.tfcard_status = push_data.tfcard_status;
-                    normalized_message.storage_type = push_data.storage_type !== undefined ? push_data.storage_type : 1;
-                    normalized_message.unique_id = push_data.unique_id;
                 } else if (Device.isIndoorCamera(normalized_message.type) ||
                     Device.isSoloCameras(normalized_message.type) ||
                     Device.isFloodLightT8420X(normalized_message.type, normalized_message.device_sn) ||
@@ -485,6 +468,15 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalized_message.automation_id = push_data.automation_id;
                     normalized_message.click_action = push_data.click_action;
                     normalized_message.news_id = push_data.news_id;
+
+                    if (Device.isStarlight4GLTE(normalized_message.type)) {
+                        normalized_message.name = push_data.name ? push_data.name : "";
+                        normalized_message.channel = push_data.channel;
+                        normalized_message.cipher = push_data.cipher;
+                        normalized_message.event_type = push_data.event_type;
+                        normalized_message.file_path = push_data.file_path;
+                        normalized_message.msg_type = push_data.msg_type;
+                    }
                 }
             }
         } else if (message.payload.doorbell !== undefined) {
