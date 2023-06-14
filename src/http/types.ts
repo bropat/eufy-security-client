@@ -767,6 +767,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
         90: "SmartDrop, Smart Delivery Box",
         91: "Video Doorbell Dual",
         93: "Video Doorbell Dual (Wired)",
+        110: "Starlight 4G LTE"
     },
 }
 
