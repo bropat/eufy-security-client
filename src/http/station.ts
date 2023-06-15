@@ -506,8 +506,12 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             } else if (message.event_type === CusPushEvent.ALARM && message.station_sn === this.getSerial() && !this.isStation()) {
                 this.log.info("Received push notification for alarm event", { stationSN: message.station_sn, alarmType: message.alarm_type });
-                if (message.alarm_type !== undefined)
+                if (message.alarm_type !== undefined) {
                     this.emit("alarm event", this, message.alarm_type);
+                    if (message.type == DeviceType.CAMERA_FG) {
+                        this.onAlarmEvent(message.alarm_type)
+                    }
+                }
             }
         } else if (message.msg_type === CusPushEvent.TFCARD && message.station_sn === this.getSerial() && message.tfcard_status !== undefined) {
             this.updateRawProperty(CommandType.CMD_GET_TFCARD_STATUS, message.tfcard_status.toString());
