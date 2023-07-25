@@ -1979,7 +1979,7 @@ export const DeviceChargingStatusProperty: PropertyMetadataNumeric = {
     },
 }
 
-export const DeviceChargingStatusCamera3cProperty: PropertyMetadataNumeric = {
+export const DeviceChargingStatusCamera3Property: PropertyMetadataNumeric = {
     ...DeviceChargingStatusProperty,
     states: {
         0: "Unplugged",
@@ -4513,7 +4513,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
         [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
-        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusCamera3Property,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
@@ -4554,7 +4554,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
         [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
-        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusCamera3cProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusCamera3Property,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
