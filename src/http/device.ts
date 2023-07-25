@@ -8,12 +8,13 @@ import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject } from "./interfaces";
 import { CommandType, ESLAnkerBleConstant } from "../p2p/types";
 import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImage, getImagePath, hexDate, hexTime, hexWeek, isHB3DetectionModeEnabled, SmartSafeByteWriter } from "./utils";
-import { eslTimestamp, getCurrentTimeInSeconds } from "../p2p/utils";
+import { DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds } from "../p2p/utils";
 import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent, HB3PairedDevicePushEvent, GarageDoorPushEvent } from "../push/types";
 import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
 import { isEmpty } from "../utils";
 import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
 import { DeviceSmartLockNotifyData } from "../mqtt/model";
+import { DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor } from "../p2p";
 
 export class Device extends TypedEmitter<DeviceEvents> {
 
@@ -2228,11 +2229,57 @@ export class WallLightCam extends Camera {
                     return value !== undefined ? (value === "0" ? true : false) : false;
                 case CommandType.CMD_SET_AUDIO_MUTE_RECORD:
                     return value !== undefined ? (value === "1" ? true : false) : false;
+                case CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_COLORED_LIGHTING:
+                case CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_COLORED_LIGHTING:
+                case CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_COLORED_LIGHTING:
+                {
+                    const defaultColor: RGBColor = {
+                        red: 0,
+                        green: 0,
+                        blue: 0
+                    };
+                    const internal = value as unknown as {rgb_color: number;};
+                    return internal !== undefined ? (internal.rgb_color !== undefined ? DecimalToRGBColor(internal.rgb_color) : defaultColor) : defaultColor;
+                }
+                case CommandType.CMD_WALL_LIGHT_SETTINGS_COLORED_LIGHTING_COLORS: {
+                    const result: Array<RGBColor> = [];
+                    for(const color of value as unknown as Array<InternalColoredLighting>) {
+                        result.push(DecimalToRGBColor(color.color));
+                    }
+                    return result;
+                }
+                case CommandType.CMD_WALL_LIGHT_SETTINGS_DYNAMIC_LIGHTING_THEMES:{
+                    const result: Array<DynamicLighting> = [];
+                    for(const theme of value as unknown as Array<InternalDynamicLighting>) {
+                        result.push({
+                            colors: theme.colors.map((color) => DecimalToRGBColor(color)),
+                            mode: theme.mode,
+                            name: theme.name,  // 1 fade 2 blink
+                            speed: theme.speed // Control speed 500 msec to 5 sec.; 500 msec steps
+                        });
+                    }
+                    return result;
+                }
             }
         } catch (error) {
             this.log.error("Convert Error:", { property: property, value: value, error: error });
         }
         return super.convertRawPropertyValue(property, value);
+    }
+
+    public getPropertiesMetadata(hidden = false): IndexedProperty {
+        const metadata = super.getPropertiesMetadata(hidden);
+        const themes = this.getPropertyValue(PropertyName.DeviceLightSettingsDynamicLightingThemes) as Array<DynamicLighting>;
+        if (themes !== undefined) {
+            const states: Record<number, string> = {};
+            for (let i = 0; i < themes.length; i++) {
+                states[i] = themes[i].name;
+            }
+            (metadata[PropertyName.DeviceLightSettingsManualDynamicLighting] as PropertyMetadataNumeric).states = states;
+            (metadata[PropertyName.DeviceLightSettingsScheduleDynamicLighting] as PropertyMetadataNumeric).states = states;
+            (metadata[PropertyName.DeviceLightSettingsMotionDynamicLighting] as PropertyMetadataNumeric).states = states;
+        }
+        return metadata;
     }
 
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {

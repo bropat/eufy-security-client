@@ -1,3 +1,4 @@
+import { DynamicLighting, RGBColor } from "../p2p";
 import { CommandType } from "../p2p/types";
 import { Commands, IndexedProperty, Properties, PropertyMetadataBoolean, PropertyMetadataNumeric, PropertyMetadataObject, PropertyMetadataString } from "./interfaces";
 
@@ -394,6 +395,12 @@ export enum TriggerType {
     ANSWER_RING = 128,
 }
 
+export enum LightingActiveMode {
+    DAILY = 0,
+    COLORED = 1,
+    DYNAMIC = 2,
+}
+
 export enum DailyLightingType {
     COLD = 0,
     WARM = 1,
@@ -403,6 +410,11 @@ export enum DailyLightingType {
 export enum MotionActivationMode {
     SMART = 0,
     FAST = 1,
+}
+
+export enum DynamicLightingEffect {
+    FADE = 1,
+    BLINK = 2,
 }
 
 export enum GarageDoorState {
@@ -545,15 +557,20 @@ export enum PropertyName {
     DeviceLightSettingsMotionTriggeredDistance = "lightSettingsMotionTriggeredDistance",
     DeviceLightSettingsMotionTriggeredTimer = "lightSettingsMotionTriggeredTimer",
     //DeviceLightSettingsSunsetToSunrise = "lightSettingsSunsetToSunrise",
+    DeviceLightSettingsManualLightingActiveMode = "lightSettingsManualLightingActiveMode",  // Walllight T84A1
     DeviceLightSettingsManualDailyLighting = "lightSettingsManualDailyLighting",  // Walllight T84A1
     DeviceLightSettingsManualColoredLighting = "lightSettingsManualColoredLighting",  // Walllight T84A1
     DeviceLightSettingsManualDynamicLighting = "lightSettingsManualDynamicLighting",  // Walllight T84A1
+    DeviceLightSettingsMotionLightingActiveMode = "lightSettingsMotionLightingActiveMode",  // Walllight T84A1
     DeviceLightSettingsMotionDailyLighting = "lightSettingsMotionDailyLighting",  // Walllight T84A1
     DeviceLightSettingsMotionColoredLighting = "lightSettingsMotionColoredLighting",  // Walllight T84A1
     DeviceLightSettingsMotionDynamicLighting = "lightSettingsMotionDynamicLighting",  // Walllight T84A1
+    DeviceLightSettingsScheduleLightingActiveMode = "lightSettingsScheduleLightingActiveMode",  // Walllight T84A1
     DeviceLightSettingsScheduleDailyLighting = "lightSettingsScheduleDailyLighting",  // Walllight T84A1
     DeviceLightSettingsScheduleColoredLighting = "lightSettingsScheduleColoredLighting",  // Walllight T84A1
     DeviceLightSettingsScheduleDynamicLighting = "lightSettingsScheduleDynamicLighting",  // Walllight T84A1
+    DeviceLightSettingsColoredLightingColors = "lightSettingsColoredLightingColors",  // Walllight T84A1
+    DeviceLightSettingsDynamicLightingThemes = "lightSettingsDynamicLightingThemes",  // Walllight T84A1
     DeviceChimeIndoor = "chimeIndoor",  //BatteryDoorbell, WiredDoorbell
     DeviceChimeHomebase = "chimeHomebase",  //BatteryDoorbell
     DeviceChimeHomebaseRingtoneVolume = "chimeHomebaseRingtoneVolume",  //BatteryDoorbell
@@ -3826,7 +3843,7 @@ export const DevicePictureProperty: PropertyMetadataObject = {
 export const DeviceLightSettingsManualDailyLightingProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_DAILY_LIGHTING,
     name: PropertyName.DeviceLightSettingsManualDailyLighting,
-    label: "Light Setting Manual Daily Lighting",
+    label: "Light Setting Manual Daily Lighting Selection",
     readable: true,
     writeable: true,
     type: "number",
@@ -3837,28 +3854,45 @@ export const DeviceLightSettingsManualDailyLightingProperty: PropertyMetadataNum
     },
 }
 
-export const DeviceLightSettingsManualColoredLightingProperty: PropertyMetadataNumeric = {
+export const DeviceLightSettingsManualColoredLightingProperty: PropertyMetadataObject = {
     key: CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_COLORED_LIGHTING,
     name: PropertyName.DeviceLightSettingsManualColoredLighting,
-    label: "Light Setting Manual Colored Lighting",
+    label: "Light Setting Manual Colored Lighting Selection",
     readable: true,
     writeable: true,
-    type: "number",
+    type: "object",
+    isValidObject: (obj) => {
+        return  "red" in obj && "green" in obj && "blue" in obj && typeof obj.red === "number" && typeof obj.green === "number" && typeof obj.blue === "number";
+    },
 }
 
 export const DeviceLightSettingsManualDynamicLightingProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_DYNAMIC_LIGHTING,
     name: PropertyName.DeviceLightSettingsManualDynamicLighting,
-    label: "Light Setting Manual Dynamic Lighting",
+    label: "Light Setting Manual Dynamic Lighting Selection",
     readable: true,
     writeable: true,
     type: "number",
+}
+
+export const DeviceLightSettingsManualLightingActiveModeProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_LIGHTING_ACTIVE_MODE,
+    name: PropertyName.DeviceLightSettingsManualLightingActiveMode,
+    label: "Light Setting Manual Lighting Active Mode",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        "0": "Daily",
+        "1": "Colored",
+        "2": "Dynamic",
+    },
 }
 
 export const DeviceLightSettingsMotionDailyLightingProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_DAILY_LIGHTING,
     name: PropertyName.DeviceLightSettingsMotionDailyLighting,
-    label: "Light Setting Motion Daily Lighting",
+    label: "Light Setting Motion Daily Lighting Selection",
     readable: true,
     writeable: true,
     type: "number",
@@ -3869,28 +3903,45 @@ export const DeviceLightSettingsMotionDailyLightingProperty: PropertyMetadataNum
     },
 }
 
-export const DeviceLightSettingsMotionColoredLightingProperty: PropertyMetadataNumeric = {
+export const DeviceLightSettingsMotionColoredLightingProperty: PropertyMetadataObject = {
     key: CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_COLORED_LIGHTING,
     name: PropertyName.DeviceLightSettingsMotionColoredLighting,
-    label: "Light Setting Motion Colored Lighting",
+    label: "Light Setting Motion Colored Lighting Selection",
     readable: true,
     writeable: true,
-    type: "number",
+    type: "object",
+    isValidObject: (obj) => {
+        return  "red" in obj && "green" in obj && "blue" in obj && typeof obj.red === "number" && typeof obj.green === "number" && typeof obj.blue === "number";
+    },
 }
 
 export const DeviceLightSettingsMotionDynamicLightingProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_DYNAMIC_LIGHTING,
     name: PropertyName.DeviceLightSettingsMotionDynamicLighting,
-    label: "Light Setting Motion Dynamic Lighting",
+    label: "Light Setting Motion Dynamic Lighting Selection",
     readable: true,
     writeable: true,
     type: "number",
 }
 
+export const DeviceLightSettingsMotionLightingActiveModeProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_LIGHTING_ACTIVE_MODE,
+    name: PropertyName.DeviceLightSettingsMotionLightingActiveMode,
+    label: "Light Setting Motion Lighting Active Mode",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        "0": "Daily",
+        "1": "Colored",
+        "2": "Dynamic",
+    },
+}
+
 export const DeviceLightSettingsScheduleDailyLightingProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_DAILY_LIGHTING,
     name: PropertyName.DeviceLightSettingsScheduleDailyLighting,
-    label: "Light Setting Schedule Daily Lighting",
+    label: "Light Setting Schedule Daily Lighting Selection",
     readable: true,
     writeable: true,
     type: "number",
@@ -3901,22 +3952,112 @@ export const DeviceLightSettingsScheduleDailyLightingProperty: PropertyMetadataN
     },
 }
 
-export const DeviceLightSettingsScheduleColoredLightingProperty: PropertyMetadataNumeric = {
+export const DeviceLightSettingsScheduleColoredLightingProperty: PropertyMetadataObject = {
     key: CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_COLORED_LIGHTING,
     name: PropertyName.DeviceLightSettingsScheduleColoredLighting,
-    label: "Light Setting Schedule Colored Lighting",
+    label: "Light Setting Schedule Colored Lighting Selection",
     readable: true,
     writeable: true,
-    type: "number",
+    type: "object",
+    isValidObject: (obj) => {
+        return  "red" in obj && "green" in obj && "blue" in obj && typeof obj.red === "number" && typeof obj.green === "number" && typeof obj.blue === "number";
+    },
 }
 
 export const DeviceLightSettingsScheduleDynamicLightingProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_DYNAMIC_LIGHTING,
     name: PropertyName.DeviceLightSettingsScheduleDynamicLighting,
-    label: "Light Setting Schedule Dynamic Lighting",
+    label: "Light Setting Schedule Dynamic Lighting Selection",
     readable: true,
     writeable: true,
     type: "number",
+}
+
+export const DeviceLightSettingsScheduleLightingActiveModeProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_LIGHTING_ACTIVE_MODE,
+    name: PropertyName.DeviceLightSettingsScheduleLightingActiveMode,
+    label: "Light Setting Schedule Lighting Active Mode",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        "0": "Daily",
+        "1": "Colored",
+        "2": "Dynamic",
+    },
+}
+
+export const DeviceLightSettingsColoredLightingColorsProperty: PropertyMetadataObject = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_COLORED_LIGHTING_COLORS,
+    name: PropertyName.DeviceLightSettingsColoredLightingColors,
+    label: "Light Setting Colored Lighting Colors",
+    readable: true,
+    writeable: true,
+    type: "object",
+    isValidObject: (obj: Array<RGBColor>) => {
+        if (Array.isArray(obj)) {
+            return obj.length > 0 &&
+                obj.every((value) => {
+                    return "red" in value &&
+                        "green" in value &&
+                        "blue" in value &&
+                        typeof value.red === "number" &&
+                        value.red >= 0 &&
+                        value.red <= 255 &&
+                        typeof value.green === "number" &&
+                        value.green >= 0 &&
+                        value.green <= 255 &&
+                        typeof value.blue === "number" &&
+                        value.blue >= 0 &&
+                        value.blue <= 255;
+                });
+        }
+        return false;
+    },
+}
+
+export const DeviceLightSettingsDynamicLightingThemesProperty: PropertyMetadataObject = {
+    key: CommandType.CMD_WALL_LIGHT_SETTINGS_DYNAMIC_LIGHTING_THEMES,
+    name: PropertyName.DeviceLightSettingsDynamicLightingThemes,
+    label: "Light Setting Dynamic Lighting Themes",
+    readable: true,
+    writeable: true,
+    type: "object",
+    isValidObject: (obj: Array<DynamicLighting>) => {
+        if (Array.isArray(obj)) {
+            return obj.length > 0 &&
+                obj.every((value) => {
+                    return "name" in value &&
+                        "mode" in value &&
+                        "speed" in value &&
+                        "colors" in value &&
+                        typeof value.name === "string" &&
+                        value.name !== "" &&
+                        typeof value.mode === "number" &&
+                        value.mode in DynamicLightingEffect &&
+                        typeof value.speed === "number" &&
+                        [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000].includes(value.speed) &&   // msec.
+                        Array.isArray(value.colors) &&
+                        value.colors.length > 0 &&
+                        value.colors.length <= 5 &&
+                        value.colors.every((value) => {
+                            return "red" in value &&
+                                "green" in value &&
+                                "blue" in value &&
+                                typeof value.red === "number" &&
+                                value.red >= 0 &&
+                                value.red <= 255 &&
+                                typeof value.green === "number" &&
+                                value.green >= 0 &&
+                                value.green <= 255 &&
+                                typeof value.blue === "number" &&
+                                value.blue >= 0 &&
+                                value.blue <= 255;
+                        });
+                });
+        }
+        return false;
+    },
 }
 
 export const DeviceDoorControlWarningProperty: PropertyMetadataBoolean = {
@@ -5385,7 +5526,6 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
-        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivitySoloProperty,
         [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
         [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
@@ -5814,20 +5954,25 @@ export const DeviceProperties: Properties = {
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
         [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
         [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceLightSettingsManualLightingActiveMode]: DeviceLightSettingsManualLightingActiveModeProperty,
         [PropertyName.DeviceLightSettingsManualDailyLighting]: DeviceLightSettingsManualDailyLightingProperty,
-        //[PropertyName.DeviceLightSettingsManualColoredLighting]: DeviceLightSettingsManualColoredLightingProperty, //6381
+        [PropertyName.DeviceLightSettingsManualColoredLighting]: DeviceLightSettingsManualColoredLightingProperty,
         [PropertyName.DeviceLightSettingsManualDynamicLighting]: DeviceLightSettingsManualDynamicLightingProperty,
+        [PropertyName.DeviceLightSettingsScheduleLightingActiveMode]: DeviceLightSettingsScheduleLightingActiveModeProperty,
         [PropertyName.DeviceLightSettingsBrightnessMotion]: DeviceFloodlightLightSettingsBrightnessMotionProperty,
+        [PropertyName.DeviceLightSettingsMotionLightingActiveMode]: DeviceLightSettingsMotionLightingActiveModeProperty,
         [PropertyName.DeviceLightSettingsBrightnessSchedule]: DeviceFloodlightLightSettingsBrightnessScheduleProperty,
         [PropertyName.DeviceLightSettingsScheduleDailyLighting]: DeviceLightSettingsScheduleDailyLightingProperty,
-        //[PropertyName.DeviceLightSettingsScheduleColoredLighting]: DeviceLightSettingsScheduleColoredLightingProperty,
+        [PropertyName.DeviceLightSettingsScheduleColoredLighting]: DeviceLightSettingsScheduleColoredLightingProperty,
         [PropertyName.DeviceLightSettingsScheduleDynamicLighting]: DeviceLightSettingsScheduleDynamicLightingProperty,
         [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredProperty,
         [PropertyName.DeviceLightSettingsMotionTriggeredTimer]: DeviceFloodlightLightSettingsMotionTriggeredTimerProperty,
         [PropertyName.DeviceLightSettingsMotionDailyLighting]: DeviceLightSettingsMotionDailyLightingProperty,
-        //[PropertyName.DeviceLightSettingsMotionColoredLighting]: DeviceLightSettingsMotionColoredLightingProperty,
+        [PropertyName.DeviceLightSettingsMotionColoredLighting]: DeviceLightSettingsMotionColoredLightingProperty,
         [PropertyName.DeviceLightSettingsMotionDynamicLighting]: DeviceLightSettingsMotionDynamicLightingProperty,
         [PropertyName.DeviceLightSettingsMotionActivationMode]: DeviceLightSettingsMotionActivationModeProperty,
+        [PropertyName.DeviceLightSettingsColoredLightingColors]: DeviceLightSettingsColoredLightingColorsProperty,
+        [PropertyName.DeviceLightSettingsDynamicLightingThemes]: DeviceLightSettingsDynamicLightingThemesProperty,
         [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeWalllightProperty,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,

@@ -16,7 +16,7 @@ import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
 import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, GarageCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera } from "./http/device";
 import { AlarmEvent, ChargingType, CommandType, DatabaseReturnCode, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
-import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata, DatabaseQueryLatestInfoLocal, DatabaseQueryLatestInfoCloud } from "./p2p/interfaces";
+import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata, DatabaseQueryLatestInfoLocal, DatabaseQueryLatestInfoCloud, RGBColor, DynamicLighting } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
 import { generateSerialnumber, generateUDID, handleUpdate, md5, parseValue, removeLastChar, waitForEvent } from "./utils";
 import { DeviceNotFoundError, StationNotFoundError, ReadOnlyPropertyError, NotSupportedError, AddUserError, DeleteUserError, UpdateUserUsernameError, UpdateUserPasscodeError, UpdateUserScheduleError } from "./error";
@@ -1509,32 +1509,47 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     await station.setMotionDetectionTypeHB3(device, HB3DetectionTypes.ALL_OTHER_MOTION, value as boolean);
                 }
                 break;
+            case PropertyName.DeviceLightSettingsManualLightingActiveMode:
+                await station.setLightSettingsManualLightingActiveMode(device, value as number);
+                break;
             case PropertyName.DeviceLightSettingsManualDailyLighting:
                 await station.setLightSettingsManualDailyLighting(device, value as number);
                 break;
             case PropertyName.DeviceLightSettingsManualColoredLighting:
-                await station.setLightSettingsManualColoredLighting(device, value as number);
+                await station.setLightSettingsManualColoredLighting(device, value as RGBColor);
                 break;
             case PropertyName.DeviceLightSettingsManualDynamicLighting:
                 await station.setLightSettingsManualDynamicLighting(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsMotionLightingActiveMode:
+                await station.setLightSettingsMotionLightingActiveMode(device, value as number);
                 break;
             case PropertyName.DeviceLightSettingsMotionDailyLighting:
                 await station.setLightSettingsMotionDailyLighting(device, value as number);
                 break;
             case PropertyName.DeviceLightSettingsMotionColoredLighting:
-                await station.setLightSettingsMotionColoredLighting(device, value as number);
+                await station.setLightSettingsMotionColoredLighting(device, value as RGBColor);
                 break;
             case PropertyName.DeviceLightSettingsMotionDynamicLighting:
                 await station.setLightSettingsMotionDynamicLighting(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsScheduleLightingActiveMode:
+                await station.setLightSettingsScheduleLightingActiveMode(device, value as number);
                 break;
             case PropertyName.DeviceLightSettingsScheduleDailyLighting:
                 await station.setLightSettingsScheduleDailyLighting(device, value as number);
                 break;
             case PropertyName.DeviceLightSettingsScheduleColoredLighting:
-                await station.setLightSettingsScheduleColoredLighting(device, value as number);
+                await station.setLightSettingsScheduleColoredLighting(device, value as RGBColor);
                 break;
             case PropertyName.DeviceLightSettingsScheduleDynamicLighting:
                 await station.setLightSettingsScheduleDynamicLighting(device, value as number);
+                break;
+            case PropertyName.DeviceLightSettingsColoredLightingColors:
+                await station.setLightSettingsColoredLightingColors(device, value as RGBColor[]);
+                break;
+            case PropertyName.DeviceLightSettingsDynamicLightingThemes:
+                await station.setLightSettingsDynamicLightingThemes(device, value as DynamicLighting[]);
                 break;
             case PropertyName.DeviceDoorControlWarning:
                 await station.setDoorControlWarning(device, value as boolean);
@@ -1665,13 +1680,26 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private onStationCommandResult(station: Station, result: CommandResult): void {
         this.emit("station command result", station, result);
         if (result.return_code === 0) {
+            if (result.customData !== undefined && result.customData.onSuccess !== undefined) {
+                try {
+                    result.customData.onSuccess();
+                } catch (error) {
+                    this.log.error(`Station command result (station: ${station.getSerial()}) - onSuccess callback error`, error);
+                }
+            }
             this.getStationDevice(station.getSerial(), result.channel).then((device: Device) => {
                 if ((result.customData !== undefined && result.customData.property !== undefined && !device.isLockWifiR10() && !device.isLockWifiR20() && !device.isLockWifiVideo() && !device.isSmartSafe()) ||
                     (result.customData !== undefined && result.customData.property !== undefined && device.isSmartSafe() && result.command_type !== CommandType.CMD_SMARTSAFE_SETTINGS)) {
-                    if (device.hasProperty(result.customData.property.name) && typeof result.customData.property.value !== "object") {
-                        device.updateProperty(result.customData.property.name, result.customData.property.value);
-                    } else if (station.hasProperty(result.customData.property.name) && typeof result.customData.property.value !== "object") {
-                        station.updateProperty(result.customData.property.name, result.customData.property.value);
+                    if (device.hasProperty(result.customData.property.name)) {
+                        const metadata = device.getPropertyMetadata(result.customData.property.name);
+                        if (typeof result.customData.property.value !== "object" || metadata.type === "object") {
+                            device.updateProperty(result.customData.property.name, result.customData.property.value);
+                        }
+                    } else if (station.hasProperty(result.customData.property.name)) {
+                        const metadata = station.getPropertyMetadata(result.customData.property.name);
+                        if (typeof result.customData.property.value !== "object" || metadata.type === "object") {
+                            station.updateProperty(result.customData.property.name, result.customData.property.value);
+                        }
                     }
                 } else if (result.customData !== undefined && result.customData.command !== undefined && result.customData.command.name === CommandName.DeviceSnooze) {
                     const snoozeTime = result.customData.command.value !== undefined && result.customData.command.value.snooze_time !== undefined ? result.customData.command.value.snooze_time as number : 0;
@@ -1718,6 +1746,14 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             });
             if (station.isIntegratedDevice() && result.command_type === CommandType.CMD_SET_ARMING && station.isConnected() && station.getDeviceType() !== DeviceType.DOORBELL) {
                 station.getCameraInfo();
+            }
+        } else {
+            if (result.customData !== undefined && result.customData.onFailure !== undefined) {
+                try {
+                    result.customData.onFailure();
+                } catch (error) {
+                    this.log.error(`Station command result (station: ${station.getSerial()}) - onFailure callback error`, error);
+                }
             }
         }
         if (result.customData !== undefined && result.customData.command !== undefined) {

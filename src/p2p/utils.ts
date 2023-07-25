@@ -4,7 +4,7 @@ import * as CryptoJS from "crypto-js"
 import { randomBytes, createCipheriv, createECDH, ECDH, createHmac, createDecipheriv } from "crypto";
 import * as os from "os";
 
-import { P2PMessageParts, P2PMessageState, P2PQueueMessage } from "./interfaces";
+import { P2PMessageParts, P2PMessageState, P2PQueueMessage, RGBColor } from "./interfaces";
 import { CommandType, ESLCommand, ESLBleCommand, LockV12P2PCommand, P2PDataTypeHeader, SmartSafeCommandCode, VideoCodec } from "./types";
 import { Address, LockP2PCommandPayloadType, LockP2PCommandType, LockV12P2PCommandPayloadType, SmartSafeNotificationResponse, SmartSafeP2PCommandType } from "./models";
 import { DeviceType } from "../http/types";
@@ -663,4 +663,16 @@ export const getLockV12P2PCommand = function(deviceSN: string, user_id: string, 
             } as LockV12P2PCommandPayloadType)
         }
     };
+}
+
+export const DecimalToRGBColor = function(color: number): RGBColor {
+    return {
+        red: (color >> 16) & 0xff,
+        green: (color >> 8) & 0xff,
+        blue: color & 0xff,
+    };
+}
+
+export const RGBColorToDecimal = function(color: RGBColor): number {
+    return (color.red << 16) + (color.green << 8) + (color.blue);
 }

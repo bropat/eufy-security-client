@@ -4,7 +4,7 @@ import EventEmitter from "events";
 
 import { EufySecurityPersistentData } from "./interfaces";
 import { InvalidPropertyValueError } from "./error";
-import { PropertyMetadataAny, PropertyMetadataNumeric, PropertyMetadataString } from "./http/interfaces";
+import { PropertyMetadataAny, PropertyMetadataNumeric, PropertyMetadataObject, PropertyMetadataString } from "./http/interfaces";
 
 export const removeLastChar = function(text: string, char: string): string {
     const strArr = [...text];
@@ -101,11 +101,24 @@ export const parseValue = function(metadata: PropertyMetadataAny, value: unknown
         } else {
             throw new InvalidPropertyValueError(`Property ${metadata.name} expects a number value`);
         }
+    } else if (metadata.type === "object") {
+        if (value === undefined || value === null) {
+            throw new InvalidPropertyValueError(`Property ${metadata.name} expects a value`);
+        }
     } else {
         throw new InvalidPropertyValueError(`Property ${metadata.name} expects a ${metadata.type} value`);
     }
     return value;
 };
+
+export const parseJSON = function(data: string, log: Logger): any {
+    try {
+        return JSON.parse(data.replace(/[\0]+$/g, ""));
+    } catch(error) {
+        log.error("JSON parse error", { data: data, error: error });
+    }
+    return undefined;
+}
 
 export const validValue = function(metadata: PropertyMetadataAny, value: unknown): void {
     if (metadata.type === "number") {
@@ -123,6 +136,15 @@ export const validValue = function(metadata: PropertyMetadataAny, value: unknown
     } else if (metadata.type === "boolean") {
         const str = String(value).toLowerCase().trim();
         if (str !== "true" && str !== "false" && str !== "1" && str !== "0") {
+            throw new InvalidPropertyValueError(`Value "${value}" isn't a valid value for property "${metadata.name}"`);
+        }
+    } else if (metadata.type === "object") {
+        const metadataObject = metadata as PropertyMetadataObject;
+        if (value !== undefined && value !== null && metadataObject.isValidObject !== undefined) {
+            if (!metadataObject.isValidObject(value)) {
+                throw new InvalidPropertyValueError(`Value "${value}" isn't a valid value for property "${metadata.name}"`);
+            }
+        } else {
             throw new InvalidPropertyValueError(`Value "${value}" isn't a valid value for property "${metadata.name}"`);
         }
     }
@@ -144,15 +166,6 @@ export const mergeDeep = function (target: Record<string, any> | undefined,	sour
         }
     }
     return target;
-}
-
-export const parseJSON = function(data: string, log: Logger): any {
-    try {
-        return JSON.parse(data.replace(/[\0]+$/g, ""));
-    } catch(error) {
-        log.error("JSON parse error", data, error);
-    }
-    return undefined;
 }
 
 export function waitForEvent<T>(emitter: EventEmitter, event: string): Promise<T> {

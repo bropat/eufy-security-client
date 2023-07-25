@@ -4,17 +4,17 @@ import { Logger } from "ts-log";
 import date from "date-and-time";
 
 import { HTTPApi } from "./api";
-import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode, VideoTypeStoreToNAS, HB3DetectionTypes, WalllightNotificationType, DailyLightingType, MotionActivationMode, BaseStationProperties } from "./types";
+import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode, VideoTypeStoreToNAS, HB3DetectionTypes, WalllightNotificationType, DailyLightingType, MotionActivationMode, BaseStationProperties, LightingActiveMode } from "./types";
 import { SnoozeDetail, StationListResponse, StationSecuritySettings } from "./models"
 import { ParameterHelper } from "./parameter";
 import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValues, StationEvents, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, PropertyMetadataObject } from "./interfaces";
 import { encodePasscode, getBlocklist, getHB3DetectionMode, hexDate, hexTime, hexWeek, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
-import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata } from "../p2p/interfaces";
+import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor, StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
 import { AlarmEvent, CalibrateGarageType, ChargingType, CommandType, DatabaseReturnCode, ErrorCode, ESLBleCommand, ESLCommand, FilterDetectType, FilterEventType, FilterStorageType, IndoorSoloSmartdropCommandType, LockV12P2PCommand, P2PConnectionType, PanTiltDirection, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, TFCardStatus, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4, WatermarkSetting5 } from "../p2p/types";
 import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData, CustomData, CommandData } from "../p2p/models";
 import { Device, DoorbellCamera, Lock, SmartSafe } from "./device";
-import { encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, getLockVectorBytes, isPrivateIp, getSmartSafeP2PCommand, getLockV12P2PCommand, getLockP2PCommand } from "../p2p/utils";
+import { encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, getLockVectorBytes, isPrivateIp, getSmartSafeP2PCommand, getLockV12P2PCommand, getLockP2PCommand, RGBColorToDecimal, } from "../p2p/utils";
 import { InvalidCommandValueError, InvalidPropertyValueError, NotSupportedError, RTSPPropertyNotEnabledError, WrongStationError, StationConnectTimeoutError, PinNotVerifiedError } from "../error";
 import { PushMessage } from "../push/models";
 import { CusPushEvent } from "../push/types";
@@ -7474,7 +7474,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             await this.setAdvancedLockParams(device, PropertyName.DeviceNotification, value);
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
-            //TODO: Implmenet LockWifiR10 / LockWifiR20 commnand
+            //TODO: Implement LockWifiR10 / LockWifiR20 commnand
         } else if (device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -7506,7 +7506,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             await this.setAdvancedLockParams(device, PropertyName.DeviceNotificationLocked, value);
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
-            //TODO: Implmenet LockWifiR10 / LockWifiR20 commnand
+            //TODO: Implement LockWifiR10 / LockWifiR20 commnand
         } else {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
@@ -7527,7 +7527,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             await this.setAdvancedLockParams(device, PropertyName.DeviceNotificationUnlocked, value);
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
-            //TODO: Implmenet LockWifiR10 / LockWifiR20 commnand
+            //TODO: Implement LockWifiR10 / LockWifiR20 commnand
         } else {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
@@ -7916,6 +7916,118 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
+    private async _setLightSettingsLightingActiveMode(device: Device, propertyName: PropertyName, value: LightingActiveMode, type: "manual" | "schedule" | "motion"): Promise<void> {
+        const propertyData: PropertyData = {
+            name: propertyName,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
+        this.log.debug(`Sending light setting ${type} lighting active mode command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${JSON.stringify(value)}`);
+        if (device.isWallLightCam()) {
+            switch(value) {
+                case LightingActiveMode.DAILY: {
+                    let currentProperty = PropertyName.DeviceLightSettingsManualDailyLighting;
+                    if (type === "schedule") {
+                        currentProperty = PropertyName.DeviceLightSettingsScheduleDailyLighting;
+                    } else if (type === "motion") {
+                        currentProperty = PropertyName.DeviceLightSettingsMotionDailyLighting;
+                    }
+                    let currentPropertyValue = device.getPropertyValue(currentProperty) as number;
+                    if (!(currentPropertyValue in DailyLightingType)) {
+                        currentPropertyValue = DailyLightingType.COLD;
+                    }
+                    //TODO: Force cloud api refresh or updateProperty of currentPropertyValue?
+                    await this.p2pSession.sendCommandWithStringPayload({
+                        commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                        value: JSON.stringify({
+                            "commandType": type === "manual" ? CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_DAILY_LIGHTING : type === "schedule" ? CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_DAILY_LIGHTING : CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_DAILY_LIGHTING,
+                            "data": currentPropertyValue,
+                        }),
+                        channel: device.getChannel()
+                    }, {
+                        property: propertyData,
+                        onSuccess: () => {
+                            device.updateProperty(currentProperty, currentPropertyValue);
+                        }
+                    });
+                    break;
+                }
+                case LightingActiveMode.COLORED: {
+                    let currentProperty = PropertyName.DeviceLightSettingsManualColoredLighting;
+                    if (type === "schedule") {
+                        currentProperty = PropertyName.DeviceLightSettingsScheduleColoredLighting;
+                    } else if (type === "motion") {
+                        currentProperty = PropertyName.DeviceLightSettingsMotionColoredLighting;
+                    }
+                    let currentPropertyValue = device.getPropertyValue(currentProperty) as RGBColor;
+                    const colors: Array<RGBColor> = (device.getPropertyValue(PropertyName.DeviceLightSettingsColoredLightingColors) as Array<RGBColor>);
+                    if (!colors.some(color => color.red === currentPropertyValue.red && color.green === currentPropertyValue.green && color.blue === currentPropertyValue.blue)) {
+                        currentPropertyValue = colors[0];
+                    }
+                    //TODO: Force cloud api refresh or updateProperty of currentPropertyValue?
+                    await this.p2pSession.sendCommandWithStringPayload({
+                        commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                        value: JSON.stringify({
+                            "commandType": type === "manual" ? CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_COLORED_LIGHTING : type === "schedule" ? CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_COLORED_LIGHTING : CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_COLORED_LIGHTING,
+                            "data": {
+                                "rgb_color": RGBColorToDecimal(currentPropertyValue)
+                            },
+                        }),
+                        channel: device.getChannel()
+                    }, {
+                        property: propertyData,
+                        onSuccess: () => {
+                            device.updateProperty(currentProperty, currentPropertyValue);
+                        }
+                    });
+                    break;
+                }
+                case LightingActiveMode.DYNAMIC: {
+                    let currentProperty = PropertyName.DeviceLightSettingsManualDynamicLighting;
+                    if (type === "schedule") {
+                        currentProperty = PropertyName.DeviceLightSettingsScheduleDynamicLighting;
+                    } else if (type === "motion") {
+                        currentProperty = PropertyName.DeviceLightSettingsMotionDynamicLighting;
+                    }
+                    let currentPropertyValue = device.getPropertyValue(currentProperty) as number;
+                    const range: number = (device.getPropertyValue(PropertyName.DeviceLightSettingsDynamicLightingThemes) as Array<DynamicLighting>).length;
+                    if (currentPropertyValue < 0 || currentPropertyValue >= range) {
+                        currentPropertyValue = 0;
+                    }
+                    //TODO: Force cloud api refresh or updateProperty of currentPropertyValue?
+                    await this.p2pSession.sendCommandWithStringPayload({
+                        commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                        value: JSON.stringify({
+                            "commandType": type === "manual" ? CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_DYNAMIC_LIGHTING : type === "schedule" ? CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_DYNAMIC_LIGHTING : CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_DYNAMIC_LIGHTING,
+                            "data": currentPropertyValue,
+                        }),
+                        channel: device.getChannel()
+                    }, {
+                        property: propertyData,
+                        onSuccess: () => {
+                            device.updateProperty(currentProperty, currentPropertyValue);
+                        }
+                    });
+                    break;
+                }
+            }
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setLightSettingsManualLightingActiveMode(device: Device, value: LightingActiveMode): Promise<void> {
+        await this._setLightSettingsLightingActiveMode(device, PropertyName.DeviceLightSettingsManualLightingActiveMode, value , "manual");
+    }
+
     public async setLightSettingsManualDailyLighting(device: Device, value: DailyLightingType): Promise<void> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsManualDailyLighting,
@@ -7940,14 +8052,17 @@ export class Station extends TypedEmitter<StationEvents> {
                 }),
                 channel: device.getChannel()
             }, {
-                property: propertyData
+                property: propertyData,
+                onSuccess: () => {
+                    device.updateProperty(PropertyName.DeviceLightSettingsManualLightingActiveMode, LightingActiveMode.DAILY);
+                }
             });
         } else {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
-    public async setLightSettingsManualColoredLighting(device: Device, value: number): Promise<void> {
+    public async setLightSettingsManualColoredLighting(device: Device, value: RGBColor): Promise<void> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsManualColoredLighting,
             value: value
@@ -7961,19 +8076,27 @@ export class Station extends TypedEmitter<StationEvents> {
         const property = device.getPropertyMetadata(propertyData.name);
         validValue(property, value);
 
-        this.log.debug(`Sending light setting manual colored lighting command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
+        const colors: Array<RGBColor> = (device.getPropertyValue(PropertyName.DeviceLightSettingsColoredLightingColors) as Array<RGBColor>);
+        if (!colors.some(color => color.red === value.red && color.green === value.green && color.blue === value.blue)) {
+            throw new InvalidPropertyValueError(`Value "${value}" isn't a valid value for property "${property.name}"`);
+        }
+
+        this.log.debug(`Sending light setting manual colored lighting command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${JSON.stringify(value)}`);
         if (device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_COLORED_LIGHTING,
                     "data": {
-                        "rgb_color": value
+                        "rgb_color": RGBColorToDecimal(value)
                     },
                 }),
                 channel: device.getChannel()
             }, {
-                property: propertyData
+                property: propertyData,
+                onSuccess: () => {
+                    device.updateProperty(PropertyName.DeviceLightSettingsManualLightingActiveMode, LightingActiveMode.COLORED);
+                }
             });
         } else {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
@@ -8004,11 +8127,18 @@ export class Station extends TypedEmitter<StationEvents> {
                 }),
                 channel: device.getChannel()
             }, {
-                property: propertyData
+                property: propertyData,
+                onSuccess: () => {
+                    device.updateProperty(PropertyName.DeviceLightSettingsManualLightingActiveMode, LightingActiveMode.DYNAMIC);
+                }
             });
         } else {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+    }
+
+    public async setLightSettingsMotionLightingActiveMode(device: Device, value: LightingActiveMode): Promise<void> {
+        await this._setLightSettingsLightingActiveMode(device, PropertyName.DeviceLightSettingsMotionLightingActiveMode, value , "motion");
     }
 
     public async setLightSettingsMotionDailyLighting(device: Device, value: DailyLightingType): Promise<void> {
@@ -8035,14 +8165,17 @@ export class Station extends TypedEmitter<StationEvents> {
                 }),
                 channel: device.getChannel()
             }, {
-                property: propertyData
+                property: propertyData,
+                onSuccess: () => {
+                    device.updateProperty(PropertyName.DeviceLightSettingsMotionActivationMode, LightingActiveMode.DAILY);
+                }
             });
         } else {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
-    public async setLightSettingsMotionColoredLighting(device: Device, value: number): Promise<void> {
+    public async setLightSettingsMotionColoredLighting(device: Device, value: RGBColor): Promise<void> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsMotionColoredLighting,
             value: value
@@ -8056,19 +8189,27 @@ export class Station extends TypedEmitter<StationEvents> {
         const property = device.getPropertyMetadata(propertyData.name);
         validValue(property, value);
 
-        this.log.debug(`Sending light setting motion colored lighting command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
+        const colors: Array<RGBColor> = (device.getPropertyValue(PropertyName.DeviceLightSettingsColoredLightingColors) as Array<RGBColor>);
+        if (!colors.some(color => color.red === value.red && color.green === value.green && color.blue === value.blue)) {
+            throw new InvalidPropertyValueError(`Value "${value}" isn't a valid value for property "${property.name}"`);
+        }
+
+        this.log.debug(`Sending light setting motion colored lighting command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${JSON.stringify(value)}`);
         if (device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_COLORED_LIGHTING,
                     "data": {
-                        "rgb_color": value
+                        "rgb_color": RGBColorToDecimal(value)
                     },
                 }),
                 channel: device.getChannel()
             }, {
-                property: propertyData
+                property: propertyData,
+                onSuccess: () => {
+                    device.updateProperty(PropertyName.DeviceLightSettingsMotionActivationMode, LightingActiveMode.COLORED);
+                }
             });
         } else {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
@@ -8099,11 +8240,18 @@ export class Station extends TypedEmitter<StationEvents> {
                 }),
                 channel: device.getChannel()
             }, {
-                property: propertyData
+                property: propertyData,
+                onSuccess: () => {
+                    device.updateProperty(PropertyName.DeviceLightSettingsMotionActivationMode, LightingActiveMode.DYNAMIC);
+                }
             });
         } else {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
+    }
+
+    public async setLightSettingsScheduleLightingActiveMode(device: Device, value: LightingActiveMode): Promise<void> {
+        await this._setLightSettingsLightingActiveMode(device, PropertyName.DeviceLightSettingsScheduleLightingActiveMode, value , "schedule");
     }
 
     public async setLightSettingsScheduleDailyLighting(device: Device, value: DailyLightingType): Promise<void> {
@@ -8130,14 +8278,17 @@ export class Station extends TypedEmitter<StationEvents> {
                 }),
                 channel: device.getChannel()
             }, {
-                property: propertyData
+                property: propertyData,
+                onSuccess: () => {
+                    device.updateProperty(PropertyName.DeviceLightSettingsScheduleLightingActiveMode, LightingActiveMode.DAILY);
+                }
             });
         } else {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
         }
     }
 
-    public async setLightSettingsScheduleColoredLighting(device: Device, value: number): Promise<void> {
+    public async setLightSettingsScheduleColoredLighting(device: Device, value: RGBColor): Promise<void> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsScheduleColoredLighting,
             value: value
@@ -8151,19 +8302,27 @@ export class Station extends TypedEmitter<StationEvents> {
         const property = device.getPropertyMetadata(propertyData.name);
         validValue(property, value);
 
-        this.log.debug(`Sending light setting schedule colored lighting command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
+        const colors: Array<RGBColor> = (device.getPropertyValue(PropertyName.DeviceLightSettingsColoredLightingColors) as Array<RGBColor>);
+        if (!colors.some(color => color.red === value.red && color.green === value.green && color.blue === value.blue)) {
+            throw new InvalidPropertyValueError(`Value "${value}" isn't a valid value for property "${property.name}"`);
+        }
+
+        this.log.debug(`Sending light setting schedule colored lighting command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${JSON.stringify(value)}`);
         if (device.isWallLightCam()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_COLORED_LIGHTING,
                     "data": {
-                        "rgb_color": value
+                        "rgb_color": RGBColorToDecimal(value)
                     },
                 }),
                 channel: device.getChannel()
             }, {
-                property: propertyData
+                property: propertyData,
+                onSuccess: () => {
+                    device.updateProperty(PropertyName.DeviceLightSettingsScheduleLightingActiveMode, LightingActiveMode.COLORED);
+                }
             });
         } else {
             throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
@@ -8191,6 +8350,117 @@ export class Station extends TypedEmitter<StationEvents> {
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_DYNAMIC_LIGHTING,
                     "data": value,
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData,
+                onSuccess: () => {
+                    device.updateProperty(PropertyName.DeviceLightSettingsScheduleLightingActiveMode, LightingActiveMode.DYNAMIC);
+                }
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setLightSettingsColoredLightingColors(device: Device, value: Array<RGBColor>): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceLightSettingsColoredLightingColors,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
+        this.log.debug(`Sending light setting colored lighting colors command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${JSON.stringify(value)}`);
+        if (device.isWallLightCam()) {
+            const colors: Array<InternalColoredLighting> = [{"color":16760832}, {"color":16744448}, {"color":16728320}, {"color":16720384}, {"color":16711696}, {"color":3927961}, {"color":1568995}, {"color":485368}, {"color":9983}, {"color":4664060}];
+            if (value.length > 0 && value.length <= 15) {
+                let count = 0;
+                for (let i = 0; i < colors.length; i++) {
+                    if (RGBColorToDecimal(value[i]) === colors[i].color) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                if (value.length - count + colors.length > 15) {
+                    throw new InvalidPropertyValueError(`Property ${propertyData.name} can contain a maximum of 15 items, of which the first 10 are fixed. You can either deliver the first 10 static items with the maximum 5 freely selectable items or only the maximum 5 freely selectable items.`);
+                } else {
+                    for(let i = count; i < value.length - count + 10; i++) {
+                        colors.push({ color: RGBColorToDecimal(value[i]) });
+                    }
+                }
+            } else {
+                throw new InvalidPropertyValueError(`Property ${propertyData.name} can contain a maximum of 15 items, of which the first 10 are fixed. You can either deliver the first 10 static items with the maximum 5 freely selectable items or only the maximum 5 freely selectable items.`);
+            }
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_WALL_LIGHT_SETTINGS_COLORED_LIGHTING_COLORS,
+                    "data": colors,
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+    }
+
+    public async setLightSettingsDynamicLightingThemes(device: Device, value: Array<DynamicLighting>): Promise<void> {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceLightSettingsDynamicLightingThemes,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError(`Device ${device.getSerial()} is not managed by this station ${this.getSerial()}`);
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError(`This functionality is not implemented or supported by ${device.getSerial()}`);
+        }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
+        this.log.debug(`Sending light setting dynamic lighting themes command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${JSON.stringify(value)}`);
+        if (device.isWallLightCam()) {
+            const themes:Array<InternalDynamicLighting> = [{"name":"Aurora","mode":1,"id":0,"speed":4000,"colors":[65321,65468,28671,9215,42239]},{"name":"Warmth","mode":1,"id":1,"speed":4000,"colors":[16758528,16744448,16732160,16719360,16742144]},{"name":"Let's Party","mode":2,"id":2,"speed":500,"colors":[16718080,16756736,65298,40703,4980991]}];
+            if (value.length > 0 && value.length <= 23) {
+                let count = 0;
+                for (let i = 0; i < themes.length; i++) {
+                    if (value[i].name === themes[i].name) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                if (value.length - count + themes.length > 23) {
+                    throw new InvalidPropertyValueError(`Property ${propertyData.name} can contain a maximum of 23 items, of which the first 3 are fixed. You can either deliver the first 3 static items with the maximum 20 freely selectable items or only the maximum 20 freely selectable items.`);
+                } else {
+                    for(let i = count; i < value.length - count + 3; i++) {
+                        themes.push({
+                            id: i,
+                            colors: value[i].colors.map((color) => RGBColorToDecimal(color)),
+                            mode: value[i].mode,
+                            name: value[i].name,
+                            speed: value[i].speed
+                        });
+                    }
+                }
+            } else {
+                throw new InvalidPropertyValueError(`Property ${propertyData.name} can contain a maximum of 23 items, of which the first 3 are fixed. You can either deliver the first 3 static items with the maximum 20 freely selectable items or only the maximum 20 freely selectable items.`);
+            }
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_WALL_LIGHT_SETTINGS_DYNAMIC_LIGHTING_THEMES,
+                    "data": themes,
                 }),
                 channel: device.getChannel()
             }, {

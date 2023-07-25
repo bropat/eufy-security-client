@@ -361,3 +361,28 @@ export interface DatabaseQueryLocal {
     history: HistoryRecordInfo;
     picture: Array<CropPictureInfo>;
 }
+
+export interface RGBColor {
+    red: number;
+    green: number;
+    blue: number;
+}
+
+export interface InternalColoredLighting {
+    color: number;
+}
+
+export interface DynamicLighting {
+    name: string;
+    mode: number;
+    speed: number;
+    colors: Array<RGBColor>;
+}
+
+export interface InternalDynamicLighting {
+    name: string;
+    mode: number;
+    id: number;
+    speed: number;
+    colors: Array<number>;
+}

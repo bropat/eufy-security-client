@@ -19,7 +19,12 @@ export class ParameterHelper {
                 type === CommandType.ARM_DELAY_CUS2 ||
                 type === CommandType.ARM_DELAY_CUS3 ||
                 type === CommandType.ARM_DELAY_OFF ||
-                type === CommandType.CELLULAR_INFO) {
+                type === CommandType.CELLULAR_INFO ||
+                type === CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_COLORED_LIGHTING ||
+                type === CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_COLORED_LIGHTING ||
+                type === CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_COLORED_LIGHTING ||
+                type === CommandType.CMD_WALL_LIGHT_SETTINGS_COLORED_LIGHTING_COLORS ||
+                type === CommandType.CMD_WALL_LIGHT_SETTINGS_DYNAMIC_LIGHTING_THEMES) {
                 try {
                     if (typeof value === "string") {
                         return parseJSON(decodeBase64(value).toString("utf8"), log);

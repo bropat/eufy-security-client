@@ -107,6 +107,7 @@ export interface PropertyMetadataString extends PropertyMetadataAny {
 
 export interface PropertyMetadataObject extends PropertyMetadataAny {
     type: "object";
+    isValidObject?: (obj: any) => boolean;
     default?: any;
 }
 
