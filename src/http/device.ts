@@ -735,7 +735,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.WALL_LIGHT_CAM_81A0 ||
             type == DeviceType.CAMERA_GARAGE_T8453_COMMON ||
             type == DeviceType.CAMERA_GARAGE_T8453 ||
-            type == DeviceType.CAMERA_GARAGE_T8452)
+            type == DeviceType.CAMERA_GARAGE_T8452 ||
+            type == DeviceType.CAMERA_FG)
             return true;
         return false;
     }
