@@ -209,9 +209,8 @@ export class Station extends TypedEmitter<StationEvents> {
 
     public updateRawProperty(type: number, value: string): boolean {
         const parsedValue = ParameterHelper.readValue(type, value, this.log);
-        if (
-            (this.rawProperties[type] !== undefined && this.rawProperties[type] !== parsedValue)
-            || this.rawProperties[type] === undefined) {
+        if (parsedValue !== undefined && ((this.rawProperties[type] !== undefined && this.rawProperties[type] !== parsedValue)
+            || this.rawProperties[type] === undefined)) {
 
             this.rawProperties[type] = parsedValue;
             if (this.ready) {
@@ -578,8 +577,11 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onParameter(channel: number, param: number, value: string): void {
         const params: RawValues = {};
-        params[param] = ParameterHelper.readValue(param, value, this.log);
-        this.emit("raw device property changed", this._getDeviceSerial(channel), params);
+        const parsedValue = ParameterHelper.readValue(param, value, this.log);
+        if (parsedValue !== undefined) {
+            params[param] = parsedValue;
+            this.emit("raw device property changed", this._getDeviceSerial(channel), params);
+        }
     }
 
     private onAlarmDelay(alarmDelayEvent: AlarmEvent, alarmDelay: number): void {
@@ -842,7 +844,10 @@ export class Station extends TypedEmitter<StationEvents> {
                     if (!devices[device_sn]) {
                         devices[device_sn] = {};
                     }
-                    devices[device_sn][param.param_type] = ParameterHelper.readValue(param.param_type, param.param_value, this.log);
+                    const parsedValue = ParameterHelper.readValue(param.param_type, param.param_value, this.log);
+                    if (parsedValue !== undefined) {
+                        devices[device_sn][param.param_type] = parsedValue;
+                    }
                 }
             } else {
                 const device_sn = this._getDeviceSerial(param.dev_type);
@@ -850,8 +855,10 @@ export class Station extends TypedEmitter<StationEvents> {
                     if (!devices[device_sn]) {
                         devices[device_sn] = {};
                     }
-
-                    devices[device_sn][param.param_type] = ParameterHelper.readValue(param.param_type, param.param_value, this.log);
+                    const parsedValue = ParameterHelper.readValue(param.param_type, param.param_value, this.log);
+                    if (parsedValue !== undefined) {
+                        devices[device_sn][param.param_type] = parsedValue;
+                    }
                 }
             }
         });
