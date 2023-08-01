@@ -30,6 +30,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private readonly MAX_AKNOWLEDGE_TIMEOUT = 15 * 1000;
     private readonly MAX_LOOKUP_TIMEOUT = 15 * 1000;
     private readonly LOOKUP_RETRY_TIMEOUT = 3 * 1000;
+    private readonly LOOKUP2_TIMEOUT = 5 * 1000;
     private readonly MAX_EXPECTED_SEQNO_WAIT = 20 * 1000;
     private readonly HEARTBEAT_INTERVAL = 5 * 1000;
     private readonly MAX_COMMAND_QUEUE_TIMEOUT = 120 * 1000;
@@ -61,6 +62,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private connected = false;
     private connecting = false;
     private terminating = false;
+    private handshake_UNKNOWN71 = false;
 
     private seqNumber = 0;
     private offsetDataSeqNumber = 0;
@@ -90,6 +92,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private connectTimeout?: NodeJS.Timeout;
     private lookupTimeout?: NodeJS.Timeout;
     private lookupRetryTimeout?: NodeJS.Timeout;
+    private lookup2Timeout?: NodeJS.Timeout;
     private heartbeatTimeout?: NodeJS.Timeout;
     private keepaliveTimeout?: NodeJS.Timeout;
     private esdDisconnectTimeout?: NodeJS.Timeout;
@@ -162,6 +165,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         let rsaKey: NodeRSA | null;
 
         this.connected = false;
+        this.handshake_UNKNOWN71 = false;
         this.connecting = false;
         this.lastPong = null;
         this.lastPongData = undefined;
@@ -283,6 +287,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.lookupRetryTimeout = undefined;
     }
 
+    private _clearLookup2Timeout(): void {
+        this._clearTimeout(this.lookup2Timeout);
+        this.lookup2Timeout = undefined;
+    }
+
     private _clearESDDisconnectTimeout(): void {
         this._clearTimeout(this.esdDisconnectTimeout);
         this.esdDisconnectTimeout = undefined;
@@ -304,6 +313,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this._clearHeartbeatTimeout();
         this._clearKeepaliveTimeout();
         this._clearLookupRetryTimeout();
+        this._clearLookup2Timeout();
         this._clearLookupTimeout();
         this._clearConnectTimeout();
         this._clearESDDisconnectTimeout();
@@ -360,10 +370,16 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private cloudLookup(): void {
         this.cloudAddresses.map((address) => this.cloudLookupByAddress(address));
+        this.lookup2Timeout = setTimeout(() => {
+            this.cloudLookup2();
+        }, this.LOOKUP2_TIMEOUT);
+    }
+
+    private cloudLookup2(): void {
         this.cloudAddresses.map((address) => this.cloudLookupByAddress2(address));
     }
 
-    private cloudLookup2(origAddress: Address, data: Buffer): void {
+    private cloudLookup3(origAddress: Address, data: Buffer): void {
         this.cloudAddresses.map((address) => this.cloudLookupByAddress3(address, origAddress, data));
     }
 
@@ -786,6 +802,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this._clearLookupRetryTimeout();
                 this._clearLookupTimeout();
                 this._clearConnectTimeout();
+                this._clearLookup2Timeout();
                 this.connected = true;
                 this.connectTime = new Date().getTime();
                 this.lastPong = null;
@@ -1049,9 +1066,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this.sendMessage(`Send UNKNOWN_70 to station ${this.rawStation.station_sn}`, { host: ip, port: port }, RequestMessageType.UNKNOWN_70);
             }
         } else if (hasHeader(msg, ResponseMessageType.UNKNOWN_71)) {
-            if (!this.connected) {
+            if (!this.connected && !this.handshake_UNKNOWN71) {
                 this.log.debug(`Station ${this.rawStation.station_sn} - UNKNOWN_71 - Got response`, { remoteAddress: rinfo.address, remotePort: rinfo.port, response: { message: msg.toString("hex"), length: msg.length }});
                 this.sendMessage(`Send UNKNOWN_71 to station ${this.rawStation.station_sn}`, { host: rinfo.address, port: rinfo.port }, RequestMessageType.UNKNOWN_71);
+                this.handshake_UNKNOWN71 = true;
             }
         } else if (hasHeader(msg, ResponseMessageType.UNKNOWN_73)) {
             if (!this.connected) {
@@ -1059,7 +1077,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 const data = msg.slice(4, 8);
 
                 this.log.debug(`Station ${this.rawStation.station_sn} - UNKNOWN_73 - Got response`, { remoteAddress: rinfo.address, remotePort: rinfo.port, response: { port: port, data: data.toString("hex") }});
-                this.cloudLookup2({ host: rinfo.address, port: port }, data);
+                this.cloudLookup3({ host: rinfo.address, port: port }, data);
             }
         } else if (hasHeader(msg, ResponseMessageType.UNKNOWN_81) || hasHeader(msg, ResponseMessageType.UNKNOWN_83)) {
             // Do nothing / ignore
@@ -1182,9 +1200,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             const result_msg = message.type === 1 ? true : false;
 
             if (result_msg) {
-                const return_code = message.data.slice(0, 4).readUInt32LE()|0;
-                const return_msg = message.data.slice(4, 4 + 128).toString();
-
+                let return_code = 0;
+                let return_msg = "";
+                if (message.bytesToRead > 0) {
+                    return_code = message.data.slice(0, 4).readUInt32LE()|0;
+                    return_msg = message.data.slice(4, 4 + 128).toString();
+                }
                 const error_codeStr = ErrorCode[return_code];
 
                 this.log.debug(`Station ${this.rawStation.station_sn} - Received data`, { commandIdName: commandStr, commandId: message.commandId, resultCodeName: error_codeStr, resultCode: return_code, message: return_msg, data: message.data.toString("hex"), seqNumber: this.seqNumber, energySavingDeviceP2PDataSeqNumber: this.energySavingDeviceP2PDataSeqNumber, offsetDataSeqNumber: this.offsetDataSeqNumber });
