@@ -80,11 +80,13 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 2.7.0 (2023-08-xx)
+### 2.7.0 (2023-08-01)
 
 * (bropat) Added support for Wired Wall Light Cam S100 (T84A1; #318)
 * (bropat) Added support for Garage-Control Cam (T8452; #219)
 * (bropat) Implemented entry sensor status update over p2p connection
+* (bropat) Improved cloud device lookup
+* (bropat) Improved error handling
 * (bropat/witold-gren) Added missing station command support for 4G LTE Starlight (T8151; #333)
 * (bropat/witold-gren) Added missing push notification support for 4G LTE Starlight (T8151; #333)
 * (bropat/witold-gren) Fixed issue handling push notification alarm events (#333)
