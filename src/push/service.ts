@@ -542,6 +542,22 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalized_message.automation_id = push_data.automation_id;
                     normalized_message.click_action = push_data.click_action;
                     normalized_message.news_id = push_data.news_id;
+
+                    if (Device.isStarlight4GLTE(normalized_message.type)) {
+                        if (push_data.channel && push_data.channel !== null && push_data.channel !== undefined) {
+                            normalized_message.channel = push_data.channel
+                        }
+                        if (push_data.cipher && push_data.cipher !== null && push_data.cipher !== undefined) {
+                            normalized_message.cipher = push_data.cipher
+                        }
+                        if (push_data.event_type && push_data.event_type !== null && push_data.event_type !== undefined) {
+                            normalized_message.event_type = push_data.event_type
+                        }
+                        if (push_data.file_path && push_data.file_path !== null && push_data.file_path !== undefined) {
+                            normalized_message.file_path = push_data.file_path
+                        }
+                        normalized_message.msg_type = push_data.msg_type;
+                    }
                 }
             }
         } else if (message.payload.doorbell !== undefined) {

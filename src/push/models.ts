@@ -44,6 +44,7 @@ export interface CusPushData {
     user_id?: string;
     user_name?: string;                 // Username
     bat_low?: string;
+    msg_type: number;
 }
 
 export interface EufyPushMessage {
