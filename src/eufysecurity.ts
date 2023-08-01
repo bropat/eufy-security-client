@@ -294,7 +294,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             await this.stationsLoaded;
         if (Object.keys(this.stations).includes(hub.station_sn)) {
             this.stations[hub.station_sn].update(hub, this.stations[hub.station_sn] !== undefined && !this.stations[hub.station_sn].isIntegratedDevice() && this.stations[hub.station_sn].isConnected());
-            if (!this.stations[hub.station_sn].isConnected() && !this.stations[hub.station_sn].isEnergySavingDevice()) {
+            if (!this.stations[hub.station_sn].isConnected() && !this.stations[hub.station_sn].isEnergySavingDevice() && this.stations[hub.station_sn].isP2PConnectableDevice()) {
                 this.stations[hub.station_sn].setConnectionType(this.config.p2pConnectionSetup);
                 this.stations[hub.station_sn].connect();
             }
@@ -413,8 +413,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     public async connectToStation(stationSN: string, p2pConnectionType: P2PConnectionType = P2PConnectionType.QUICKEST): Promise<void> {
         const station = await this.getStation(stationSN);
-        station.setConnectionType(p2pConnectionType);
-        station.connect();
+        if (station.isP2PConnectableDevice()) {
+            station.setConnectionType(p2pConnectionType);
+            station.connect();
+        }
     }
 
     public async isStationConnected(stationSN: string): Promise<boolean> {
@@ -649,7 +651,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         Promise.all(promises).then((devices) => {
             devices.forEach((device) => {
                 this.getStation(device.getStationSerial()).then((station: Station) => {
-                    if (!station.isConnected()) {
+                    if (!station.isConnected() && station.isP2PConnectableDevice()) {
                         station.setConnectionType(this.config.p2pConnectionSetup);
                         station.connect();
                     }
