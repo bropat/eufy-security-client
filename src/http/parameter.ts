@@ -28,7 +28,7 @@ export class ParameterHelper {
                 if (typeof value === "string") {
                     const parsedValue = parseJSON(decodeBase64(value).toString("utf8"), log);
                     if (parsedValue === undefined) {
-                        log.error(`Error readValue: param '${type}'; value: '${value}'`);
+                        log.warn("Non-parsable parameter value received from eufy cloud. Will be ignored.", { type: type, value: value });
                     }
                     return parsedValue;
                 } else {
@@ -48,7 +48,7 @@ export class ParameterHelper {
                 if (typeof value === "string") {
                     const parsedValue = parseJSON(value, log);
                     if (parsedValue === undefined) {
-                        log.error(`Error readValue: param '${type}'; value: '${value}'`);
+                        log.warn("Non-parsable parameter value received from eufy cloud. Will be ignored.", { type: type, value: value });
                     }
                     return parsedValue;
                 } else {
