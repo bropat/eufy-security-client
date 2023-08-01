@@ -3881,7 +3881,7 @@ export const DeviceLightSettingsManualColoredLightingProperty: PropertyMetadataO
     writeable: true,
     type: "object",
     isValidObject: (obj) => {
-        return  "red" in obj && "green" in obj && "blue" in obj && typeof obj.red === "number" && typeof obj.green === "number" && typeof obj.blue === "number";
+        return typeof obj === "object" && "red" in obj && "green" in obj && "blue" in obj && typeof obj.red === "number" && typeof obj.green === "number" && typeof obj.blue === "number";
     },
 }
 
@@ -3930,7 +3930,7 @@ export const DeviceLightSettingsMotionColoredLightingProperty: PropertyMetadataO
     writeable: true,
     type: "object",
     isValidObject: (obj) => {
-        return  "red" in obj && "green" in obj && "blue" in obj && typeof obj.red === "number" && typeof obj.green === "number" && typeof obj.blue === "number";
+        return typeof obj === "object" && "red" in obj && "green" in obj && "blue" in obj && typeof obj.red === "number" && typeof obj.green === "number" && typeof obj.blue === "number";
     },
 }
 
@@ -3979,7 +3979,7 @@ export const DeviceLightSettingsScheduleColoredLightingProperty: PropertyMetadat
     writeable: true,
     type: "object",
     isValidObject: (obj) => {
-        return  "red" in obj && "green" in obj && "blue" in obj && typeof obj.red === "number" && typeof obj.green === "number" && typeof obj.blue === "number";
+        return typeof obj === "object" && "red" in obj && "green" in obj && "blue" in obj && typeof obj.red === "number" && typeof obj.green === "number" && typeof obj.blue === "number";
     },
 }
 
@@ -4017,7 +4017,8 @@ export const DeviceLightSettingsColoredLightingColorsProperty: PropertyMetadataO
         if (Array.isArray(obj)) {
             return obj.length > 0 &&
                 obj.every((value) => {
-                    return "red" in value &&
+                    return typeof value === "object" &&
+                        "red" in value &&
                         "green" in value &&
                         "blue" in value &&
                         typeof value.red === "number" &&
@@ -4046,7 +4047,8 @@ export const DeviceLightSettingsDynamicLightingThemesProperty: PropertyMetadataO
         if (Array.isArray(obj)) {
             return obj.length > 0 &&
                 obj.every((value) => {
-                    return "name" in value &&
+                    return typeof value === "object" &&
+                        "name" in value &&
                         "mode" in value &&
                         "speed" in value &&
                         "colors" in value &&
@@ -4060,7 +4062,8 @@ export const DeviceLightSettingsDynamicLightingThemesProperty: PropertyMetadataO
                         value.colors.length > 0 &&
                         value.colors.length <= 5 &&
                         value.colors.every((value) => {
-                            return "red" in value &&
+                            return typeof value === "object" &&
+                                "red" in value &&
                                 "green" in value &&
                                 "blue" in value &&
                                 typeof value.red === "number" &&
