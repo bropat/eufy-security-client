@@ -459,6 +459,13 @@ export class Station extends TypedEmitter<StationEvents> {
         return Device.isWiredDoorbellDual(this.getDeviceType()) || Device.isFloodLight(this.getDeviceType()) || Device.isWiredDoorbell(this.getDeviceType()) || Device.isIndoorCamera(this.getDeviceType()) || Device.isSoloCameras(this.getDeviceType()) || Device.isWallLightCam(this.getDeviceType());
     }
 
+    public isP2PConnectableDevice(): boolean {
+        if (!Device.isSmartTrack(this.getDeviceType())) {
+            return true;
+        }
+        return false;
+    }
+
     public getDeviceType(): number {
         return this.rawStation.device_type;
     }
