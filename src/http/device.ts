@@ -1112,6 +1112,25 @@ export class Device extends TypedEmitter<DeviceEvents> {
             sn.startsWith("T8124");
     }
 
+    static isSmartTrackCard(type: number): boolean {
+        if (type == DeviceType.SMART_TRACK_CARD)
+            return true;
+        return false;
+    }
+
+    static isSmartTrackLink(type: number): boolean {
+        if (type == DeviceType.SMART_TRACK_LINK)
+            return true;
+        return false;
+    }
+
+    static isSmartTrack(type: number): boolean {
+        if (type == DeviceType.SMART_TRACK_LINK ||
+            type == DeviceType.SMART_TRACK_CARD)
+            return true;
+        return false;
+    }
+
     public isCamera(): boolean {
         return Device.isCamera(this.rawDevice.device_type);
     }
@@ -1317,6 +1336,18 @@ export class Device extends TypedEmitter<DeviceEvents> {
             return this.rawDevice.device_sn === this.rawDevice.station_sn;
         }
         return this.isWiredDoorbellDual() || this.isFloodLight() ||this.isWiredDoorbell() || this.isIndoorCamera() || this.isSoloCameras() || this.isWallLightCam();
+    }
+
+    public isSmartTrack(): boolean {
+        return Device.isSmartTrack(this.rawDevice.device_type);
+    }
+
+    public isSmartTrackCard(): boolean {
+        return Device.isSmartTrackCard(this.rawDevice.device_type);
+    }
+
+    public isSmartTrackLink(): boolean {
+        return Device.isSmartTrackLink(this.rawDevice.device_type);
     }
 
     public hasBattery(): boolean {
