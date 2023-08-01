@@ -92,6 +92,7 @@ Please use GitHub issues for this.
 * (bropat) Fixed issue of executing the download image command only if supported
 * (PhilippEngler) fix DeviceChargingStatus for eufyCam3 (#330)
 * (PhilippEngler) handle incomplete JSON for parameter (#347)
+* (bropat) Initiate p2p connection for supported devices only
 * (bropat) Updated versions of the package dependencies
 
 ### 2.6.2 (2023-05-16)
