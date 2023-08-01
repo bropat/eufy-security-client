@@ -6,6 +6,8 @@ import { TypedEmitter } from "tiny-typed-emitter";
 
 import { MessageTag, ProcessingState } from "./models";
 import { PushClientParserEvents } from "./interfaces";
+import { ensureError } from "../error";
+import { MCSProtocolMessageTagError, MCSProtocolProcessingStateError, MCSProtocolVersionError } from "./error";
 
 export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
 
@@ -85,7 +87,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
         const version = this.data.readInt8(0);
         this.data = this.data.slice(1);
         if (version < 41 && version !== 38) {
-            throw new Error(`Got wrong version: ${version}`);
+            throw new MCSProtocolVersionError("Got wrong protocol version", { context: { version: version } });
         }
 
         // Process the LoginResponse message tag.
@@ -104,11 +106,12 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
 
         try {
             this.messageSize = reader.int32();
-        } catch (error) {
+        } catch (err) {
+            const error = ensureError(err);
             if (error instanceof Error && error.message.startsWith("index out of range:")) {
                 incompleteSizePacket = true;
             } else {
-                throw new Error(error as string);
+                throw error;
             }
         }
 
@@ -185,7 +188,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
             case ProcessingState.MCS_PROTO_BYTES:
                 return this.messageSize;
             default:
-                throw new Error(`Unknown state: ${this.state}`);
+                throw new MCSProtocolProcessingStateError("Unknown protocol processing state", { context: { state: this.state } });
         }
     }
 
@@ -208,7 +211,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
             case MessageTag.StreamErrorStanza:
                 return PushClientParser.proto!.lookupType("mcs_proto.StreamErrorStanza");
             default:
-                throw new Error(`Unknown tag: ${this.messageTag}`);
+                throw new MCSProtocolMessageTagError("Unknown protocol message tag", { context: { messageTag: this.messageTag } });
         }
     }
 }

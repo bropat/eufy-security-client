@@ -3,6 +3,7 @@ import * as path from "path";
 import { load } from "protobufjs";
 
 import { CheckinResponse } from "./models";
+import { FidGenerationError } from "./error";
 
 export const VALID_FID_PATTERN = /^[cdef][\w-]{21}$/;
 
@@ -19,7 +20,7 @@ export function generateFid(): string {
     if (VALID_FID_PATTERN.test(fid)) {
         return fid;
     }
-    throw new Error(`Generated FID is invalid?!`);
+    throw new FidGenerationError("Generated invalid FID", { context: { fid: fid } });
 }
 
 export const buildCheckinRequest = async (): Promise<Uint8Array> => {

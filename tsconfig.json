@@ -15,7 +15,7 @@
         "outDir": "./build/",
         "removeComments": false,
         "module": "CommonJS",
-        "moduleResolution": "node",
+        "moduleResolution": "Node16",
         // this is necessary for the automatic typing of the adapter config
         "resolveJsonModule": true,
         "esModuleInterop": true,
@@ -35,7 +35,8 @@
         // "noUnusedParameters": true,
 
         // Consider targetting es2017 or higher if you require the new NodeJS 8+ features
-        "target": "ES2019",
+        "target": "ES2022",
+        "lib": ["ES2022", "DOM"],
 
         "sourceMap": true,
         "inlineSourceMap": false

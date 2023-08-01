@@ -10,7 +10,9 @@ import { PushNotificationServiceEvents } from "./interfaces";
 import { Device } from "../http/device";
 import { DeviceType } from "../http/types";
 import { getAbsoluteFilePath } from "../http/utils";
-import { isEmpty, parseJSON } from "../utils";
+import { getShortUrl, isEmpty, parseJSON } from "../utils";
+import { ExecuteCheckInError, FidRegistrationFailedError, RegisterGcmError, RenewFidTokenFailedError, UnknownExpiryFormaError } from "./error";
+import { ensureError } from "../error";
 
 export class PushNotificationService extends TypedEmitter<PushNotificationServiceEvents> {
 
@@ -44,7 +46,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
         } else if (expiresIn.endsWith("s")) {
             return new Date().getTime() + Number.parseInt(expiresIn.substring(0, expiresIn.length - 1)) * 1000;
         }
-        throw new Error(`Unknown expiresIn-format: ${expiresIn}`);
+        throw new UnknownExpiryFormaError("Unknown expiresIn-format", { context: { format: expiresIn } });
     }
 
     private async registerFid(fid: string): Promise<FidInstallationResponse> {
@@ -70,14 +72,27 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 retry: {
                     limit: 3,
                     methods: ["POST"]
+                },
+                hooks: {
+                    beforeError: [
+                        error => {
+                            const { response, options } = error;
+                            const statusCode = response?.statusCode || 0;
+                            const { method, url, prefixUrl } = options;
+                            const shortUrl = getShortUrl(url, prefixUrl);
+                            const body = response?.body ? response.body : error.message;
+                            if (response?.body) {
+                                error.name = "RegisterFidError";
+                                error.message = `${statusCode} ${method} ${shortUrl}\n${body}`;
+                            }
+                            return error;
+                        }
+                    ]
                 }
-            }).catch(error => {
-                this.log.error("registerFid - Error:", error);
-                return error;
             });
 
             if (response.statusCode == 200) {
-                const result: FidInstallationResponse = response.body;
+                const result: FidInstallationResponse = response.body as FidInstallationResponse;
                 return {
                     ...result,
                     authToken: {
@@ -87,11 +102,12 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 };
             } else {
                 this.log.error("registerFid - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
-                throw new Error(`FID registration failed with error: ${response.statusMessage}`);
+                throw new FidRegistrationFailedError("FID registration failed", { context: { status: response.statusCode, statusText: response.statusMessage, data: response.body } });
             }
-        } catch (error) {
-            this.log.error("registerFid - Generic Error:", error);
-            throw new Error(`FID registration failed with error: ${error}`);
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("registerFid - Generic Error", error);
+            throw new FidRegistrationFailedError("FID registration failed", { cause: error, context: { fid: fid } });
         }
     }
 
@@ -120,25 +136,39 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 retry: {
                     limit: 3,
                     methods: ["POST"]
+                },
+                hooks: {
+                    beforeError: [
+                        error => {
+                            const { response, options } = error;
+                            const statusCode = response?.statusCode || 0;
+                            const { method, url, prefixUrl } = options;
+                            const shortUrl = getShortUrl(url, prefixUrl);
+                            const body = response?.body ? response.body : error.message;
+                            if (response?.body) {
+                                error.name = "RenewFidTokenError";
+                                error.message = `${statusCode} ${method} ${shortUrl}\n${body}`;
+                            }
+                            return error;
+                        }
+                    ]
                 }
-            }).catch(error => {
-                this.log.error("renewFidToken - Error:", error);
-                return error;
             });
 
             if (response.statusCode == 200) {
-                const result: FidTokenResponse = response.body;
+                const result: FidTokenResponse = response.body as FidTokenResponse;
                 return {
                     ...result,
                     expiresAt: this.buildExpiresAt(result.expiresIn),
                 };
             } else {
                 this.log.error("renewFidToken - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
-                throw new Error(`FID Token renewal failed with error: ${response.statusMessage}`);
+                throw new RenewFidTokenFailedError("FID Token renewal failed", { context: { status: response.statusCode, statusText: response.statusMessage, data: response.body } });
             }
-        } catch (error) {
-            this.log.error("renewFidToken - Generic Error:", error);
-            throw new Error(`FID Token renewal failed with error: ${error}`);
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("renewFidToken - Generic Error", error);
+            throw new RenewFidTokenFailedError("FID Token renewal failed", { cause: error, context: { fid: fid, refreshToken: refreshToken } });
         }
     }
 
@@ -158,7 +188,8 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     ...result,
                     gcmResponse: registerGcmResponse,
                 };
-            }).catch((error) => {
+            }).catch((err) => {
+                const error = ensureError(err);
                 throw error;
             });
     }
@@ -214,21 +245,35 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 retry: {
                     limit: 3,
                     methods: ["POST"]
+                },
+                hooks: {
+                    beforeError: [
+                        error => {
+                            const { response, options } = error;
+                            const statusCode = response?.statusCode || 0;
+                            const { method, url, prefixUrl } = options;
+                            const shortUrl = getShortUrl(url, prefixUrl);
+                            const body = response?.body ? response.body : error.message;
+                            if (response?.body) {
+                                error.name = "ExecuteCheckInError";
+                                error.message = `${statusCode} ${method} ${shortUrl}\n${body}`;
+                            }
+                            return error;
+                        }
+                    ]
                 }
-            }).catch(error => {
-                this.log.error("executeCheckin - Error:", error);
-                return error;
             });
 
             if (response.statusCode == 200) {
                 return await parseCheckinResponse(response.body);
             } else {
                 this.log.error("executeCheckin - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
-                throw new Error(`Google checkin failed with error: ${response.statusMessage}`);
+                throw new ExecuteCheckInError("Google checkin failed", { context: { status: response.statusCode, statusText: response.statusMessage, data: response.body } });
             }
-        } catch (error) {
-            this.log.error("executeCheckin - Generic Error:", error);
-            throw new Error(`Google checkin failed with error: ${error}`);
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("executeCheckin - Generic Error", error);
+            throw new ExecuteCheckInError("Google checkin failed", { cause: error });
         }
     }
 
@@ -281,18 +326,31 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     retry: {
                         limit: 3,
                         methods: ["POST"]
+                    },
+                    hooks: {
+                        beforeError: [
+                            error => {
+                                const { response, options } = error;
+                                const statusCode = response?.statusCode || 0;
+                                const { method, url, prefixUrl } = options;
+                                const shortUrl = getShortUrl(url, prefixUrl);
+                                const body = response?.body ? response.body : error.message;
+                                if (response?.body) {
+                                    error.name = "RegisterGcmError";
+                                    error.message = `${statusCode} ${method} ${shortUrl}\n${body}`;
+                                }
+                                return error;
+                            }
+                        ]
                     }
-                }).catch(error => {
-                    this.log.error("registerGcm - Error:", error);
-                    return error;
                 });
 
                 if (response.statusCode == 200) {
                     const result = response.body.split("=");
                     if (result[0] == "Error") {
-                        this.log.debug("GCM register error, retry...", { retry: retry, retryCount: retry_count });
+                        this.log.debug("GCM register error, retry...", { retry: retry, retryCount: retry_count, response: response.body });
                         if (retry_count == retry)
-                            throw new Error(`GCM-Register Error: ${result[1]}`);
+                            throw new RegisterGcmError("Max GCM registration retries reached", { context: { message: result[1], retry: retry, retryCount: retry_count } });
                     } else {
                         return {
                             token: result[1]
@@ -300,14 +358,15 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     }
                 } else {
                     this.log.error("registerGcm - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
-                    throw new Error(`Google register to GCM failed with error: ${response.statusMessage}`);
+                    throw new RegisterGcmError("Google register to GCM failed", { context: { status: response.statusCode, statusText: response.statusMessage, data: response.body } });
                 }
                 await sleep(10000 * retry_count);
             }
-            throw new Error(`GCM-Register Error: Undefined!`);
-        } catch (error) {
-            this.log.error("registerGcm - Generic Error:", error);
-            throw new Error(`Google register to GCM failed with error: ${error}`);
+            throw new RegisterGcmError("Max GCM registration retries reached");
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("registerGcm - Generic Error", error);
+            throw new RegisterGcmError("Google register to GCM failed", { cause: error, context: { fidInstallationResponse: fidInstallationResponse, checkinResponse: checkinResponse } });
         }
     }
 
@@ -324,8 +383,9 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             normalized_message.type = Number.parseInt(message.payload.type);
             try {
                 normalized_message.event_time = message.payload.event_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.event_time)) : Number.parseInt(message.payload.event_time);
-            } catch (error) {
-                this.log.error(`Type ${DeviceType[normalized_message.type]} CusPush - event_time - Error:`, error);
+            } catch (err) {
+                const error = ensureError(err);
+                this.log.error(`Type ${DeviceType[normalized_message.type]} CusPush - event_time - Error`, error);
             }
             normalized_message.station_sn = message.payload.station_sn;
             if (normalized_message.type === DeviceType.FLOODLIGHT)
@@ -339,8 +399,9 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             normalized_message.content = message.payload.content;
             try {
                 normalized_message.push_time = message.payload.push_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.push_time)) : Number.parseInt(message.payload.push_time);
-            } catch (error) {
-                this.log.error(`Type ${DeviceType[normalized_message.type]} CusPush - push_time - Error:`, error);
+            } catch (err) {
+                const error = ensureError(err);
+                this.log.error(`Type ${DeviceType[normalized_message.type]} CusPush - push_time - Error`, error);
             }
 
             const excludeDevices = !Device.isBatteryDoorbell(normalized_message.type) && !Device.isWiredDoorbellDual(normalized_message.type) && !Device.isSensor(normalized_message.type) && !Device.isGarageCamera(normalized_message.type);
@@ -464,15 +525,17 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalized_message.device_online = push_data.m !== undefined ? push_data.m === 1 ? true : false : undefined;
                     try {
                         normalized_message.fetch_id = push_data.i !== undefined ? Number.parseInt(push_data.i) : undefined;
-                    } catch (error) {
-                        this.log.error(`Type ${DeviceType[normalized_message.type]} CusPushData - fetch_id - Error:`, error);
+                    } catch (err) {
+                        const error = ensureError(err);
+                        this.log.error(`Type ${DeviceType[normalized_message.type]} CusPushData - fetch_id - Error`, error);
                     }
                     normalized_message.sense_id = push_data.j;
                     normalized_message.battery_powered = push_data.batt_powered !== undefined ? push_data.batt_powered === 1 ? true : false : undefined;
                     try {
                         normalized_message.battery_low = push_data.bat_low !== undefined ? Number.parseInt(push_data.bat_low) : undefined;
-                    } catch (error) {
-                        this.log.error(`Type ${DeviceType[normalized_message.type]} CusPushData - battery_low - Error:`, error);
+                    } catch (err) {
+                        const error = ensureError(err);
+                        this.log.error(`Type ${DeviceType[normalized_message.type]} CusPushData - battery_low - Error`, error);
                     }
                     normalized_message.storage_type = push_data.storage_type !== undefined ? push_data.storage_type : 1;
                     normalized_message.unique_id = push_data.unique_id;
@@ -547,20 +610,23 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
     private async _open(renew = false): Promise<void> {
         if (!this.credentials || Object.keys(this.credentials).length === 0 || (this.credentials && this.credentials.fidResponse && new Date().getTime() >= this.credentials.fidResponse.authToken.expiresAt)) {
             this.log.debug(`Create new push credentials...`);
-            this.credentials = await this.createPushCredentials().catch(error => {
-                this.log.error("Create push credentials Error:", error);
+            this.credentials = await this.createPushCredentials().catch(err => {
+                const error = ensureError(err);
+                this.log.error("Create push credentials Error", error);
                 return undefined;
             });
         } else if (this.credentials && renew) {
             this.log.debug(`Renew push credentials...`);
-            this.credentials = await this.renewPushCredentials(this.credentials).catch(error => {
-                this.log.error("Push credentials renew Error:", error);
+            this.credentials = await this.renewPushCredentials(this.credentials).catch(err => {
+                const error = ensureError(err);
+                this.log.error("Push credentials renew Error", error);
                 return undefined;
             });
         } else {
             this.log.debug(`Login with previous push credentials...`, this.credentials);
-            this.credentials = await this.loginPushCredentials(this.credentials).catch(error => {
-                this.log.error("Push credentials login Error:", error);
+            this.credentials = await this.loginPushCredentials(this.credentials).catch(err => {
+                const error = ensureError(err);
+                this.log.error("Push credentials login Error", error);
                 return undefined;
             });
         }
@@ -611,7 +677,8 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
     public async open(): Promise<Credentials | undefined> {
         if (!this.connecting && !this.connected) {
             this.connecting = true;
-            await this._open().catch((error) => {
+            await this._open().catch((err) => {
+                const error = ensureError(err);
                 this.log.error(`Got exception trying to initialize push notifications`, error);
             });
 

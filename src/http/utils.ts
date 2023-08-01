@@ -9,6 +9,8 @@ import { Device } from "./device";
 import { Picture, Schedule } from "./interfaces";
 import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes } from "./types";
 import { HTTPApi } from "./api";
+import { ensureError } from "../error";
+import { ImageBaseCodeError } from "./error";
 
 const normalizeVersionString = function (version: string): number[] {
     const trimmed = version ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, "$1") : "";
@@ -415,7 +417,9 @@ export const getImageBaseCode = function(serialnumber: string, p2pDid: string): 
     let nr = 0;
     try {
         nr = Number.parseInt(`0x${serialnumber[serialnumber.length - 1]}`);
-    } catch (error) {
+    } catch (err) {
+        const error = ensureError(err);
+        throw new ImageBaseCodeError("Error generating image base code", { cause: error, context: { serialnumber: serialnumber, p2pDid: p2pDid } });
     }
     nr = (nr + 10) % 10;
     const base = serialnumber.substring(nr);
@@ -427,10 +431,10 @@ export const getImageSeed = function(p2pDid: string, code: string): string {
         const ncode = Number.parseInt(code.substring(2));
         const prefix = 1000 - getIdSuffix(p2pDid);
         return md5(`${prefix}${ncode}`).toString(enc_hex).toUpperCase();
-    } catch(error) {
-        //TODO: raise custom exception
+    } catch(err) {
+        const error = ensureError(err);
+        throw new ImageBaseCodeError("Error generating image seed", { cause: error, context: { p2pDid: p2pDid, code: code } });
     }
-    return ``;
 };
 
 export const getImageKey = function(serialnumber: string, p2pDid: string, code: string): string {

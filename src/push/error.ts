@@ -1,101 +1,97 @@
 import { BaseError, Jsonable } from "../error";
 
-export class InvalidPropertyError extends BaseError {
+export class UnknownExpiryFormaError extends BaseError {
     constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = InvalidPropertyError.name;
+        this.name = UnknownExpiryFormaError.name;
     }
 }
 
-export class LivestreamAlreadyRunningError extends BaseError {
+export class FidRegistrationFailedError extends BaseError {
     constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = LivestreamAlreadyRunningError.name;
+        this.name = FidRegistrationFailedError.name;
     }
 }
 
-export class LivestreamNotRunningError extends BaseError {
+export class RenewFidTokenFailedError extends BaseError {
     constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = LivestreamNotRunningError.name;
+        this.name = RenewFidTokenFailedError.name;
     }
 }
 
-export class PropertyNotSupportedError extends BaseError {
+export class ExecuteCheckInError extends BaseError {
     constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = PropertyNotSupportedError.name;
+        this.name = ExecuteCheckInError.name;
     }
 }
 
-export class ApiResponseCodeError extends BaseError {
+export class RegisterGcmError extends BaseError {
     constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = ApiResponseCodeError.name;
+        this.name = RegisterGcmError.name;
     }
 }
 
-export class ApiInvalidResponseError extends BaseError {
+export class BuildLoginRequestError extends BaseError {
     constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = ApiInvalidResponseError.name;
+        this.name = BuildLoginRequestError.name;
     }
 }
 
-export class ApiHTTPResponseCodeError extends BaseError {
+export class BuildHeartbeatPingRequestError extends BaseError {
     constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = ApiHTTPResponseCodeError.name;
+        this.name = BuildHeartbeatPingRequestError.name;
     }
 }
 
-export class ApiGenericError extends BaseError {
+export class BuildHeartbeatAckRequestError extends BaseError {
     constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = ApiGenericError.name;
+        this.name = BuildHeartbeatAckRequestError.name;
     }
 }
 
-export class ApiBaseLoadError extends BaseError {
-
+export class FidGenerationError extends BaseError {
     constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = ApiBaseLoadError.name;
+        this.name = FidGenerationError.name;
     }
 }
 
-export class ApiRequestError extends BaseError {
-
+export class MCSProtocolVersionError extends BaseError {
     constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = ApiRequestError.name;
+        this.name = MCSProtocolVersionError.name;
     }
 }
 
-export class ImageBaseCodeError extends BaseError {
-
+export class MCSProtocolProcessingStateError extends BaseError {
     constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = ImageBaseCodeError.name;
+        this.name = MCSProtocolProcessingStateError.name;
     }
 }
 
-export class ImageSeedError extends BaseError {
-
+export class MCSProtocolMessageTagError extends BaseError {
     constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
-        this.name = ImageSeedError.name;
+        this.name = MCSProtocolMessageTagError.name;
     }
 }

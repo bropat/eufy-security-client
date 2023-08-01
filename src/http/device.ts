@@ -15,6 +15,7 @@ import { isEmpty } from "../utils";
 import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
 import { DeviceSmartLockNotifyData } from "../mqtt/model";
 import { DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor } from "../p2p";
+import { ensureError } from "../error";
 
 export class Device extends TypedEmitter<DeviceEvents> {
 
@@ -76,7 +77,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             this.emit("property changed", this, name, value, this.ready);
             try {
                 this.handlePropertyChange(this.getPropertyMetadata(name, true), oldValue, this.properties[name]);
-            } catch (error) {
+            } catch (err) {
+                const error = ensureError(err);
                 if (error instanceof InvalidPropertyError) {
                     this.log.error(`Invalid Property ${name} error`, error);
                 } else {
@@ -124,7 +126,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             } else if (metadata.name === PropertyName.DeviceCellularRSSI && this.hasProperty(PropertyName.DeviceCellularSignalLevel)) {
                 this.updateProperty(PropertyName.DeviceCellularSignalLevel, calculateCellularSignalLevel(newValue as number));
             }
-        } catch (error) {
+        } catch (err) {
+            const error = ensureError(err);
             this.log.error(`Device handlePropertyChange error`, error, { metadata: metadata, oldValue: oldValue, newValue: newValue });
         }
     }
@@ -144,7 +147,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 if (property.key === type) {
                     try {
                         this.updateProperty(property.name, this.convertRawPropertyValue(property, this.rawProperties[type]));
-                    } catch (error) {
+                    } catch (err) {
+                        const error = ensureError(err);
                         if (error instanceof PropertyNotSupportedError) {
                             this.log.debug("Property not supported error", error);
                         } else {
@@ -171,8 +175,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
                             return value !== undefined ? (Number.parseInt((value as any).notification_ring_onoff) === 1 ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
-                        } catch (error) {
-                            this.log.error("Convert CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationRing Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationRing Error", { property: property, value: value, error: error });
                             return booleanProperty.default !== undefined ? booleanProperty.default : false;
                         }
                     }
@@ -180,8 +185,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
                             return value !== undefined ? (Number.parseInt((value as any).notification_motion_onoff) === 1 ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
-                        } catch (error) {
-                            this.log.error("Convert CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationMotion Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationMotion Error", { property: property, value: value, error: error });
                             return booleanProperty.default !== undefined ? booleanProperty.default : false;
                         }
                     }
@@ -189,8 +195,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const numericProperty = property as PropertyMetadataNumeric;
                         try {
                             return value !== undefined ? Number.parseInt((value as any).notification_style) : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
-                        } catch (error) {
-                            this.log.error("Convert CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationType Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationType Error", { property: property, value: value, error: error });
                             return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                         }
                     }
@@ -203,8 +210,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         case PropertyName.DeviceNotificationMotion:
                             return value !== undefined ? (Number.parseInt((value as any)) === 3 || Number.parseInt((value as any)) === 2 ? true : false) : false;
                     }
-                } catch (error) {
-                    this.log.error("Convert DOORBELL_NOTIFICATION_OPEN Error:", { property: property, value: value, error: error });
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Convert DOORBELL_NOTIFICATION_OPEN Error", { property: property, value: value, error: error });
                     return false;
                 }
             } else if (property.key === CommandType.CMD_SET_PIRSENSITIVITY) {
@@ -245,8 +253,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     } else {
                         return value !== undefined ? Number.parseInt(value) : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                     }
-                } catch (error) {
-                    this.log.error("Convert CMD_SET_PIRSENSITIVITY Error:", { property: property, value: value, error: error });
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Convert CMD_SET_PIRSENSITIVITY Error", { property: property, value: value, error: error });
                     return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
             } else if (property.key === CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_STARTTIME || property.key === CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_ENDTIME) {
@@ -277,8 +286,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         case PropertyName.DeviceMotionDetectionSensitivityAdvancedH:
                             return value !== undefined && (value as any).model === 1 ? getDistances((value as any).block_list)[7] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                     }
-                } catch (error) {
-                    this.log.error(`Convert CMD_DOORBELL_DUAL_RADAR_WD_DETECTION_SENSITIVITY ${property.name} Error:`, { property: property, value: value, error: error });
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error(`Convert CMD_DOORBELL_DUAL_RADAR_WD_DETECTION_SENSITIVITY ${property.name} Error`, { property: property, value: value, error: error });
                     return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
             } else if (property.key === CommandType.CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE) {
@@ -287,8 +297,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return ((value as any).setting !== undefined && (value as any).setting.length > 0 !== undefined && (value as any).setting[0].start_hour !== undefined && (value as any).setting[0].start_min !== undefined) ? `${(value as any).setting[0].start_hour.padStart(2, "0")}:${(value as any).setting[0].start_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
-                        } catch (error) {
-                            this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseTimeFrom Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseTimeFrom Error", { property: property, value: value, error: error });
                             return stringProperty.default !== undefined ? stringProperty.default : "";
                         }
                     }
@@ -296,8 +307,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return ((value as any).setting !== undefined && (value as any).setting.length > 0 !== undefined && (value as any).setting[0].end_hour !== undefined && (value as any).setting[0].end_min !== undefined) ? `${(value as any).setting[0].end_hour.padStart(2, "0")}:${(value as any).setting[0].end_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
-                        } catch (error) {
-                            this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseTimeTo Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseTimeTo Error", { property: property, value: value, error: error });
                             return stringProperty.default !== undefined ? stringProperty.default : "";
                         }
                     }
@@ -305,8 +317,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
                             return (value as any).setting[0].push_notify === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
-                        } catch (error) {
-                            this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponsePhoneNotification Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponsePhoneNotification Error", { property: property, value: value, error: error });
                             return booleanProperty.default !== undefined ? booleanProperty.default : false;
                         }
                     }
@@ -314,8 +327,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
                             return (value as any).setting[0].homebase_alert === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
-                        } catch (error) {
-                            this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseHomeBaseNotification Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseHomeBaseNotification Error", { property: property, value: value, error: error });
                             return booleanProperty.default !== undefined ? booleanProperty.default : false;
                         }
                     }
@@ -323,8 +337,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
                             return (value as any).setting[0].auto_voice_resp === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
-                        } catch (error) {
-                            this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseAutoVoiceResponse Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseAutoVoiceResponse Error", { property: property, value: value, error: error });
                             return booleanProperty.default !== undefined ? booleanProperty.default : false;
                         }
                     }
@@ -332,8 +347,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const numericProperty = property as PropertyMetadataNumeric;
                         try {
                             return ((value as any).setting !== undefined && (value as any).setting.length > 0 !== undefined && (value as any).setting[0].auto_voice_id !== undefined) ? (value as any).setting[0].auto_voice_id : numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
-                        } catch (error) {
-                            this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseAutoVoiceResponseVoice Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseAutoVoiceResponseVoice Error", { property: property, value: value, error: error });
                             return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                         }
                     }
@@ -342,16 +358,18 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 const booleanProperty = property as PropertyMetadataBoolean;
                 try {
                     return value !== undefined && (value as any).ai_bottom_switch !== undefined ? (value as any).ai_bottom_switch === 1024 : (booleanProperty.default !== undefined ? booleanProperty.default : false);
-                } catch (error) {
-                    this.log.error("Convert CMD_DOORBELL_DUAL_DELIVERY_GUARD_SWITCH Error:", { property: property, value: value, error: error });
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Convert CMD_DOORBELL_DUAL_DELIVERY_GUARD_SWITCH Error", { property: property, value: value, error: error });
                     return booleanProperty.default !== undefined ? booleanProperty.default : false;
                 }
             } else if (property.key === CommandType.CMD_DOORBELL_DUAL_PACKAGE_STRAND_TIME) {
                 const stringProperty = property as PropertyMetadataString;
                 try {
                     return ((value as any).start_h !== undefined && (value as any).start_m !== undefined) ? `${(value as any).start_h.toString().padStart(2, "0")}:${(value as any).start_m.toString().padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
-                } catch (error) {
-                    this.log.error("Convert CMD_DOORBELL_DUAL_PACKAGE_STRAND_TIME Error:", { property: property, value: value, error: error });
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Convert CMD_DOORBELL_DUAL_PACKAGE_STRAND_TIME Error", { property: property, value: value, error: error });
                     return stringProperty.default !== undefined ? stringProperty.default : "";
                 }
             } else if (property.key === CommandType.CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE) {
@@ -360,8 +378,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
                             return (value as any).setting[0].active === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
-                        } catch (error) {
-                            this.log.error("Convert CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponse Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponse Error", { property: property, value: value, error: error });
                             return booleanProperty.default !== undefined ? booleanProperty.default : false;
                         }
                     }
@@ -369,8 +388,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
                             return (value as any).setting[0].active === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
-                        } catch (error) {
-                            this.log.error("Convert CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseVoiceResponse Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseVoiceResponse Error", { property: property, value: value, error: error });
                             return booleanProperty.default !== undefined ? booleanProperty.default : false;
                         }
                     }
@@ -378,8 +398,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return ((value as any).setting !== undefined && (value as any).setting.length > 0 !== undefined && (value as any).setting[0].start_hour !== undefined && (value as any).setting[0].start_min !== undefined) ? `${(value as any).setting[0].start_hour.padStart(2, "0")}:${(value as any).setting[0].start_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
-                        } catch (error) {
-                            this.log.error("Convert CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseTimeFrom Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseTimeFrom Error", { property: property, value: value, error: error });
                             return stringProperty.default !== undefined ? stringProperty.default : "";
                         }
                     }
@@ -387,8 +408,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return ((value as any).setting !== undefined && (value as any).setting.length > 0 !== undefined && (value as any).setting[0].end_hour !== undefined && (value as any).setting[0].end_min !== undefined) ? `${(value as any).setting[0].end_hour.padStart(2, "0")}:${(value as any).setting[0].end_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
-                        } catch (error) {
-                            this.log.error("Convert CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseTimeTo Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseTimeTo Error", { property: property, value: value, error: error });
                             return stringProperty.default !== undefined ? stringProperty.default : "";
                         }
                     }
@@ -396,8 +418,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const numericProperty = property as PropertyMetadataNumeric;
                         try {
                             return ((value as any).setting !== undefined && (value as any).setting.length > 0 !== undefined && (value as any).setting[0].auto_voice_id !== undefined) ? (value as any).setting[0].auto_voice_id : numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
-                        } catch (error) {
-                            this.log.error("Convert CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseVoiceResponseVoice Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseVoiceResponseVoice Error", { property: property, value: value, error: error });
                             return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                         }
                     }
@@ -408,8 +431,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return ((value as any).start_h !== undefined && (value as any).start_m !== undefined) ? `${(value as any).start_h.toString().padStart(2, "0")}:${(value as any).start_m.toString().padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
-                        } catch (error) {
-                            this.log.error("Convert CMD_DOORBELL_DUAL_PACKAGE_GUARD_TIME DeviceDeliveryGuardPackageGuardingActivatedTimeFrom Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_DOORBELL_DUAL_PACKAGE_GUARD_TIME DeviceDeliveryGuardPackageGuardingActivatedTimeFrom Error", { property: property, value: value, error: error });
                             return stringProperty.default !== undefined ? stringProperty.default : "";
                         }
                     }
@@ -417,8 +441,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return ((value as any).end_h !== undefined && (value as any).end_m !== undefined) ? `${(value as any).end_h.toString().padStart(2, "0")}:${(value as any).end_m.toString().padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
-                        } catch (error) {
-                            this.log.error("Convert CMD_DOORBELL_DUAL_PACKAGE_GUARD_TIME DeviceDeliveryGuardPackageGuardingActivatedTimeTo Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_DOORBELL_DUAL_PACKAGE_GUARD_TIME DeviceDeliveryGuardPackageGuardingActivatedTimeTo Error", { property: property, value: value, error: error });
                             return stringProperty.default !== undefined ? stringProperty.default : "";
                         }
                     }
@@ -427,24 +452,27 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
                     return value !== undefined && (value as any).radar_wd_distance !== undefined ? (value as any).radar_wd_distance as number : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
-                } catch (error) {
-                    this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_DISTANCE Error:", { property: property, value: value, error: error });
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_DISTANCE Error", { property: property, value: value, error: error });
                     return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
             } else if (property.key === CommandType.CMD_DOORBELL_DUAL_RADAR_WD_TIME) {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
                     return value !== undefined && (value as any).radar_wd_time !== undefined ? (value as any).radar_wd_time as number : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
-                } catch (error) {
-                    this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_TIME Error:", { property: property, value: value, error: error });
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Convert CMD_DOORBELL_DUAL_RADAR_WD_TIME Error", { property: property, value: value, error: error });
                     return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
             } else if (property.key === CommandType.CMD_DOORBELL_DUAL_PACKAGE_GUARD_VOICE) {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
                     return value !== undefined && (value as any).auto_voice_id !== undefined ? (value as any).auto_voice_id as number : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
-                } catch (error) {
-                    this.log.error("Convert CMD_DOORBELL_DUAL_PACKAGE_GUARD_VOICE Error:", { property: property, value: value, error: error });
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Convert CMD_DOORBELL_DUAL_PACKAGE_GUARD_VOICE Error", { property: property, value: value, error: error });
                     return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
             } else if (property.key === CommandType.CMD_SET_SNOOZE_MODE) {
@@ -453,8 +481,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
                             return value !== undefined && (value as any).snooze_time !== undefined && (value as any).snooze_time !== "" && Number.parseInt((value as any).snooze_time) !== 0 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
-                        } catch (error) {
-                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnooze Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnooze Error", { property: property, value: value, error: error });
                             return booleanProperty.default !== undefined ? booleanProperty.default : false;
                         }
                     }
@@ -462,8 +491,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const numericProperty = property as PropertyMetadataNumeric;
                         try {
                             return value !== undefined && (value as any).snooze_time !== undefined && (value as any).snooze_time !== "" ? Number.parseInt((value as any).snooze_time) : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
-                        } catch (error) {
-                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeTime Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeTime Error", { property: property, value: value, error: error });
                             return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                         }
                     }
@@ -471,8 +501,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const numericProperty = property as PropertyMetadataNumeric;
                         try {
                             return value !== undefined && (value as any).startTime !== undefined ? Number.parseInt((value as any).startTime) : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
-                        } catch (error) {
-                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeTime Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeTime Error", { property: property, value: value, error: error });
                             return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                         }
                     }
@@ -480,8 +511,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
                             return value !== undefined && (value as any).homebase_onoff !== undefined ? ((value as any).homebase_onoff === 1 ? true : false) : (booleanProperty.default !== undefined ? booleanProperty.default : false);
-                        } catch (error) {
-                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeHomebase Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeHomebase Error", { property: property, value: value, error: error });
                             return booleanProperty.default !== undefined ? booleanProperty.default : false;
                         }
                     }
@@ -489,8 +521,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
                             return value !== undefined && (value as any).motion_notify_onoff !== undefined ? ((value as any).motion_notify_onoff === 1 ? true : false) : (booleanProperty.default !== undefined ? booleanProperty.default : false);
-                        } catch (error) {
-                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeMotion Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeMotion Error", { property: property, value: value, error: error });
                             return booleanProperty.default !== undefined ? booleanProperty.default : false;
                         }
                     }
@@ -498,8 +531,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
                             return value !== undefined && (value as any).chime_onoff !== undefined ? ((value as any).chime_onoff === 1 ? true : false) : (booleanProperty.default !== undefined ? booleanProperty.default : false);
-                        } catch (error) {
-                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeChime Error:", { property: property, value: value, error: error });
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error("Convert CMD_SET_SNOOZE_MODE DeviceSnoozeChime Error", { property: property, value: value, error: error });
                             return booleanProperty.default !== undefined ? booleanProperty.default : false;
                         }
                     }
@@ -514,8 +548,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 const booleanProperty = property as PropertyMetadataBoolean;
                 try {
                     return isHB3DetectionModeEnabled(Number.parseInt(value), property.name === PropertyName.DeviceMotionDetectionTypeHuman ? HB3DetectionTypes.HUMAN_DETECTION : property.name === PropertyName.DeviceMotionDetectionTypeHumanRecognition ? HB3DetectionTypes.HUMAN_RECOGNITION : property.name === PropertyName.DeviceMotionDetectionTypePet ? HB3DetectionTypes.PET_DETECTION : property.name === PropertyName.DeviceMotionDetectionTypeVehicle ? HB3DetectionTypes.VEHICLE_DETECTION : HB3DetectionTypes.ALL_OTHER_MOTION);
-                } catch (error) {
-                    this.log.error("Convert HB3 motion detection type Error:", { property: property, value: value, error: error });
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Convert HB3 motion detection type Error", { property: property, value: value, error: error });
                     return booleanProperty.default !== undefined ? booleanProperty.default : false;
                 }
             } else if (property.key === CommandType.CELLULAR_INFO) {
@@ -541,16 +576,18 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
                     return value !== undefined ? Number.parseInt(value) : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
-                } catch (error) {
-                    this.log.warn("PropertyMetadataNumeric Convert Error:", { property: property, value: value, error: error });
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.warn("PropertyMetadataNumeric Convert Error", { property: property, value: value, error: error });
                     return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
             } else if (property.type === "boolean") {
                 const booleanProperty = property as PropertyMetadataBoolean;
                 try {
                     return value !== undefined ? (value === "1" || value.toLowerCase() === "true" ? true : false) : (booleanProperty.default !== undefined ? booleanProperty.default : false);
-                } catch (error) {
-                    this.log.warn("PropertyMetadataBoolean Convert Error:", { property: property, value: value, error: error });
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.warn("PropertyMetadataBoolean Convert Error", { property: property, value: value, error: error });
                     return booleanProperty.default !== undefined ? booleanProperty.default : false;
                 }
             } else if (property.type === "string") {
@@ -560,8 +597,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 const objectProperty = property as PropertyMetadataObject;
                 return value !== undefined ? value : (objectProperty.default !== undefined ? objectProperty.default : undefined);
             }
-        } catch (error) {
-            this.log.error("Convert Error:", { property: property, value: value, error: error });
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("Convert Error", { property: property, value: value, error: error });
         }
         return value;
     }
@@ -570,7 +608,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         const property = this.getPropertiesMetadata(hidden)[name];
         if (property !== undefined)
             return property;
-        throw new InvalidPropertyError(`Property ${name} invalid`);
+        throw new InvalidPropertyError("Property name is not valid", { context: { name: name } });
     }
 
     public getPropertyValue(name: string): PropertyValue {
@@ -1325,6 +1363,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return this.rawDevice.device_channel;
     }
 
+    //TODO: To remove
     public getStateID(state: string, level = 2): string {
         switch (level) {
             case 0:
@@ -1382,8 +1421,9 @@ export class Camera extends Device {
                 case CommandType.CMD_SET_AUDIO_MUTE_RECORD:
                     return value !== undefined ? (value === "0" ? true : false) : false;
             }
-        } catch (error) {
-            this.log.error("Convert Error:", { property: property, value: value, error: error });
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("Convert Error", { property: property, value: value, error: error });
         }
         return super.convertRawPropertyValue(property, value);
     }
@@ -1398,13 +1438,16 @@ export class Camera extends Device {
 
     public async startDetection(): Promise<void> {
         // Start camera detection.
-        await this.setParameters([{ paramType: ParamType.DETECT_SWITCH, paramValue: 1 }]).catch(error => {
-            this.log.error("Error:", error);
+        //TODO: Deprecated. Will be removed!
+        await this.setParameters([{ paramType: ParamType.DETECT_SWITCH, paramValue: 1 }]).catch(err => {
+            const error = ensureError(err);
+            this.log.error("Start detection Error", error);
         });
     }
 
     public async startStream(): Promise<string> {
         // Start the camera stream and return the RTSP URL.
+        //TODO: Deprecated. Will be removed!
         try {
             const response = await this.api.request({
                 method: "post",
@@ -1414,9 +1457,6 @@ export class Camera extends Device {
                     station_sn: this.rawDevice.station_sn,
                     proto: 2
                 }
-            }).catch(error => {
-                this.log.error("Error:", error);
-                return error;
             });
             this.log.debug("Response:", response.data);
 
@@ -1436,8 +1476,9 @@ export class Camera extends Device {
             } else {
                 this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
             }
-        } catch (error) {
-            this.log.error("Generic Error:", error);
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("Generic Error", error);
         }
         return "";
     }
@@ -1449,6 +1490,7 @@ export class Camera extends Device {
 
     public async stopStream(): Promise<void> {
         // Stop the camera stream.
+        //TODO: Deprecated. Will be removed!
         try {
             const response = await this.api.request({
                 method: "post",
@@ -1458,9 +1500,6 @@ export class Camera extends Device {
                     station_sn: this.rawDevice.station_sn,
                     proto: 2
                 }
-            }).catch(error => {
-                this.log.error("Error:", error);
-                return error;
             });
             this.log.debug("Response:", response.data);
 
@@ -1475,8 +1514,9 @@ export class Camera extends Device {
             } else {
                 this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
             }
-        } catch (error) {
-            this.log.error("Generic Error:", error);
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("Generic Error", error);
         }
     }
 
@@ -1591,8 +1631,9 @@ export class Camera extends Device {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image, true);
                             }
-                        }).catch((error) => {
-                            this.log.debug(`CusPushEvent.SECURITY - Device: ${message.device_sn} - Get picture - Error:`, error);
+                        }).catch((err) => {
+                            const error = ensureError(err);
+                            this.log.debug(`CusPushEvent.SECURITY - Device: ${message.device_sn} - Get picture - Error`, error);
                         });
                     }
                     if (message.fetch_id !== undefined) {
@@ -1614,8 +1655,9 @@ export class Camera extends Device {
                             this.eventTimeouts.delete(DeviceEvent.MotionDetected);
                         }, eventDurationSeconds * 1000));
                     }
-                } catch (error) {
-                    this.log.debug(`CusPushEvent.SECURITY - Device: ${message.device_sn} Error:`, error);
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.debug(`CusPushEvent.SECURITY - Device: ${message.device_sn} Error`, error);
                 }
             } else if (message.msg_type === DeviceType.HB3) {
                 if (message.device_sn === this.getSerial()) {
@@ -1625,8 +1667,9 @@ export class Camera extends Device {
                                 if (image.data.length > 0) {
                                     this.updateProperty(PropertyName.DevicePicture, image, true);
                                 }
-                            }).catch((error) => {
-                                this.log.debug(`HB3PairedDevicePushEvent - Device: ${message.device_sn} - Get picture - Error:`, error);
+                            }).catch((err) => {
+                                const error = ensureError(err);
+                                this.log.debug(`HB3PairedDevicePushEvent - Device: ${message.device_sn} - Get picture - Error`, error);
                             });
                         }
                         switch (message.event_type) {
@@ -1728,8 +1771,9 @@ export class Camera extends Device {
                                 this.log.debug("Unhandled homebase3 camera push event", message);
                                 break;
                         }
-                    } catch (error) {
-                        this.log.debug(`HB3PairedDevicePushEvent - Device: ${message.device_sn} Error:`, error);
+                    } catch (err) {
+                        const error = ensureError(err);
+                        this.log.debug(`HB3PairedDevicePushEvent - Device: ${message.device_sn} Error`, error);
                     }
                 }
             }
@@ -1763,8 +1807,9 @@ export class SoloCamera extends Camera {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image, true);
                             }
-                        }).catch((error) => {
-                            this.log.debug(`SoloPushEvent - Device: ${message.device_sn} - Get picture - Error:`, error);
+                        }).catch((err) => {
+                            const error = ensureError(err);
+                            this.log.debug(`SoloPushEvent - Device: ${message.device_sn} - Get picture - Error`, error);
                         });
                     }
                     switch (message.event_type) {
@@ -1790,8 +1835,9 @@ export class SoloCamera extends Camera {
                             this.log.debug("Unhandled solo camera push event", message);
                             break;
                     }
-                } catch (error) {
-                    this.log.debug(`SoloPushEvent - Device: ${message.device_sn} Error:`, error);
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.debug(`SoloPushEvent - Device: ${message.device_sn} Error`, error);
                 }
             }
         }
@@ -1851,8 +1897,9 @@ export class IndoorCamera extends Camera {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image, true);
                             }
-                        }).catch((error) => {
-                            this.log.debug(`IndoorPushEvent - Device: ${message.device_sn} - Get picture - Error:`, error);
+                        }).catch((err) => {
+                            const error = ensureError(err);
+                            this.log.debug(`IndoorPushEvent - Device: ${message.device_sn} - Get picture - Error`, error);
                         });
                     }
                     switch (message.event_type) {
@@ -1902,8 +1949,9 @@ export class IndoorCamera extends Camera {
                             this.log.debug("Unhandled indoor camera push event", message);
                             break;
                     }
-                } catch (error) {
-                    this.log.debug(`IndoorPushEvent - Device: ${message.device_sn} Error:`, error);
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.debug(`IndoorPushEvent - Device: ${message.device_sn} Error`, error);
                 }
             }
         }
@@ -1991,8 +2039,9 @@ export class DoorbellCamera extends Camera {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image, true);
                             }
-                        }).catch((error) => {
-                            this.log.debug(`DoorbellPushEvent - Device: ${message.device_sn} - Get picture - Error:`, error);
+                        }).catch((err) => {
+                            const error = ensureError(err);
+                            this.log.debug(`DoorbellPushEvent - Device: ${message.device_sn} - Get picture - Error`, error);
                         });
                     }
                     switch (message.event_type) {
@@ -2067,8 +2116,9 @@ export class DoorbellCamera extends Camera {
                             this.log.debug("Unhandled doorbell push event", message);
                             break;
                     }
-                } catch (error) {
-                    this.log.debug(`DoorbellPushEvent - Device: ${message.device_sn} Error:`, error);
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.debug(`DoorbellPushEvent - Device: ${message.device_sn} Error`, error);
                 }
             }
         }
@@ -2157,8 +2207,9 @@ export class FloodlightCamera extends Camera {
                             return 5;
                     }
             }
-        } catch (error) {
-            this.log.error("Convert Error:", { property: property, value: value, error: error });
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("Convert Error", { property: property, value: value, error: error });
         }
         return super.convertRawPropertyValue(property, value);
     }
@@ -2173,8 +2224,9 @@ export class FloodlightCamera extends Camera {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image, true);
                             }
-                        }).catch((error) => {
-                            this.log.debug(`FloodlightPushEvent - Device: ${message.device_sn} - Get picture - Error:`, error);
+                        }).catch((err) => {
+                            const error = ensureError(err);
+                            this.log.debug(`FloodlightPushEvent - Device: ${message.device_sn} - Get picture - Error`, error);
                         });
                     }
                     switch (message.event_type) {
@@ -2200,8 +2252,9 @@ export class FloodlightCamera extends Camera {
                             this.log.debug("Unhandled floodlight push event", message);
                             break;
                     }
-                } catch (error) {
-                    this.log.debug(`FloodlightPushEvent - Device: ${message.device_sn} Error:`, error);
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.debug(`FloodlightPushEvent - Device: ${message.device_sn} Error`, error);
                 }
             }
         }
@@ -2262,8 +2315,9 @@ export class WallLightCam extends Camera {
                     return result;
                 }
             }
-        } catch (error) {
-            this.log.error("Convert Error:", { property: property, value: value, error: error });
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("Convert Error", { property: property, value: value, error: error });
         }
         return super.convertRawPropertyValue(property, value);
     }
@@ -2293,8 +2347,9 @@ export class WallLightCam extends Camera {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image);
                             }
-                        }).catch((error) => {
-                            this.log.debug(`WallLightCamPushEvent - Device: ${message.device_sn} - Get picture - Error:`, error);
+                        }).catch((err) => {
+                            const error = ensureError(err);
+                            this.log.debug(`WallLightCamPushEvent - Device: ${message.device_sn} - Get picture - Error`, error);
                         });
                     }
                     switch (message.event_type) {
@@ -2320,8 +2375,9 @@ export class WallLightCam extends Camera {
                             this.log.debug("Unhandled WallLightCam push event", message);
                             break;
                     }
-                } catch (error) {
-                    this.log.debug(`WallLightCamPushEvent - Device: ${message.device_sn} Error:`, error);
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.debug(`WallLightCamPushEvent - Device: ${message.device_sn} Error`, error);
                 }
             }
         }
@@ -2398,8 +2454,9 @@ export class GarageCamera extends Camera {
                     }
                     break;
             }
-        } catch (error) {
-            this.log.error("Convert Error:", { property: property, value: value, error: error });
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("Convert Error", { property: property, value: value, error: error });
         }
         return super.convertRawPropertyValue(property, value);
     }
@@ -2414,8 +2471,9 @@ export class GarageCamera extends Camera {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image);
                             }
-                        }).catch((error) => {
-                            this.log.debug(`GarageDoorPushEvent - Device: ${message.device_sn} - Get picture - Error:`, error);
+                        }).catch((err) => {
+                            const error = ensureError(err);
+                            this.log.debug(`GarageDoorPushEvent - Device: ${message.device_sn} - Get picture - Error`, error);
                         });
                     }
                     switch (message.event_type) {
@@ -2450,8 +2508,9 @@ export class GarageCamera extends Camera {
                             this.log.debug("Unhandled GarageDoor push event", message);
                             break;
                     }
-                } catch (error) {
-                    this.log.debug(`GarageDoorPushEvent - Device: ${message.device_sn} Error:`, error);
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.debug(`GarageDoorPushEvent - Device: ${message.device_sn} Error`, error);
                 }
             }
         }
@@ -2500,8 +2559,9 @@ export class EntrySensor extends Sensor {
                     if (message.sensor_open !== undefined) {
                         this.updateRawProperty(CommandType.CMD_ENTRY_SENSOR_STATUS, message.sensor_open ? "1" : "0");
                     }
-                } catch (error) {
-                    this.log.debug(`CusPushEvent.DOOR_SENSOR - Device: ${message.device_sn} Error:`, error);
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.debug(`CusPushEvent.DOOR_SENSOR - Device: ${message.device_sn} Error`, error);
                 }
             }
         }
@@ -2581,8 +2641,9 @@ export class MotionSensor extends Sensor {
                         this.updateProperty(PropertyName.DeviceMotionDetected, false);
                         this.eventTimeouts.delete(DeviceEvent.MotionDetected);
                     }, eventDurationSeconds * 1000));
-                } catch (error) {
-                    this.log.debug(`CusPushEvent.MOTION_SENSOR_PIR - Device: ${message.device_sn} Error:`, error);
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.debug(`CusPushEvent.MOTION_SENSOR_PIR - Device: ${message.device_sn} Error`, error);
                 }
             }
         }
@@ -2731,8 +2792,9 @@ export class Lock extends Device {
                         this.log.debug("Unhandled lock notification event", eventType, eventTime, deviceSN);
                         break;
                 }
-            } catch (error) {
-                this.log.debug(`LockEvent - Device: ${deviceSN} Error:`, error);
+            } catch (err) {
+                const error = ensureError(err);
+                this.log.debug(`LockEvent - Device: ${deviceSN} Error`, error);
             }
         }
     }
@@ -2989,8 +3051,9 @@ export class Keypad extends Device {
                 case CommandType.CMD_KEYPAD_BATTERY_CHARGER_STATE:
                     return value !== undefined ? (value === "0" || value === "2"? false : true) : false;
             }
-        } catch (error) {
-            this.log.error("Convert Error:", { property: property, value: value, error: error });
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("Convert Error", { property: property, value: value, error: error });
         }
         return super.convertRawPropertyValue(property, value);
     }
@@ -3161,8 +3224,9 @@ export class SmartSafe extends Device {
                 const booleanProperty = property as PropertyMetadataBoolean;
                 return value !== undefined ? ((Number.parseInt(value) >> SmartSafe.PUSH_NOTIFICATION_POSITION[property.name]) & 1) === 1 : booleanProperty.default !== undefined ? booleanProperty.default : false;
             }
-        } catch (error) {
-            this.log.error("Convert Error:", { property: property, value: value, error: error });
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("Convert Error", { property: property, value: value, error: error });
         }
         return super.convertRawPropertyValue(property, value);
     }
@@ -3283,8 +3347,9 @@ export class SmartSafe extends Device {
                             this.log.debug("Unhandled smart safe notification event", message.event_type, message.event_time, message.device_sn);
                             break;
                     }
-                } catch (error) {
-                    this.log.debug(`LockEvent - Device: ${message.device_sn} Error:`, error);
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.debug(`LockEvent - Device: ${message.device_sn} Error`, error);
                 }
             }
         }

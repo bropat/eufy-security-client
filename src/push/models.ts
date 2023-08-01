@@ -160,9 +160,16 @@ export interface Message {
 }
 
 export enum ProcessingState {
+    // Processing the version, tag, and size packets (assuming minimum length
+    // size packet). Only used during the login handshake.
     MCS_VERSION_TAG_AND_SIZE = 0,
+    // Processing the tag and size packets (assuming minimum length size
+    // packet). Used for normal messages.
     MCS_TAG_AND_SIZE = 1,
+    // Processing the size packet alone.
     MCS_SIZE = 2,
+    // Processing the protocol buffer bytes (for those messages with non-zero
+    // sizes).
     MCS_PROTO_BYTES = 3,
 }
 
