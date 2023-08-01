@@ -134,8 +134,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public updateRawProperty(type: number, value: string): boolean {
         const parsedValue = ParameterHelper.readValue(type, value, this.log);
-        if ((this.rawProperties[type] !== undefined && this.rawProperties[type] !== parsedValue)
-            || this.rawProperties[type] === undefined) {
+        if (parsedValue !== undefined && ((this.rawProperties[type] !== undefined && this.rawProperties[type] !== parsedValue)
+            || this.rawProperties[type] === undefined)) {
 
             this.rawProperties[type] = parsedValue;
             if (this.ready)
