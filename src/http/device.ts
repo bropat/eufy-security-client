@@ -1112,7 +1112,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             sn.startsWith("T8131") ||
             sn.startsWith("T8122") ||
             sn.startsWith("T8123") ||
-            sn.startsWith("T8124");
+            sn.startsWith("T8124") ||
+            sn.startsWith("T8134");
     }
 
     static isSmartTrackCard(type: number): boolean {
