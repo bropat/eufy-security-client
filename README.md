@@ -80,6 +80,11 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.7.1 (2023-08-08)
+
+* (bropat) Fixed regression introduced by commit 7471fbf (Fixed possible MaxListenersExceededWarning)
+* (bropat) Fixed issue not loading p2p properties over p2p connection for stations (HB2 and HB3)
+
 ### 2.7.0 (2023-08-01)
 
 * (bropat) Added support for Wired Wall Light Cam S100 (T84A1; #318)
