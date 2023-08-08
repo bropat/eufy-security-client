@@ -73,8 +73,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     } = {};
 
     private loadingEmitter = new EventEmitter();
-    private stationsLoaded?: Promise<void>;
-    private devicesLoaded?: Promise<void>;
+    private stationsLoaded?: Promise<void> = waitForEvent<void>(this.loadingEmitter, "stations loaded");
+    private devicesLoaded?: Promise<void> = waitForEvent<void>(this.loadingEmitter, "devices loaded");
 
     private constructor(config: EufySecurityConfig, log: Logger = dummyLogger) {
         super();
@@ -444,7 +444,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             if (stationsSNs.includes(hub.station_sn)) {
                 this.updateStation(hub);
             } else {
-                this.stationsLoaded = waitForEvent<void>(this.loadingEmitter, "stations loaded");
+                if (this.stationsLoaded === undefined)
+                    this.stationsLoaded = waitForEvent<void>(this.loadingEmitter, "stations loaded");
                 let ipAddress: string | undefined;
                 if (this.config.stationIPAddresses !== undefined) {
                     ipAddress = this.config.stationIPAddresses[hub.station_sn];
@@ -527,7 +528,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onStationConnect(station: Station): void {
         this.emit("station connect", station);
-        if ((Device.isCamera(station.getDeviceType()) && !Device.isWiredDoorbell(station.getDeviceType()) || Device.isSmartSafe(station.getDeviceType()))) {
+        if (Station.isStation(station.getDeviceType()) || (Device.isCamera(station.getDeviceType()) && !Device.isWiredDoorbell(station.getDeviceType()) || Device.isSmartSafe(station.getDeviceType()))) {
             station.getCameraInfo().catch(err => {
                 const error = ensureError(err);
                 this.log.error(`Error during station ${station.getSerial()} p2p data refreshing`, error);
@@ -576,7 +577,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             if (deviceSNs.includes(device.device_sn)) {
                 this.updateDevice(device);
             } else {
-                this.devicesLoaded = waitForEvent<void>(this.loadingEmitter, "devices loaded");
+                if (this.devicesLoaded === undefined)
+                    this.devicesLoaded = waitForEvent<void>(this.loadingEmitter, "devices loaded");
                 let new_device: Promise<Device>;
 
                 if (Device.isIndoorCamera(device.device_type)) {
