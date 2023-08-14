@@ -765,6 +765,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_2K ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
+            type == DeviceType.SOLO_CAMERA_SOLAR ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_2K ||
