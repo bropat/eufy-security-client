@@ -996,12 +996,17 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR == type;
     }
 
+    static isSoloCameraSolar(type: number): boolean {
+        return DeviceType.SOLO_CAMERA_SOLAR == type;
+    }
+
     static isSoloCameras(type: number): boolean {
         return Device.isSoloCamera(type) ||
             Device.isSoloCameraPro(type) ||
             Device.isSoloCameraSpotlight1080(type) ||
             Device.isSoloCameraSpotlight2k(type) ||
-            Device.isSoloCameraSpotlightSolar(type);
+            Device.isSoloCameraSpotlightSolar(type) ||
+            Device.isSoloCameraSolar(type);
     }
 
     static isStarlight4GLTE(type: number): boolean {
@@ -1246,6 +1251,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isSoloCameraSpotlightSolar(): boolean {
         return Device.isSoloCameraSpotlightSolar(this.rawDevice.device_type);
+    }
+
+    public isSoloCameraSolar(): boolean {
+        return Device.isSoloCameraSolar(this.rawDevice.device_type);
     }
 
     public isStarlight4GLTE(): boolean {
