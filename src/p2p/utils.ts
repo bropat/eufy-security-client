@@ -223,15 +223,14 @@ export const buildCommandHeader = (seqNumber: number, commandType: CommandType, 
 };
 
 
-export const buildCommandWithStringTypePayload = (value: string, channel = 0): Buffer => {
+export const buildCommandWithStringTypePayload = (value: Buffer, channel = 0, encrypted = false): Buffer => {
     // type = 6
     //setCommandWithString()
     const headerBuffer = Buffer.allocUnsafe(2);
     const emptyBuffer = Buffer.from([0x00, 0x00]);
     const magicBuffer = Buffer.from([0x01, 0x00]);
-    const channelBuffer = Buffer.from([channel, 0x00]);
-    const jsonBuffer = Buffer.from(value);
-    headerBuffer.writeUInt16LE(jsonBuffer.length, 0);
+    const channelBuffer = Buffer.from([channel, encrypted ? 1 : 0]);
+    headerBuffer.writeUInt16LE(value.length, 0);
 
     return Buffer.concat([
         headerBuffer,
@@ -239,7 +238,7 @@ export const buildCommandWithStringTypePayload = (value: string, channel = 0): B
         magicBuffer,
         channelBuffer,
         emptyBuffer,
-        jsonBuffer,
+        value,
     ]);
 };
 
@@ -675,4 +674,28 @@ export const DecimalToRGBColor = function(color: number): RGBColor {
 
 export const RGBColorToDecimal = function(color: RGBColor): number {
     return (color.red << 16) + (color.green << 8) + (color.blue);
+}
+
+export const isP2PCommandEncrypted = function(cmd: CommandType): boolean {
+    return [1001, 1002, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1015, 1017, 1019, 1035, 1045, 1056, 1145, 1146, 1152, 1200, 1207, 1210, 1213, 1214, 1226, 1227, 1229, 1230, 1233, 1236, 1240, 1241, 1243, 1246, 1272, 1273, 1275, 1400, 1401, 1402, 1403, 1408, 1409, 1410, 1412, 1413, 1506, 1507, 1607, 1609, 1610, 1611, 1702, 1703, 1704, 1705, 1706, 1707, 1708, 1709, 1013, 1202, 1205, 1206, 1024, 1025, 1132, 1215, 1216, 1217, 1414, 1026, 1164, 1201, 1027, 1047, 1048, 1029, 1034, 1036, 1043, 1057, 1203, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1232, 1234, 1235, 1237, 1238, 1248, 1253, 1257, 1269, 1800, 1037, 1040, 1038, 1049, 1050, 1051, 1054, 1060, 1204, 1254, 1255, 1256, 1258, 1259, 1260, 1261, 1262, 1264, 1271, 1350, 1404, 1101, 1106, 1108, 1110, 1111, 1112, 1113, 1114, 1116, 1117, 1118, 1119, 1121, 1103, 1129, 1211, 1228, 1231, 1242, 1249, 1250, 1251, 1252, 1405, 1406, 1407, 1700].includes(cmd);
+}
+
+export const getP2PCommandEncryptionKey = function(serialNumber: string, p2pDid: string): string {
+    return `${serialNumber.slice(-7)}${p2pDid.substring(p2pDid.indexOf("-"), p2pDid.indexOf("-") + 9)}`;
+}
+
+export const encryptP2PData = (data: Buffer, key: Buffer): Buffer => {
+    const cipher = createCipheriv("aes-128-ecb", key, null);
+    return Buffer.concat([
+        cipher.update(data),
+        cipher.final()]
+    );
+}
+
+export const decryptP2PData = (data: Buffer, key: Buffer): Buffer => {
+    const cipher = createDecipheriv("aes-128-ecb", key, null);
+    return Buffer.concat([
+        cipher.update(data),
+        cipher.final()]
+    );
 }
