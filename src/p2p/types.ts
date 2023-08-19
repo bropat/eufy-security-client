@@ -418,6 +418,7 @@ export enum CommandType {
     P2P_CALIBRATE_LOCK = 1960,
     P2P_DELETE_FINGER = 1953,
     P2P_DELETE_USER = 1951,
+    // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
     P2P_ENTER_OTA = 1238,
     P2P_GET_FINGER_PW_USAGE = 1963,
     P2P_GET_LOCK_PARAM = 1959,
@@ -426,6 +427,7 @@ export enum CommandType {
     P2P_PULL_BLE = 1962,
     P2P_QUERY_PW = 1954,
     P2P_QUERY_STATUS_IN_LOCK = 1955,
+    // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
     P2P_RESET = 1040,
     P2P_SET_LOCK_PARAM = 1958,
     P2P_UPDATE_PW = 1957,
@@ -502,6 +504,7 @@ export enum CommandType {
     CMD_SMARTSAFE_REMOTE_OPEN_TYPE = 1946165266,
     CMD_SMARTSAFE_RSSI = 1946165259,
     CMD_SMARTSAFE_VOLUME = 1946165249,
+    // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
     CMD_SMARTSAFE_PARAM_BASE = 1946165248,
     CMD_SMARTSAFE_SETTINGS = 1946157056,
     CMD_SMARTSAFE_STATUS_UPDATE = 1946157057,
@@ -1052,6 +1055,7 @@ export enum FilterDetectType {
     SOUND = 128,
     CRYING = 256,
     PACKAGE = 512,
+    // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
     PACKAGE_PICK_UP = 512,
     PACKAGE_DELIVERED = 1024,
 }
