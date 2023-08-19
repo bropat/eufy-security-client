@@ -7,7 +7,7 @@ import { SortedMap } from "sweet-collections";
 import date from "date-and-time";
 
 import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, ESLStationP2PThroughData, SmartSafeSettingsNotification, SmartSafeStatusNotification, CustomData, ESLBleV12P2PThroughData, CmdDatabaseImageResponse, EntrySensorStatus, GarageDoorStatus } from "./models";
-import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateBasicLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildVoidCommandPayload, isP2PQueueMessage, buildTalkbackAudioFrameHeader, getLocalIpAddress, decodeP2PCloudIPs, getLockV12P2PCommand, decodeSmartSafeData, decryptPayloadData, isP2PCommandEncrypted, encryptP2PData, getP2PCommandEncryptionKey } from "./utils";
+import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateBasicLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildVoidCommandPayload, isP2PQueueMessage, buildTalkbackAudioFrameHeader, getLocalIpAddress, decodeP2PCloudIPs, getLockV12P2PCommand, decodeSmartSafeData, decryptPayloadData } from "./utils";
 import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, P2PConnectionType, ChargingType, AlarmEvent, IndoorSoloSmartdropCommandType, SmartSafeCommandCode, ESLCommand, ESLBleCommand, TFCardStatus } from "./types";
 import { AlarmMode } from "../http/types";
 import { P2PDataMessage, P2PDataMessageAudio, P2PDataMessageBuilder, P2PMessageState, P2PDataMessageVideo, P2PMessage, P2PDataHeader, P2PDataMessageState, P2PClientProtocolEvents, DeviceSerial, P2PQueueMessage, P2PCommand, P2PVideoMessageState, P2PDatabaseResponse, P2PDatabaseQueryLatestInfoResponse, P2PDatabaseDeleteResponse, DatabaseQueryLatestInfo, DatabaseCountByDate, P2PDatabaseCountByDateResponse, P2PDatabaseQueryLocalResponse, DatabaseQueryLocal, P2PDatabaseQueryLocalHistoryRecordInfo, P2PDatabaseQueryLocalRecordCropPictureInfo } from "./interfaces";
@@ -505,7 +505,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (p2pcommand.value === undefined || typeof p2pcommand.value !== "number")
             throw new TypeError("value must be a number");
 
-        const payload = buildIntStringCommandPayload(p2pcommand.value, p2pcommand.valueSub === undefined ? 0 : p2pcommand.valueSub, p2pcommand.strValue === undefined ? "" : p2pcommand.strValue , p2pcommand.strValueSub === undefined ? "" : p2pcommand.strValueSub, p2pcommand.channel);
+        const payload = buildIntStringCommandPayload(this.rawStation.station_sn, this.rawStation.p2p_did, p2pcommand.commandType, p2pcommand.value, p2pcommand.valueSub === undefined ? 0 : p2pcommand.valueSub, p2pcommand.strValue === undefined ? "" : p2pcommand.strValue , p2pcommand.strValueSub === undefined ? "" : p2pcommand.strValueSub, p2pcommand.channel);
         if (p2pcommand.commandType === CommandType.CMD_NAS_TEST) {
             this.currentMessageState[P2PDataType.DATA].rtspStream[p2pcommand.channel] = p2pcommand.value === 1 ? true : false;
         }
@@ -518,7 +518,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (p2pcommand.value === undefined || typeof p2pcommand.value !== "number")
             throw new TypeError("value must be a number");
 
-        const payload = buildIntCommandPayload(p2pcommand.value, p2pcommand.strValue === undefined ? "" : p2pcommand.strValue, p2pcommand.channel);
+        const payload = buildIntCommandPayload(this.rawStation.station_sn, this.rawStation.p2p_did, p2pcommand.commandType, p2pcommand.value, p2pcommand.strValue === undefined ? "" : p2pcommand.strValue, p2pcommand.channel);
         this.sendCommand(p2pcommand.commandType, payload, p2pcommand.channel, undefined, customData);
     }
 
@@ -549,16 +549,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this.log.error(`CMD_DOORBELL_SET_PAYLOAD - Station ${this.rawStation.station_sn} - Error`, error);
             }
         }
-
-        let data: Buffer;
-        const encrypted = isP2PCommandEncrypted(p2pcommand.commandType);
-        if (encrypted) {
-            data = encryptP2PData(Buffer.from(p2pcommand.value), Buffer.from(getP2PCommandEncryptionKey(this.rawStation.station_sn, this.rawStation.p2p_did)))
-        } else {
-            data = Buffer.from(p2pcommand.value);
-        }
-        const payload = buildCommandWithStringTypePayload(data, p2pcommand.channel, encrypted);
-
+        const payload = buildCommandWithStringTypePayload(this.rawStation.station_sn, this.rawStation.p2p_did, p2pcommand.commandType, p2pcommand.value, p2pcommand.channel);
         this.sendCommand(p2pcommand.commandType, payload, p2pcommand.channel, nested_commandType, customData);
     }
 
@@ -570,7 +561,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (p2pcommand.strValueSub === undefined)
             throw new TypeError("strValueSub must be defined");
 
-        const payload = buildStringTypeCommandPayload(p2pcommand.strValue, p2pcommand.strValueSub, p2pcommand.channel);
+        const payload = buildStringTypeCommandPayload(this.rawStation.station_sn, this.rawStation.p2p_did, p2pcommand.commandType, p2pcommand.strValue, p2pcommand.strValueSub, p2pcommand.channel);
         this.sendCommand(p2pcommand.commandType, payload, p2pcommand.channel, p2pcommand.commandType, customData);
     }
 
