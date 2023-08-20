@@ -293,7 +293,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (this.stationsLoaded)
             await this.stationsLoaded;
         if (Object.keys(this.stations).includes(hub.station_sn)) {
-            this.stations[hub.station_sn].update(hub, this.stations[hub.station_sn] !== undefined && !this.stations[hub.station_sn].isIntegratedDevice() && this.stations[hub.station_sn].isConnected());
+            this.stations[hub.station_sn].update(hub);
             if (!this.stations[hub.station_sn].isConnected() && !this.stations[hub.station_sn].isEnergySavingDevice() && this.stations[hub.station_sn].isP2PConnectableDevice()) {
                 this.stations[hub.station_sn].setConnectionType(this.config.p2pConnectionSetup);
                 this.stations[hub.station_sn].connect();
@@ -344,7 +344,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (this.devicesLoaded)
             await this.devicesLoaded;
         if (Object.keys(this.devices).includes(device.device_sn))
-            this.devices[device.device_sn].update(device, this.stations[device.station_sn] !== undefined && !this.stations[device.station_sn].isIntegratedDevice() && this.stations[device.station_sn].isConnected())
+            this.devices[device.device_sn].update(device)
         else
             this.log.debug(`Device with this serial ${device.device_sn} doesn't exists and couldn't be updated!`);
     }
@@ -537,14 +537,14 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 clearTimeout(this.refreshEufySecurityP2PTimeout[station.getSerial()]);
                 delete this.refreshEufySecurityP2PTimeout[station.getSerial()];
             }
-            if (!station.isEnergySavingDevice()) {
-                this.refreshEufySecurityP2PTimeout[station.getSerial()] = setTimeout(() => {
-                    station.getCameraInfo().catch(err => {
-                        const error = ensureError(err);
-                        this.log.error(`Error during station ${station.getSerial()} p2p data refreshing`, error);
-                    });
-                }, this.P2P_REFRESH_INTERVAL_MIN * 60 * 1000);
-            }
+            //if (!station.isEnergySavingDevice()) {
+            this.refreshEufySecurityP2PTimeout[station.getSerial()] = setTimeout(() => {
+                station.getCameraInfo().catch(err => {
+                    const error = ensureError(err);
+                    this.log.error(`Error during station ${station.getSerial()} p2p data refreshing`, error);
+                });
+            }, this.P2P_REFRESH_INTERVAL_MIN * 60 * 1000);
+            //}
         }
     }
 
@@ -1947,17 +1947,14 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             } else if (name === PropertyName.DeviceRTSPStream && (value as boolean) === false) {
                 device.setCustomPropertyValue(PropertyName.DeviceRTSPStreamUrl, "");
             } else if (name === PropertyName.DevicePictureUrl && value !== "") {
-                const picture = device.getPropertyValue(PropertyName.DevicePicture);
-                if (picture === undefined || picture === null || (picture && (picture as Picture).data?.length === 0)) {
-                    this.getStation(device.getStationSerial()).then((station: Station) => {
-                        if (station.hasCommand(CommandName.StationDownloadImage)) {
-                            station.downloadImage(value as string);
-                        }
-                    }).catch((err) => {
-                        const error = ensureError(err);
-                        this.log.error(`Device property changed error (device: ${device.getSerial()} name: ${name}) - station download image (station: ${device.getStationSerial()} image_path: ${value})`, error);
-                    });
-                }
+                this.getStation(device.getStationSerial()).then((station: Station) => {
+                    if (station.hasCommand(CommandName.StationDownloadImage)) {
+                        station.downloadImage(value as string);
+                    }
+                }).catch((err) => {
+                    const error = ensureError(err);
+                    this.log.error(`Device property changed error (device: ${device.getSerial()} name: ${name}) - station download image (station: ${device.getStationSerial()} image_path: ${value})`, error);
+                });
             }
         } catch (err) {
             const error = ensureError(err);
@@ -2085,11 +2082,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             if (device.hasProperty(PropertyName.DeviceBattery)) {
                 const metadataBattery = device.getPropertyMetadata(PropertyName.DeviceBattery);
-                device.updateRawProperty(metadataBattery.key as number, batteryLevel.toString());
+                device.updateRawProperty(metadataBattery.key as number, batteryLevel.toString(), "p2p");
             }
             if (device.hasProperty(PropertyName.DeviceBatteryTemp)) {
                 const metadataBatteryTemperature = device.getPropertyMetadata(PropertyName.DeviceBatteryTemp);
-                device.updateRawProperty(metadataBatteryTemperature.key as number, temperature.toString());
+                device.updateRawProperty(metadataBatteryTemperature.key as number, temperature.toString(), "p2p");
             }
         }).catch((err) => {
             const error = ensureError(err);
@@ -2102,11 +2099,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             if (device.hasProperty(PropertyName.DeviceBattery)) {
                 const metadataBattery = device.getPropertyMetadata(PropertyName.DeviceBattery);
                 if (chargeType !== ChargingType.PLUGGED && batteryLevel > 0)
-                    device.updateRawProperty(metadataBattery.key as number, batteryLevel.toString());
+                    device.updateRawProperty(metadataBattery.key as number, batteryLevel.toString(), "p2p");
             }
             if (device.hasProperty(PropertyName.DeviceChargingStatus)) {
                 const metadataChargingStatus = device.getPropertyMetadata(PropertyName.DeviceChargingStatus);
-                device.updateRawProperty(metadataChargingStatus.key as number, chargeType.toString());
+                device.updateRawProperty(metadataChargingStatus.key as number, chargeType.toString(), "p2p");
             }
         }).catch((err) => {
             const error = ensureError(err);
@@ -2118,7 +2115,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             if (device.hasProperty(PropertyName.DeviceWifiRSSI)) {
                 const metadataWifiRssi = device.getPropertyMetadata(PropertyName.DeviceWifiRSSI);
-                device.updateRawProperty(metadataWifiRssi.key as number, rssi.toString());
+                device.updateRawProperty(metadataWifiRssi.key as number, rssi.toString(), "p2p");
             }
         }).catch((err) => {
             const error = ensureError(err);
@@ -2134,7 +2131,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             if (device.hasProperty(PropertyName.DeviceLight)) {
                 const metadataLight = device.getPropertyMetadata(PropertyName.DeviceLight);
-                device.updateRawProperty(metadataLight.key as number, enabled === true ? "1" : "0");
+                device.updateRawProperty(metadataLight.key as number, enabled === true ? "1" : "0", "p2p");
             }
         }).catch((err) => {
             const error = ensureError(err);
@@ -2443,7 +2440,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         this.getDevicesFromStation(station.getSerial()).then((devices: Device[]) => {
             for (const device of devices) {
-                if (device.getPropertyValue(PropertyName.DevicePictureUrl) === file && (device.getPropertyValue(PropertyName.DevicePicture) === undefined || device.getPropertyValue(PropertyName.DevicePicture) === null)) {
+                if (device.getPropertyValue(PropertyName.DevicePictureUrl) === file) {
                     this.log.debug(`onStationImageDownload - Set first picture for device ${device.getSerial()} file: ${file} picture_ext: ${picture.type.ext} picture_mime: ${picture.type.mime}`);
                     device.updateProperty(PropertyName.DevicePicture, picture);
                     break;
@@ -2493,7 +2490,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             if (device.hasProperty(PropertyName.DeviceSensorOpen)) {
                 const metadataSensorOpen = device.getPropertyMetadata(PropertyName.DeviceSensorOpen);
-                device.updateRawProperty(metadataSensorOpen.key as number, status.toString());
+                device.updateRawProperty(metadataSensorOpen.key as number, status.toString(), "p2p");
             }
         }).catch((err) => {
             const error = ensureError(err);
@@ -2503,7 +2500,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private onStationGarageDoorStatus(station: Station, channel: number, doorId:number, status: number): void {
         this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
-            device.updateRawProperty(CommandType.CMD_CAMERA_GARAGE_DOOR_STATUS, status.toString());
+            device.updateRawProperty(CommandType.CMD_CAMERA_GARAGE_DOOR_STATUS, status.toString(), "p2p");
         }).catch((err) => {
             const error = ensureError(err);
             this.log.error(`Station garage door status error (station: ${station.getSerial()} channel: ${channel})`, error);

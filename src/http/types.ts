@@ -2,6 +2,8 @@ import { DynamicLighting, RGBColor } from "../p2p";
 import { CommandType } from "../p2p/types";
 import { Commands, IndexedProperty, Properties, PropertyMetadataBoolean, PropertyMetadataNumeric, PropertyMetadataObject, PropertyMetadataString } from "./interfaces";
 
+export type SourceType = "p2p" | "http" | "push" | "mqtt";
+
 export enum DeviceType {
     //List retrieved from com.oceanwing.battery.cam.binder.model.QueryDeviceData
     STATION = 0,

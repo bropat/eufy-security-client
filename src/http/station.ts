@@ -4,11 +4,11 @@ import { Logger } from "ts-log";
 import date from "date-and-time";
 
 import { HTTPApi } from "./api";
-import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode, VideoTypeStoreToNAS, HB3DetectionTypes, WalllightNotificationType, DailyLightingType, MotionActivationMode, BaseStationProperties, LightingActiveMode } from "./types";
+import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode, VideoTypeStoreToNAS, HB3DetectionTypes, WalllightNotificationType, DailyLightingType, MotionActivationMode, BaseStationProperties, LightingActiveMode, SourceType } from "./types";
 import { SnoozeDetail, StationListResponse, StationSecuritySettings } from "./models"
 import { ParameterHelper } from "./parameter";
 import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValues, StationEvents, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, PropertyMetadataObject } from "./interfaces";
-import { encodePasscode, getBlocklist, getHB3DetectionMode, hexDate, hexTime, hexWeek, isGreaterEqualMinVersion, isNotificationSwitchMode, switchNotificationMode } from "./utils";
+import { encodePasscode, getBlocklist, getHB3DetectionMode, hexDate, hexTime, hexWeek, isGreaterEqualMinVersion, isNotificationSwitchMode, isPrioritySourceType, switchNotificationMode } from "./utils";
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor, StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
 import { AlarmEvent, CalibrateGarageType, ChargingType, CommandType, DatabaseReturnCode, ErrorCode, ESLBleCommand, ESLCommand, FilterDetectType, FilterEventType, FilterStorageType, IndoorSoloSmartdropCommandType, LockV12P2PCommand, P2PConnectionType, PanTiltDirection, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, TFCardStatus, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4, WatermarkSetting5 } from "../p2p/types";
@@ -136,7 +136,7 @@ export class Station extends TypedEmitter<StationEvents> {
         return this.rawStation;
     }
 
-    public update(station: StationListResponse, cloudOnlyProperties = false): void {
+    public update(station: StationListResponse): void {
         this.rawStation = station;
         this.p2pSession.updateRawStation(station);
 
@@ -148,9 +148,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.updateProperty(property.name, property.default);
             }
         }
-        if (!cloudOnlyProperties && this.rawStation.params) {
+        if (this.rawStation.params) {
             this.rawStation.params.forEach(param => {
-                this.updateRawProperty(param.param_type, param.param_value);
+                this.updateRawProperty(param.param_type, param.param_value, "http");
             });
         }
         this.log.debug("Normalized Properties", { stationSN: this.getSerial(), properties: this.properties });
@@ -181,7 +181,7 @@ export class Station extends TypedEmitter<StationEvents> {
     public updateRawProperties(values: RawValues): void {
         Object.keys(values).forEach(paramtype => {
             const param_type = Number.parseInt(paramtype);
-            this.updateRawProperty(param_type, values[param_type]);
+            this.updateRawProperty(param_type, values[param_type].value, values[param_type].source);
         });
     }
 
@@ -211,14 +211,17 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
-    public updateRawProperty(type: number, value: string): boolean {
+    public updateRawProperty(type: number, value: string, source: SourceType): boolean {
         const parsedValue = ParameterHelper.readValue(type, value, this.log);
-        if (parsedValue !== undefined && ((this.rawProperties[type] !== undefined && this.rawProperties[type] !== parsedValue)
-            || this.rawProperties[type] === undefined)) {
+        if (parsedValue !== undefined &&
+            ((this.rawProperties[type] !== undefined && this.rawProperties[type].value !== parsedValue && isPrioritySourceType(this.rawProperties[type].source, source)) || this.rawProperties[type] === undefined)) {
 
-            this.rawProperties[type] = parsedValue;
+            this.rawProperties[type] = {
+                value: parsedValue,
+                source: source
+            };
             if (this.ready) {
-                this.emit("raw property changed", this, type, this.rawProperties[type]);
+                this.emit("raw property changed", this, type, this.rawProperties[type].value);
 
                 try {
                     if (type === ParamType.GUARD_MODE) {
@@ -237,7 +240,7 @@ export class Station extends TypedEmitter<StationEvents> {
             for(const property of Object.values(metadata)) {
                 if (property.key === type) {
                     try {
-                        this.updateProperty(property.name, this.convertRawPropertyValue(property, this.rawProperties[type]));
+                        this.updateProperty(property.name, this.convertRawPropertyValue(property, this.rawProperties[type].value));
                     } catch (err) {
                         const error = ensureError(err);
                         if (error instanceof PropertyNotSupportedError) {
@@ -381,7 +384,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public getRawProperty(type: number): string {
-        return this.rawProperties[type];
+        return this.rawProperties[type].value;
     }
 
     public getRawProperties(): RawValues {
@@ -517,9 +520,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.log.info("Received push notification for changing guard mode", { guard_mode: message.station_guard_mode, current_mode: message.station_current_mode, stationSN: message.station_sn });
                 try {
                     if (message.station_guard_mode !== undefined)
-                        this.updateRawProperty(ParamType.GUARD_MODE, message.station_guard_mode.toString());
+                        this.updateRawProperty(ParamType.GUARD_MODE, message.station_guard_mode.toString(), "push");
                     if (message.station_current_mode !== undefined)
-                        this.updateRawProperty(CommandType.CMD_GET_ALARM_MODE, message.station_current_mode.toString());
+                        this.updateRawProperty(CommandType.CMD_GET_ALARM_MODE, message.station_current_mode.toString(), "push");
                 } catch (err) {
                     const error = ensureError(err);
                     this.log.debug(`Station ${message.station_sn} MODE_SWITCH event (${message.event_type}) - Error`, error);
@@ -531,7 +534,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }
         } else if (message.msg_type === CusPushEvent.TFCARD && message.station_sn === this.getSerial() && message.tfcard_status !== undefined) {
-            this.updateRawProperty(CommandType.CMD_GET_TFCARD_STATUS, message.tfcard_status.toString());
+            this.updateRawProperty(CommandType.CMD_GET_TFCARD_STATUS, message.tfcard_status.toString(), "push");
         }
     }
 
@@ -601,7 +604,10 @@ export class Station extends TypedEmitter<StationEvents> {
         const params: RawValues = {};
         const parsedValue = ParameterHelper.readValue(param, value, this.log);
         if (parsedValue !== undefined) {
-            params[param] = parsedValue;
+            params[param] = {
+                value: parsedValue,
+                source: "p2p"
+            };
             this.emit("raw device property changed", this._getDeviceSerial(channel), params);
         }
     }
@@ -737,7 +743,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private async onAlarmMode(mode: AlarmMode): Promise<void> {
         this.log.info(`Alarm mode for station ${this.getSerial()} changed to: ${AlarmMode[mode]}`);
-        this.updateRawProperty(CommandType.CMD_GET_ALARM_MODE, mode.toString());
+        this.updateRawProperty(CommandType.CMD_GET_ALARM_MODE, mode.toString(), "p2p");
         const armDelay = this.getArmDelay(mode);
         if (armDelay > 0) {
             this.emit("alarm arm delay event", this, armDelay);
@@ -857,7 +863,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const devices: { [index: string]: RawValues; } = {};
         cameraInfo.params.forEach(param => {
             if (param.dev_type === Station.CHANNEL || param.dev_type === Station.CHANNEL_INDOOR || this.isIntegratedDevice()) {
-                this.updateRawProperty(param.param_type, param.param_value);
+                this.updateRawProperty(param.param_type, param.param_value, "p2p");
                 if (param.param_type === CommandType.CMD_GET_ALARM_MODE) {
                     if (this.getDeviceType() !== DeviceType.STATION && this.getDeviceType() !== DeviceType.HB3)
                         // Trigger refresh Guard Mode
@@ -870,7 +876,10 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                     const parsedValue = ParameterHelper.readValue(param.param_type, param.param_value, this.log);
                     if (parsedValue !== undefined) {
-                        devices[device_sn][param.param_type] = parsedValue;
+                        devices[device_sn][param.param_type] = {
+                            value: parsedValue,
+                            source: "p2p"
+                        };
                     }
                 }
             } else {
@@ -881,7 +890,10 @@ export class Station extends TypedEmitter<StationEvents> {
                     }
                     const parsedValue = ParameterHelper.readValue(param.param_type, param.param_value, this.log);
                     if (parsedValue !== undefined) {
-                        devices[device_sn][param.param_type] = parsedValue;
+                        devices[device_sn][param.param_type] = {
+                            value: parsedValue,
+                            source: "p2p"
+                        };
                     }
                 }
             }
@@ -7711,7 +7723,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     private onTFCardStatus(channel: number, status: TFCardStatus): void {
-        this.updateRawProperty(CommandType.CMD_GET_TFCARD_STATUS, status.toString());
+        this.updateRawProperty(CommandType.CMD_GET_TFCARD_STATUS, status.toString(), "p2p");
     }
 
     public async databaseQueryLatestInfo(): Promise<void> {

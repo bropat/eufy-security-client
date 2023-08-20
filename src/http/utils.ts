@@ -7,7 +7,7 @@ import imageType from "image-type";
 
 import { Device } from "./device";
 import { Picture, Schedule } from "./interfaces";
-import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes } from "./types";
+import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType } from "./types";
 import { HTTPApi } from "./api";
 import { ensureError } from "../error";
 import { ImageBaseCodeError } from "./error";
@@ -504,3 +504,11 @@ export const getImage = async function(api: HTTPApi, serial: string, url: string
         type: type !== null ? type : { ext: "unknown", mime: "application/octet-stream" }
     };
 };
+
+export const isPrioritySourceType = function(current: SourceType | undefined, update: SourceType): boolean {
+    if (((current === "http" || current === "p2p" || current === "push" || current === "mqtt" || current === undefined) && (update === "p2p" || update === "push" || update === "mqtt")) ||
+        ((current === "http" || current === undefined) && update === "http")) {
+        return true;
+    }
+    return false;
+}

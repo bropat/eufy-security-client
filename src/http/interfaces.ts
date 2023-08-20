@@ -8,7 +8,7 @@ import { AlarmEvent, ChargingType, DatabaseReturnCode, SmartSafeAlarm911Event, S
 import { Camera, Device } from "./device";
 import { Cipher, Voice, Invite, DeviceListResponse, StationListResponse, HouseListResponse } from "./models";
 import { Station } from "./station";
-import { CommandName, PropertyName } from "./types";
+import { CommandName, PropertyName, SourceType } from "./types";
 import { TalkbackStream } from "../p2p/talkback";
 
 export type PropertyValue = number | boolean | string | object;
@@ -17,8 +17,13 @@ export interface PropertyValues {
     [index: string]: PropertyValue;
 }
 
+export interface RawValue {
+    value: string;
+    source: SourceType;
+}
+
 export interface RawValues {
-    [index: number]: string;
+    [index: number]: RawValue;
 }
 
 export interface Devices {
