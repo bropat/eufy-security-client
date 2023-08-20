@@ -1,6 +1,6 @@
 ![logo](_media/eufy-security-client.png)
 
-# eufy-security-client <small>2.7.1</small>
+# eufy-security-client <small>2.8.0</small>
 
 > This shared library allows to control [Eufy security devices](https://us.eufylife.com/collections/security) by connecting to the Eufy cloud servers and local/remote stations over p2p
 

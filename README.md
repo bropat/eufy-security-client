@@ -80,6 +80,13 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.8.0 (2023-08-20)
+
+* (bropat) Implemented p2p data encryption for all supported commands
+* (bropat) Improved updating of properties taking into account the priority/quality of the value source (http, p2p, push, mqtt)
+* (bropat) API request throttling optimised
+* (bropat) Fixed updating of the image property
+
 ### 2.7.1 (2023-08-08)
 
 * (bropat) Fixed regression introduced by commit 7471fbf (Fixed possible MaxListenersExceededWarning)

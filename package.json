@@ -1,6 +1,6 @@
 {
   "name": "eufy-security-client",
-  "version": "2.7.1",
+  "version": "2.8.0",
   "description": "Client to comunicate with Eufy-Security devices",
   "author": {
     "name": "bropat",
@@ -52,22 +52,22 @@
     "@cospired/i18n-iso-languages": "^4.1.0",
     "fs-extra": "^11.1.1",
     "sweet-collections": "^1.1.0",
-    "mqtt": "^5.0.2",
+    "mqtt": "^5.0.3",
     "node-schedule": "^2.1.1",
     "p-throttle": "^4.1.1",
     "image-type": "^4.1.0",
     "date-and-time": "^3.0.2"
   },
   "devDependencies": {
-    "@types/node": "^16.18.39",
+    "@types/node": "^16.18.41",
     "@types/qs": "^6.9.7",
     "@types/node-rsa": "^1.1.1",
     "@types/crypto-js": "^4.1.1",
     "@types/fs-extra": "^11.0.1",
     "@types/node-schedule": "^2.1.0",
-    "@typescript-eslint/eslint-plugin": "^6.3.0",
-    "@typescript-eslint/parser": "^6.3.0",
-    "eslint": "^8.46.0",
+    "@typescript-eslint/eslint-plugin": "^6.4.0",
+    "@typescript-eslint/parser": "^6.4.0",
+    "eslint": "^8.47.0",
     "typescript": "^5.1.6"
   },
   "bugs": {
