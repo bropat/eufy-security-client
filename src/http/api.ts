@@ -36,8 +36,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     private requestEufyCloud: Got;
 
     private throttle = pThrottle({
-        limit: 6,
-        interval: 10000,
+        limit: 5,
+        interval: 1000,
     });
 
     private devices: FullDevices = {};
@@ -173,7 +173,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 beforeRetry: [
                     (options, error, retryCount) => {
                         // This will be called on `retryWithMergedOptions(...)`
-                        this.log.debug(`Retrying [${retryCount}]: ${error?.code} (${error?.request?.requestUrl})`, { options: options });
+                        const statusCode = error?.response?.statusCode || 0;
+                        const { method, url, prefixUrl } = options;
+                        const shortUrl = getShortUrl(url, prefixUrl);
+                        const body = error?.response?.body ? error?.response?.body : error?.message;
+                        this.log.debug(`Retrying [${retryCount}]: ${error?.code} (${error?.request?.requestUrl})\n${statusCode} ${method} ${shortUrl}\n${body}`);
                         // Retrying [1]: ERR_NON_2XX_3XX_RESPONSE
                     }
                 ],
