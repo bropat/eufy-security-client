@@ -778,7 +778,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA_GARAGE_T8453_COMMON ||
             type == DeviceType.CAMERA_GARAGE_T8453 ||
             type == DeviceType.CAMERA_GARAGE_T8452 ||
-            type == DeviceType.CAMERA_FG)
+            type == DeviceType.CAMERA_FG ||
+            type == DeviceType.SMART_DROP)
             return true;
         return false;
     }
@@ -813,7 +814,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SMART_SAFE_7402 ||
             type == DeviceType.SMART_SAFE_7403 ||
             type == DeviceType.CAMERA_FG ||
-            type == DeviceType.WALL_LIGHT_CAM_81A0)
+            type == DeviceType.WALL_LIGHT_CAM_81A0 ||
+            type == DeviceType.SMART_DROP)
             //TODO: Add other battery devices
             return true;
         return false;
