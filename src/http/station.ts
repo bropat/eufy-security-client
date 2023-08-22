@@ -383,8 +383,8 @@ export class Station extends TypedEmitter<StationEvents> {
         return this.getPropertyValue(name) !== undefined;
     }
 
-    public getRawProperty(type: number): string {
-        return this.rawProperties[type].value;
+    public getRawProperty(type: number): string | undefined {
+        return this.rawProperties[type]?.value;
     }
 
     public getRawProperties(): RawValues {
@@ -1826,6 +1826,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
         this.log.debug(`Sending motion detection type homebase 3 command to station ${this.getSerial()} for device ${device.getSerial()} with value: ${value}`);
         try {
+            const aiDetectionType = device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number) !== undefined ? device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)! : "0";
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -1834,7 +1835,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     "mChannel": 0, //device.getChannel(),
                     "mValue3": 0,
                     "payload": {
-                        "ai_detect_type": getHB3DetectionMode(Number.parseInt(device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)), type, value),
+                        "ai_detect_type": getHB3DetectionMode(Number.parseInt(aiDetectionType), type, value),
                         "channel": device.getChannel(),
                     }
                 }),

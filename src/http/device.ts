@@ -622,8 +622,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return this.getPropertyValue(name) !== undefined;
     }
 
-    public getRawProperty(type: number): string {
-        return this.rawProperties[type].value;
+    public getRawProperty(type: number): string | undefined {
+        return this.rawProperties[type]?.value;
     }
 
     public getRawProperties(): RawValues {
