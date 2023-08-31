@@ -1110,3 +1110,17 @@ export interface LockV12P2PCommand {
     bleCommand: number;
     payload: LockV12P2PCommandType;
 }
+
+export enum EncryptionType {
+    NONE = 0,
+    LEVEL_1 = 1,
+    LEVEL_2 = 2,
+}
+
+export enum InternalP2PCommandType {
+    WithIntString,
+    WithInt,
+    WithStringPayload,
+    WithString,
+    WithoutData,
+}

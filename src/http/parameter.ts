@@ -1,7 +1,7 @@
 import { Logger } from "ts-log";
 
 import { CommandType } from "../p2p/types";
-import { decodeBase64 } from "../p2p/utils";
+import { decodeBase64, getNullTerminatedString } from "../p2p/utils";
 import { parseJSON } from "../utils";
 import { ParamType } from "./types";
 
@@ -26,7 +26,7 @@ export class ParameterHelper {
                 type === CommandType.CMD_WALL_LIGHT_SETTINGS_COLORED_LIGHTING_COLORS ||
                 type === CommandType.CMD_WALL_LIGHT_SETTINGS_DYNAMIC_LIGHTING_THEMES) {
                 if (typeof value === "string") {
-                    const parsedValue = parseJSON(decodeBase64(value).toString("utf8"), log);
+                    const parsedValue = parseJSON(getNullTerminatedString(decodeBase64(value), "utf-8"), log);
                     if (parsedValue === undefined) {
                         log.warn("Non-parsable parameter value received from eufy cloud. Will be ignored.", { type: type, value: value });
                     }

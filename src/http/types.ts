@@ -5065,7 +5065,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
         [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
-    [DeviceType.FLOODLIGHT_CAMERA_8424]: {
+    [DeviceType.FLOODLIGHT_CAMERA_8424]: { // T8424 Firmware: 2.0.8.8 (20230807)
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
@@ -5095,8 +5095,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
         [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityIndoorProperty,
-        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
-        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        //[PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        //[PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
         [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,

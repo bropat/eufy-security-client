@@ -2,9 +2,16 @@ import * as crypto from "crypto";
 import { Logger } from "ts-log";
 import EventEmitter from "events";
 
-import { EufySecurityPersistentData } from "./interfaces";
+import { ErrorObject, EufySecurityPersistentData } from "./interfaces";
 import { InvalidPropertyValueError, ensureError } from "./error";
 import { PropertyMetadataAny, PropertyMetadataNumeric, PropertyMetadataObject, PropertyMetadataString } from "./http/interfaces";
+
+export const getError = function(error: Error): ErrorObject {
+    return {
+        message: `${error.name}: ${error.message}`,
+        stacktrace: error.stack
+    };
+}
 
 export const removeLastChar = function(text: string, char: string): string {
     const strArr = [...text];
@@ -117,7 +124,7 @@ export const parseJSON = function(data: string, log: Logger): any {
         return JSON.parse(data.replace(/[\0]+$/g, ""));
     } catch(err) {
         const error = ensureError(err);
-        log.error("JSON parse error", { data: data, error: error });
+        log.error("JSON parse error", { error: getError(error), data: data });
     }
     return undefined;
 }

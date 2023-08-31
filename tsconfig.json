@@ -14,7 +14,7 @@
         "noEmitOnError": true,
         "outDir": "./build/",
         "removeComments": false,
-        "module": "CommonJS",
+        "module": "Node16",
         "moduleResolution": "Node16",
         // this is necessary for the automatic typing of the adapter config
         "resolveJsonModule": true,

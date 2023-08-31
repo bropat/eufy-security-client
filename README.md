@@ -80,6 +80,12 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.8.1 (2023-08-31)
+
+* (bropat) Automatic detection of supported P2P encryption (none, type1, type2)
+* (bropat) Fixed regression introduced with activating p2p encryption for all devices (some older devices do not support it!)
+* (bropat) Updated versions of the package dependencies
+
 ### 2.8.0 (2023-08-20)
 
 * (bropat) Implemented p2p data encryption for all supported commands

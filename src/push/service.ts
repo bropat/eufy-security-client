@@ -10,7 +10,7 @@ import { PushNotificationServiceEvents } from "./interfaces";
 import { Device } from "../http/device";
 import { DeviceType } from "../http/types";
 import { getAbsoluteFilePath } from "../http/utils";
-import { getShortUrl, isEmpty, parseJSON } from "../utils";
+import { getError, getShortUrl, isEmpty, parseJSON } from "../utils";
 import { ExecuteCheckInError, FidRegistrationFailedError, RegisterGcmError, RenewFidTokenFailedError, UnknownExpiryFormaError } from "./error";
 import { ensureError } from "../error";
 
@@ -101,12 +101,12 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     },
                 };
             } else {
-                this.log.error("registerFid - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
+                this.log.error("Register FID - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
                 throw new FidRegistrationFailedError("FID registration failed", { context: { status: response.statusCode, statusText: response.statusMessage, data: response.body } });
             }
         } catch (err) {
             const error = ensureError(err);
-            this.log.error("registerFid - Generic Error", error);
+            this.log.error("Register FID - Generic Error", { error: getError(error) });
             throw new FidRegistrationFailedError("FID registration failed", { cause: error, context: { fid: fid } });
         }
     }
@@ -162,12 +162,12 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     expiresAt: this.buildExpiresAt(result.expiresIn),
                 };
             } else {
-                this.log.error("renewFidToken - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
+                this.log.error("Renew FID Token - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
                 throw new RenewFidTokenFailedError("FID Token renewal failed", { context: { status: response.statusCode, statusText: response.statusMessage, data: response.body } });
             }
         } catch (err) {
             const error = ensureError(err);
-            this.log.error("renewFidToken - Generic Error", error);
+            this.log.error("Renew FID Token - Generic Error", { error: getError(error) });
             throw new RenewFidTokenFailedError("FID Token renewal failed", { cause: error, context: { fid: fid, refreshToken: refreshToken } });
         }
     }
@@ -267,12 +267,12 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             if (response.statusCode == 200) {
                 return await parseCheckinResponse(response.body);
             } else {
-                this.log.error("executeCheckin - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
+                this.log.error("Check in - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
                 throw new ExecuteCheckInError("Google checkin failed", { context: { status: response.statusCode, statusText: response.statusMessage, data: response.body } });
             }
         } catch (err) {
             const error = ensureError(err);
-            this.log.error("executeCheckin - Generic Error", error);
+            this.log.error("Check in - Generic Error", { error: getError(error) });
             throw new ExecuteCheckInError("Google checkin failed", { cause: error });
         }
     }
@@ -357,7 +357,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         };
                     }
                 } else {
-                    this.log.error("registerGcm - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
+                    this.log.error("Register GCM - Status return code not 200", { status: response.statusCode, statusText: response.statusMessage, data: response.body });
                     throw new RegisterGcmError("Google register to GCM failed", { context: { status: response.statusCode, statusText: response.statusMessage, data: response.body } });
                 }
                 await sleep(10000 * retry_count);
@@ -365,7 +365,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             throw new RegisterGcmError("Max GCM registration retries reached");
         } catch (err) {
             const error = ensureError(err);
-            this.log.error("registerGcm - Generic Error", error);
+            this.log.error("Register GCM - Generic Error", { error: getError(error) });
             throw new RegisterGcmError("Google register to GCM failed", { cause: error, context: { fidInstallationResponse: fidInstallationResponse, checkinResponse: checkinResponse } });
         }
     }
@@ -385,7 +385,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 normalized_message.event_time = message.payload.event_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.event_time)) : Number.parseInt(message.payload.event_time);
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error(`Type ${DeviceType[normalized_message.type]} CusPush - event_time - Error`, error);
+                this.log.error(`Normalize push message - Type ${DeviceType[normalized_message.type]} CusPush - event_time - Error`, { error: getError(error), message: message });
             }
             normalized_message.station_sn = message.payload.station_sn;
             if (normalized_message.type === DeviceType.FLOODLIGHT)
@@ -401,7 +401,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 normalized_message.push_time = message.payload.push_time !== undefined ? convertTimestampMs(Number.parseInt(message.payload.push_time)) : Number.parseInt(message.payload.push_time);
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error(`Type ${DeviceType[normalized_message.type]} CusPush - push_time - Error`, error);
+                this.log.error(`Normalize push message - Type ${DeviceType[normalized_message.type]} CusPush - push_time - Error`, { error: getError(error), message: message });
             }
 
             const excludeDevices = !Device.isBatteryDoorbell(normalized_message.type) && !Device.isWiredDoorbellDual(normalized_message.type) && !Device.isSensor(normalized_message.type) && !Device.isGarageCamera(normalized_message.type);
@@ -527,7 +527,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         normalized_message.fetch_id = push_data.i !== undefined ? Number.parseInt(push_data.i) : undefined;
                     } catch (err) {
                         const error = ensureError(err);
-                        this.log.error(`Type ${DeviceType[normalized_message.type]} CusPushData - fetch_id - Error`, error);
+                        this.log.error(`Normalize push message - Type ${DeviceType[normalized_message.type]} CusPushData - fetch_id - Error`, { error: getError(error), message: message });
                     }
                     normalized_message.sense_id = push_data.j;
                     normalized_message.battery_powered = push_data.batt_powered !== undefined ? push_data.batt_powered === 1 ? true : false : undefined;
@@ -535,7 +535,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         normalized_message.battery_low = push_data.bat_low !== undefined ? Number.parseInt(push_data.bat_low) : undefined;
                     } catch (err) {
                         const error = ensureError(err);
-                        this.log.error(`Type ${DeviceType[normalized_message.type]} CusPushData - battery_low - Error`, error);
+                        this.log.error(`Normalize push message - Type ${DeviceType[normalized_message.type]} CusPushData - battery_low - Error`, { error: getError(error), message: message });
                     }
                     normalized_message.storage_type = push_data.storage_type !== undefined ? push_data.storage_type : 1;
                     normalized_message.unique_id = push_data.unique_id;
@@ -587,11 +587,11 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
     }
 
     private onMessage(message: RawPushMessage): void {
-        this.log.debug("Raw push message received", message);
+        this.log.debug("Raw push message received", { message: message });
         this.emit("raw message", message);
 
         const normalized_message = this._normalizePushMessage(message);
-        this.log.debug("Normalized push message received", normalized_message);
+        this.log.debug("Normalized push message received", { message: normalized_message });
         this.emit("message", normalized_message);
     }
 
@@ -625,24 +625,24 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
     private async _open(renew = false): Promise<void> {
         if (!this.credentials || Object.keys(this.credentials).length === 0 || (this.credentials && this.credentials.fidResponse && new Date().getTime() >= this.credentials.fidResponse.authToken.expiresAt)) {
-            this.log.debug(`Create new push credentials...`);
+            this.log.debug(`Create new push credentials...`, { credentials: this.credentials, renew: renew });
             this.credentials = await this.createPushCredentials().catch(err => {
                 const error = ensureError(err);
-                this.log.error("Create push credentials Error", error);
+                this.log.error("Create push credentials Error", { error: getError(error), credentials: this.credentials, renew: renew });
                 return undefined;
             });
         } else if (this.credentials && renew) {
-            this.log.debug(`Renew push credentials...`);
+            this.log.debug(`Renew push credentials...`, { credentials: this.credentials, renew: renew });
             this.credentials = await this.renewPushCredentials(this.credentials).catch(err => {
                 const error = ensureError(err);
-                this.log.error("Push credentials renew Error", error);
+                this.log.error("Push credentials renew Error", { error: getError(error), credentials: this.credentials, renew: renew });
                 return undefined;
             });
         } else {
-            this.log.debug(`Login with previous push credentials...`, this.credentials);
+            this.log.debug(`Login with previous push credentials...`, { credentials: this.credentials });
             this.credentials = await this.loginPushCredentials(this.credentials).catch(err => {
                 const error = ensureError(err);
-                this.log.error("Push credentials login Error", error);
+                this.log.error("Push credentials login Error", { error: getError(error), credentials: this.credentials, renew: renew });
                 return undefined;
             });
         }
@@ -686,7 +686,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             this.emit("close");
             this.connected = false;
             this.connecting = false;
-            this.log.error("Push notifications are disabled, because the registration failed!");
+            this.log.error("Push notifications are disabled, because the registration failed!", { credentials: this.credentials, renew: renew });
         }
     }
 
@@ -695,7 +695,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             this.connecting = true;
             await this._open().catch((err) => {
                 const error = ensureError(err);
-                this.log.error(`Got exception trying to initialize push notifications`, error);
+                this.log.error(`Got exception trying to initialize push notifications`, { error: getError(error), credentials: this.credentials });
             });
 
             if (!this.credentials) {

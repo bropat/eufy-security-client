@@ -13,8 +13,9 @@ import { EventFilterType, PublicKeyType, ResponseErrorCode, StorageType, VerfyCo
 import { ParameterHelper } from "./parameter";
 import { encryptAPIData, decryptAPIData, getTimezoneGMTString, decodeImage } from "./utils";
 import { InvalidCountryCodeError, InvalidLanguageCodeError, ensureError } from "./../error";
-import { getShortUrl, md5, mergeDeep, parseJSON } from "./../utils";
+import { getError, getShortUrl, md5, mergeDeep, parseJSON } from "./../utils";
 import { ApiBaseLoadError, ApiGenericError, ApiHTTPResponseCodeError, ApiInvalidResponseError, ApiRequestError, ApiResponseCodeError } from "./error";
+import { getNullTerminatedString } from "../p2p/utils";
 
 export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
@@ -79,7 +80,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         this.log = log;
         this.apiBase = apiBase;
 
-        this.log.debug(`Loaded API_BASE: ${apiBase}`);
+        this.log.debug(`Loaded API`, { apieBase: apiBase, country: country, username: username, persistentData: persistentData });
 
         this.headers.timezone = getTimezoneGMTString();
         this.headers.country = country.toUpperCase();
@@ -95,7 +96,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 this.ecdh.setPrivateKey(Buffer.from(this.persistentData.clientPrivateKey, "hex"));
             } catch (err) {
                 const error = ensureError(err);
-                this.log.debug(`Invalid client private key, generate new client private key...`, error);
+                this.log.debug(`Invalid client private key, generate new client private key...`, { error: getError(error) });
                 this.ecdh.generateKeys();
                 this.persistentData.clientPrivateKey = this.ecdh.getPrivateKey().toString("hex");
             }
@@ -107,7 +108,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex"))
             } catch (err) {
                 const error = ensureError(err);
-                this.log.debug(`Invalid server public key, fallback to default server public key...`, error);
+                this.log.debug(`Invalid server public key, fallback to default server public key...`, { error: getError(error) });
                 this.persistentData.serverPublicKey = this.SERVER_PUBLIC_KEY;
             }
         }
@@ -195,19 +196,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         return error;
                     }
                 ],
-                /*beforeError: [
-                    error => {
-                        const { response } = error;
-                        if (response && response.body) {
-                            const result = (response.body as ResultResponse);
-                            error.name = "EufyError";
-                            error.message = `Code: ${result.code} Message: ${result.msg} (HTTP Code: ${response.statusCode})`;
-                            this.log.error(`${error.name} - ${error.message} - requestUrl: ${error.request?.requestUrl}`);
-                        }
-
-                        return error;
-                    }
-                ],*/
                 beforeRequest: [
                     async _options => {
                         await this.throttle(async () => { return; })();
@@ -302,7 +290,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         options = mergeDeep(options, {
             force: false
         } as LoginOptions) as LoginOptions;
-        this.log.debug("Login and get an access token", { token: this.token, tokenExpiration: this.tokenExpiration });
+        this.log.debug("Login and get an access token", { token: this.token, tokenExpiration: this.tokenExpiration, options: options });
         if (!this.token || (this.tokenExpiration && (new Date()).getTime() >= this.tokenExpiration.getTime()) || options.verifyCode || options.captcha || options.force) {
             try {
                 const data: LoginRequest = {
@@ -346,14 +334,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 ...this.headers,
                                 gtoken: md5(dataresult.user_id)
                             };
-                            this.log.debug("Token data", { token: this.token, tokenExpiration: this.tokenExpiration, serverPublicKey: this.persistentData.serverPublicKey });
+                            this.log.debug("Login - Token data", { token: this.token, tokenExpiration: this.tokenExpiration, serverPublicKey: this.persistentData.serverPublicKey });
                             if (!this.connected) {
                                 this.connected = true;
                                 this.emit("connect");
                             }
                             this.scheduleRenewAuthToken();
                         } else if (result.code == ResponseErrorCode.CODE_NEED_VERIFY_CODE) {
-                            this.log.debug(`Send verification code...`);
+                            this.log.debug(`Login - Send verification code...`);
                             const dataresult: LoginResultResponse = result.data;
 
                             this.setToken(dataresult.auth_token);
@@ -364,23 +352,23 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             this.emit("tfa request");
                         } else if (result.code == ResponseErrorCode.LOGIN_NEED_CAPTCHA || result.code == ResponseErrorCode.LOGIN_CAPTCHA_ERROR) {
                             const dataresult: CaptchaResponse = result.data;
-                            this.log.debug("Captcha verification received", { captchaId: dataresult.captcha_id, item: dataresult.item });
+                            this.log.debug("Login - Captcha verification received", { captchaId: dataresult.captcha_id, item: dataresult.item });
                             this.emit("captcha request", dataresult.captcha_id, dataresult.item);
                         } else {
-                            this.log.error("Response code not ok", {code: result.code, msg: result.msg });
+                            this.log.error("Login - Response code not ok", {code: result.code, msg: result.msg, data: response.data });
                             this.emit("connection error", new ApiResponseCodeError("API response code not ok", { context: { code: result.code, message: result.msg } }));
                         }
                     } else {
-                        this.log.error("Response data is missing", {code: result.code, msg: result.msg, data: result.data });
+                        this.log.error("Login - Response data is missing", {code: result.code, msg: result.msg, data: result.data });
                         this.emit("connection error", new ApiInvalidResponseError("API response data is missing", { context: { code: result.code, message: result.msg, data: result.data } }));
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Login - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
                     this.emit("connection error", new ApiHTTPResponseCodeError("API HTTP response code not ok", { context: { status: response.status, statusText: response.statusText } }));
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error:", error);
+                this.log.error("Login - Generic Error:", { error: getError(error) });
                 this.emit("connection error", new ApiGenericError("Generic API error", { cause: error }));
             }
         } else if (!this.connected) {
@@ -395,7 +383,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("getPassportProfile Error", error);
+                this.log.error("Login - getPassportProfile Error", { error: getError(error) });
                 this.emit("connection error", new ApiGenericError("API get passport profile error", { cause: error }));
             }
         }
@@ -420,14 +408,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     this.log.info(`Requested verification code for 2FA`);
                     return true;
                 } else {
-                    this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                    this.log.error("Send verify code - Response code not ok", { code: result.code, msg: result.msg, data: response.data });
                 }
             } else {
-                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                this.log.error("Send verify code - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
             }
         } catch (err) {
             const error = ensureError(err);
-            this.log.error("Generic Error", error);
+            this.log.error("Send verify code - Generic Error", { error: getError(error) });
         }
         return false;
     }
@@ -446,14 +434,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             return result.data.list;
                         }
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("List trust device - Response code not ok", { code: result.code, msg: result.msg, data: response.data });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("List trust device - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("List trust device - Generic Error", { error: getError(error) });
             }
         }
         return [];
@@ -470,7 +458,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         transaction: `${new Date().getTime()}`
                     }
                 });
-                this.log.debug("Response trust device:", response.data);
+                this.log.debug("Add trust device - Response trust device", { verifyCode: verifyCode, data: response.data });
 
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
@@ -479,19 +467,19 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         const trusted_devices = await this.listTrustDevice();
                         trusted_devices.forEach((trusted_device: TrustDevice) => {
                             if (trusted_device.is_current_device === 1) {
-                                this.log.debug("This device is trusted. Token expiration extended:", { tokenExpiration: this.tokenExpiration});
+                                this.log.debug("Add trust device - This device is trusted. Token expiration extended:", { trustDevice: { phoneModel: trusted_device.phone_model, openUdid: trusted_device.open_udid }, tokenExpiration: this.tokenExpiration});
                             }
                         });
                         return true;
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Add trust device - Response code not ok", { code: result.code, msg: result.msg, verifyCode: verifyCode, data: response.data });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Add trust device - Status return code not 200", { status: response.status, statusText: response.statusText, verifyCode: verifyCode, data: response.data });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Add trust device - Generic Error", { error: getError(error) });
             }
         }
         return false;
@@ -522,14 +510,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             return stationList;
                         }
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Station list - Response code not ok", { code: result.code, msg: result.msg, data: response.data });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Station list - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Stations - Generic Error", error);
+                this.log.error("Station list - Generic Error", { error: getError(error) });
             }
         }
         return [];
@@ -560,14 +548,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             return deviceList;
                         }
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Device list - Response code not ok", { code: result.code, msg: result.msg, data: response.data });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Device list - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Devices - Generic Error", error);
+                this.log.error("Device list - Generic Error", { error: getError(error) });
             }
         }
         return [];
@@ -627,7 +615,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     public async request(request: HTTPApiRequest): Promise<ApiResponse> {
-        this.log.debug("Request:", { method: request.method, endpoint: request.endpoint, responseType: request.responseType, token: this.token, data: request.data });
+        this.log.debug("Api request", { method: request.method, endpoint: request.endpoint, responseType: request.responseType, token: this.token, data: request.data });
         try {
             const internalResponse = await this.requestEufyCloud(request.endpoint, {
                 method: request.method,
@@ -640,7 +628,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 headers: internalResponse.headers,
                 data: internalResponse.body,
             };
-            this.log.debug("Response:", { token: this.token, request: request, response: response.data });
+            this.log.debug("Api request - Response", { token: this.token, request: request, response: response.data });
 
             return response;
         } catch (err) {
@@ -672,17 +660,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
                     if (result.code == 0) {
-                        this.log.debug(`Push token OK`);
+                        this.log.debug(`Check push token - Push token OK`);
                         return true;
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Check push token - Response code not ok", { code: result.code, msg: result.msg, data: response.data });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Check push token - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Check push token - Generic Error", { error: getError(error) });
             }
         }
         return false;
@@ -704,17 +692,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
                     if (result.code == 0) {
-                        this.log.debug(`Push token registered successfully`);
+                        this.log.debug(`Register push token - Push token registered successfully`);
                         return true;
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Register push token - Response code not ok", { code: result.code, msg: result.msg, data: response.data, token: token });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Register push token - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, token: token });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Register push token - Generic Error", { error: getError(error), token: token });
             }
         }
         return false;
@@ -737,23 +725,23 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         params: tmp_params
                     }
                 });
-                this.log.debug("Response:", { stationSN: stationSN, deviceSN: deviceSN, params: tmp_params, response: response.data });
+                this.log.debug("Set paramter - Response:", { stationSN: stationSN, deviceSN: deviceSN, params: tmp_params, response: response.data });
 
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
                     if (result.code == 0) {
                         const dataresult = result.data;
-                        this.log.debug("New parameters set", { params: tmp_params, response: dataresult });
+                        this.log.debug("Set paramter - New parameters set", { params: tmp_params, response: dataresult });
                         return true;
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Set paramter - Response code not ok", { code: result.code, msg: result.msg, data: response.data, stationSN: stationSN, deviceSN: deviceSN, params: params });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Set paramter - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, stationSN: stationSN, deviceSN: deviceSN, params: params });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Set paramter - Generic Error", { error: getError(error), stationSN: stationSN, deviceSN: deviceSN, params: params });
             }
         }
         return false;
@@ -782,14 +770,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             return ciphers;
                         }
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Get ciphers - Response code not ok", { code: result.code, msg: result.msg, data: response.data, cipherIDs: cipherIDs, userID: userID });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Get ciphers - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, cipherIDs: cipherIDs, userID: userID });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Get ciphers - Generic Error", { error: getError(error), cipherIDs: cipherIDs, userID: userID });
             }
         }
         return {};
@@ -813,14 +801,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             return voices;
                         }
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Get Voices - Response code not ok", { code: result.code, msg: result.msg, data: response.data, deviceSN: deviceSN });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Get Voices - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, deviceSN: deviceSN });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Get Voices - Generic Error", { error: getError(error), deviceSN: deviceSN });
             }
         }
         return {};
@@ -917,17 +905,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 });
                             }
                         } else {
-                            this.log.error("Response data is missing", { code: result.code, msg: result.msg, data: result.data });
+                            this.log.error(`${functionName} - Response data is missing`, { code: result.code, msg: result.msg, data: response.data, endpoint: endpoint, startTime: startTime, endTime: endTime, filter: filter, maxResults: maxResults });
                         }
                     } else {
-                        this.log.error(`${functionName} - Response code not ok`, {code: result.code, msg: result.msg });
+                        this.log.error(`${functionName} - Response code not ok`, {code: result.code, msg: result.msg, data: response.data, endpoint: endpoint, startTime: startTime, endTime: endTime, filter: filter, maxResults: maxResults });
                     }
                 } else {
-                    this.log.error(`${functionName} - Status return code not 200`, { status: response.status, statusText: response.statusText });
+                    this.log.error(`${functionName} - Status return code not 200`, { status: response.status, statusText: response.statusText, data: response.data, endpoint: endpoint, startTime: startTime, endTime: endTime, filter: filter, maxResults: maxResults });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error(`${functionName} - Generic Error`, error);
+                this.log.error(`${functionName} - Generic Error`, { error: getError(error), endpoint: endpoint, startTime: startTime, endTime: endTime, filter: filter, maxResults: maxResults });
             }
         }
         return records;
@@ -993,14 +981,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             return invites;
                         }
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Get invites - Response code not ok", { code: result.code, msg: result.msg, data: response.data });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Get invites - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Get invites - Generic Error", { error: getError(error) });
             }
         }
         return {};
@@ -1022,14 +1010,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                         return true;
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Confirm invites - Response code not ok", { code: result.code, msg: result.msg, data: response.data, confirmInvites: confirmInvites });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Confirm invites - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, confirmInvites: confirmInvites });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Confirm invites - Generic Error", { error: getError(error), confirmInvites: confirmInvites });
             }
         }
         return false;
@@ -1055,15 +1043,15 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 return result.data.public_key;
                             }
                         } else {
-                            this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                            this.log.error("Get public key - Response code not ok", { code: result.code, msg: result.msg, data: response.data, deviceSN: deviceSN, type: type });
                         }
                     } else {
-                        this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                        this.log.error("Get public key - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, deviceSN: deviceSN, type: type });
                     }
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Get public key - Generic Error", { error: getError(error), deviceSN: deviceSN, type: type });
             }
         }
         return "";
@@ -1076,15 +1064,16 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 decryptedData = decryptAPIData(data, this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex")));
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Data decryption error, invalidating session data and reconnecting...", error);
+                this.log.error("Data decryption error, invalidating session data and reconnecting...", { error: getError(error) });
                 this.persistentData.serverPublicKey = this.SERVER_PUBLIC_KEY;
                 this.invalidateToken();
                 this.emit("close");
             }
             if (decryptedData) {
+                const str = getNullTerminatedString(decryptedData, "utf-8");
                 if (json)
-                    return parseJSON(decryptedData.toString("utf-8"), this.log);
-                return decryptedData.toString();
+                    return parseJSON(str, this.log);
+                return str;
             }
             if (json)
                 return {};
@@ -1115,14 +1104,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             return entries;
                         }
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Get sensor history - Response code not ok", { code: result.code, msg: result.msg, data: response.data, stationSN: stationSN, deviceSN: deviceSN });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Get sensor history - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, stationSN: stationSN, deviceSN: deviceSN });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Get sensor history - Generic Error", { error: getError(error), stationSN: stationSN, deviceSN: deviceSN });
             }
         }
         return [];
@@ -1144,18 +1133,18 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                         if (result.data) {
                             const houseDetail = this.decryptAPIData(result.data) as HouseDetail;
-                            this.log.debug("Decrypted house detail data", houseDetail);
+                            this.log.debug("Get house detail - Decrypted house detail data", { details: houseDetail });
                             return houseDetail;
                         }
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Get house detail - Response code not ok", { code: result.code, msg: result.msg, data: response.data, houseID: houseID });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Get house detail - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, houseID: houseID });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Get house detail - Generic Error", { error: getError(error), houseID: houseID });
             }
         }
         return null;
@@ -1175,17 +1164,18 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     const result: ResultResponse = response.data;
                     if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                         if (result.data) {
+                            this.log.debug("Get house list - houses", { houses: result.data });
                             return result.data as Array<HouseListResponse>;
                         }
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Get house list - Response code not ok", { code: result.code, msg: result.msg, data: response.data });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Get house list - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Get house list - Generic Error", { error: getError(error) });
             }
         }
         return [];
@@ -1208,18 +1198,18 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                         if (result.data) {
                             const houseInviteList = this.decryptAPIData(result.data) as Array<HouseInviteListResponse>;
-                            this.log.debug("Decrypted house invite list data", houseInviteList);
+                            this.log.debug("Get house invite list - Decrypted house invite list data", houseInviteList);
                             return houseInviteList;
                         }
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Get house invite list - Response code not ok", { code: result.code, msg: result.msg, data: response.data, isInviter: isInviter });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Get house invite list - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, isInviter: isInviter });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Get house invite list - Generic Error", { error: getError(error), isInviter: isInviter });
             }
         }
         return [];
@@ -1244,14 +1234,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                         return true;
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Confirm house invite - Response code not ok", { code: result.code, msg: result.msg, data: response.data, houseID: houseID, inviteID: inviteID });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Confirm house invite - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, houseID: houseID, inviteID: inviteID });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Confirm house invite - Generic Error", { error: getError(error), houseID: houseID, inviteID: inviteID });
             }
         }
         return false;
@@ -1272,21 +1262,21 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                     if (result.data) {
                         const profile = this.decryptAPIData(result.data) as PassportProfileResponse;
-                        this.log.debug("Decrypted passport profile data", profile);
+                        this.log.debug("Get passport profile - Decrypted passport profile data", { profile: profile });
                         this.persistentData.user_id = profile.user_id;
                         this.persistentData.nick_name = profile.nick_name;
                         this.persistentData.email = profile.email;
                         return profile;
                     }
                 } else {
-                    this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                    this.log.error("Get passport profile - Response code not ok", { code: result.code, msg: result.msg, data: response.data });
                 }
             } else {
-                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                this.log.error("Get passport profile - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
             }
         } catch (err) {
             const error = ensureError(err);
-            this.log.error("Generic Error", error);
+            this.log.error("Get passport profile - Generic Error", { error: getError(error) });
         }
         return null;
     }
@@ -1310,14 +1300,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         if (result.data)
                             return result.data as AddUserResponse;
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Add user - Response code not ok", { code: result.code, msg: result.msg, data: response.data, deviceSN: deviceSN, nickname: nickname, stationSN: stationSN });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Add user - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, deviceSN: deviceSN, nickname: nickname, stationSN: stationSN });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Add user - Generic Error", { error: getError(error), deviceSN: deviceSN, nickname: nickname, stationSN: stationSN });
             }
         }
         return null;
@@ -1341,14 +1331,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                         return true;
                     } else {
-                        this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                        this.log.error("Delete user - Response code not ok", { code: result.code, msg: result.msg, data: response.data, deviceSN: deviceSN, shortUserId: shortUserId, stationSN: stationSN });
                     }
                 } else {
-                    this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                    this.log.error("Delete user - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, deviceSN: deviceSN, shortUserId: shortUserId, stationSN: stationSN });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Delete user - Generic Error", { error: getError(error), deviceSN: deviceSN, shortUserId: shortUserId, stationSN: stationSN });
             }
         }
         return false;
@@ -1368,14 +1358,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         return usersResponse.user_list;
                     }
                 } else {
-                    this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                    this.log.error("Get users - Response code not ok", { code: result.code, msg: result.msg, data: response.data, deviceSN: deviceSN, stationSN: stationSN });
                 }
             } else {
-                this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                this.log.error("Get users - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, deviceSN: deviceSN, stationSN: stationSN });
             }
         } catch (err) {
             const error = ensureError(err);
-            this.log.error("Generic Error", error);
+            this.log.error("Get users - Generic Error", { error: getError(error), deviceSN: deviceSN, stationSN: stationSN });
         }
         return null;
     }
@@ -1392,7 +1382,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             }
         } catch (err) {
             const error = ensureError(err);
-            this.log.error("Generic Error", error);
+            this.log.error("Get user - Generic Error", { error: getError(error), deviceSN: deviceSN, stationSN: stationSN, shortUserId: shortUserId });
         }
         return null;
     }
@@ -1420,15 +1410,15 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                             return true;
                         } else {
-                            this.log.error("Response code not ok", { code: result.code, msg: result.msg });
+                            this.log.error("Update user - Response code not ok", { code: result.code, msg: result.msg, data: response.data, deviceSN: deviceSN, stationSN: stationSN, shortUserId: shortUserId, nickname: nickname });
                         }
                     } else {
-                        this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                        this.log.error("Update user - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, deviceSN: deviceSN, stationSN: stationSN, shortUserId: shortUserId, nickname: nickname });
                     }
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Update user - Generic Error", { error: getError(error), deviceSN: deviceSN, stationSN: stationSN, shortUserId: shortUserId, nickname: nickname });
             }
         }
         return false;
@@ -1449,13 +1439,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         if (response.status == 200) {
                             return decodeImage(station.p2p_did, response.data as Buffer);
                         } else {
-                            this.log.error("Status return code not 200", { status: response.status, statusText: response.statusText });
+                            this.log.error("Get Image - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, deviceSN: deviceSN, url: url });
                         }
                     }
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Generic Error", error);
+                this.log.error("Get Image - Generic Error", { error: getError(error), deviceSN: deviceSN, url: url });
             }
         }
         return Buffer.alloc(0);

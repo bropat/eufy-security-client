@@ -7,6 +7,7 @@ import { load, Root } from "protobufjs";
 
 import { MQTTServiceEvents } from "./interface";
 import { DeviceSmartLockMessage } from "./model";
+import { getError } from "../utils";
 
 export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
 
@@ -110,17 +111,17 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
             });
             this.client.on("error", (error) => {
                 this.connecting = false;
-                this.log.error("MQTT Error", error);
+                this.log.error("MQTT Error", { error: getError(error) });
                 if ((error as any).code === 1 || (error as any).code === 2 || (error as any).code === 4 || (error as any).code === 5)
                     this.client?.end();
             });
             this.client.on("message", (topic, message, _packet) => {
                 if (topic.includes("smart_lock")) {
                     const parsedMessage = this.parseSmartLockMessage(message);
-                    this.log.debug("Received a smart lock message over MQTT", parsedMessage);
+                    this.log.debug("Received a smart lock message over MQTT", { message: parsedMessage });
                     this.emit("lock message", parsedMessage);
                 } else {
-                    this.log.debug("MQTT message received", topic, message.toString("hex"));
+                    this.log.debug("MQTT message received", { topic: topic, message: message.toString("hex") });
                 }
             });
         }
@@ -129,7 +130,7 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
     private _subscribeLock(deviceSN: string): void {
         this.client?.subscribe(this.SUBSCRIBE_LOCK_FORMAT.replace("<device_sn>", deviceSN), { qos: 1 }, (error, granted) => {
             if (error) {
-                this.log.error(`Subscribe error for lock ${deviceSN}`, error);
+                this.log.error(`Subscribe error for lock ${deviceSN}`, { error: getError(error), deviceSN: deviceSN });
             }
             if (granted) {
                 this.log.info(`Successfully registered to MQTT notifications for lock ${deviceSN}`);
