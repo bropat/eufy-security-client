@@ -13,7 +13,7 @@ export interface CusPushData {
     click_action?: string;
     create_time?: number;
     device_name?: string;
-    e?: number;                         // Sensor Open (1=True, 0=False)
+    e?: string;                         // Sensor Open (1=True, 0=False)
     event_time?: number;
     event_type?: number;
     f?: string;                         // Person?
