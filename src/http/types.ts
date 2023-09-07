@@ -1153,8 +1153,17 @@ export const DeviceStatusLedIndoorFloodProperty: PropertyMetadataBoolean = {
 };
 
 export const DeviceStatusLedBatteryDoorbellProperty: PropertyMetadataBoolean = {
-    ...DeviceStatusLedProperty,
     key: CommandType.CMD_BAT_DOORBELL_SET_LED_ENABLE,
+    name: PropertyName.DeviceStatusLed,
+    label: "Status LED",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Off",
+        1: "All day",
+        2: "At night",
+    },
 };
 
 export const DeviceStatusLedDoorbellProperty: PropertyMetadataBoolean = {
