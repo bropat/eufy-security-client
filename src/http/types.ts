@@ -1153,6 +1153,11 @@ export const DeviceStatusLedIndoorFloodProperty: PropertyMetadataBoolean = {
 };
 
 export const DeviceStatusLedBatteryDoorbellProperty: PropertyMetadataBoolean = {
+    ...DeviceStatusLedProperty,
+    key: CommandType.CMD_BAT_DOORBELL_SET_LED_ENABLE,
+};
+
+export const DeviceStatusLedBatteryDoorbellDualProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_BAT_DOORBELL_SET_LED_ENABLE,
     name: PropertyName.DeviceStatusLed,
     label: "Status LED",
@@ -4821,7 +4826,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
         [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
-        [PropertyName.DeviceStatusLed]: DeviceStatusLedBatteryDoorbellProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedBatteryDoorbellDualProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkBatteryDoorbellCamera1Property,
         [PropertyName.DeviceState]: DeviceStateProperty,
