@@ -913,6 +913,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         Device.isLockWifiNoFinger(type) ||
         Device.isLockWifiR10(type) ||
         Device.isLockWifiR20(type) ||
+        Device.isLockWifiR10Keypad(type) ||
         Device.isLockWifiVideo(type);
     }
 
