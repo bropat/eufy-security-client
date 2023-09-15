@@ -806,6 +806,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.LOCK_8530 ||
             type == DeviceType.LOCK_8592 ||
             type == DeviceType.LOCK_85A3 ||
+            type == DeviceType.LOCK_8506 ||
             type == DeviceType.SMART_SAFE_7400 ||
             type == DeviceType.SMART_SAFE_7401 ||
             type == DeviceType.SMART_SAFE_7402 ||
@@ -948,7 +949,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isLockWifiR10Keypad(type: number): boolean {
-        return DeviceType.LOCK_85A3 == type;
+        return DeviceType.LOCK_85A3 == type || DeviceType.LOCK_8506 == type;
     }
 
     static isBatteryDoorbell1(type: number): boolean {
