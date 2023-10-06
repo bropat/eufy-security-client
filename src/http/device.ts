@@ -800,6 +800,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_2K ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
+            type == DeviceType.SOLO_CAMERA_SOLAR || 
             type == DeviceType.LOCK_WIFI ||
             type == DeviceType.LOCK_WIFI_NO_FINGER ||
             type == DeviceType.LOCK_8503 ||
