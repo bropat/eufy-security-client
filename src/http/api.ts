@@ -747,15 +747,16 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         return false;
     }
 
-    public async getCiphers(cipherIDs: Array<number>, userID: string): Promise<Ciphers> {
+    public async getCiphers(/*stationSN: string, */cipherIDs: Array<number>, userID: string): Promise<Ciphers> {
         if (this.connected) {
             try {
                 const response = await this.request({
                     method: "post",
-                    endpoint: "v1/app/cipher/get_ciphers",
+                    endpoint: "v2/app/cipher/get_ciphers",
                     data: {
                         cipher_ids: cipherIDs,
                         user_id: userID,
+                        //sn: stationSN
                         transaction: `${new Date().getTime().toString()}`
                     }
                 });
@@ -764,9 +765,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                         if (result.data) {
                             const ciphers: Ciphers = {};
-                            result.data.forEach((cipher: Cipher) => {
-                                ciphers[cipher.cipher_id] = cipher;
-                            });
+                            const decrypted = this.decryptAPIData(result.data);
+                            this.log.debug("Get ciphers - Decrypted ciphers data", { ciphers: decrypted });
+                            if (Array.isArray(decrypted)) {
+                                decrypted.forEach((cipher: Cipher) => {
+                                    ciphers[cipher.cipher_id] = cipher;
+                                });
+                            }
                             return ciphers;
                         }
                     } else {
@@ -814,8 +819,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         return {};
     }
 
-    public async getCipher(cipherID: number, userID: string): Promise<Cipher> {
-        return (await this.getCiphers([cipherID], userID))[cipherID];
+    public async getCipher(/*stationSN: string, */cipherID: number, userID: string): Promise<Cipher> {
+        return (await this.getCiphers(/*stationSN, */[cipherID], userID))[cipherID];
     }
 
     public getLog(): Logger {
@@ -957,7 +962,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             try {
                 const response = await this.request({
                     method: "post",
-                    endpoint: "v1/family/get_invites",
+                    endpoint: "v2/family/get_invites",
                     data: {
                         num: 100,
                         orderby: "",
@@ -971,13 +976,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                         if (result.data) {
                             const invites: Invites = {};
-                            result.data.forEach((invite: Invite) => {
-                                invites[invite.invite_id] = invite;
-                                let data = parseJSON((invites[invite.invite_id].devices as unknown) as string, this.log);
-                                if (data === undefined)
-                                    data = [];
-                                invites[invite.invite_id].devices = data;
-                            });
+                            const decrypted = this.decryptAPIData(result.data);
+                            this.log.debug("Get invites - Decrypted invites data", { invites: decrypted });
+                            if (Array.isArray(decrypted)) {
+                                decrypted.forEach((invite: Invite) => {
+                                    invites[invite.invite_id] = invite;
+                                    let data = parseJSON((invites[invite.invite_id].devices as unknown) as string, this.log);
+                                    if (data === undefined)
+                                        data = [];
+                                    invites[invite.invite_id].devices = data;
+                                });
+                            }
                             return invites;
                         }
                     } else {
@@ -1197,8 +1206,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     const result: ResultResponse = response.data;
                     if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
                         if (result.data) {
-                            const houseInviteList = this.decryptAPIData(result.data) as Array<HouseInviteListResponse>;
-                            this.log.debug("Get house invite list - Decrypted house invite list data", houseInviteList);
+                            //const houseInviteList = this.decryptAPIData(result.data) as Array<HouseInviteListResponse>;   // No more encrypted!?
+                            //this.log.debug("Get house invite list - Decrypted house invite list data", houseInviteList);
+                            const houseInviteList = result.data as Array<HouseInviteListResponse>;
+                            this.log.debug("Get house invite list - House invite list data", houseInviteList);
                             return houseInviteList;
                         }
                     } else {

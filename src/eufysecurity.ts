@@ -795,7 +795,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.connected = false;
         this.emit("close");
 
-        if (this.retries < 1) {
+        if (this.retries < 3) {
             this.retries++;
             await this.connect()
         } else {

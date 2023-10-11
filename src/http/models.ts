@@ -511,7 +511,7 @@ export interface HouseInviteListResponse {
     house_id: string;
     email: string;
     user_id: string;
-    role_type: string;
+    role_type: number;
 }
 
 export interface ConfirmHouseInvite {

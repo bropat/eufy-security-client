@@ -124,7 +124,7 @@ export const parseJSON = function(data: string, log: Logger): any {
         return JSON.parse(data.replace(/[\0]+$/g, ""));
     } catch(err) {
         const error = ensureError(err);
-        log.error("JSON parse error", { error: getError(error), data: data });
+        log.debug("JSON parse error", { error: getError(error), data: data });
     }
     return undefined;
 }

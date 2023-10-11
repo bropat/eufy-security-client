@@ -4,8 +4,8 @@
 | - | - | - | - |
 | ![T8001 image](_media/homebase_small.jpg) | HomeBase (T8001) | :heavy_check_mark: |  |
 | ![T8002 image](_media/homebase_small.jpg) | HomeBase E (T8002) | :heavy_check_mark: :heavy_exclamation_mark: |  |
-| ![T8010 image](_media/homebase2_small.jpg) | HomeBase 2 (T8010) | :heavy_check_mark: |  |
-| ![T8030 image](_media/homebase3_small.jpg) | HomeBase 3 (T8030, S380) | :wrench: | Firmware: 3.1.0.8 (20221101) |
+| ![T8010 image](_media/homebase2_small.jpg) | HomeBase S280 (T8010; Homebase 2) | :heavy_check_mark: |  |
+| ![T8030 image](_media/homebase3_small.jpg) | HomeBase S380 (T8030; HomeBase 3) | :wrench: | Firmware: 3.1.0.8 (20221101) |
 | ![T8021 image](_media/smartlockwifibridge_t8021_small.jpg) | Smart Lock Wi-Fi Bridge (T8021) | :heavy_check_mark: :wrench: |  |
 | ![T8111 image](_media/eufycam_small.jpg) | eufyCam (T8111) | :heavy_check_mark: |  |
 | ![T8112 image](_media/eufycam_small.jpg) | eufyCam E (T8112) | :heavy_check_mark: |  |
@@ -13,8 +13,8 @@
 | ![T8113 image](_media/eufycam2c_small.jpg) | eufyCam 2C (T8113) | :heavy_check_mark: |  |
 | ![T8140 image](_media/eufycam2pro_small.jpg) | eufyCam 2 Pro (T8140) | :heavy_check_mark: |  |
 | ![T8141 image](_media/eufycam2cpro_small.jpg) | eufyCam 2C Pro (T8141) | :heavy_check_mark: |  |
-| ![T8160 image](_media/eufycam3_small.jpg) | eufyCam 3 (T8160, S330) | :heavy_check_mark: | Firmware: 3.1.8.6 (20221101) |
-| ![T8161 image](_media/eufycam3c_small.jpg) | eufyCam 3C (T8161, S300) | :heavy_check_mark: | Firmware: 3.1.8.6 (20221101) |
+| ![T8160 image](_media/eufycam3_small.jpg) | S330 eufyCam (T8160; eufyCam 3) | :heavy_check_mark: | Firmware: 3.1.8.6 (20221101) |
+| ![T8161 image](_media/eufycam3c_small.jpg) | S300 eufyCam (T8161; eufyCam 3C) | :heavy_check_mark: | Firmware: 3.1.8.6 (20221101) |
 | ![T8130 image](_media/solocame20_small.jpg) | SoloCam E20 (T8130) | :heavy_check_mark: |  |
 | ![T8131 image](_media/solocame40_small.jpg) | SoloCam E40 (T8131) | :heavy_check_mark: |  |
 | ![T8122 image](_media/solocaml20_small.jpg) | SoloCam L20 (T8122) | :heavy_check_mark: | Firmware: 1.0.8.1 |
@@ -29,7 +29,7 @@
 | ![T8200 image](_media/wireddoorbell2k_small.jpg) | Wired Doorbell 2k (T8200) | :heavy_check_mark: |  |
 | ![T8200X image](_media/wireddoorbell2k_small.jpg) | Wired Doorbell 2k (T8200X) | :heavy_check_mark: | Firmware: 2.0.6.0 (20220826) |
 | ![T8201 image](_media/wireddoorbell1080p_small.jpg) | Wired Doorbell 1080p (T8201) | :heavy_check_mark: |  |
-| ![T8203 image](_media/wireddoorbelldual_small.jpg) | Video Doorbell Dual (T8203) | :heavy_check_mark: | Firmware: 2.0.4.6 (20220417) |
+| ![T8203 image](_media/wireddoorbelldual_small.jpg) | S330 Video Doorbell (T8203; Video Doorbell Dual) | :heavy_check_mark: | Firmware: 2.0.4.6 (20220417) |
 | ![T8210 image](_media/batterydoorbell2k_small.jpg) | Battery Doorbell 2K (T8210) | :heavy_check_mark: |  |
 | ![T8213 image](_media/batterydoorbell2kdual_small.jpg) | Battery Doorbell 2K Dual (T8213) | :heavy_check_mark: | Firmware: 0.1.2.5 (20220331) |
 | ![T8222 image](_media/batterydoorbell1080p_small.jpg) | Battery Doorbell 1080p (T8222) | :heavy_check_mark: |  |
