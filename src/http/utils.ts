@@ -512,3 +512,12 @@ export const isPrioritySourceType = function(current: SourceType | undefined, up
     }
     return false;
 }
+
+export const decryptTrackerData = (data: Buffer, key: Buffer): Buffer => {
+    const decipher = createDecipheriv("aes-128-ecb", key, null);
+    decipher.setAutoPadding(false);
+    return Buffer.concat([
+        decipher.update(data),
+        decipher.final()]
+    );
+}

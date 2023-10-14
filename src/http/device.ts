@@ -2,16 +2,16 @@ import { TypedEmitter } from "tiny-typed-emitter";
 import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
-import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOhterMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType } from "./types";
+import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOhterMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType } from "./types";
 import { ResultResponse, StreamResponse, DeviceListResponse, Voice, GarageDoorSensorsProperty } from "./models"
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject } from "./interfaces";
-import { CommandType, ESLAnkerBleConstant } from "../p2p/types";
+import { CommandType, ESLAnkerBleConstant, TrackerCommandType } from "../p2p/types";
 import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImage, getImagePath, hexDate, hexTime, hexWeek, isHB3DetectionModeEnabled, isPrioritySourceType, SmartSafeByteWriter } from "./utils";
 import { DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds } from "../p2p/utils";
 import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent, HB3PairedDevicePushEvent, GarageDoorPushEvent } from "../push/types";
 import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
-import { getError, isEmpty } from "../utils";
+import { getError, isEmpty, validValue } from "../utils";
 import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
 import { DeviceSmartLockNotifyData } from "../mqtt/model";
 import { DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor } from "../p2p";
@@ -133,7 +133,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     public updateRawProperty(type: number, value: string, source: SourceType): boolean {
-        const parsedValue = ParameterHelper.readValue(type, value, this.log);
+        const parsedValue = ParameterHelper.readValue(this.getStationSerial(), type, value, this.log);
         if (parsedValue !== undefined &&
             ((this.rawProperties[type] !== undefined && this.rawProperties[type].value !== parsedValue && isPrioritySourceType(this.rawProperties[type].source, source)) || this.rawProperties[type] === undefined)) {
 
@@ -3422,6 +3422,90 @@ export class SmartSafe extends Device {
 
     public isLocked(): boolean {
         return this.getPropertyValue(PropertyName.DeviceLocked) as boolean;
+    }
+
+}
+
+export class Tracker extends Device {
+
+    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<Tracker> {
+        return new Tracker(api, device);
+    }
+
+    public getStateChannel(): string {
+        return "tracker";
+    }
+
+    protected convertRawPropertyValue(property: PropertyMetadataAny, value: string): PropertyValue {
+        try {
+            switch(property.key) {
+                case TrackerCommandType.COMMAND_NEW_LOCATION:
+                {
+                    if (value !== undefined && typeof value === "string") {
+                        const items = value.split(",");
+                        if (items.length === 3) {
+                            switch(property.name) {
+                                case PropertyName.DeviceLocationCoordinates:
+                                    return `${items[1]},${items[0]}`;
+                                case PropertyName.DeviceLocationLastUpdate:
+                                    return Number.parseInt(items[2]);
+                                default: break;
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("Tracker convert raw property - Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+        }
+        return super.convertRawPropertyValue(property, value);
+    }
+
+    public async setFindPhone(value: boolean): Promise<boolean> {
+        try {
+            const property = this.getPropertyMetadata(PropertyName.DeviceFindPhone);
+            validValue(property, value);
+            return await this.setParameters([{
+                paramType: TrackerCommandType.COMMAND_TYPE_FINDMYPHONE,
+                paramValue: value ? "1" : "0"
+            }]);
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("Tracker set find phone - Error", { error: getError(error), deviceSN: this.getSerial(), value: value });
+        }
+        return false;
+    }
+
+    public async setLeftBehindAlarm(value: boolean): Promise<boolean> {
+        try {
+            const property = this.getPropertyMetadata(PropertyName.DeviceLeftBehindAlarm);
+            validValue(property, value);
+            return await this.setParameters([{
+                paramType: TrackerCommandType.COMMAND_ANTILOST,
+                paramValue: value ? "1" : "0"
+            }]);
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("Tracker set left behind alarm - Error", { error: getError(error), deviceSN: this.getSerial(), value: value });
+        }
+        return false;
+    }
+
+    public async setTrackerType(value: TrackerType): Promise<boolean> {
+        try {
+            const property = this.getPropertyMetadata(PropertyName.DeviceTrackerType);
+            validValue(property, value);
+            return await this.setParameters([{
+                paramType: TrackerCommandType.TYPE_ICON_INDEX,
+                paramValue: value.toString()
+            }]);
+        } catch (err) {
+            const error = ensureError(err);
+            this.log.error("Tracker set tracker type - Error", { error: getError(error), deviceSN: this.getSerial(), value: value });
+        }
+        return false;
     }
 
 }

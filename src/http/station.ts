@@ -213,7 +213,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public updateRawProperty(type: number, value: string, source: SourceType): boolean {
-        const parsedValue = ParameterHelper.readValue(type, value, this.log);
+        const parsedValue = ParameterHelper.readValue(this.getSerial(), type, value, this.log);
         if (parsedValue !== undefined &&
             ((this.rawProperties[type] !== undefined && this.rawProperties[type].value !== parsedValue && isPrioritySourceType(this.rawProperties[type].source, source)) || this.rawProperties[type] === undefined)) {
 
@@ -603,7 +603,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onParameter(channel: number, param: number, value: string): void {
         const params: RawValues = {};
-        const parsedValue = ParameterHelper.readValue(param, value, this.log);
+        const parsedValue = ParameterHelper.readValue(this.getSerial(), param, value, this.log);
         if (parsedValue !== undefined) {
             params[param] = {
                 value: parsedValue,
@@ -875,7 +875,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     if (!devices[device_sn]) {
                         devices[device_sn] = {};
                     }
-                    const parsedValue = ParameterHelper.readValue(param.param_type, param.param_value, this.log);
+                    const parsedValue = ParameterHelper.readValue(device_sn, param.param_type, param.param_value, this.log);
                     if (parsedValue !== undefined) {
                         devices[device_sn][param.param_type] = {
                             value: parsedValue,
@@ -889,7 +889,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     if (!devices[device_sn]) {
                         devices[device_sn] = {};
                     }
-                    const parsedValue = ParameterHelper.readValue(param.param_type, param.param_value, this.log);
+                    const parsedValue = ParameterHelper.readValue(device_sn, param.param_type, param.param_value, this.log);
                     if (parsedValue !== undefined) {
                         devices[device_sn][param.param_type] = {
                             value: parsedValue,

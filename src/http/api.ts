@@ -722,26 +722,27 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     data: {
                         device_sn: deviceSN,
                         station_sn: stationSN,
-                        params: tmp_params
+                        params: tmp_params,
+                        transaction: `${new Date().getTime().toString()}`
                     }
                 });
-                this.log.debug("Set paramter - Response:", { stationSN: stationSN, deviceSN: deviceSN, params: tmp_params, response: response.data });
+                this.log.debug("Set parameter - Response:", { stationSN: stationSN, deviceSN: deviceSN, params: tmp_params, response: response.data });
 
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
                     if (result.code == 0) {
                         const dataresult = result.data;
-                        this.log.debug("Set paramter - New parameters set", { params: tmp_params, response: dataresult });
+                        this.log.debug("Set parameter - New parameters set", { params: tmp_params, response: dataresult });
                         return true;
                     } else {
-                        this.log.error("Set paramter - Response code not ok", { code: result.code, msg: result.msg, data: response.data, stationSN: stationSN, deviceSN: deviceSN, params: params });
+                        this.log.error("Set parameter - Response code not ok", { code: result.code, msg: result.msg, data: response.data, stationSN: stationSN, deviceSN: deviceSN, params: params });
                     }
                 } else {
-                    this.log.error("Set paramter - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, stationSN: stationSN, deviceSN: deviceSN, params: params });
+                    this.log.error("Set parameter - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, stationSN: stationSN, deviceSN: deviceSN, params: params });
                 }
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Set paramter - Generic Error", { error: getError(error), stationSN: stationSN, deviceSN: deviceSN, params: params });
+                this.log.error("Set parameter - Generic Error", { error: getError(error), stationSN: stationSN, deviceSN: deviceSN, params: params });
             }
         }
         return false;

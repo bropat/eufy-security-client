@@ -1,5 +1,5 @@
 import { DynamicLighting, RGBColor } from "../p2p";
-import { CommandType } from "../p2p/types";
+import { CommandType, TrackerCommandType } from "../p2p/types";
 import { Commands, IndexedProperty, Properties, PropertyMetadataBoolean, PropertyMetadataNumeric, PropertyMetadataObject, PropertyMetadataString } from "./interfaces";
 
 export type SourceType = "p2p" | "http" | "push" | "mqtt";
@@ -436,6 +436,20 @@ export enum GarageDoorState {
     UNKNOWN = 0,
 }
 
+export enum TrackerType {
+    TRACKER = 0,
+    KEY = 1,
+    WALLET = 2,
+    BAG = 3,
+    REMOTE = 4,
+    CAMERA = 5,
+    HEADPHONES = 6,
+    TOY = 7,
+    SUITCASE = 8,
+    HANDBAG = 9,
+}
+
+
 export interface EventFilterType {
     deviceSN?: string;
     stationSN?: string;
@@ -721,6 +735,12 @@ export enum PropertyName {
     DeviceDoorSensor2LowBattery = "doorSensor2LowBattery",
     DeviceDoorSensor1BatteryLevel = "doorSensor1BatteryLevel",
     DeviceDoorSensor2BatteryLevel = "doorSensor2BatteryLevel",
+    DeviceLocationCoordinates = "locationCoordinates",
+    DeviceLocationAddress = "locationAddress",
+    DeviceLocationLastUpdate = "locationLastUpdate",
+    DeviceTrackerType = "trackerType",
+    DeviceLeftBehindAlarm = "leftBehindAlarm",
+    DeviceFindPhone = "findPhone",
 
     DeviceHiddenMotionDetectionSensitivity = "hidden-motionDetectionSensitivity",
     DeviceHiddenMotionDetectionMode = "hidden-motionDetectionMode",
@@ -922,6 +942,11 @@ export const DeviceBatteryLockProperty: PropertyMetadataNumeric = {
     min: 0,
     max: 100,
 }
+
+export const DeviceBatteryTrackerProperty: PropertyMetadataNumeric = {
+    ...DeviceBatteryProperty,
+    key: TrackerCommandType.COMMAND_BATTERY,
+};
 
 export const DeviceBatteryLowMotionSensorProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_MOTION_SENSOR_BAT_STATE,
@@ -4280,6 +4305,77 @@ export const DeviceDoorSensor2BatteryLevelProperty: PropertyMetadataNumeric = {
     default: 0
 }
 
+export const DeviceLocationCoordinatesProperty: PropertyMetadataString = {
+    key: TrackerCommandType.COMMAND_NEW_LOCATION,
+    name: PropertyName.DeviceLocationCoordinates,
+    label: "Location Coordinates",
+    readable: true,
+    writeable: false,
+    type: "string",
+    default: "",
+}
+
+export const DeviceLocationAddressProperty: PropertyMetadataString = {
+    key: TrackerCommandType.LOCATION_NEW_ADDRESS,
+    name: PropertyName.DeviceLocationAddress,
+    label: "Location Address",
+    readable: true,
+    writeable: false,
+    type: "string",
+    default: "",
+}
+
+export const DeviceLocationLastUpdateProperty: PropertyMetadataNumeric = {
+    key: TrackerCommandType.COMMAND_NEW_LOCATION,
+    name: PropertyName.DeviceLocationLastUpdate,
+    label: "Location Last Update",
+    readable: true,
+    writeable: false,
+    type: "number",
+    default: 0
+}
+
+export const DeviceTrackerTypeProperty: PropertyMetadataNumeric = {
+    key: TrackerCommandType.TYPE_ICON_INDEX,
+    name: PropertyName.DeviceTrackerType,
+    label: "Tracker Type",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Tracker",
+        1: "Key",
+        2: "Wallet",
+        3: "Bag",
+        4: "Remote",
+        5: "Camera",
+        6: "Headphones",
+        7: "Toy",
+        8: "Suitcase",
+        9: "Handbag",
+    }
+}
+
+export const DeviceLeftBehindAlarmProperty: PropertyMetadataBoolean = {
+    key: TrackerCommandType.COMMAND_ANTILOST,
+    name: PropertyName.DeviceLeftBehindAlarm,
+    label: "Left Behind Alarm",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+    default: false,
+}
+
+export const DeviceFindPhoneProperty: PropertyMetadataBoolean = {
+    key: TrackerCommandType.COMMAND_TYPE_FINDMYPHONE,
+    name: PropertyName.DeviceFindPhone,
+    label: "Find Phone",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+    default: false,
+}
+
 export const FloodlightT8420XDeviceProperties: IndexedProperty = {
     ...GenericDeviceProperties,
     [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
@@ -6196,6 +6292,26 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
     },
+    [DeviceType.SMART_TRACK_CARD]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceLocationCoordinates]: DeviceLocationCoordinatesProperty,
+        [PropertyName.DeviceLocationAddress]: DeviceLocationAddressProperty,
+        [PropertyName.DeviceLocationLastUpdate]: DeviceLocationLastUpdateProperty,
+        [PropertyName.DeviceBattery]: DeviceBatteryTrackerProperty,
+        [PropertyName.DeviceTrackerType]: DeviceTrackerTypeProperty,
+        [PropertyName.DeviceLeftBehindAlarm]: DeviceLeftBehindAlarmProperty,
+        [PropertyName.DeviceFindPhone]: DeviceFindPhoneProperty,
+    },
+    [DeviceType.SMART_TRACK_LINK]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceLocationCoordinates]: DeviceLocationCoordinatesProperty,
+        [PropertyName.DeviceLocationAddress]: DeviceLocationAddressProperty,
+        [PropertyName.DeviceLocationLastUpdate]: DeviceLocationLastUpdateProperty,
+        [PropertyName.DeviceBattery]: DeviceBatteryTrackerProperty,
+        [PropertyName.DeviceTrackerType]: DeviceTrackerTypeProperty,
+        [PropertyName.DeviceLeftBehindAlarm]: DeviceLeftBehindAlarmProperty,
+        [PropertyName.DeviceFindPhone]: DeviceFindPhoneProperty,
+    },
 }
 
 export const StationNameProperty: PropertyMetadataString = {
@@ -6901,6 +7017,12 @@ export const StationProperties: Properties = {
     [DeviceType.SMART_SAFE_7403]: {
         ...BaseStationProperties,
     },
+    [DeviceType.SMART_TRACK_CARD]: {
+        ...BaseStationProperties,
+    },
+    [DeviceType.SMART_TRACK_LINK]: {
+        ...BaseStationProperties,
+    },
 }
 
 export enum CommandName {
@@ -7328,6 +7450,8 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceUnlock,
         CommandName.DeviceVerifyPIN,
     ],
+    [DeviceType.SMART_TRACK_CARD]: [],
+    [DeviceType.SMART_TRACK_LINK]: [],
 }
 
 export const StationCommands: Commands = {
@@ -7569,4 +7693,6 @@ export const StationCommands: Commands = {
     [DeviceType.LOCK_BLE_NO_FINGER]: [],
     [DeviceType.LOCK_WIFI]: [],
     [DeviceType.LOCK_WIFI_NO_FINGER]: [],
+    [DeviceType.SMART_TRACK_CARD]: [],
+    [DeviceType.SMART_TRACK_LINK]: [],
 }
