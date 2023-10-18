@@ -1,5 +1,5 @@
 import { DynamicLighting, RGBColor } from "../p2p";
-import { CommandType } from "../p2p/types";
+import { CommandType, IndoorSoloSmartdropCommandType } from "../p2p/types";
 import { Commands, IndexedProperty, Properties, PropertyMetadataBoolean, PropertyMetadataNumeric, PropertyMetadataObject, PropertyMetadataString } from "./interfaces";
 
 export type SourceType = "p2p" | "http" | "push" | "mqtt";
@@ -989,6 +989,12 @@ export const DeviceAutoNightvisionWiredDoorbellProperty: PropertyMetadataBoolean
 
 export const DeviceAutoNightvisionWalllightProperty: PropertyMetadataBoolean = {
     ...DeviceAutoNightvisionProperty,
+    commandId: CommandType.CMD_SET_NIGHT_VISION_TYPE,
+}
+
+export const DeviceAutoNightvisionSoloProperty: PropertyMetadataBoolean = {
+    ...DeviceAutoNightvisionProperty,
+    key: CommandType.CMD_SET_NIGHT_VISION_TYPE,
     commandId: CommandType.CMD_SET_NIGHT_VISION_TYPE,
 }
 
@@ -2210,6 +2216,16 @@ export const DeviceVideoRecordingQualityCamera3Property: PropertyMetadataNumeric
         2: "Full HD (1080P)",
         3: "Ultra 4K",
     },
+}
+
+export const DeviceVideoRecordingQualitySoloProperty: PropertyMetadataNumeric = {
+    ...DeviceVideoRecordingQualityIndoorProperty,
+    key: IndoorSoloSmartdropCommandType.CMD_VIDEO_RECORD_QUALITY,
+    states: {
+        2: "Full HD (1080P)",
+        3: "2K HD",
+    },
+    commandId: CommandType.CMD_SET_RECORD_QUALITY,
 }
 
 export const DeviceWDRProperty: PropertyMetadataBoolean = {
@@ -5694,9 +5710,9 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
         [PropertyName.DeviceBattery]: DeviceBatteryProperty,
         [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
-        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionSoloProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
-        [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
         [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
@@ -5705,14 +5721,15 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeSoloProperty,
-        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
-        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingIndoorSoloFloodlightProperty,
+        //[PropertyName.DeviceMotionDetectionTypeHuman]: DeviceMotionHB3DetectionTypeHumanProperty,                         //TODO: Finish implementation
+        //[PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionHB3DetectionTypeAllOhterMotionsProperty,     //TODO: Finish implementation
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualitySoloProperty,
-        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityProperty,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualitySoloProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivitySoloProperty,
@@ -5721,7 +5738,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
         [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
-        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusCamera3Property,
         [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
         [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
