@@ -80,6 +80,10 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.9.1 (2023-11-04)
+
+* (bropat) Fixed data decryption for p2p command responses
+
 ### 2.9.0 (2023-11-04)
 
 * (bropat) **Breaking Change** Requires node version >= 18.0.0
