@@ -80,10 +80,11 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 2.9.0 (2023-10-xx)
+### 2.9.0 (2023-11-04)
 
 * (bropat) **Breaking Change** Requires node version >= 18.0.0
 * (bropat) Added support for SmartTrack Link (T87B0; #385) and SmartTrack Card (T87B2; untested)
+* (bropat/martijnpoppen) NEW: add support for S220 (T8134; #353)
 * (bropat) Implemented data decryption for p2p command responses
 * (bropat) Migrated API getCiphers method to v2 endpoint
 * (bropat) Migrated API getInvites method to v2 endpoint
