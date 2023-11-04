@@ -1229,7 +1229,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 let resultData: Buffer|undefined;
                 if (message.bytesToRead > 0) {
                     if (message.signCode > 0) {
-                        message.data = decryptP2PData(message.data, this.p2pKey!);
+                        try {
+                            message.data = decryptP2PData(message.data, this.p2pKey!);
+                        } catch(err) {
+                            const error = ensureError(err);
+                            this.log.debug(`Handle DATA ${P2PDataType[message.dataType]} - Decrypt Error`, { error: getError(error), stationSN: this.rawStation.station_sn, message: { seqNo: message.seqNo, channel: message.channel, commandType: CommandType[message.commandId], signCode: message.signCode, type: message.type, dataType: P2PDataType[message.dataType], data: message.data.toString("hex") } });
+                        }
                     }
                     return_code = message.data.subarray(0, 4).readUInt32LE()|0;
                     resultData = message.data.subarray(4);
@@ -1543,7 +1548,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             let data: Buffer = message.data;
             if (message.signCode > 0) {
                 //data = decryptP2PData(message.data, this.p2pKey!);
-                data = decryptP2PData(message.data, Buffer.from(getP2PCommandEncryptionKey(this.rawStation.station_sn, this.rawStation.p2p_did)));
+                try {
+                    data = decryptP2PData(message.data, Buffer.from(getP2PCommandEncryptionKey(this.rawStation.station_sn, this.rawStation.p2p_did)));
+                } catch(err) {
+                    const error = ensureError(err);
+                    this.log.debug(`Handle DATA ${P2PDataType[message.dataType]} - Decrypt Error`, { error: getError(error), stationSN: this.rawStation.station_sn, message: { seqNo: message.seqNo, channel: message.channel, commandType: CommandType[message.commandId], signCode: message.signCode, type: message.type, dataType: P2PDataType[message.dataType], data: message.data.toString("hex") } });
+                }
             }
             this.log.debug(`Handle DATA ${P2PDataType[message.dataType]} - Received data`, { stationSN: this.rawStation.station_sn, commandIdName: CommandType[message.commandId], commandId: message.commandId, data: message.data.toString("hex"), seqNumber: this.seqNumber, p2pDataSeqNumber: this.p2pDataSeqNumber, offsetDataSeqNumber: this.offsetDataSeqNumber });
             switch(message.commandId) {
