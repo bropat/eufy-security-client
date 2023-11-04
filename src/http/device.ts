@@ -765,6 +765,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_2K ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
+            type == DeviceType.SOLO_CAMERA_SOLAR ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_2K ||
@@ -799,6 +800,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_2K ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
+            type == DeviceType.SOLO_CAMERA_SOLAR ||
             type == DeviceType.LOCK_WIFI ||
             type == DeviceType.LOCK_WIFI_NO_FINGER ||
             type == DeviceType.LOCK_8503 ||
@@ -995,12 +997,17 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR == type;
     }
 
+    static isSoloCameraSolar(type: number): boolean {
+        return DeviceType.SOLO_CAMERA_SOLAR == type;
+    }
+
     static isSoloCameras(type: number): boolean {
         return Device.isSoloCamera(type) ||
             Device.isSoloCameraPro(type) ||
             Device.isSoloCameraSpotlight1080(type) ||
             Device.isSoloCameraSpotlight2k(type) ||
-            Device.isSoloCameraSpotlightSolar(type);
+            Device.isSoloCameraSpotlightSolar(type) ||
+            Device.isSoloCameraSolar(type);
     }
 
     static isStarlight4GLTE(type: number): boolean {
@@ -1112,7 +1119,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             sn.startsWith("T8131") ||
             sn.startsWith("T8122") ||
             sn.startsWith("T8123") ||
-            sn.startsWith("T8124");
+            sn.startsWith("T8124") ||
+            sn.startsWith("T8134");
     }
 
     static isSmartTrackCard(type: number): boolean {
@@ -1244,6 +1252,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isSoloCameraSpotlightSolar(): boolean {
         return Device.isSoloCameraSpotlightSolar(this.rawDevice.device_type);
+    }
+
+    public isSoloCameraSolar(): boolean {
+        return Device.isSoloCameraSolar(this.rawDevice.device_type);
     }
 
     public isStarlight4GLTE(): boolean {
