@@ -80,6 +80,22 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 2.9.0 (2023-10-xx)
+
+* (bropat) **Breaking Change** Requires node version >= 18.0.0
+* (bropat) Added support for SmartTrack Link (T87B0; #385) and SmartTrack Card (T87B2; untested)
+* (bropat) Implemented data decryption for p2p command responses
+* (bropat) Migrated API getCiphers method to v2 endpoint
+* (bropat) Migrated API getInvites method to v2 endpoint
+* (bropat) Migrated to Buffer.subarray from deprecated Buffer.slice method
+* (bropat) Migrated to new sdcard info gathering over p2p (#373)
+* (bropat) Fixed parsing of push notification for sensor open status (#372)
+* (bropat) Fixed API getHouseInviteList method (removed encryption)
+* (bropat) Fixed device type for lock T8506
+* (PhilippEngler) Fixed StatusLed property for doorbell dual (#374)
+* (bropat) Updated docs with new device names
+* (bropat) Updated versions of the package dependencies
+
 ### 2.8.1 (2023-08-31)
 
 * (bropat) Automatic detection of supported P2P encryption (none, type1, type2)

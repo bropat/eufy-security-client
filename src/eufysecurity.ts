@@ -14,7 +14,7 @@ import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, Sta
 import { CommandName, DeviceType, HB3DetectionTypes, NotificationSwitchMode, NotificationType, PropertyName } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
-import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, GarageCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera } from "./http/device";
+import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, GarageCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera, Tracker } from "./http/device";
 import { AlarmEvent, ChargingType, CommandType, DatabaseReturnCode, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata, DatabaseQueryLatestInfoLocal, DatabaseQueryLatestInfoCloud, RGBColor, DynamicLighting } from "./p2p/interfaces";
 import { CommandResult } from "./p2p/models";
@@ -607,6 +607,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     new_device = Keypad.getInstance(this.api, device);
                 } else if (Device.isSmartSafe(device.device_type)) {
                     new_device = SmartSafe.getInstance(this.api, device);
+                } else if (Device.isSmartTrack(device.device_type)) {
+                    new_device = Tracker.getInstance(this.api, device);
                 } else {
                     new_device = UnknownDevice.getInstance(this.api, device);
                 }
@@ -795,7 +797,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.connected = false;
         this.emit("close");
 
-        if (this.retries < 1) {
+        if (this.retries < 3) {
             this.retries++;
             await this.connect()
         } else {
@@ -1592,6 +1594,30 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             case PropertyName.DeviceDoor2Open:
                 await station.openDoor(device, value as boolean, 2);
                 break;
+            case PropertyName.DeviceLeftBehindAlarm: {
+                const tracker = device as Tracker;
+                const result = await tracker.setLeftBehindAlarm(value as boolean);
+                if (result) {
+                    device.updateProperty(name, value as boolean)
+                }
+                break;
+            }
+            case PropertyName.DeviceFindPhone: {
+                const tracker = device as Tracker;
+                const result = await tracker.setFindPhone(value as boolean);
+                if (result) {
+                    device.updateProperty(name, value as boolean)
+                }
+                break;
+            }
+            case PropertyName.DeviceTrackerType: {
+                const tracker = device as Tracker;
+                const result = await tracker.setTrackerType(value as number);
+                if (result) {
+                    device.updateProperty(name, value as number)
+                }
+                break;
+            }
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
                     throw new ReadOnlyPropertyError("Property is read only", { context: { device: deviceSN, propertyName: name, propertyValue: value } });

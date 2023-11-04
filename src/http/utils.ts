@@ -176,7 +176,7 @@ export const calculateCellularSignalLevel = function(rssi: number): SignalLevel 
 }
 
 export const encryptAPIData = (data: string, key: Buffer): string => {
-    const cipher = createCipheriv("aes-256-cbc", key, key.slice(0, 16));
+    const cipher = createCipheriv("aes-256-cbc", key, key.subarray(0, 16));
     return (
         cipher.update(data, "utf8", "base64") +
         cipher.final("base64")
@@ -184,7 +184,7 @@ export const encryptAPIData = (data: string, key: Buffer): string => {
 }
 
 export const decryptAPIData = (data: string, key: Buffer): Buffer => {
-    const cipher = createDecipheriv("aes-256-cbc", key, key.slice(0, 16));
+    const cipher = createDecipheriv("aes-256-cbc", key, key.subarray(0, 16));
     return Buffer.concat([
         cipher.update(data, "base64"),
         cipher.final()]
@@ -468,14 +468,14 @@ export const getImageKey = function(serialnumber: string, p2pDid: string, code: 
 
 export const decodeImage = function(p2pDid: string, data: Buffer): Buffer {
     if (data.length >= 12) {
-        const header = data.slice(0, 12).toString();
+        const header = data.subarray(0, 12).toString();
         if (header === "eufysecurity") {
-            const serialnumber = data.slice(13, 29).toString();
-            const code = data.slice(30, 40).toString();
+            const serialnumber = data.subarray(13, 29).toString();
+            const code = data.subarray(30, 40).toString();
             const imageKey = getImageKey(serialnumber, p2pDid, code);
-            const otherData = data.slice(41);
-            const encryptedData = otherData.slice(0, 256);
-            const cipher = createDecipheriv("aes-128-ecb", Buffer.from(imageKey, "utf-8").slice(0, 16), null);
+            const otherData = data.subarray(41);
+            const encryptedData = otherData.subarray(0, 256);
+            const cipher = createDecipheriv("aes-128-ecb", Buffer.from(imageKey, "utf-8").subarray(0, 16), null);
             cipher.setAutoPadding(false);
             const decryptedData =  Buffer.concat([
                 cipher.update(encryptedData),
@@ -511,4 +511,13 @@ export const isPrioritySourceType = function(current: SourceType | undefined, up
         return true;
     }
     return false;
+}
+
+export const decryptTrackerData = (data: Buffer, key: Buffer): Buffer => {
+    const decipher = createDecipheriv("aes-128-ecb", key, null);
+    decipher.setAutoPadding(false);
+    return Buffer.concat([
+        decipher.update(data),
+        decipher.final()]
+    );
 }

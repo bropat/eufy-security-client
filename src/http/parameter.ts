@@ -1,13 +1,15 @@
 import { Logger } from "ts-log";
 
-import { CommandType } from "../p2p/types";
+import { CommandType, TrackerCommandType } from "../p2p/types";
 import { decodeBase64, getNullTerminatedString } from "../p2p/utils";
-import { parseJSON } from "../utils";
+import { getError, parseJSON } from "../utils";
 import { ParamType } from "./types";
+import { decryptTrackerData } from "./utils";
+import { ensureError } from "../error";
 
 export class ParameterHelper {
 
-    public static readValue(type: number, value: string, log: Logger): string | undefined {
+    public static readValue(serialNumber: string, type: number, value: string, log: Logger): string | undefined {
         if (value) {
             if (type === ParamType.SNOOZE_MODE ||
                 type === ParamType.CAMERA_MOTION_ZONES ||
@@ -28,7 +30,7 @@ export class ParameterHelper {
                 if (typeof value === "string") {
                     const parsedValue = parseJSON(getNullTerminatedString(decodeBase64(value), "utf-8"), log);
                     if (parsedValue === undefined) {
-                        log.warn("Non-parsable parameter value received from eufy cloud. Will be ignored.", { type: type, value: value });
+                        log.debug("Non-parsable parameter value received from eufy cloud. Will be ignored.", { serialNumber: serialNumber, type: type, value: value });
                     }
                     return parsedValue;
                 } else {
@@ -48,12 +50,24 @@ export class ParameterHelper {
                 if (typeof value === "string") {
                     const parsedValue = parseJSON(value, log);
                     if (parsedValue === undefined) {
-                        log.warn("Non-parsable parameter value received from eufy cloud. Will be ignored.", { type: type, value: value });
+                        log.debug("Non-parsable parameter value received from eufy cloud. Will be ignored.", { serialNumber: serialNumber, type: type, value: value });
                     }
                     return parsedValue;
                 } else {
                     return value; //return object
                 }
+            } else if (type === TrackerCommandType.COMMAND_NEW_LOCATION ||
+                type === TrackerCommandType.LOCATION_NEW_ADDRESS) {
+                try {
+                    const decrypted = decryptTrackerData(Buffer.from(value , "hex"), Buffer.from(serialNumber));
+                    if (decrypted !== undefined) {
+                        return decrypted.toString("utf8").trim();
+                    }
+                } catch (err) {
+                    const error = ensureError(err);
+                    log.debug("Non-parsable parameter value received from eufy cloud. Will be ignored.", { serialNumber: serialNumber, type: type, value: value, error: getError(error) });
+                }
+                return "";
             }
         }
         return value;
@@ -61,14 +75,13 @@ export class ParameterHelper {
 
     public static writeValue(type: number, value: string): string {
         if (value) {
-            const result = JSON.stringify(value);
             if (type === ParamType.SNOOZE_MODE ||
                 type === ParamType.CAMERA_MOTION_ZONES ||
                 type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN_DELAY ||
                 type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN) {
-                return Buffer.from(result).toString("base64");
+                return Buffer.from(JSON.stringify(value)).toString("base64");
             }
-            return result;
+            return value;
         }
         return "";
     }

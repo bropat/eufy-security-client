@@ -213,7 +213,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public updateRawProperty(type: number, value: string, source: SourceType): boolean {
-        const parsedValue = ParameterHelper.readValue(type, value, this.log);
+        const parsedValue = ParameterHelper.readValue(this.getSerial(), type, value, this.log);
         if (parsedValue !== undefined &&
             ((this.rawProperties[type] !== undefined && this.rawProperties[type].value !== parsedValue && isPrioritySourceType(this.rawProperties[type].source, source)) || this.rawProperties[type] === undefined)) {
 
@@ -603,7 +603,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onParameter(channel: number, param: number, value: string): void {
         const params: RawValues = {};
-        const parsedValue = ParameterHelper.readValue(param, value, this.log);
+        const parsedValue = ParameterHelper.readValue(this.getSerial(), param, value, this.log);
         if (parsedValue !== undefined) {
             params[param] = {
                 value: parsedValue,
@@ -875,7 +875,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     if (!devices[device_sn]) {
                         devices[device_sn] = {};
                     }
-                    const parsedValue = ParameterHelper.readValue(param.param_type, param.param_value, this.log);
+                    const parsedValue = ParameterHelper.readValue(device_sn, param.param_type, param.param_value, this.log);
                     if (parsedValue !== undefined) {
                         devices[device_sn][param.param_type] = {
                             value: parsedValue,
@@ -889,7 +889,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     if (!devices[device_sn]) {
                         devices[device_sn] = {};
                     }
-                    const parsedValue = ParameterHelper.readValue(param.param_type, param.param_value, this.log);
+                    const parsedValue = ParameterHelper.readValue(device_sn, param.param_type, param.param_value, this.log);
                     if (parsedValue !== undefined) {
                         devices[device_sn][param.param_type] = {
                             value: parsedValue,
@@ -3967,7 +3967,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     mValue3: CommandType.CMD_DOWNLOAD_VIDEO,
                     payload: {
                         filepath: path,
-                        key: rsa_key?.exportKey("components-public").n.slice(1).toString("hex").toUpperCase(),
+                        key: rsa_key?.exportKey("components-public").n.subarray(1).toString("hex").toUpperCase(),
                     }
                 }),
                 channel: device.getChannel()
@@ -3975,7 +3975,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 command: commandData
             });
         } else if (cipher_id !== undefined) {
-            const cipher = await this.api.getCipher(cipher_id, this.rawStation.member.admin_user_id);
+            const cipher = await this.api.getCipher(/*this.rawStation.station_sn, */cipher_id, this.rawStation.member.admin_user_id);
             if (Object.keys(cipher).length > 0) {
                 this.p2pSession.setDownloadRSAPrivateKeyPem(cipher.private_key);
                 await this.p2pSession.sendCommandWithString({
@@ -3998,6 +3998,16 @@ export class Station extends TypedEmitter<StationEvents> {
                 });
             }
         } else {
+            await this.p2pSession.sendCommandWithString({
+                commandType: CommandType.CMD_DOWNLOAD_VIDEO,
+                strValue: path,
+                strValueSub: this.rawStation.member.admin_user_id,
+                channel: device.getChannel()
+            }, {
+                command: commandData
+            });
+        }
+        /* else {
             this.log.warn(`Cancelled download of video "${path}" from Station ${this.getSerial()}, because cipher_id is missing`);
             this.emit("command result", this, {
                 channel: device.getChannel(),
@@ -4007,7 +4017,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     command: commandData
                 }
             });
-        }
+        }*/
     }
 
     public async cancelDownload(device: Device): Promise<void> {
@@ -4056,7 +4066,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     "commandType": ParamType.COMMAND_START_LIVESTREAM,
                     "data": {
                         "accountId": this.rawStation.member.admin_user_id,
-                        "encryptkey": rsa_key?.exportKey("components-public").n.slice(1).toString("hex"),
+                        "encryptkey": rsa_key?.exportKey("components-public").n.subarray(1).toString("hex"),
                         "streamtype": videoCodec
                     }
                 }),
@@ -4072,7 +4082,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     "commandType": ParamType.COMMAND_START_LIVESTREAM,
                     "data": {
                         "account_id": this.rawStation.member.admin_user_id,
-                        "encryptkey": rsa_key?.exportKey("components-public").n.slice(1).toString("hex"),
+                        "encryptkey": rsa_key?.exportKey("components-public").n.subarray(1).toString("hex"),
                         "streamtype": videoCodec
                     }
                 }),
@@ -4086,7 +4096,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 await this.p2pSession.sendCommandWithInt({
                     commandType: CommandType.CMD_START_REALTIME_MEDIA,
                     value: device.getChannel(),
-                    strValue: rsa_key?.exportKey("components-public").n.slice(1).toString("hex"),
+                    strValue: rsa_key?.exportKey("components-public").n.subarray(1).toString("hex"),
                     channel: device.getChannel()
                 }, {
                     command: commandData
@@ -4101,7 +4111,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         "mValue3": CommandType.CMD_START_REALTIME_MEDIA,
                         "payload": {
                             "ClientOS": "Android",
-                            "key": rsa_key?.exportKey("components-public").n.slice(1).toString("hex"),
+                            "key": rsa_key?.exportKey("components-public").n.subarray(1).toString("hex"),
                             "streamtype": videoCodec === VideoCodec.H264 ? 1 : 2,
                         }
                     }),

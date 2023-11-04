@@ -3,12 +3,14 @@ import { Logger } from "ts-log";
 import EventEmitter from "events";
 
 import { ErrorObject, EufySecurityPersistentData } from "./interfaces";
-import { InvalidPropertyValueError, ensureError } from "./error";
+import { BaseError, InvalidPropertyValueError, ensureError } from "./error";
 import { PropertyMetadataAny, PropertyMetadataNumeric, PropertyMetadataObject, PropertyMetadataString } from "./http/interfaces";
 
-export const getError = function(error: Error): ErrorObject {
+export const getError = function(error: BaseError): ErrorObject {
     return {
+        cause: error.cause,
         message: `${error.name}: ${error.message}`,
+        context: error.context,
         stacktrace: error.stack
     };
 }
@@ -124,7 +126,7 @@ export const parseJSON = function(data: string, log: Logger): any {
         return JSON.parse(data.replace(/[\0]+$/g, ""));
     } catch(err) {
         const error = ensureError(err);
-        log.error("JSON parse error", { error: getError(error), data: data });
+        log.debug("JSON parse error", { error: getError(error), data: data });
     }
     return undefined;
 }
