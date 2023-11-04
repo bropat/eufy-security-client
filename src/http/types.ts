@@ -5722,8 +5722,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeSoloProperty,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingIndoorSoloFloodlightProperty,
-        //[PropertyName.DeviceMotionDetectionTypeHuman]: DeviceMotionHB3DetectionTypeHumanProperty,                         //TODO: Finish implementation
-        //[PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionHB3DetectionTypeAllOhterMotionsProperty,     //TODO: Finish implementation
+        //[PropertyName.DeviceMotionDetectionTypeHuman]: DeviceMotionHB3DetectionTypeHumanProperty,                         //TODO: Finish implementation ({"account_id":"____","cmd":1298,"mChannel":0,"mValue3":0,"payload":{"ai_detect_type":3,"channel":0}})
+        //[PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionHB3DetectionTypeAllOhterMotionsProperty,     //TODO: Finish implementation ({"account_id":"____","cmd":1298,"mChannel":0,"mValue3":0,"payload":{"ai_detect_type":32771,"channel":0}})
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
