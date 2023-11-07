@@ -307,7 +307,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private async getStorageInfo(stationSerial : string) : Promise<void> {
         try {
             const station = await this.getStation(stationSerial);
-            if (station.isStation() || (station.hasProperty(PropertyName.StationSdStatus) && station.getPropertyValue(PropertyName.StationSdStatus) !== undefined && station.getPropertyValue(PropertyName.StationSdStatus) !== TFCardStatus.REMOVE)) {
+            if (station.hasProperty(PropertyName.StationSdStatus) && station.getPropertyValue(PropertyName.StationSdStatus) !== undefined && station.getPropertyValue(PropertyName.StationSdStatus) !== TFCardStatus.REMOVE) {
                 await station.getStorageInfoEx();
             }
         } catch (err) {
