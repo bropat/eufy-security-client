@@ -44,7 +44,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private cameraMaxLivestreamSeconds = 30;
     private cameraStationLivestreamTimeout: Map<string, NodeJS.Timeout> = new Map<string, NodeJS.Timeout>();
-    private cameraCloudLivestreamTimeout: Map<string, NodeJS.Timeout> = new Map<string, NodeJS.Timeout>();
 
     private pushService!: PushNotificationService;
     private mqttService!: MQTTService;
@@ -695,9 +694,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         for (const device_sn of this.cameraStationLivestreamTimeout.keys()) {
             this.stopStationLivestream(device_sn);
         }
-        for (const device_sn of this.cameraCloudLivestreamTimeout.keys()) {
-            this.stopCloudLivestream(device_sn);
-        }
 
         if (this.refreshEufySecurityCloudTimeout !== undefined)
             clearTimeout(this.refreshEufySecurityCloudTimeout);
@@ -842,32 +838,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
     }
 
-    public async startCloudLivestream(deviceSN: string): Promise<void> {
-        const device = await this.getDevice(deviceSN);
-        const station = await this.getStation(device.getStationSerial());
-
-        if (!device.hasCommand(CommandName.DeviceStartLivestream))
-            throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: deviceSN, commandName: CommandName.DeviceStartLivestream } });
-
-        const camera = device as Camera;
-        if (!camera.isStreaming()) {
-            const url = await camera.startStream();
-            if (url !== "") {
-                if (this.cameraMaxLivestreamSeconds > 0) {
-                    this.cameraCloudLivestreamTimeout.set(deviceSN, setTimeout(() => {
-                        this.log.info(`Stopping the station stream for the device ${deviceSN}, because we have reached the configured maximum stream timeout (${this.cameraMaxLivestreamSeconds} seconds)`);
-                        this.stopCloudLivestream(deviceSN);
-                    }, this.cameraMaxLivestreamSeconds * 1000));
-                }
-                this.emit("cloud livestream start", station, camera, url);
-            } else {
-                this.log.error(`Failed to start cloud stream for the device ${deviceSN}`);
-            }
-        } else {
-            this.log.warn(`The cloud stream for the device ${deviceSN} cannot be started, because it is already streaming!`);
-        }
-    }
-
     public async stopStationLivestream(deviceSN: string): Promise<void> {
         const device = await this.getDevice(deviceSN);
         const station = await this.getStation(device.getStationSerial());
@@ -885,28 +855,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (timeout) {
             clearTimeout(timeout);
             this.cameraStationLivestreamTimeout.delete(deviceSN);
-        }
-    }
-
-    public async stopCloudLivestream(deviceSN: string): Promise<void> {
-        const device = await this.getDevice(deviceSN);
-        const station = await this.getStation(device.getStationSerial());
-
-        if (!device.hasCommand(CommandName.DeviceStopLivestream))
-            throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: deviceSN, commandName: CommandName.DeviceStopLivestream } });
-
-        const camera = device as Camera;
-        if (camera.isStreaming()) {
-            await camera.stopStream();
-            this.emit("cloud livestream stop", station, camera);
-        } else {
-            this.log.warn(`The cloud stream for the device ${deviceSN} cannot be stopped, because it isn't streaming!`);
-        }
-
-        const timeout = this.cameraCloudLivestreamTimeout.get(deviceSN);
-        if (timeout) {
-            clearTimeout(timeout);
-            this.cameraCloudLivestreamTimeout.delete(deviceSN);
         }
     }
 

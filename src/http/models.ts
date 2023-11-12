@@ -370,14 +370,6 @@ export interface EventRecordResponse {
     storage_alias: number;
 }
 
-export interface StreamResponse {
-    url: string;
-    domain:  string;
-    stream_name:  string;
-    time:  string;
-    token:  string;
-}
-
 export interface EventRecordRequest {
     device_sn: string;
     end_time: number;
