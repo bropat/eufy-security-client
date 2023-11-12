@@ -250,8 +250,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 (device as Lock).processMQTTNotification(message.data.data, this.config.eventDurationSeconds);
             }).catch((err) => {
                 const error = ensureError(err);
-                if (error instanceof DeviceNotFoundError) {
-                } else {
+                if (!(error instanceof DeviceNotFoundError)) {
                     this.log.error("Lock MQTT Message Error", { error: getError(error) });
                 }
             }).finally(() => {
@@ -2429,7 +2428,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         device.update(raw);
                     }).catch((err) => {
                         const error = ensureError(err);
-                        this.log.error("onStationDatabaseQueryLatest Error", { error: getError(error), stationSN: station.getSerial(), returnCode: returnCode });
+                        if (!(error instanceof DeviceNotFoundError)) {
+                            this.log.error("onStationDatabaseQueryLatest Error", { error: getError(error), stationSN: station.getSerial(), returnCode: returnCode });
+                        }
                     });
                 }
             }
