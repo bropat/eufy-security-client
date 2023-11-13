@@ -446,7 +446,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public static isStation(type: number): boolean {
-        return type === DeviceType.STATION || type === DeviceType.HB3;
+        return type === DeviceType.STATION || type === DeviceType.HB3 || type === DeviceType.MINIBASE_CHIME;
     }
 
     public isStation(): boolean {
