@@ -7008,6 +7008,14 @@ export const StationProperties: Properties = {
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
     },
+    [DeviceType.BATTERY_DOORBELL_PLUS_E340]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+        [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+    },
     [DeviceType.CAMERA_FG]: {
         ...BaseStationProperties,
         [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
