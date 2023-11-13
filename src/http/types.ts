@@ -7745,6 +7745,14 @@ export const StationCommands: Commands = {
         CommandName.StationDatabaseCountByDate,
         CommandName.StationDatabaseDelete,
     ],
+    [DeviceType.BATTERY_DOORBELL_PLUS_E340]: [
+        CommandName.StationReboot,
+        CommandName.StationDownloadImage,
+        CommandName.StationDatabaseQueryLatestInfo,
+        CommandName.StationDatabaseQueryLocal,
+        CommandName.StationDatabaseCountByDate,
+        CommandName.StationDatabaseDelete,
+    ],
     [DeviceType.SOLO_CAMERA]: [
         CommandName.StationReboot,
         CommandName.StationTriggerAlarmSound,
