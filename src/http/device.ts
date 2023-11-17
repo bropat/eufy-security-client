@@ -1065,6 +1065,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isCameraProfessional247(type: number): boolean {
+        // T8600 - E330
         return DeviceType.PROGESSIONAL_247 == type;
     }
 
