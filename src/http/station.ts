@@ -12,7 +12,7 @@ import { encodePasscode, getBlocklist, getHB3DetectionMode, hexDate, hexTime, he
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor, StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
 import { AlarmEvent, CalibrateGarageType, ChargingType, CommandType, DatabaseReturnCode, ErrorCode, ESLBleCommand, ESLCommand, FilterDetectType, FilterEventType, FilterStorageType, IndoorSoloSmartdropCommandType, LockV12P2PCommand, P2PConnectionType, PanTiltDirection, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, TFCardStatus, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4, WatermarkSetting5 } from "../p2p/types";
-import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData, CustomData, CommandData } from "../p2p/models";
+import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData, CustomData, CommandData, StorageInfoBodyHB3 } from "../p2p/models";
 import { Device, DoorbellCamera, Lock, SmartSafe } from "./device";
 import { encodeLockPayload, encryptLockAESData, generateBasicLockAESKey, getLockVectorBytes, isPrivateIp, getSmartSafeP2PCommand, getLockV12P2PCommand, getLockP2PCommand, RGBColorToDecimal, } from "../p2p/utils";
 import { InvalidCommandValueError, InvalidPropertyValueError, NotSupportedError, RTSPPropertyNotEnabledError, WrongStationError, StationConnectTimeoutError, PinNotVerifiedError, ensureError } from "../error";
@@ -93,6 +93,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("database delete", (returnCode, failedIds) => this.onDatabaseDelete(returnCode, failedIds));
         this.p2pSession.on("sensor status", (channel: number, status: number) => this.onSensorStatus(channel, status));
         this.p2pSession.on("garage door status", (channel: number, doorId: number, status: number) => this.onGarageDoorStatus(channel, doorId, status));
+        this.p2pSession.on("storage info hb3", (channel: number, storageInfo: StorageInfoBodyHB3) => this.onStorageInfoHB3(channel, storageInfo));
     }
 
     protected initializeState(): void {
@@ -733,8 +734,21 @@ export class Station extends TypedEmitter<StationEvents> {
 
     public getStorageInfoEx(): void {
         this.log.debug(`Station send get storage info command`, { stationSN: this.getSerial() });
-        if (this.isStation() && isGreaterEqualMinVersion("3.3.0.0", this.getSoftwareVersion())) {
+        if (this.isStation() && this.rawStation.device_type !== DeviceType.HB3 && isGreaterEqualMinVersion("3.3.0.0", this.getSoftwareVersion())) {
             this.p2pSession.sendCommandWithoutData(CommandType.CMD_SDINFO_EX, Station.CHANNEL);
+        } else if (this.rawStation.device_type === DeviceType.HB3) {
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_STORAGE_INFO_HB3,
+                    "mChannel": 0,
+                    "mValue3": 0,
+                    "payload": {
+                        "version":0.0,
+                        "cmd":11001.0,
+                    }}),
+            });
         } else {
             this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SDINFO_EX,
@@ -8660,4 +8674,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
+    private onStorageInfoHB3(channel: number, storageInfo: StorageInfoBodyHB3) {
+        this.emit("storage info hb3", this, channel, storageInfo);
+    }
 }

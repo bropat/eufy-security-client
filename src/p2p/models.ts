@@ -44,7 +44,7 @@ export interface CommandResult {
 
 export interface CmdNotifyPayload {
     cmd: number;
-    payload: ESLStationP2PThroughData | ESLAdvancedLockStatusNotification | SmartSafeSettingsNotification | SmartSafeStatusNotification | ESLBleV12P2PThroughData | EntrySensorStatus | GarageDoorStatus | string,
+    payload: ESLStationP2PThroughData | ESLAdvancedLockStatusNotification | SmartSafeSettingsNotification | SmartSafeStatusNotification | ESLBleV12P2PThroughData | EntrySensorStatus | GarageDoorStatus | StorageInfoHB3 | string,
     payloadLen?: number;
 }
 
@@ -180,4 +180,66 @@ export interface GarageDoorStatus {
     type: number;
     notify_tag: string;
     door_id: number;
+}
+
+export interface StorageInfoHB3 {
+    cmd: number;
+    version: number;
+    mIntRet: number;
+    msg: string;
+    old_storage_label: string;
+    cur_storage_label: string;
+    body: StorageInfoBodyHB3;
+}
+
+export interface StorageInfoBodyHB3 {
+    body_version: number;
+    storage_days: number;
+    storage_events: number;
+    con_video_hours: number;
+    format_transaction: string;
+    format_errcode: number;
+    hdd_info: StorageInfoHddHB3;
+    move_disk_info: StorageInfoMoveDiskInfoHB3;
+    emmc_info: StorageInfoEmmcHB3;
+}
+
+export interface StorageInfoHddHB3 {
+    serial_number: string;
+    disk_path: string;
+    disk_size: number;
+    system_size: number;
+    disk_used: number;
+    video_used: number;
+    video_size: number;
+    cur_temperate: number;
+    parted_status: number;
+    work_status: number;
+    hdd_label: string;
+    health: number;
+    device_module: string;
+    hdd_type: number;
+}
+
+export interface StorageInfoMoveDiskInfoHB3 {
+    disk_path: string;
+    disk_size: number;
+    disk_used: number;
+    part_layout_arr: string[];
+    data: string[];
+}
+
+export interface StorageInfoEmmcHB3 {
+    disk_nominal: number;
+    disk_size: number;
+    system_size: number;
+    disk_used: number;
+    data_used_percent: number;
+    swap_size: number;
+    video_size: number;
+    video_used: number;
+    data_partition_size: number;
+    eol_percent: number;
+    work_status: number;
+    health: number;
 }

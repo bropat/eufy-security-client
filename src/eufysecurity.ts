@@ -17,7 +17,7 @@ import { Credentials, PushMessage } from "./push/models";
 import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, GarageCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera, Tracker } from "./http/device";
 import { AlarmEvent, ChargingType, CommandType, DatabaseReturnCode, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata, DatabaseQueryLatestInfoLocal, DatabaseQueryLatestInfoCloud, RGBColor, DynamicLighting } from "./p2p/interfaces";
-import { CommandResult } from "./p2p/models";
+import { CommandResult, StorageInfoBodyHB3 } from "./p2p/models";
 import { generateSerialnumber, generateUDID, getError, handleUpdate, md5, parseValue, removeLastChar, waitForEvent } from "./utils";
 import { DeviceNotFoundError, StationNotFoundError, ReadOnlyPropertyError, NotSupportedError, AddUserError, DeleteUserError, UpdateUserUsernameError, UpdateUserPasscodeError, UpdateUserScheduleError, ensureError } from "./error";
 import { libVersion } from ".";
@@ -494,6 +494,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         station.on("database delete", (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => this.onStationDatabaseDelete(station, returnCode, failedIds));
                         station.on("sensor status", (station: Station, channel: number, status: number) => this.onStationSensorStatus(station, channel, status));
                         station.on("garage door status", (station: Station, channel: number, doorId: number, status: number) => this.onStationGarageDoorStatus(station, channel, doorId, status));
+                        station.on("storage info hb3", (station: Station, channel: number, storageInfo: StorageInfoBodyHB3) => this.onStorageInfoHb3(station, channel, storageInfo));
                         this.addStation(station);
                         station.initialize();
                     } catch (err) {
@@ -2471,4 +2472,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         });
     }
 
+    private onStorageInfoHb3(station: Station, channel: number, storageInfo: StorageInfoBodyHB3) {
+        if(station.hasProperty(PropertyName.StationStorageInfoEmmc)) {
+            station.updateProperty(PropertyName.StationStorageInfoEmmc, storageInfo.emmc_info);
+        }
+        if(station.hasProperty(PropertyName.StationStorageInfoHdd)) {
+            station.updateProperty(PropertyName.StationStorageInfoHdd, storageInfo.hdd_info);
+        }
+    }
 }
