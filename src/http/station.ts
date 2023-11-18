@@ -8674,7 +8674,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
-    private onStorageInfoHB3(channel: number, storageInfo: StorageInfoBodyHB3) {
+    private onStorageInfoHB3(channel: number, storageInfo: StorageInfoBodyHB3): void {
         this.emit("storage info hb3", this, channel, storageInfo);
     }
 }

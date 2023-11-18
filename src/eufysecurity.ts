@@ -2472,7 +2472,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         });
     }
 
-    private onStorageInfoHb3(station: Station, channel: number, storageInfo: StorageInfoBodyHB3) {
+    private onStorageInfoHb3(station: Station, channel: number, storageInfo: StorageInfoBodyHB3): void {
         if(station.hasProperty(PropertyName.StationStorageInfoEmmc)) {
             station.updateProperty(PropertyName.StationStorageInfoEmmc, storageInfo.emmc_info);
         }
