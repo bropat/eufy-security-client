@@ -3212,7 +3212,7 @@ export const DeviceDualCamWatchViewModeProperty: PropertyMetadataNumeric = {
         2: "Top-Left Picture-in-Picture",
         3: "Top-Right Picture-in-Picture",
         4: "Bottom-Left Picture-in-Picture",
-        5: "Bottom-Left Picture-in-Picture",
+        5: "Bottom-Right Picture-in-Picture",
         12: "Split-view",
     },
     default: 12,
