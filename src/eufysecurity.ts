@@ -4,7 +4,6 @@ import * as fse from "fs-extra";
 import * as path from "path";
 import { Readable } from "stream";
 import EventEmitter from "events";
-import imageType from "image-type";
 
 import { EufySecurityEvents, EufySecurityConfig, EufySecurityPersistentData } from "./interfaces";
 import { HTTPApi } from "./http/api";
@@ -209,7 +208,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
         this.api.setSerialNumber(this.persistentData.serial_number);
 
-        this.pushService = new PushNotificationService(this.log);
+        this.pushService = await PushNotificationService.initialize(this.log);
         this.pushService.on("connect", async (token: string) => {
             this.pushCloudRegistered = await this.api.registerPushToken(token);
             this.pushCloudChecked = await this.api.checkPushToken();
@@ -2393,12 +2392,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
     }
 
-    private onStationImageDownload(station: Station, file: string, image: Buffer): void {
-        const type = imageType(image);
-        const picture: Picture = {
-            data: image,
-            type: type !== null ? type : { ext: "unknown", mime: "application/octet-stream" }
-        };
+    private _emitStationImageDownload(station: Station, file: string, picture: Picture): void {
         this.emit("station image download", station, file, picture);
 
         this.getDevicesFromStation(station.getSerial()).then((devices: Device[]) => {
@@ -2412,6 +2406,28 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }).catch((err) => {
             const error = ensureError(err);
             this.log.error(`onStationImageDownload - Set first picture error`, { error: getError(error), stationSN: station.getSerial(), file: file });
+        });
+    }
+
+    private onStationImageDownload(station: Station, file: string, image: Buffer): void {
+        import("image-type").then(({ default: imageType }) => {
+            imageType(image).then((type) => {
+                const picture: Picture = {
+                    data: image,
+                    type: type !== null && type !== undefined ? type : { ext: "unknown", mime: "application/octet-stream" }
+                };
+                this._emitStationImageDownload(station, file, picture);
+            }).catch(() => {
+                this._emitStationImageDownload(station, file, {
+                    data: image,
+                    type: { ext: "unknown", mime: "application/octet-stream" }
+                });
+            });
+        }).catch(() => {
+            this._emitStationImageDownload(station, file, {
+                data: image,
+                type: { ext: "unknown", mime: "application/octet-stream" }
+            });
         });
     }
 

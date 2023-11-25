@@ -1,6 +1,10 @@
 import { Readable } from "stream";
-import { Method } from "got";
-import { ImageType as ImageFileExtension } from "image-type";
+import type { Method } from "got" with {
+    "resolution-mode": "import"
+};
+import type { ImageFileExtension } from "image-type" with {
+    "resolution-mode": "import"
+};
 
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata } from "../p2p/interfaces";
 import { CommandResult, StorageInfoBodyHB3 } from "../p2p/models";
@@ -165,7 +169,7 @@ export interface Schedule {
 }
 
 export interface ImageType {
-    ext: ImageFileExtension|"unknown";
+    ext: ImageFileExtension |"unknown";
     mime: string;
 }
 
