@@ -5573,7 +5573,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
         [PropertyName.DeviceBattery]: DeviceBatteryProperty,
         [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
-        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceSoundDetection]: DeviceSoundDetectionProperty,
         [PropertyName.DevicePetDetection]: DevicePetDetectionProperty,
