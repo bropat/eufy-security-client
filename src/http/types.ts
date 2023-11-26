@@ -1690,6 +1690,13 @@ export const DeviceMotionDetectionSensitivityBatteryDoorbellProperty: PropertyMe
     max: 5,
 }
 
+export const DeviceMotionDetectionSensitivityDoorbellE340Property: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
+    key: CommandType.CMD_SET_MOTION_SENSITIVITY,
+    min: 1,
+    max: 7,
+}
+
 export const DeviceMotionDetectionSensitivityWiredDoorbellProperty: PropertyMetadataNumeric = {
     ...DeviceMotionDetectionSensitivityCamera2Property,
     key: "custom_motionDetectionSensitivity",
@@ -5059,6 +5066,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeBatteryDoorbellProperty,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityDoorbellE340Property,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeBatteryDoorbellProperty,
         [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,

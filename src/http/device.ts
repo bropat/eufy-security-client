@@ -1231,7 +1231,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     public isBatteryDoorbellDual(): boolean {
-        return Device.isBatteryDoorbellDual(this.rawDevice.device_type) || Device.isBatteryDoorbellDualE340(this.rawDevice.device_type);
+        return Device.isBatteryDoorbellDual(this.rawDevice.device_type);
     }
 
     public isBatteryDoorbellDualE340(): boolean {
