@@ -95,6 +95,7 @@ export enum ParamType {
     DOORBELL_RING_RECORD = 2040,
     DOORBELL_SNOOZE_START_TIME = 2037,
     DOORBELL_VIDEO_QUALITY = 2031,
+    DOORBELL_CHIME_MODE = 100000,
     NIGHT_VISUAL = 2002,
     OPEN_DEVICE = 2001,
     RINGING_VOLUME = 2022,
@@ -2185,6 +2186,12 @@ export const DeviceVideoStreamingQualityCamera3Property: PropertyMetadataNumeric
         8: "High",
         10: "Ultra 4K"
     },
+}
+
+export const DeviceVideoStreamingQualityDoorbellE340Property: PropertyMetadataNumeric = {
+    ...DeviceVideoStreamingQualityProperty,
+    key: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY,
+    commandId: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY_E340,
 }
 
 export const DeviceVideoRecordingQualityIndoorProperty: PropertyMetadataNumeric = {
@@ -5052,8 +5059,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalBatteryDoorbellProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
-        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityBatteryDoorbellProperty,
-        //[PropertyName.DeviceVideoWDR]: DeviceWDRProperty, ==> HDR
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityDoorbellE340Property,
+        [PropertyName.DeviceVideoWDR]: DeviceWDRProperty,
         [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebaseRingtoneVolume]: DeviceChimeHomebaseRingtoneVolumeBatteryDoorbellProperty,
