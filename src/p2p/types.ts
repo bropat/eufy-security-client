@@ -1,41 +1,41 @@
 import { LockV12P2PCommandType } from "./models";
 
 export const RequestMessageType = {
-    STUN:               Buffer.from([0xF1, 0x00]),
-    LOOKUP:             Buffer.from([0xF1, 0x20]),
-    LOOKUP_WITH_KEY:    Buffer.from([0xF1, 0x26]),
-    LOOKUP_WITH_KEY2:   Buffer.from([0xF1, 0x6a]),
-    LOOKUP_WITH_KEY3:   Buffer.from([0xF1, 0x80]),
-    UNKNOWN_70:         Buffer.from([0xF1, 0x70]),
-    UNKNOWN_71:         Buffer.from([0xF1, 0x72]),
-    CHECK_CAM2:         Buffer.from([0xF1, 0x83]),
-    LOCAL_LOOKUP:       Buffer.from([0xF1, 0x30]),
-    PING:               Buffer.from([0xF1, 0xE0]),
-    PONG:               Buffer.from([0xF1, 0xE1]),
-    CHECK_CAM:          Buffer.from([0xF1, 0x41]),
-    DATA:               Buffer.from([0xF1, 0xD0]),
-    ACK:                Buffer.from([0xF1, 0xD1]),
-    END:                Buffer.from([0xF1, 0xF0])
+    STUN:                   Buffer.from([0xF1, 0x00]),
+    LOOKUP:                 Buffer.from([0xF1, 0x20]),
+    LOOKUP_WITH_KEY:        Buffer.from([0xF1, 0x26]),
+    LOOKUP_WITH_KEY2:       Buffer.from([0xF1, 0x6a]),
+    TURN_LOOKUP_WITH_KEY:   Buffer.from([0xF1, 0x80]),
+    TURN_SERVER_INIT:       Buffer.from([0xF1, 0x70]),
+    TURN_CLIENT_OK:         Buffer.from([0xF1, 0x72]),
+    CHECK_CAM2:             Buffer.from([0xF1, 0x83]),
+    LOCAL_LOOKUP:           Buffer.from([0xF1, 0x30]),
+    PING:                   Buffer.from([0xF1, 0xE0]),
+    PONG:                   Buffer.from([0xF1, 0xE1]),
+    CHECK_CAM:              Buffer.from([0xF1, 0x41]),
+    DATA:                   Buffer.from([0xF1, 0xD0]),
+    ACK:                    Buffer.from([0xF1, 0xD1]),
+    END:                    Buffer.from([0xF1, 0xF0])
 }
 
 export const ResponseMessageType = {
-    STUN:               Buffer.from([0xF1, 0x01]),
-    LOOKUP_RESP:        Buffer.from([0xF1, 0x21]),
-    LOOKUP_ADDR:        Buffer.from([0xF1, 0x40]),
-    LOCAL_LOOKUP_RESP:  Buffer.from([0xF1, 0x41]),
-    //UNKNOWN_69:         Buffer.from([0xF1, 0x69]),
-    UNKNOWN_71:         Buffer.from([0xF1, 0x71]),
-    UNKNOWN_73:         Buffer.from([0xF1, 0x73]),
-    UNKNOWN_81:         Buffer.from([0xF1, 0x81]),
-    LOOKUP_ADDR2:       Buffer.from([0xF1, 0x82]),
-    UNKNOWN_83:         Buffer.from([0xF1, 0x83]),
-    CAM_ID2:            Buffer.from([0xF1, 0x84]),
-    END:                Buffer.from([0xF1, 0xF0]),
-    PONG:               Buffer.from([0xF1, 0xE1]),
-    PING:               Buffer.from([0xF1, 0xE0]),
-    CAM_ID:             Buffer.from([0xF1, 0x42]),
-    ACK:                Buffer.from([0xF1, 0xD1]),
-    DATA:               Buffer.from([0xF1, 0xD0])
+    STUN:                   Buffer.from([0xF1, 0x01]),
+    LOOKUP_RESP:            Buffer.from([0xF1, 0x21]),
+    LOOKUP_ADDR:            Buffer.from([0xF1, 0x40]),
+    LOCAL_LOOKUP_RESP:      Buffer.from([0xF1, 0x41]),
+    TURN_SERVER_LIST:       Buffer.from([0xF1, 0x69]),
+    TURN_SERVER_OK:         Buffer.from([0xF1, 0x71]),
+    TURN_SERVER_TOKEN:      Buffer.from([0xF1, 0x73]),
+    TURN_SERVER_LOOKUP_OK:  Buffer.from([0xF1, 0x81]),
+    LOOKUP_ADDR2:           Buffer.from([0xF1, 0x82]),
+    UNKNOWN_83:             Buffer.from([0xF1, 0x83]),
+    TURN_SERVER_CAM_ID:     Buffer.from([0xF1, 0x84]),
+    END:                    Buffer.from([0xF1, 0xF0]),
+    PONG:                   Buffer.from([0xF1, 0xE1]),
+    PING:                   Buffer.from([0xF1, 0xE0]),
+    CAM_ID:                 Buffer.from([0xF1, 0x42]),
+    ACK:                    Buffer.from([0xF1, 0xD1]),
+    DATA:                   Buffer.from([0xF1, 0xD0])
 }
 
 export enum P2PDataType {
