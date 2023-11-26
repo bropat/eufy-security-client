@@ -1,4 +1,4 @@
-import { DynamicLighting, RGBColor } from "../p2p";
+import { DynamicLighting, MotionZone, RGBColor } from "../p2p";
 import { CommandType, TrackerCommandType, IndoorSoloSmartdropCommandType } from "../p2p/types";
 import { Commands, IndexedProperty, Properties, PropertyMetadataBoolean, PropertyMetadataNumeric, PropertyMetadataObject, PropertyMetadataString } from "./interfaces";
 
@@ -1736,13 +1736,37 @@ export const DeviceHiddenMotionDetectionModeWiredDoorbellProperty: PropertyMetad
     max: 3,
 }
 
-export const DeviceMotionZoneProperty: PropertyMetadataString = {
+export const DeviceMotionZoneProperty: PropertyMetadataObject = {
     key: CommandType.CMD_INDOOR_DET_SET_ACTIVE_ZONE,
     name: PropertyName.DeviceMotionZone,
     label: "Motion Detection Zone",
     readable: true,
     writeable: true,
-    type: "string",
+    type: "object",
+    default: {
+        polygens: []
+    } as MotionZone,
+    isValidObject: (obj: MotionZone) => {
+        if (typeof obj === "object" && "polygens" in obj) {
+            if (Array.isArray(obj.polygens)) {
+                return (obj.polygens.length > 0 &&
+                    obj.polygens.every((value) => {
+                        return typeof value === "object" &&
+                            "points" in value &&
+                            Array.isArray(value.points) &&
+                            value.points.length > 0 &&
+                            value.points.every((point) => {
+                                return typeof point === "object" &&
+                                    "x" in point &&
+                                    "y" in point &&
+                                    typeof point.x === "number" &&
+                                    typeof point.y === "number";
+                            })
+                    })) || obj.polygens.length === 0;
+            }
+        }
+        return false;
+    }
 }
 
 export const DeviceFloodlightLightProperty: PropertyMetadataBoolean = {
