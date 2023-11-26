@@ -2229,6 +2229,16 @@ export const DeviceVideoRecordingQualityProperty: PropertyMetadataNumeric = {
     commandId: ParamType.COMMAND_VIDEO_RECORDING_QUALITY,
 }
 
+export const DeviceVideoRecordingQualityDoorbellE340Property: PropertyMetadataNumeric = {
+    ...DeviceVideoRecordingQualityIndoorProperty,
+    key: CommandType.CMD_SET_RECORD_QUALITY,
+    states: {
+        2: "Full HD (1080P)",
+        3: "2K HD",
+    },
+    commandId: CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY_E340,
+}
+
 export const DeviceVideoRecordingQualityWalllightProperty: PropertyMetadataNumeric = {
     ...DeviceVideoRecordingQualityIndoorProperty,
     key: CommandType.CMD_SET_RECORD_QUALITY,
@@ -5060,6 +5070,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalBatteryDoorbellProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityDoorbellE340Property,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityDoorbellE340Property,
         [PropertyName.DeviceVideoWDR]: DeviceWDRProperty,
         [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty,
