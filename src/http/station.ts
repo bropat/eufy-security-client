@@ -3018,7 +3018,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
                     "account_id": this.rawStation.member.admin_user_id,
-                    "cmd": CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY,
+                    "cmd": CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY_E340,
                     "mChannel": device.getChannel(),
                     "mValue3": 0,
                     "payload": {
