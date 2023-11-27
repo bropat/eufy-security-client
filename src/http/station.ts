@@ -1153,6 +1153,22 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
+        } else if (device.isBatteryDoorbellDualE340()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_BAT_DOORBELL_SET_LED_ENABLE,
+                    "mChannel": device.getChannel(),
+                    "mValue3": 0,
+                    "payload": {
+                        "light_enable": value === true ? 1 : 0
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
         } else if (device.isBatteryDoorbell() || device.isWiredDoorbellDual()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -1550,12 +1566,27 @@ export class Station extends TypedEmitter<StationEvents> {
         this.log.debug(`Station switch light - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
         if (device.isFloodLight() || device.isSoloCameraSpotlight1080() || device.isSoloCameraSpotlight2k() ||
             device.isSoloCameraSpotlightSolar() || device.isCamera2C() || device.isCamera2CPro() ||
-            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k() || device.isCamera3() || device.isCamera3C() || device.isBatteryDoorbellDualE340()) {
+            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k() || device.isCamera3() || device.isCamera3C()) {
             await this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
                 value: value === true ? 1 : 0,
                 valueSub: device.getChannel(),
                 strValue: this.rawStation.member.admin_user_id,
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else if (device.isBatteryDoorbellDualE340()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
+                    "data": {
+                        "time": 0,
+                        "type": 2,
+                        "value": value === true ? 1 : 0,
+                    }
+                }),
                 channel: device.getChannel()
             }, {
                 property: propertyData
@@ -2103,6 +2134,23 @@ export class Station extends TypedEmitter<StationEvents> {
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_SET_AUDIO_MUTE_RECORD,
                     "data": value === true ? 1 : 0,
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else if (device.isBatteryDoorbellDualE340()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_SET_AUDIO_MUTE_RECORD,
+                    "mChannel": device.getChannel(),
+                    "mValue3": 0,
+                    "payload": {
+                        "channel": device.getChannel(),
+                        "record_mute": value === true ? 0 : 1,
+                    }
                 }),
                 channel: device.getChannel()
             }, {
@@ -5828,7 +5876,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Station set delivery guard - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
-        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual()) {
+        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual() || device.isBatteryDoorbellDualE340()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -5865,7 +5913,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Station set delivery guard package guarding - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
-        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual()) {
+        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual() || device.isBatteryDoorbellDualE340()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -5901,7 +5949,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, propertyData.value);
 
         this.log.debug(`Station set delivery guard package guarding voice response voice - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
-        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual()) {
+        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual() || device.isBatteryDoorbellDualE340()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -5934,7 +5982,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, propertyData.value);
 
         this.log.debug(`Station set delivery guard guarding activated time - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), propertyData: propertyData, startTime: start, endTime: endTime });
-        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual()) {
+        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual() || device.isBatteryDoorbellDualE340()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -5999,7 +6047,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Station set delivery guard uncollected package alert - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
-        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual()) {
+        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual() || device.isBatteryDoorbellDualE340()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -6035,7 +6083,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, propertyData.value);
 
         this.log.debug(`Station set delivery guard uncollected package alert time to check - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
-        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual()) {
+        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual() || device.isBatteryDoorbellDualE340()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -6072,7 +6120,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Station set delivery guard package live check assistance - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
-        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual()) {
+        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual() || device.isBatteryDoorbellDualE340()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -6125,6 +6173,23 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
+        } else if (device.isBatteryDoorbellDualE340()) {
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_DOORBELL_DUAL_VIEW_MODE_E340,
+                    "mChannel": device.getChannel(),
+                    "mValue3": 0,
+                    "payload": {
+                        "restore": 1,
+                        "video_type": value,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
         } else {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
         }
@@ -6142,7 +6207,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, propertyData.value);
 
         this.log.debug(`Station set ring auto response - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), propertyData: propertyData, enabled: enabled, voiceID: voiceID, autoVoiceResponse: autoVoiceResponse, startTime: startTime, endTime: endTime });
-        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual()) {
+        if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual() || device.isBatteryDoorbellDualE340()) {
             await this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({

@@ -3243,6 +3243,11 @@ export const DeviceDualCamWatchViewModeProperty: PropertyMetadataNumeric = {
     default: 12,
 }
 
+export const DeviceDualCamWatchViewModeE340Property: PropertyMetadataNumeric = {
+    ...DeviceDualCamWatchViewModeProperty,
+    key: CommandType.CMD_DOORBELL_DUAL_VIEW_MODE_E340,
+}
+
 export const DeviceRingAutoResponseProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE,
     name: PropertyName.DeviceRingAutoResponse,
@@ -5053,7 +5058,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
         [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedBatteryDoorbellDualProperty,
-        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        //[PropertyName.DeviceLight]: DeviceFloodlightLightProperty,   TODO: DISABLED => when the light is activated, this event is communicated via the p2p connection with the wrong channel of the device if the doorbell is connected to the station. e.g. the device is assigned to channel 2, but the event is communicated for the device on channel 0, which is wrong
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkBatteryDoorbellCamera1Property,
         [PropertyName.DeviceState]: DeviceStateProperty,
@@ -5064,6 +5069,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
         [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeBatteryDoorbellProperty,
+        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
         [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityDoorbellE340Property,
@@ -5073,7 +5079,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalBatteryDoorbellProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityDoorbellE340Property,
-        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityDoorbellE340Property,
+        //[PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityDoorbellE340Property,      //TODO: Where can I get the current value? It's not like usual...
         [PropertyName.DeviceVideoWDR]: DeviceWDRProperty,
         [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty,
@@ -5082,15 +5088,6 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeBatteryDoorbellProperty,
         [PropertyName.DeviceNotificationRing]: DeviceNotificationRingProperty,
         [PropertyName.DeviceNotificationMotion]: DeviceNotificationMotionProperty,
-        [PropertyName.DeviceLoiteringDetection]: DeviceLoiteringDetectionProperty,
-        [PropertyName.DeviceLoiteringDetectionLength]: DeviceLoiteringDetectionLengthProperty,
-        [PropertyName.DeviceLoiteringDetectionRange]: DeviceLoiteringDetectionRangeProperty,
-        [PropertyName.DeviceLoiteringCustomResponsePhoneNotification]: DeviceLoiteringCustomResponsePhoneNotificationProperty,
-        [PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponse]: DeviceLoiteringCustomResponseAutoVoiceResponseProperty,
-        [PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponseVoice]: DeviceLoiteringCustomResponseAutoVoiceResponseVoiceProperty,
-        [PropertyName.DeviceLoiteringCustomResponseHomeBaseNotification]: DeviceLoiteringCustomResponseHomeBaseNotificationProperty,
-        [PropertyName.DeviceLoiteringCustomResponseTimeFrom]: DeviceLoiteringCustomResponseTimeFromProperty,
-        [PropertyName.DeviceLoiteringCustomResponseTimeTo]: DeviceLoiteringCustomResponseTimeToProperty,
         [PropertyName.DeviceDeliveryGuard]: DeviceDeliveryGuardProperty,
         [PropertyName.DeviceDeliveryGuardPackageGuarding]: DeviceDeliveryGuardPackageGuardingProperty,
         [PropertyName.DeviceDeliveryGuardPackageGuardingActivatedTimeFrom]: DeviceDeliveryGuardPackageGuardingActivatedTimeFromProperty,
@@ -5099,7 +5096,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceDeliveryGuardPackageLiveCheckAssistance]: DeviceDeliveryGuardPackageLiveCheckAssistanceProperty,
         [PropertyName.DeviceDeliveryGuardUncollectedPackageAlert]: DeviceDeliveryGuardUncollectedPackageAlertProperty,
         [PropertyName.DeviceDeliveryGuardUncollectedPackageAlertTimeToCheck]: DeviceDeliveryGuardUncollectedPackageAlertTimeToCheckProperty,
-        [PropertyName.DeviceDualCamWatchViewMode]: DeviceDualCamWatchViewModeProperty,
+        [PropertyName.DeviceDualCamWatchViewMode]: DeviceDualCamWatchViewModeE340Property,
         [PropertyName.DeviceRingAutoResponse]: DeviceRingAutoResponseProperty,
         [PropertyName.DeviceRingAutoResponseVoiceResponse]: DeviceRingAutoResponseVoiceResponseProperty,
         [PropertyName.DeviceRingAutoResponseVoiceResponseVoice]: DeviceRingAutoResponseVoiceResponseVoiceProperty,
@@ -5108,7 +5105,6 @@ export const DeviceProperties: Properties = {
         [PropertyName.DevicePackageDelivered]: DevicePackageDeliveredProperty,
         [PropertyName.DevicePackageStranded]: DevicePackageStrandedProperty,
         [PropertyName.DevicePackageTaken]: DevicePackageTakenProperty,
-        [PropertyName.DeviceSomeoneLoitering]: DeviceSomeoneLoiteringProperty,
         [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
         [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
