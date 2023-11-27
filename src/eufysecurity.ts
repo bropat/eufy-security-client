@@ -115,7 +115,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         } else if (!fse.existsSync(this.config.persistentDir)) {
             this.config.persistentDir = path.resolve(__dirname, "../../..");
         }
-        this.persistentFile = path.join(this.config.persistentDir, "persistent.json");
+
+        if (this.config.persistentData) {
+            this.persistentData = JSON.parse(this.config.persistentData) as EufySecurityPersistentData;
+        } else {
+            this.persistentFile = path.join(this.config.persistentDir, "persistent.json");
+        }
 
         try {
             if (fse.statSync(this.persistentFile).isFile()) {
@@ -862,7 +867,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.persistentData.httpApi = this.api?.getPersistentData();
         this.persistentData.country = this.api?.getCountry();
         try {
-            fse.writeFileSync(this.persistentFile, JSON.stringify(this.persistentData));
+            if(this.config.persistentData) {
+                this.emit("persistent data", JSON.stringify(this.persistentData));
+            } else {
+                fse.writeFileSync(this.persistentFile, JSON.stringify(this.persistentData));
+            }
         } catch (err) {
             const error = ensureError(err);
             this.log.error("WritePersistentData Error", { error: getError(error) });
