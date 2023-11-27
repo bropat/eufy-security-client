@@ -16,6 +16,11 @@ export interface CmdCameraInfoResponse {
     }>;
     main_sw_version: string;
     sec_sw_version: string;
+    db_bypass_str?: Array<{
+        channel: number;
+        param_type: number;
+        param_value: string;
+    }>;
 }
 
 export interface PropertyData {

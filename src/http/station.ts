@@ -859,45 +859,52 @@ export class Station extends TypedEmitter<StationEvents> {
         return "";
     }
 
+    private _handleCameraInfoParameters(devices: { [index: string]: RawValues; }, channel: number, type: number, value: string): void {
+        if (channel === Station.CHANNEL || channel === Station.CHANNEL_INDOOR || this.isIntegratedDevice()) {
+            this.updateRawProperty(type, value, "p2p");
+            if (type === CommandType.CMD_GET_ALARM_MODE) {
+                if (this.getDeviceType() !== DeviceType.STATION && this.getDeviceType() !== DeviceType.HB3)
+                    // Trigger refresh Guard Mode
+                    this.api.refreshStationData();
+            }
+            if (this.isIntegratedDevice()) {
+                const device_sn = this.getSerial();
+                if (!devices[device_sn]) {
+                    devices[device_sn] = {};
+                }
+                const parsedValue = ParameterHelper.readValue(device_sn, type, value, this.log);
+                if (parsedValue !== undefined) {
+                    devices[device_sn][type] = {
+                        value: parsedValue,
+                        source: "p2p"
+                    };
+                }
+            }
+        } else {
+            const device_sn = this._getDeviceSerial(type);
+            if (device_sn !== "") {
+                if (!devices[device_sn]) {
+                    devices[device_sn] = {};
+                }
+                const parsedValue = ParameterHelper.readValue(device_sn, type, value, this.log);
+                if (parsedValue !== undefined) {
+                    devices[device_sn][type] = {
+                        value: parsedValue,
+                        source: "p2p"
+                    };
+                }
+            }
+        }
+    }
+
     private onCameraInfo(cameraInfo: CmdCameraInfoResponse): void {
         this.log.debug("Station got camera info", { station: this.getSerial(), cameraInfo: cameraInfo });
         const devices: { [index: string]: RawValues; } = {};
         cameraInfo.params.forEach(param => {
-            if (param.dev_type === Station.CHANNEL || param.dev_type === Station.CHANNEL_INDOOR || this.isIntegratedDevice()) {
-                this.updateRawProperty(param.param_type, param.param_value, "p2p");
-                if (param.param_type === CommandType.CMD_GET_ALARM_MODE) {
-                    if (this.getDeviceType() !== DeviceType.STATION && this.getDeviceType() !== DeviceType.HB3)
-                        // Trigger refresh Guard Mode
-                        this.api.refreshStationData();
-                }
-                if (this.isIntegratedDevice()) {
-                    const device_sn = this.getSerial();
-                    if (!devices[device_sn]) {
-                        devices[device_sn] = {};
-                    }
-                    const parsedValue = ParameterHelper.readValue(device_sn, param.param_type, param.param_value, this.log);
-                    if (parsedValue !== undefined) {
-                        devices[device_sn][param.param_type] = {
-                            value: parsedValue,
-                            source: "p2p"
-                        };
-                    }
-                }
-            } else {
-                const device_sn = this._getDeviceSerial(param.dev_type);
-                if (device_sn !== "") {
-                    if (!devices[device_sn]) {
-                        devices[device_sn] = {};
-                    }
-                    const parsedValue = ParameterHelper.readValue(device_sn, param.param_type, param.param_value, this.log);
-                    if (parsedValue !== undefined) {
-                        devices[device_sn][param.param_type] = {
-                            value: parsedValue,
-                            source: "p2p"
-                        };
-                    }
-                }
-            }
+            this._handleCameraInfoParameters(devices, param.dev_type, param.param_type, param.param_value);
+        });
+        cameraInfo.db_bypass_str?.forEach(param => {
+            this._handleCameraInfoParameters(devices, param.channel, param.param_type, Buffer.from(param.param_value, "base64").toString());
         });
         Object.keys(devices).forEach(device => {
             this.emit("raw device property changed", device, devices[device]);
