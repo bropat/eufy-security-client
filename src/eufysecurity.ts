@@ -123,7 +123,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
 
         try {
-            if (fse.statSync(this.persistentFile).isFile()) {
+            if (!this.config.persistentData && fse.statSync(this.persistentFile).isFile()) {
                 const fileContent = fse.readFileSync(this.persistentFile, "utf8");
                 this.persistentData = JSON.parse(fileContent) as EufySecurityPersistentData;
             }
