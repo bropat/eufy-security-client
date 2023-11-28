@@ -881,7 +881,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 }
             }
         } else {
-            const device_sn = this._getDeviceSerial(type);
+            const device_sn = this._getDeviceSerial(channel);
             if (device_sn !== "") {
                 if (!devices[device_sn]) {
                     devices[device_sn] = {};
