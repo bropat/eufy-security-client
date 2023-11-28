@@ -3432,6 +3432,7 @@ export const DevicePackageDeliveredProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: false,
     type: "boolean",
+    default: false,
 }
 
 export const DevicePackageStrandedProperty: PropertyMetadataBoolean = {
@@ -3441,6 +3442,7 @@ export const DevicePackageStrandedProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: false,
     type: "boolean",
+    default: false,
 }
 
 export const DevicePackageTakenProperty: PropertyMetadataBoolean = {
@@ -3450,6 +3452,7 @@ export const DevicePackageTakenProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: false,
     type: "boolean",
+    default: false,
 }
 
 export const DeviceSomeoneLoiteringProperty: PropertyMetadataBoolean = {
@@ -3459,6 +3462,7 @@ export const DeviceSomeoneLoiteringProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: false,
     type: "boolean",
+    default: false,
 }
 
 export const DeviceRadarMotionDetectedProperty: PropertyMetadataBoolean = {
@@ -3687,6 +3691,7 @@ export const DeviceJammedAlertProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: false,
     type: "boolean",
+    default: false,
 }
 
 export const Device911AlertProperty: PropertyMetadataBoolean = {
@@ -3696,6 +3701,7 @@ export const Device911AlertProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: false,
     type: "boolean",
+    default: false,
 }
 
 export const Device911AlertEventProperty: PropertyMetadataNumeric = {
@@ -3721,6 +3727,7 @@ export const DeviceShakeAlertProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: false,
     type: "boolean",
+    default: false,
 }
 
 export const DeviceShakeAlertEventProperty: PropertyMetadataNumeric = {
@@ -3743,6 +3750,7 @@ export const DeviceLowBatteryAlertProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: false,
     type: "boolean",
+    default: false,
 }
 
 export const DeviceLongTimeNotCloseAlertProperty: PropertyMetadataBoolean = {
@@ -3752,6 +3760,7 @@ export const DeviceLongTimeNotCloseAlertProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: false,
     type: "boolean",
+    default: false,
 }
 
 export const DeviceWrongTryProtectAlertProperty: PropertyMetadataBoolean = {
@@ -3761,6 +3770,7 @@ export const DeviceWrongTryProtectAlertProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: false,
     type: "boolean",
+    default: false,
 }
 
 export const DeviceVideoTypeStoreToNASProperty: PropertyMetadataNumeric = {
