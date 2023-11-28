@@ -1,4 +1,4 @@
-import type { Got } from "got" with {
+import type { Got, OptionsOfUnknownResponseBody } from "got" with {
     "resolution-mode": "import"
 };
 import type { AnyFunction, ThrottledFunction } from "p-throttle" with {
@@ -628,14 +628,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    public async request(request: HTTPApiRequest): Promise<ApiResponse> {
+    public async request(request: HTTPApiRequest, withoutUrlPrefix = false): Promise<ApiResponse> {
         this.log.debug("Api request", { method: request.method, endpoint: request.endpoint, responseType: request.responseType, token: this.token, data: request.data });
         try {
-            const internalResponse = await this.requestEufyCloud(request.endpoint, {
+            const options: OptionsOfUnknownResponseBody = {
                 method: request.method,
                 json: request.data,
-                responseType: request.responseType !== undefined ? request.responseType : "json"
-            });
+                responseType: request.responseType !== undefined ? request.responseType : "json",
+            };
+            if (withoutUrlPrefix)
+                options.prefixUrl = "";
+            const internalResponse = await this.requestEufyCloud(request.endpoint, options);
             const response: ApiResponse = {
                 status: internalResponse.statusCode,
                 statusText: internalResponse.statusMessage ? internalResponse.statusMessage : "",
@@ -1459,9 +1462,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (station) {
                         const response = await this.request({
                             method: "GET",
-                            endpoint: new URL(url),
+                            endpoint: url,
                             responseType: "buffer"
-                        });
+                        }, true);
                         if (response.status == 200) {
                             return decodeImage(station.p2p_did, response.data as Buffer);
                         } else {
