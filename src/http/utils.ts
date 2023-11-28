@@ -496,10 +496,8 @@ export const getImagePath = function(path: string): string {
 };
 
 export const getImage = async function(api: HTTPApi, serial: string, url: string): Promise<Picture> {
-    // Remove API base from url.
-    const strippedUrl = url.replace(/^.*\/\/[^\/]+/, '');
     const { default: imageType } = await import("image-type");
-    const image = await api.getImage(serial, strippedUrl);
+    const image = await api.getImage(serial, url);
     const type = await imageType(image);
     return {
         data: image,

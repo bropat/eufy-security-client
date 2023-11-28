@@ -1457,9 +1457,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 if (device) {
                     const station = this.hubs[device.station_sn];
                     if (station) {
+                        // Remove API base from url.
+                        const strippedUrl = url.replace(/^.*\/\/[^\/]+/, '');
                         const response = await this.request({
                             method: "GET",
-                            endpoint: new URL(url),
+                            endpoint: strippedUrl,
                             responseType: "buffer"
                         });
                         if (response.status == 200) {
