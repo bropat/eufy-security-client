@@ -14,7 +14,7 @@ import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
 import { getError, isEmpty, validValue } from "../utils";
 import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
 import { DeviceSmartLockNotifyData } from "../mqtt/model";
-import { DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor } from "../p2p";
+import { DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor, VideoStreamingRecordingQuality } from "../p2p";
 import { ensureError } from "../error";
 
 export class Device extends TypedEmitter<DeviceEvents> {
@@ -574,6 +574,26 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const stringProperty = property as PropertyMetadataString;
                         return value !== undefined && (value as any).iccid !== undefined ? String((value as any).iccid) : (stringProperty.default !== undefined ? stringProperty.default : "");
                     }
+                }
+            } else if (property.key === CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY_E340) {
+                const numericProperty = property as PropertyMetadataNumeric;
+                const quality: VideoStreamingRecordingQuality = value as unknown as VideoStreamingRecordingQuality;
+                try {
+                    return value !== undefined && quality.mode_1 !== undefined && quality.mode_1.quality !== undefined ? quality.mode_1.quality : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Device convert raw property - CMD_BAT_DOORBELL_VIDEO_QUALITY_E340 Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+                    return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
+                }
+            } else if (property.key === CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY_E340) {
+                const numericProperty = property as PropertyMetadataNumeric;
+                const quality: VideoStreamingRecordingQuality = value as unknown as VideoStreamingRecordingQuality;
+                try {
+                    return value !== undefined && quality.mode_1 !== undefined && quality.mode_1.quality !== undefined ? quality.mode_1.quality : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Device convert raw property - CMD_BAT_DOORBELL_RECORD_QUALITY_E340 Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+                    return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;

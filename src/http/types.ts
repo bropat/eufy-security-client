@@ -2197,7 +2197,7 @@ export const DeviceVideoStreamingQualityCamera3Property: PropertyMetadataNumeric
 
 export const DeviceVideoStreamingQualityDoorbellE340Property: PropertyMetadataNumeric = {
     ...DeviceVideoStreamingQualityProperty,
-    key: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY,
+    key: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY_E340,
     commandId: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY_E340,
 }
 
@@ -2238,7 +2238,7 @@ export const DeviceVideoRecordingQualityProperty: PropertyMetadataNumeric = {
 
 export const DeviceVideoRecordingQualityDoorbellE340Property: PropertyMetadataNumeric = {
     ...DeviceVideoRecordingQualityIndoorProperty,
-    key: CommandType.CMD_SET_RECORD_QUALITY,
+    key: CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY_E340,
     states: {
         2: "Full HD (1080P)",
         3: "2K HD",
@@ -5089,7 +5089,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalBatteryDoorbellProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityDoorbellE340Property,
-        //[PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityDoorbellE340Property,      //TODO: Where can I get the current value? It's not like usual...
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityDoorbellE340Property,
         [PropertyName.DeviceVideoWDR]: DeviceWDRProperty,
         [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty,
