@@ -389,3 +389,13 @@ export interface InternalDynamicLighting {
     speed: number;
     colors: Array<number>;
 }
+
+export interface VideoStreamingRecordingQuality {
+    mode_0: {
+        quality: number;
+    },
+    mode_1: {
+        quality: number;
+    },
+    cur_mode: number;
+}

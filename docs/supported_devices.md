@@ -33,6 +33,7 @@
 | ![T8203 image](_media/wireddoorbelldual_small.jpg) | S330 Video Doorbell (T8203; Video Doorbell Dual) | :heavy_check_mark: | Firmware: 2.0.4.6 (20220417) |
 | ![T8210 image](_media/batterydoorbell2k_small.jpg) | Battery Doorbell 2K (T8210) | :heavy_check_mark: |  |
 | ![T8213 image](_media/batterydoorbell2kdual_small.jpg) | Battery Doorbell 2K Dual (T8213) | :heavy_check_mark: | Firmware: 0.1.2.5 (20220331) |
+| ![T8214 image](_media/batterydoorbell_e340_small.jpg) | Video Doorbell E340 (T8214; Battery Powered) | :heavy_check_mark: | Firmware:  |
 | ![T8222 image](_media/batterydoorbell1080p_small.jpg) | Battery Doorbell 1080p (T8222) | :heavy_check_mark: |  |
 | ![T8900 image](_media/sensor_small.jpg) | Entry Sensor (T8900) | :heavy_check_mark: |  |
 | ![T8910 image](_media/motionsensor_small.jpg) | Motion sensor (T8910) | :heavy_check_mark: |  |

@@ -14,7 +14,7 @@ import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
 import { getError, isEmpty, validValue } from "../utils";
 import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
 import { DeviceSmartLockNotifyData } from "../mqtt/model";
-import { DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor } from "../p2p";
+import { DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor, VideoStreamingRecordingQuality } from "../p2p";
 import { ensureError } from "../error";
 
 export class Device extends TypedEmitter<DeviceEvents> {
@@ -575,6 +575,26 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         return value !== undefined && (value as any).iccid !== undefined ? String((value as any).iccid) : (stringProperty.default !== undefined ? stringProperty.default : "");
                     }
                 }
+            } else if (property.key === CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY_E340) {
+                const numericProperty = property as PropertyMetadataNumeric;
+                const quality: VideoStreamingRecordingQuality = value as unknown as VideoStreamingRecordingQuality;
+                try {
+                    return value !== undefined && quality.mode_1 !== undefined && quality.mode_1.quality !== undefined ? quality.mode_1.quality : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Device convert raw property - CMD_BAT_DOORBELL_VIDEO_QUALITY_E340 Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+                    return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
+                }
+            } else if (property.key === CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY_E340) {
+                const numericProperty = property as PropertyMetadataNumeric;
+                const quality: VideoStreamingRecordingQuality = value as unknown as VideoStreamingRecordingQuality;
+                try {
+                    return value !== undefined && quality.mode_1 !== undefined && quality.mode_1.quality !== undefined ? quality.mode_1.quality : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Device convert raw property - CMD_BAT_DOORBELL_RECORD_QUALITY_E340 Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+                    return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
+                }
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
@@ -753,6 +773,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
+            type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
             type == DeviceType.DOORBELL_SOLO ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
@@ -791,6 +812,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
+            type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.CAMERA3 ||
@@ -841,6 +863,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
+            type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
             type == DeviceType.DOORBELL_SOLO)
             return true;
         return false;
@@ -965,6 +988,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.BATTERY_DOORBELL_PLUS == type;
     }
 
+    static isBatteryDoorbellDualE340(type: number): boolean {
+        return DeviceType.BATTERY_DOORBELL_PLUS_E340 == type;
+    }
+
     static isDoorbellDual(type: number): boolean {
         return DeviceType.DOORBELL_SOLO == type;
     }
@@ -972,7 +999,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
     static isBatteryDoorbell(type: number): boolean {
         if (type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
-            type == DeviceType.BATTERY_DOORBELL_PLUS)
+            type == DeviceType.BATTERY_DOORBELL_PLUS ||
+            type == DeviceType.BATTERY_DOORBELL_PLUS_E340)
             return true;
         return false;
     }
@@ -1224,6 +1252,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isBatteryDoorbellDual(): boolean {
         return Device.isBatteryDoorbellDual(this.rawDevice.device_type);
+    }
+
+    public isBatteryDoorbellDualE340(): boolean {
+        return Device.isBatteryDoorbellDualE340(this.rawDevice.device_type);
     }
 
     public isDoorbellDual(): boolean {
