@@ -2538,6 +2538,28 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
+        } else if (device.isBatteryDoorbellDualE340()) {
+            if (!Object.values(NotificationType).includes(value as NotificationType)) {
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, NotificationType);
+                return;
+            }
+            await this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE,
+                    "mChannel": device.getChannel(),
+                    "mValue3": 0,
+                    "payload": {
+                        "notification_motion_onoff": device.getPropertyValue(PropertyName.DeviceNotificationMotion) === true ? 1 : 0,
+                        "notification_ring_onoff": device.getPropertyValue(PropertyName.DeviceNotificationRing) === true ? 1 : 0,
+                        "notification_style": value,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
         } else if (device.isBatteryDoorbell() || device.isWiredDoorbellDual()) {
             if (!Object.values(NotificationType).includes(value as NotificationType)) {
                 this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, NotificationType);

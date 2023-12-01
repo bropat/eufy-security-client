@@ -5067,7 +5067,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
         [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
-        [PropertyName.DeviceStatusLed]: DeviceStatusLedBatteryDoorbellDualProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedBatteryDoorbellProperty,
         //[PropertyName.DeviceLight]: DeviceFloodlightLightProperty,   TODO: DISABLED => when the light is activated, this event is communicated via the p2p connection with the wrong channel of the device if the doorbell is connected to the station. e.g. the device is assigned to channel 2, but the event is communicated for the device on channel 0, which is wrong
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkBatteryDoorbellCamera1Property,
