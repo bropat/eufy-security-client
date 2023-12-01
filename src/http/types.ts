@@ -5594,7 +5594,7 @@ export const DeviceProperties: Properties = {
     },
     [DeviceType.OUTDOOR_PT_CAMERA]: {
         ...GenericDeviceProperties,
-        [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
         [PropertyName.DeviceBattery]: DeviceBatteryProperty,
         [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
         [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
