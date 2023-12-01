@@ -814,7 +814,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SMART_SAFE_7402 ||
             type == DeviceType.SMART_SAFE_7403 ||
             type == DeviceType.CAMERA_FG ||
-            type == DeviceType.WALL_LIGHT_CAM_81A0)
+            type == DeviceType.WALL_LIGHT_CAM_81A0 ||
+            type == DeviceType.OUTDOOR_PT_CAMERA)
             //TODO: Add other battery devices
             return true;
         return false;
