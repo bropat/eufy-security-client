@@ -3172,12 +3172,31 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
                     "account_id": this.rawStation.member.admin_user_id,
-                    "cmd": CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY_E340,
+                    "cmd": CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY2,
                     "mChannel": device.getChannel(),
                     "mValue3": 0,
                     "payload": {
                         "mode": -1,
                         "primary_view": -1,
+                        "quality": value,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else if (device.isOutdoorPanAndTiltCamera()) {
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY2,
+                    "mChannel": device.getChannel(),
+                    "mValue3": 0,
+                    "payload": {
+                        "channel": device.getChannel(),
+                        "mode": 0,
+                        "primary_view": 0,
                         "quality": value,
                     }
                 }),
@@ -3244,12 +3263,31 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
                     "account_id": this.rawStation.member.admin_user_id,
-                    "cmd": CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY_E340,
+                    "cmd": CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY2,
                     "mChannel": device.getChannel(),
                     "mValue3": 0,
                     "payload": {
                         "mode": -1,
                         "primary_view": -1,
+                        "quality": value,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else if (device.isOutdoorPanAndTiltCamera()) {
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY2,
+                    "mChannel": device.getChannel(),
+                    "mValue3": 0,
+                    "payload": {
+                        "channel": device.getChannel(),
+                        "mode": 0,
+                        "primary_view": 0,
                         "quality": value,
                     }
                 }),

@@ -29,8 +29,8 @@ export class ParameterHelper {
                 type === CommandType.CMD_WALL_LIGHT_SETTINGS_DYNAMIC_LIGHTING_THEMES ||
                 type === CommandType.CMD_INDOOR_DET_SET_ACTIVE_ZONE ||
                 type === CommandType.CMD_SET_PRIVACYPARAM ||
-                type === CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY_E340 ||
-                type === CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY_E340) {
+                type === CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY2 ||
+                type === CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY2) {
                 if (typeof value === "string") {
                     const parsedValue = parseJSON(getNullTerminatedString(decodeBase64(value), "utf-8"), log);
                     if (parsedValue === undefined) {

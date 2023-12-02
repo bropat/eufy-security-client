@@ -2229,8 +2229,18 @@ export const DeviceVideoStreamingQualityCamera3Property: PropertyMetadataNumeric
 
 export const DeviceVideoStreamingQualityDoorbellE340Property: PropertyMetadataNumeric = {
     ...DeviceVideoStreamingQualityProperty,
-    key: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY_E340,
-    commandId: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY_E340,
+    key: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY2,
+    commandId: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY2,
+}
+
+export const DeviceVideoStreamingQualityS340Property: PropertyMetadataNumeric = {
+    ...DeviceVideoStreamingQualityDoorbellE340Property,
+    states: {
+        0: "Auto",
+        1: "HD (720P)",
+        2: "Full HD (1080P)",
+        3: "3K HD",
+    },
 }
 
 export const DeviceVideoRecordingQualityIndoorProperty: PropertyMetadataNumeric = {
@@ -2270,12 +2280,21 @@ export const DeviceVideoRecordingQualityProperty: PropertyMetadataNumeric = {
 
 export const DeviceVideoRecordingQualityDoorbellE340Property: PropertyMetadataNumeric = {
     ...DeviceVideoRecordingQualityIndoorProperty,
-    key: CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY_E340,
+    key: CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY2,
     states: {
         2: "Full HD (1080P)",
         3: "2K HD",
     },
-    commandId: CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY_E340,
+    commandId: CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY2,
+}
+
+export const DeviceVideoRecordingQualityS340Property: PropertyMetadataNumeric = {
+    ...DeviceVideoRecordingQualityDoorbellE340Property,
+    states: {
+        1: "HD (720P)",
+        2: "Full HD (1080P)",
+        3: "3K HD",
+    },
 }
 
 export const DeviceVideoRecordingQualityWalllightProperty: PropertyMetadataNumeric = {
@@ -5728,8 +5747,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceMotionDetectionTypeVehicle]: DeviceMotionHB3DetectionTypeVehicleProperty,
         [PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionHB3DetectionTypeAllOhterMotionsProperty,
         [PropertyName.DeviceMotionTracking]: DeviceMotionTrackingProperty,
-        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
-        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityIndoorProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityS340Property,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityS340Property,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
         [PropertyName.DeviceRotationSpeed]: DeviceRotationSpeedProperty,
         [PropertyName.DeviceMotionZone]: DeviceMotionZoneProperty,
