@@ -1305,7 +1305,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Station set motion detection - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
-        if (device.isSoloCameraSolar()) {
+        if (device.isSoloCameraSolar() || device.isOutdoorPanAndTiltCamera()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
