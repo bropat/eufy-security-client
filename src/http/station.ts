@@ -4064,7 +4064,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Station set watermark - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
-        if (device.isCamera2Product() || device.isCamera3Product() || device.isSoloCameraSolar()) {
+        if (device.isCamera2Product() || device.isCamera3Product() || device.isSoloCameraSolar() || device.isOutdoorPanAndTiltCamera()) {
             if (!Object.values(WatermarkSetting3).includes(value as WatermarkSetting3)) {
                 this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting3);
                 return;
