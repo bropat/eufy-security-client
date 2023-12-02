@@ -2213,6 +2213,22 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
+        } else if (device.isOutdoorPanAndTiltCamera()) {
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_INDOOR_SET_RECORD_AUDIO_ENABLE,
+                    "data": {
+                        "enable": value === true ? 1 : 0,
+                        "quality": 0,
+                        "status": 0,
+                        "value": 0,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
         } else if (device.isFloodLight() || device.isIndoorCamera() || device.isSoloCameras() || device.isStarlight4GLTE()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
