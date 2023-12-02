@@ -5626,8 +5626,6 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityIndoorProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
         [PropertyName.DeviceRotationSpeed]: DeviceRotationSpeedProperty,
-        [PropertyName.DeviceNotificationPerson]: DeviceNotificationPersonProperty,
-        [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionProperty,
         [PropertyName.DeviceMotionZone]: DeviceMotionZoneProperty,
         [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
         [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
