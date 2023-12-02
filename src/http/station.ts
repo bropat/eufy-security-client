@@ -1855,7 +1855,10 @@ export class Station extends TypedEmitter<StationEvents> {
         if (this.getDeviceType() === DeviceType.HB3) {
             try {
                 const aiDetectionType = device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number) !== undefined ? device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)! : "0";
-                const newAiDetectionType = getHB3DetectionMode(Number.parseInt(aiDetectionType), type as HB3DetectionTypes, value);
+                let newAiDetectionType = getHB3DetectionMode(Number.parseInt(aiDetectionType), type as HB3DetectionTypes, value);
+                if (newAiDetectionType === 0) {
+                    newAiDetectionType = type;
+                }
                 await this.p2pSession.sendCommandWithStringPayload({
                     commandType: CommandType.CMD_SET_PAYLOAD,
                     value: JSON.stringify({
@@ -1882,7 +1885,10 @@ export class Station extends TypedEmitter<StationEvents> {
         } else if (device.isOutdoorPanAndTiltCamera()) {
             try {
                 const aiDetectionType = device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number) !== undefined ? device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)! : "0";
-                const newAiDetectionType = getT8170DetectionMode(Number.parseInt(aiDetectionType), type as T8170DetectionTypes, value);
+                let newAiDetectionType = getT8170DetectionMode(Number.parseInt(aiDetectionType), type as T8170DetectionTypes, value);
+                if (newAiDetectionType === 0) {
+                    newAiDetectionType = type;
+                }
                 await this.p2pSession.sendCommandWithStringPayload({
                     commandType: CommandType.CMD_SET_PAYLOAD,
                     value: JSON.stringify({
