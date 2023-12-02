@@ -340,6 +340,12 @@ export enum HB3DetectionTypes {
     HUMAN_RECOGNITION = 131072,
 }
 
+export enum T8170DetectionTypes {
+    HUMAN_DETECTION = 3,
+    VEHICLE_DETECTION = 4,
+    ALL_OTHER_MOTION = 32768,
+}
+
 export enum IndoorDetectionTypes {
     PERSON_DETECTION = 1,
     PET_DETECTION = 2,
@@ -5612,7 +5618,9 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingIndoorSoloFloodlightProperty,
-        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeIndoorProperty,
+        [PropertyName.DeviceMotionDetectionTypeHuman]: DeviceMotionHB3DetectionTypeHumanProperty,
+        [PropertyName.DeviceMotionDetectionTypeVehicle]: DeviceMotionHB3DetectionTypeVehicleProperty,
+        [PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionHB3DetectionTypeAllOhterMotionsProperty,
         [PropertyName.DeviceMotionTracking]: DeviceMotionTrackingProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
         [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityIndoorProperty,

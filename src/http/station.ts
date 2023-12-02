@@ -4,11 +4,11 @@ import { Logger } from "ts-log";
 import date from "date-and-time";
 
 import { HTTPApi } from "./api";
-import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode, VideoTypeStoreToNAS, HB3DetectionTypes, WalllightNotificationType, DailyLightingType, MotionActivationMode, BaseStationProperties, LightingActiveMode, SourceType } from "./types";
+import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode, VideoTypeStoreToNAS, HB3DetectionTypes, WalllightNotificationType, DailyLightingType, MotionActivationMode, BaseStationProperties, LightingActiveMode, SourceType, T8170DetectionTypes } from "./types";
 import { SnoozeDetail, StationListResponse, StationSecuritySettings } from "./models"
 import { ParameterHelper } from "./parameter";
 import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValues, StationEvents, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, PropertyMetadataObject } from "./interfaces";
-import { encodePasscode, getBlocklist, getHB3DetectionMode, hexDate, hexTime, hexWeek, isGreaterEqualMinVersion, isNotificationSwitchMode, isPrioritySourceType, switchNotificationMode } from "./utils";
+import { encodePasscode, getBlocklist, getHB3DetectionMode, getT8170DetectionMode, hexDate, hexTime, hexWeek, isGreaterEqualMinVersion, isNotificationSwitchMode, isPrioritySourceType, switchNotificationMode } from "./utils";
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, DynamicLighting, InternalColoredLighting, InternalDynamicLighting, MotionZone, RGBColor, StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
 import { AlarmEvent, CalibrateGarageType, ChargingType, CommandType, DatabaseReturnCode, ErrorCode, ESLBleCommand, ESLCommand, FilterDetectType, FilterEventType, FilterStorageType, IndoorSoloSmartdropCommandType, LockV12P2PCommand, P2PConnectionType, PanTiltDirection, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, TFCardStatus, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4, WatermarkSetting5 } from "../p2p/types";
@@ -1837,9 +1837,9 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
-    public async setMotionDetectionTypeHB3(device: Device, type: HB3DetectionTypes, value: boolean): Promise<void> {
+    public async setMotionDetectionTypeHB3(device: Device, type: HB3DetectionTypes | T8170DetectionTypes, value: boolean): Promise<void> {
         const propertyData: PropertyData = {
-            name: type === HB3DetectionTypes.HUMAN_RECOGNITION ? PropertyName.DeviceMotionDetectionTypeHumanRecognition : type === HB3DetectionTypes.HUMAN_DETECTION ? PropertyName.DeviceMotionDetectionTypeHuman : type === HB3DetectionTypes.PET_DETECTION ? PropertyName.DeviceMotionDetectionTypePet : type === HB3DetectionTypes.VEHICLE_DETECTION ? PropertyName.DeviceMotionDetectionTypeVehicle : PropertyName.DeviceMotionDetectionTypeAllOtherMotions,
+            name: type === HB3DetectionTypes.HUMAN_RECOGNITION ? PropertyName.DeviceMotionDetectionTypeHumanRecognition : type === HB3DetectionTypes.HUMAN_DETECTION || type === T8170DetectionTypes.HUMAN_DETECTION ? PropertyName.DeviceMotionDetectionTypeHuman : type === HB3DetectionTypes.PET_DETECTION ? PropertyName.DeviceMotionDetectionTypePet : type === HB3DetectionTypes.VEHICLE_DETECTION ? PropertyName.DeviceMotionDetectionTypeVehicle : PropertyName.DeviceMotionDetectionTypeAllOtherMotions,
             value: value
         };
         if (device.getStationSerial() !== this.getSerial()) {
@@ -1852,27 +1852,62 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Station set motion detection type HB3 - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), type: type, value: value });
-        try {
-            const aiDetectionType = device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number) !== undefined ? device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)! : "0";
-            await this.p2pSession.sendCommandWithStringPayload({
-                commandType: CommandType.CMD_SET_PAYLOAD,
-                value: JSON.stringify({
-                    "account_id": this.rawStation.member.admin_user_id,
-                    "cmd": CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
-                    "mChannel": 0, //device.getChannel(),
-                    "mValue3": 0,
-                    "payload": {
-                        "ai_detect_type": getHB3DetectionMode(Number.parseInt(aiDetectionType), type, value),
-                        "channel": device.getChannel(),
+        if (this.getDeviceType() === DeviceType.HB3) {
+            try {
+                const aiDetectionType = device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number) !== undefined ? device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)! : "0";
+                const newAiDetectionType = getHB3DetectionMode(Number.parseInt(aiDetectionType), type as HB3DetectionTypes, value);
+                await this.p2pSession.sendCommandWithStringPayload({
+                    commandType: CommandType.CMD_SET_PAYLOAD,
+                    value: JSON.stringify({
+                        "account_id": this.rawStation.member.admin_user_id,
+                        "cmd": CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
+                        "mChannel": 0, //device.getChannel(),
+                        "mValue3": 0,
+                        "payload": {
+                            "ai_detect_type": newAiDetectionType,
+                            "channel": device.getChannel(),
+                        }
+                    }),
+                    channel: device.getChannel()
+                }, {
+                    property: propertyData,
+                    onSuccess: () => {
+                        device.updateRawProperty(CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3, newAiDetectionType.toString(), "p2p");
                     }
-                }),
-                channel: device.getChannel()
-            }, {
-                property: propertyData
-            });
-        } catch (err) {
-            const error = ensureError(err);
-            this.log.error(`setMotionDetectionTypeHB3 Error`, { error: getError(error), stationSN: this.getSerial(), deviceSN: device.getSerial() });
+                });
+            } catch (err) {
+                const error = ensureError(err);
+                this.log.error(`setMotionDetectionTypeHB3 Error`, { error: getError(error), stationSN: this.getSerial(), deviceSN: device.getSerial() });
+            }
+        } else if (device.isOutdoorPanAndTiltCamera()) {
+            try {
+                const aiDetectionType = device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number) !== undefined ? device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)! : "0";
+                const newAiDetectionType = getT8170DetectionMode(Number.parseInt(aiDetectionType), type as T8170DetectionTypes, value);
+                await this.p2pSession.sendCommandWithStringPayload({
+                    commandType: CommandType.CMD_SET_PAYLOAD,
+                    value: JSON.stringify({
+                        "account_id": this.rawStation.member.admin_user_id,
+                        "cmd": CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
+                        "mChannel": device.getChannel(),
+                        "mValue3": 0,
+                        "payload": {
+                            "ai_detect_type": newAiDetectionType,
+                            "channel": device.getChannel(),
+                        }
+                    }),
+                    channel: device.getChannel()
+                }, {
+                    property: propertyData,
+                    onSuccess: () => {
+                        device.updateRawProperty(CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3, newAiDetectionType.toString(), "p2p");
+                    }
+                });
+            } catch (err) {
+                const error = ensureError(err);
+                this.log.error(`setMotionDetectionTypeHB3 Error`, { error: getError(error), stationSN: this.getSerial(), deviceSN: device.getSerial() });
+            }
+        } else {
+            throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
         }
     }
 
