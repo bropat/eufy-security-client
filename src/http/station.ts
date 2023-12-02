@@ -1676,6 +1676,22 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
+        } else if (device.isOutdoorPanAndTiltCamera()) {
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_SET_PIR_SENSITIVITY,
+                    "data": {
+                        "enable": 0,
+                        "quality": 0,
+                        "status": 0,
+                        "value": value,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
         } else if (device.isSoloCameras() || device.isWiredDoorbellT8200X() || device.isStarlight4GLTE()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,

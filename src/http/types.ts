@@ -5738,7 +5738,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
         [PropertyName.DevicePicture]: DevicePictureProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
-        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivitySoloProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
