@@ -28,9 +28,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private readonly MAX_RETRIES = 10;
     private readonly MAX_COMMAND_RESULT_WAIT = 30 * 1000;
     private readonly MAX_AKNOWLEDGE_TIMEOUT = 15 * 1000;
-    private readonly MAX_LOOKUP_TIMEOUT = 15 * 1000;
+    private readonly MAX_LOOKUP_TIMEOUT = 20 * 1000;
     private readonly LOOKUP_RETRY_TIMEOUT = 3 * 1000;
-    private readonly LOOKUP2_TIMEOUT = 5 * 1000;
+    private readonly LOOKUP2_TIMEOUT = 3 * 1000;
+    private readonly LOOKUP2_RETRY_TIMEOUT = 3 * 1000;
     private readonly MAX_EXPECTED_SEQNO_WAIT = 20 * 1000;
     private readonly HEARTBEAT_INTERVAL = 5 * 1000;
     private readonly MAX_COMMAND_QUEUE_TIMEOUT = 120 * 1000;
@@ -98,6 +99,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private lookupTimeout?: NodeJS.Timeout;
     private lookupRetryTimeout?: NodeJS.Timeout;
     private lookup2Timeout?: NodeJS.Timeout;
+    private lookup2RetryTimeout?: NodeJS.Timeout;
     private heartbeatTimeout?: NodeJS.Timeout;
     private keepaliveTimeout?: NodeJS.Timeout;
     private esdDisconnectTimeout?: NodeJS.Timeout;
@@ -297,6 +299,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.lookupRetryTimeout = undefined;
     }
 
+    private _clearLookup2RetryTimeout(): void {
+        this._clearTimeout(this.lookup2RetryTimeout);
+        this.lookup2RetryTimeout = undefined;
+    }
+
     private _clearLookup2Timeout(): void {
         this._clearTimeout(this.lookup2Timeout);
         this.lookup2Timeout = undefined;
@@ -380,6 +387,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private cloudLookup(): void {
         this.cloudAddresses.map((address) => this.cloudLookupByAddress(address));
+        this._clearLookup2Timeout();
         this.lookup2Timeout = setTimeout(() => {
             this.cloudLookup2();
         }, this.LOOKUP2_TIMEOUT);
@@ -387,6 +395,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private cloudLookup2(): void {
         this.cloudAddresses.map((address) => this.cloudLookupByAddress2(address));
+        this._clearLookup2RetryTimeout();
+        this.lookup2RetryTimeout = setTimeout(() => {
+            this.lookup2RetryTimeout = undefined;
+            this.cloudAddresses.map((address) => this.cloudLookupByAddress2(address));
+        }, this.LOOKUP2_RETRY_TIMEOUT);
     }
 
     private cloudLookupWithTurnServer(origAddress: Address, data: Buffer): void {
@@ -835,6 +848,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             if (!this.connected) {
                 this.log.debug(`Received message - CAM_ID - Connected to station ${this.rawStation.station_sn} on host ${rinfo.address} port ${rinfo.port}`);
                 this._clearLookupRetryTimeout();
+                this._clearLookup2RetryTimeout();
                 this._clearLookupTimeout();
                 this._clearConnectTimeout();
                 this._clearLookup2Timeout();
@@ -1089,6 +1103,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
                 this._clearLookupTimeout();
                 this._clearLookupRetryTimeout();
+                this._clearLookup2RetryTimeout();
 
                 this.log.debug(`Received message - LOOKUP_ADDR2 - Got response`, { stationSN: this.rawStation.station_sn, remoteAddress: rinfo.address, remotePort: rinfo.port, response: { ip: ip, port: port, data: data.toString("hex") }});
                 this.log.debug(`Connecting to host ${ip} on port ${port} (CHECK_CAM2)...`, { stationSN: this.rawStation.station_sn, ip: ip, port: port, data: data.toString("hex") });
