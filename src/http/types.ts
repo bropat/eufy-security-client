@@ -3296,7 +3296,17 @@ export const DeviceDualCamWatchViewModeProperty: PropertyMetadataNumeric = {
 
 export const DeviceDualCamWatchViewModeE340Property: PropertyMetadataNumeric = {
     ...DeviceDualCamWatchViewModeProperty,
-    key: CommandType.CMD_DOORBELL_DUAL_VIEW_MODE_E340,
+    key: CommandType.CMD_DOORBELL_DUAL_VIEW_MODE2,
+}
+
+export const DeviceDualCamWatchViewModeS340Property: PropertyMetadataNumeric = {
+    ...DeviceDualCamWatchViewModeProperty,
+    key: CommandType.CMD_DOORBELL_DUAL_VIEW_MODE2,
+    states: {
+        0: "Single view",
+        12: "Double view",
+    },
+    default: 0,
 }
 
 export const DeviceRingAutoResponseProperty: PropertyMetadataBoolean = {
@@ -5757,6 +5767,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
         [PropertyName.DevicePersonName]: DevicePersonNameProperty,
         [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
+        [PropertyName.DeviceDualCamWatchViewMode]: DeviceDualCamWatchViewModeS340Property,
     },
     [DeviceType.CAMERA_FG]: {
         ...GenericDeviceProperties,
