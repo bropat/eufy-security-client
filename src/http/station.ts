@@ -3889,7 +3889,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Station set station notification switch mode - sending command`, { stationSN: this.getSerial(), mode: mode, value: value });
-        if (isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
+        if (this.isStation() && isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
             let oldvalue = 0;
             const rawproperty = this.getRawProperty(CommandType.CMD_HUB_NOTIFY_MODE);
             if (rawproperty !== undefined) {
@@ -3898,7 +3898,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 } catch(error) {
                 }
             }
-
+            const pushMode = switchNotificationMode(oldvalue, mode, value);
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -3906,14 +3906,47 @@ export class Station extends TypedEmitter<StationEvents> {
                     "cmd": CommandType.CMD_HUB_NOTIFY_MODE,
                     "mValue3": 0,
                     "payload": {
-                        "arm_push_mode": switchNotificationMode(oldvalue, mode, value),
+                        "arm_push_mode": pushMode,
                         "notify_alarm_delay": this.getPropertyValue(PropertyName.StationNotificationStartAlarmDelay) !== undefined ? (this.getPropertyValue(PropertyName.StationNotificationStartAlarmDelay) === true ? 1 : 0) : 0,
                         "notify_mode": 0,
                     }
                 }),
                 channel: Station.CHANNEL
             }, {
-                property: propertyData
+                property: propertyData,
+                onSuccess: () => {
+                    this.updateRawProperty(CommandType.CMD_HUB_NOTIFY_MODE, pushMode.toString(), "p2p");
+                }
+            });
+        } else if (this.getDeviceType() === DeviceType.OUTDOOR_PT_CAMERA) {
+            let oldvalue = 0;
+            const rawproperty = this.getRawProperty(CommandType.CMD_HUB_NOTIFY_MODE);
+            if (rawproperty !== undefined) {
+                try {
+                    oldvalue = Number.parseInt(rawproperty);
+                } catch(error) {
+                }
+            }
+            const pushMode = switchNotificationMode(oldvalue, mode, value);
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_HUB_NOTIFY_MODE,
+                    "mChannel": 0,
+                    "mValue3": 0,
+                    "payload": {
+                        "arm_push_mode": pushMode,
+                        "notify_alarm_delay": 0,
+                        "notify_mode": 0,
+                    }
+                }),
+                channel: Station.CHANNEL
+            }, {
+                property: propertyData,
+                onSuccess: () => {
+                    this.updateRawProperty(CommandType.CMD_HUB_NOTIFY_MODE, pushMode.toString(), "p2p");
+                }
             });
         } else {
             this.p2pSession.sendCommandWithStringPayload({
@@ -3930,7 +3963,10 @@ export class Station extends TypedEmitter<StationEvents> {
                 }),
                 channel: Station.CHANNEL
             }, {
-                property: propertyData
+                property: propertyData,
+                onSuccess: () => {
+                    this.updateRawProperty(CommandType.CMD_HUB_NOTIFY_MODE, String(value === true ? 1 : 0), "p2p");
+                }
             });
         }
     }
