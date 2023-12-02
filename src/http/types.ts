@@ -5756,6 +5756,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
         [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+        [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
     },
     [DeviceType.CAMERA_FG]: {
         ...GenericDeviceProperties,
