@@ -109,8 +109,6 @@ export interface EufySecurityEvents {
     "connection error": (error: Error) => void;
     "tfa request": () => void;
     "captcha request": (id: string, captcha: string) => void;
-    "cloud livestream start": (station: Station, device: Device, url: string) => void;
-    "cloud livestream stop": (station: Station, device: Device) => void;
     "mqtt connect": () => void;
     "mqtt close": () => void;
     "mqtt lock message": (message: DeviceSmartLockMessage) => void;

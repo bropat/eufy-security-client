@@ -3,7 +3,7 @@ import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
 import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOhterMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType, T8170DetectionTypes } from "./types";
-import { ResultResponse, StreamResponse, DeviceListResponse, Voice, GarageDoorSensorsProperty } from "./models"
+import { DeviceListResponse, Voice, GarageDoorSensorsProperty } from "./models"
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject } from "./interfaces";
 import { CommandType, ESLAnkerBleConstant, TrackerCommandType } from "../p2p/types";
@@ -14,7 +14,7 @@ import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
 import { getError, isEmpty, validValue } from "../utils";
 import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
 import { DeviceSmartLockNotifyData } from "../mqtt/model";
-import { DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor } from "../p2p";
+import { DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor, VideoStreamingRecordingQuality } from "../p2p";
 import { ensureError } from "../error";
 
 export class Device extends TypedEmitter<DeviceEvents> {
@@ -588,6 +588,26 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         return value !== undefined && (value as any).iccid !== undefined ? String((value as any).iccid) : (stringProperty.default !== undefined ? stringProperty.default : "");
                     }
                 }
+            } else if (property.key === CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY_E340) {
+                const numericProperty = property as PropertyMetadataNumeric;
+                const quality: VideoStreamingRecordingQuality = value as unknown as VideoStreamingRecordingQuality;
+                try {
+                    return value !== undefined && quality.mode_1 !== undefined && quality.mode_1.quality !== undefined ? quality.mode_1.quality : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Device convert raw property - CMD_BAT_DOORBELL_VIDEO_QUALITY_E340 Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+                    return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
+                }
+            } else if (property.key === CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY_E340) {
+                const numericProperty = property as PropertyMetadataNumeric;
+                const quality: VideoStreamingRecordingQuality = value as unknown as VideoStreamingRecordingQuality;
+                try {
+                    return value !== undefined && quality.mode_1 !== undefined && quality.mode_1.quality !== undefined ? quality.mode_1.quality : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Device convert raw property - CMD_BAT_DOORBELL_RECORD_QUALITY_E340 Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+                    return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
+                }
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
@@ -766,6 +786,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
+            type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
             type == DeviceType.DOORBELL_SOLO ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
@@ -805,6 +826,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
+            type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.CAMERA3 ||
@@ -856,6 +878,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
+            type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
             type == DeviceType.DOORBELL_SOLO)
             return true;
         return false;
@@ -988,6 +1011,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.BATTERY_DOORBELL_PLUS == type;
     }
 
+    static isBatteryDoorbellDualE340(type: number): boolean {
+        return DeviceType.BATTERY_DOORBELL_PLUS_E340 == type;
+    }
+
     static isDoorbellDual(type: number): boolean {
         return DeviceType.DOORBELL_SOLO == type;
     }
@@ -995,7 +1022,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
     static isBatteryDoorbell(type: number): boolean {
         if (type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
-            type == DeviceType.BATTERY_DOORBELL_PLUS)
+            type == DeviceType.BATTERY_DOORBELL_PLUS ||
+            type == DeviceType.BATTERY_DOORBELL_PLUS_E340)
             return true;
         return false;
     }
@@ -1249,6 +1277,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return Device.isBatteryDoorbellDual(this.rawDevice.device_type);
     }
 
+    public isBatteryDoorbellDualE340(): boolean {
+        return Device.isBatteryDoorbellDualE340(this.rawDevice.device_type);
+    }
+
     public isDoorbellDual(): boolean {
         return Device.isDoorbellDual(this.rawDevice.device_type);
     }
@@ -1470,8 +1502,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
 export class Camera extends Device {
 
-    private _isStreaming = false;
-
     protected constructor(api: HTTPApi, device: DeviceListResponse) {
         super(api, device);
 
@@ -1518,93 +1548,17 @@ export class Camera extends Device {
         });
     }
 
-    public async startStream(): Promise<string> {
-        // Start the camera stream and return the RTSP URL.
-        //TODO: Deprecated. Will be removed!
-        try {
-            const response = await this.api.request({
-                method: "post",
-                endpoint: "v2/web/equipment/start_stream",
-                data: {
-                    device_sn: this.rawDevice.device_sn,
-                    station_sn: this.rawDevice.station_sn,
-                    proto: 2
-                }
-            });
-            this.log.debug("Camera start stream - Response", { data: response.data });
-
-            if (response.status == 200) {
-                const result: ResultResponse = response.data;
-                if (result.code == 0) {
-                    const dataresult: StreamResponse = this.api.decryptAPIData(result.data)
-                    this._isStreaming = true;
-                    this.log.info(`Livestream of camera ${this.rawDevice.device_sn} started`);
-
-                    //rtmp://p2p-vir-7.eufylife.com/hls/REDACTED==?time=1649675937&token=REDACTED
-                    return `rtmp://${dataresult.domain}/hls/${dataresult.stream_name}==?time=${dataresult.time}&token=${dataresult.token}`
-
-                } else {
-                    this.log.error("Camera start stream - Response code not ok", { code: result.code, msg: result.msg, data: response.data });
-                }
-            } else {
-                this.log.error("Camera start stream - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
-            }
-        } catch (err) {
-            const error = ensureError(err);
-            this.log.error("Camera start stream - Generic Error", { error: getError(error), deviceSN: this.getSerial() });
-        }
-        return "";
-    }
-
     public async stopDetection(): Promise<void> {
         // Stop camera detection.
         await this.setParameters([{ paramType: ParamType.DETECT_SWITCH, paramValue: 0 }])
-    }
-
-    public async stopStream(): Promise<void> {
-        // Stop the camera stream.
-        //TODO: Deprecated. Will be removed!
-        try {
-            const response = await this.api.request({
-                method: "post",
-                endpoint: "v2/web/equipment/stop_stream",
-                data: {
-                    device_sn: this.rawDevice.device_sn,
-                    station_sn: this.rawDevice.station_sn,
-                    proto: 2
-                }
-            });
-            this.log.debug("Camera stop stream - Response", { data: response.data });
-
-            if (response.status == 200) {
-                const result: ResultResponse = response.data;
-                if (result.code == 0) {
-                    this._isStreaming = false;
-                    this.log.info(`Livestream of camera ${this.rawDevice.device_sn} stopped`);
-                } else {
-                    this.log.error("Camera stop stream - Response code not ok", { code: result.code, msg: result.msg, data: response.data });
-                }
-            } else {
-                this.log.error("Camera stop stream - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data });
-            }
-        } catch (err) {
-            const error = ensureError(err);
-            this.log.error("Camera stop stream - Generic Error", { error: getError(error), deviceSN: this.getSerial() });
-        }
     }
 
     public getState(): PropertyValue {
         return this.getPropertyValue(PropertyName.DeviceState);
     }
 
-    public isStreaming(): boolean {
-        return this._isStreaming;
-    }
-
     public async close(): Promise<void> {
         //TODO: Stop other things if implemented such as detection feature
-        if (this._isStreaming)
-            await this.stopStream().catch();
     }
 
     public getLastChargingDays(): number {

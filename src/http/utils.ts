@@ -3,7 +3,6 @@ import { timeZoneData } from "./const";
 import md5 from "crypto-js/md5";
 import enc_hex from "crypto-js/enc-hex";
 import sha256 from "crypto-js/sha256";
-import imageType from "image-type";
 
 import { Device } from "./device";
 import { Picture, Schedule } from "./interfaces";
@@ -497,11 +496,12 @@ export const getImagePath = function(path: string): string {
 };
 
 export const getImage = async function(api: HTTPApi, serial: string, url: string): Promise<Picture> {
+    const { default: imageType } = await import("image-type");
     const image = await api.getImage(serial, url);
     const type = await imageType(image);
     return {
         data: image,
-        type: type !== null ? type : { ext: "unknown", mime: "application/octet-stream" }
+        type: type !== null && type !== undefined ? type : { ext: "unknown", mime: "application/octet-stream" }
     };
 };
 
