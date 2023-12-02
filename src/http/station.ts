@@ -1594,7 +1594,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
-        } else if (device.isBatteryDoorbellDualE340()) {
+        } else if (device.isBatteryDoorbellDualE340() || device.isOutdoorPanAndTiltCamera()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -3439,7 +3439,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.log.debug(`Station set light settings brightness manual - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
         if (device.isFloodLight() || device.isSoloCameraSpotlight1080() || device.isSoloCameraSpotlight2k() ||
             device.isSoloCameraSpotlightSolar() || device.isCamera2C() || device.isCamera2CPro() ||
-            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k() || device.isCamera3() || device.isCamera3C()) {
+            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k() || device.isCamera3() || device.isCamera3C() || device.isOutdoorPanAndTiltCamera()) {
             this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_FLOODLIGHT_BRIGHT_VALUE,
                 value: value,

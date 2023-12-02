@@ -5746,6 +5746,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceStatusLed]: DeviceStatusLedIndoorFloodProperty,
         [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
         [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceLightSettingsEnable]: DeviceFloodlightLightSettingsEnableProperty,
         [PropertyName.DevicePicture]: DevicePictureProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
         [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivitySoloProperty,
