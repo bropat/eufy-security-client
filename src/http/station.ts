@@ -1172,7 +1172,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: propertyData
             });
         } else if (device.isBatteryDoorbellDualE340()) {
-            await this.p2pSession.sendCommandWithStringPayload({
+            this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
                     "account_id": this.rawStation.member.admin_user_id,
@@ -1595,7 +1595,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: propertyData
             });
         } else if (device.isBatteryDoorbellDualE340()) {
-            await this.p2pSession.sendCommandWithStringPayload({
+            this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
@@ -1701,7 +1701,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: propertyData
             });
         } else if (device.isBatteryDoorbellDualE340()) {
-            await this.p2pSession.sendCommandWithStringPayload({
+            this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
                     "account_id": this.rawStation.member.admin_user_id,
@@ -2158,7 +2158,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: propertyData
             });
         } else if (device.isBatteryDoorbellDualE340()) {
-            await this.p2pSession.sendCommandWithStringPayload({
+            this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
                     "account_id": this.rawStation.member.admin_user_id,
@@ -2561,7 +2561,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, NotificationType);
                 return;
             }
-            await this.p2pSession.sendCommandWithStringPayload({
+            this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
                     "account_id": this.rawStation.member.admin_user_id,
@@ -6215,7 +6215,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: propertyData
             });
         } else if (device.isBatteryDoorbellDualE340()) {
-            await this.p2pSession.sendCommandWithStringPayload({
+            this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
                     "account_id": this.rawStation.member.admin_user_id,
