@@ -1,4 +1,4 @@
-import { DynamicLighting, RGBColor } from "../p2p";
+import { DynamicLighting, MotionZone, RGBColor } from "../p2p";
 import { CommandType, TrackerCommandType, IndoorSoloSmartdropCommandType } from "../p2p/types";
 import { Commands, IndexedProperty, Properties, PropertyMetadataBoolean, PropertyMetadataNumeric, PropertyMetadataObject, PropertyMetadataString } from "./interfaces";
 
@@ -35,6 +35,7 @@ export enum DeviceType {
     INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT = 44,
     INDOOR_OUTDOOR_CAMERA_2K = 45,
     INDOOR_OUTDOOR_CAMERA_1080P = 46,
+    OUTDOOR_PT_CAMERA = 48, //S340
     LOCK_BLE = 50,
     LOCK_WIFI = 51,
     LOCK_BLE_NO_FINGER = 52,
@@ -339,6 +340,12 @@ export enum HB3DetectionTypes {
     PET_DETECTION = 8,
     ALL_OTHER_MOTION = 32768,
     HUMAN_RECOGNITION = 131072,
+}
+
+export enum T8170DetectionTypes {
+    HUMAN_DETECTION = 3,
+    VEHICLE_DETECTION = 4,
+    ALL_OTHER_MOTION = 32768,
 }
 
 export enum IndoorDetectionTypes {
@@ -1746,13 +1753,37 @@ export const DeviceHiddenMotionDetectionModeWiredDoorbellProperty: PropertyMetad
     max: 3,
 }
 
-export const DeviceMotionZoneProperty: PropertyMetadataString = {
+export const DeviceMotionZoneProperty: PropertyMetadataObject = {
     key: CommandType.CMD_INDOOR_DET_SET_ACTIVE_ZONE,
     name: PropertyName.DeviceMotionZone,
     label: "Motion Detection Zone",
     readable: true,
     writeable: true,
-    type: "string",
+    type: "object",
+    default: {
+        polygens: []
+    } as MotionZone,
+    isValidObject: (obj: MotionZone) => {
+        if (typeof obj === "object" && "polygens" in obj) {
+            if (Array.isArray(obj.polygens)) {
+                return (obj.polygens.length > 0 &&
+                    obj.polygens.every((value) => {
+                        return typeof value === "object" &&
+                            "points" in value &&
+                            Array.isArray(value.points) &&
+                            value.points.length > 0 &&
+                            value.points.every((point) => {
+                                return typeof point === "object" &&
+                                    "x" in point &&
+                                    "y" in point &&
+                                    typeof point.x === "number" &&
+                                    typeof point.y === "number";
+                            })
+                    })) || obj.polygens.length === 0;
+            }
+        }
+        return false;
+    }
 }
 
 export const DeviceFloodlightLightProperty: PropertyMetadataBoolean = {
@@ -2198,8 +2229,18 @@ export const DeviceVideoStreamingQualityCamera3Property: PropertyMetadataNumeric
 
 export const DeviceVideoStreamingQualityDoorbellE340Property: PropertyMetadataNumeric = {
     ...DeviceVideoStreamingQualityProperty,
-    key: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY_E340,
-    commandId: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY_E340,
+    key: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY2,
+    commandId: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY2,
+}
+
+export const DeviceVideoStreamingQualityS340Property: PropertyMetadataNumeric = {
+    ...DeviceVideoStreamingQualityDoorbellE340Property,
+    states: {
+        0: "Auto",
+        1: "HD (720P)",
+        2: "Full HD (1080P)",
+        3: "3K HD",
+    },
 }
 
 export const DeviceVideoRecordingQualityIndoorProperty: PropertyMetadataNumeric = {
@@ -2239,12 +2280,21 @@ export const DeviceVideoRecordingQualityProperty: PropertyMetadataNumeric = {
 
 export const DeviceVideoRecordingQualityDoorbellE340Property: PropertyMetadataNumeric = {
     ...DeviceVideoRecordingQualityIndoorProperty,
-    key: CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY_E340,
+    key: CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY2,
     states: {
         2: "Full HD (1080P)",
         3: "2K HD",
     },
-    commandId: CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY_E340,
+    commandId: CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY2,
+}
+
+export const DeviceVideoRecordingQualityS340Property: PropertyMetadataNumeric = {
+    ...DeviceVideoRecordingQualityDoorbellE340Property,
+    states: {
+        1: "HD (720P)",
+        2: "Full HD (1080P)",
+        3: "3K HD",
+    },
 }
 
 export const DeviceVideoRecordingQualityWalllightProperty: PropertyMetadataNumeric = {
@@ -3246,7 +3296,17 @@ export const DeviceDualCamWatchViewModeProperty: PropertyMetadataNumeric = {
 
 export const DeviceDualCamWatchViewModeE340Property: PropertyMetadataNumeric = {
     ...DeviceDualCamWatchViewModeProperty,
-    key: CommandType.CMD_DOORBELL_DUAL_VIEW_MODE_E340,
+    key: CommandType.CMD_DOORBELL_DUAL_VIEW_MODE2,
+}
+
+export const DeviceDualCamWatchViewModeS340Property: PropertyMetadataNumeric = {
+    ...DeviceDualCamWatchViewModeProperty,
+    key: CommandType.CMD_DOORBELL_DUAL_VIEW_MODE2,
+    states: {
+        0: "Single view",
+        12: "Double view",
+    },
+    default: 0,
 }
 
 export const DeviceRingAutoResponseProperty: PropertyMetadataBoolean = {
@@ -5673,6 +5733,43 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
         [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
+    [DeviceType.OUTDOOR_PT_CAMERA]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
+        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
+        [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+        [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedIndoorFloodProperty,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceLightSettingsEnable]: DeviceFloodlightLightSettingsEnableProperty,
+        [PropertyName.DevicePicture]: DevicePictureProperty,
+        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivitySoloProperty,
+        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
+        [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingIndoorSoloFloodlightProperty,
+        [PropertyName.DeviceMotionDetectionTypeHuman]: DeviceMotionHB3DetectionTypeHumanProperty,
+        [PropertyName.DeviceMotionDetectionTypeVehicle]: DeviceMotionHB3DetectionTypeVehicleProperty,
+        [PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionHB3DetectionTypeAllOhterMotionsProperty,
+        [PropertyName.DeviceMotionTracking]: DeviceMotionTrackingProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityS340Property,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityS340Property,
+        [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
+        [PropertyName.DeviceRotationSpeed]: DeviceRotationSpeedProperty,
+        [PropertyName.DeviceMotionZone]: DeviceMotionZoneProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+        [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
+        [PropertyName.DeviceDualCamWatchViewMode]: DeviceDualCamWatchViewModeS340Property,
+    },
     [DeviceType.CAMERA_FG]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
@@ -7028,6 +7125,21 @@ export const StationProperties: Properties = {
         [PropertyName.StationAlarm]: StationAlarmProperty,
         [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
+    [DeviceType.OUTDOOR_PT_CAMERA]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+        [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+        [PropertyName.StationSdStatus]: StationSdStatusProperty,
+        [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
+        [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
+        [PropertyName.StationNotificationSwitchModeSchedule]: StationNotificationSwitchModeScheduleProperty,
+        [PropertyName.StationNotificationSwitchModeApp]: StationNotificationSwitchModeAppProperty,
+    },
     [DeviceType.DOORBELL]: {
         ...BaseStationProperties,
         [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
@@ -7479,6 +7591,17 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStopTalkback,
         CommandName.DeviceSnooze,
     ],
+    [DeviceType.OUTDOOR_PT_CAMERA]: [
+        CommandName.DeviceStartLivestream,
+        CommandName.DeviceStopLivestream,
+        CommandName.DevicePanAndTilt,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
+        CommandName.DeviceCalibrate,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
+    ],
     [DeviceType.CAMERA_FG]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
@@ -7760,6 +7883,15 @@ export const StationCommands: Commands = {
         CommandName.StationDatabaseDelete,
     ],
     [DeviceType.INDOOR_PT_CAMERA_1080]: [
+        CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
+        CommandName.StationDownloadImage,
+        CommandName.StationDatabaseQueryLatestInfo,
+        CommandName.StationDatabaseQueryLocal,
+        CommandName.StationDatabaseCountByDate,
+        CommandName.StationDatabaseDelete,
+    ],
+    [DeviceType.OUTDOOR_PT_CAMERA]: [
         CommandName.StationReboot,
         CommandName.StationTriggerAlarmSound,
         CommandName.StationDownloadImage,

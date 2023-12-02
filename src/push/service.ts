@@ -463,6 +463,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 } else if (Device.isIndoorCamera(normalized_message.type) ||
                     Device.isSoloCameras(normalized_message.type) ||
                     Device.isWallLightCam(normalized_message.type) ||
+                    Device.isOutdoorPanAndTiltCamera(normalized_message.type) ||
                     Device.isFloodLightT8420X(normalized_message.type, normalized_message.device_sn) ||
                     (Device.isFloodLight(normalized_message.type) && normalized_message.type !== DeviceType.FLOODLIGHT)
                 ) {

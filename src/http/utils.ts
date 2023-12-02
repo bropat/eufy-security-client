@@ -6,7 +6,7 @@ import sha256 from "crypto-js/sha256";
 
 import { Device } from "./device";
 import { Picture, Schedule } from "./interfaces";
-import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType } from "./types";
+import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes } from "./types";
 import { HTTPApi } from "./api";
 import { ensureError } from "../error";
 import { ImageBaseCodeError } from "./error";
@@ -520,4 +520,18 @@ export const decryptTrackerData = (data: Buffer, key: Buffer): Buffer => {
         decipher.update(data),
         decipher.final()]
     );
+}
+
+export const isT8170DetectionModeEnabled = function(value: number, type: T8170DetectionTypes): boolean {
+    return (type & value) == type;
+}
+
+export const getT8170DetectionMode = function(value: number, type: T8170DetectionTypes, enable: boolean): number {
+    let result = 0;
+    if (!enable) {
+        result = type ^ value;
+    } else {
+        result = type | value;
+    }
+    return result;
 }
