@@ -1550,6 +1550,36 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 command: commandData
             });
+        } else if (device.isOutdoorPanAndTiltCamera()) {
+            if (direction === PanTiltDirection.ROTATE360) {
+                this.p2pSession.sendCommandWithStringPayload({
+                    commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                    value: JSON.stringify({
+                        "commandType": CommandType.CMD_OUTDOOR_ROTATE,
+                        "data":{
+                            "curise_type": 10,
+                        }
+                    }),
+                    channel: device.getChannel()
+                }, {
+                    command: commandData
+                });
+            } else {
+                this.p2pSession.sendCommandWithStringPayload({
+                    commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                    value: JSON.stringify({
+                        "commandType": CommandType.CMD_INDOOR_ROTATE,
+                        "data":{
+                            "cmd_type": command,
+                            "rotate_type": direction,
+                            "zoom": 1.0,
+                        }
+                    }),
+                    channel: device.getChannel()
+                }, {
+                    command: commandData
+                });
+            }
         } else {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
