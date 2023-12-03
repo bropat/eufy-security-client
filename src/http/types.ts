@@ -1023,11 +1023,6 @@ export const DeviceAutoNightvisionWiredDoorbellProperty: PropertyMetadataBoolean
     key: ParamType.NIGHT_VISUAL,
 }
 
-export const DeviceAutoNightvisionWalllightProperty: PropertyMetadataBoolean = {
-    ...DeviceAutoNightvisionProperty,
-    commandId: CommandType.CMD_SET_NIGHT_VISION_TYPE,
-}
-
 export const DeviceAutoNightvisionSoloProperty: PropertyMetadataBoolean = {
     ...DeviceAutoNightvisionProperty,
     key: CommandType.CMD_SET_NIGHT_VISION_TYPE,
@@ -6340,7 +6335,7 @@ export const DeviceProperties: Properties = {
     [DeviceType.WALL_LIGHT_CAM]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
-        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionWalllightProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionSoloProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
@@ -6392,7 +6387,7 @@ export const DeviceProperties: Properties = {
     [DeviceType.WALL_LIGHT_CAM_81A0]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
-        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionWalllightProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionSoloProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
