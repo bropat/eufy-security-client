@@ -7329,6 +7329,9 @@ export const StationProperties: Properties = {
         [PropertyName.StationAlarm]: StationAlarmProperty,
         [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
         [PropertyName.StationAlarmVolume]: StationAlarmVolumeWalllightProperty,
+        [PropertyName.StationSdStatus]: StationSdStatusProperty,
+        [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
+        [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
     },
     [DeviceType.CAMERA_GARAGE_T8452]: {
         ...BaseStationProperties,
