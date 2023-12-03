@@ -2123,6 +2123,13 @@ export const DeviceRecordingClipLengthWalllightProperty: PropertyMetadataNumeric
     default: 60,
 }
 
+export const DeviceRecordingClipLengthWalllightS120Property: PropertyMetadataNumeric = {
+    ...DeviceRecordingClipLengthProperty,
+    min: 10,
+    max: 60,
+    default: 30,
+}
+
 export const DeviceRecordingRetriggerIntervalProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_DEV_RECORD_INTERVAL,
     name: PropertyName.DeviceRecordingRetriggerInterval,
@@ -6401,8 +6408,9 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeWalllightProperty,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
-        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthWalllightProperty,
+        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthWalllightS120Property,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
