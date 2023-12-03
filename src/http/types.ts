@@ -1023,11 +1023,6 @@ export const DeviceAutoNightvisionWiredDoorbellProperty: PropertyMetadataBoolean
     key: ParamType.NIGHT_VISUAL,
 }
 
-export const DeviceAutoNightvisionWalllightProperty: PropertyMetadataBoolean = {
-    ...DeviceAutoNightvisionProperty,
-    commandId: CommandType.CMD_SET_NIGHT_VISION_TYPE,
-}
-
 export const DeviceAutoNightvisionSoloProperty: PropertyMetadataBoolean = {
     ...DeviceAutoNightvisionProperty,
     key: CommandType.CMD_SET_NIGHT_VISION_TYPE,
@@ -1830,6 +1825,12 @@ export const DeviceCameraLightSettingsBrightnessManualProperty: PropertyMetadata
     default: 100,
 }
 
+export const DeviceCameraLightSettingsBrightnessManualWalllightS120Property: PropertyMetadataNumeric = {
+    ...DeviceFloodlightLightSettingsBrightnessManualProperty,
+    min: 10,
+    default: 100,
+}
+
 export const DeviceFloodlightLightSettingsBrightnessMotionProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR,
     name: PropertyName.DeviceLightSettingsBrightnessMotion,
@@ -2126,6 +2127,13 @@ export const DeviceRecordingClipLengthWalllightProperty: PropertyMetadataNumeric
     min: 30,
     max: 120,
     default: 60,
+}
+
+export const DeviceRecordingClipLengthWalllightS120Property: PropertyMetadataNumeric = {
+    ...DeviceRecordingClipLengthProperty,
+    min: 10,
+    max: 60,
+    default: 30,
 }
 
 export const DeviceRecordingRetriggerIntervalProperty: PropertyMetadataNumeric = {
@@ -6340,7 +6348,7 @@ export const DeviceProperties: Properties = {
     [DeviceType.WALL_LIGHT_CAM]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
-        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionWalllightProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionSoloProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
@@ -6388,6 +6396,42 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionDetectionTypeAllOhterMotionsWalllightProperty,
         [PropertyName.DeviceNotification]: DeviceNotificationWalllightProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeWalllightProperty,
+    },
+    [DeviceType.WALL_LIGHT_CAM_81A0]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionSoloProperty,
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
+        [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+        [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
+        [PropertyName.DevicePicture]: DevicePictureProperty,
+        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceCameraLightSettingsBrightnessManualWalllightS120Property,
+        [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeWalllightProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
+        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthWalllightS120Property,
+        [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityWalllightProperty,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityWalllightProperty,
+        [PropertyName.DeviceNotificationPerson]: DeviceNotificationPersonWalllightProperty,
+        [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionWalllightProperty,
+        [PropertyName.DeviceMotionDetectionTypeHuman]: DeviceMotionDetectionTypeHumanWallLightProperty,
+        [PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionDetectionTypeAllOhterMotionsWalllightProperty,
+        [PropertyName.DeviceNotification]: DeviceNotificationWalllightProperty,
+        [PropertyName.DeviceNotificationType]: DeviceNotificationTypeWalllightProperty,
+        [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
     },
     [DeviceType.CAMERA_GARAGE_T8453]: {
         ...GenericDeviceProperties,
@@ -7290,6 +7334,20 @@ export const StationProperties: Properties = {
         [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
         [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
     },
+    [DeviceType.WALL_LIGHT_CAM_81A0]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+        [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+        [PropertyName.StationAlarmVolume]: StationAlarmVolumeWalllightProperty,
+        [PropertyName.StationSdStatus]: StationSdStatusProperty,
+        [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
+        [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
+    },
     [DeviceType.CAMERA_GARAGE_T8452]: {
         ...BaseStationProperties,
     },
@@ -7712,6 +7770,15 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStopTalkback,
         CommandName.DeviceSnooze,
     ],
+    [DeviceType.WALL_LIGHT_CAM_81A0]: [
+        CommandName.DeviceStartLivestream,
+        CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
+    ],
     [DeviceType.CAMERA_GARAGE_T8452]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
@@ -8024,6 +8091,15 @@ export const StationCommands: Commands = {
         CommandName.StationDatabaseDelete,
     ],
     [DeviceType.WALL_LIGHT_CAM]: [
+        CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
+        CommandName.StationDownloadImage,
+        CommandName.StationDatabaseQueryLatestInfo,
+        CommandName.StationDatabaseQueryLocal,
+        CommandName.StationDatabaseCountByDate,
+        CommandName.StationDatabaseDelete,
+    ],
+    [DeviceType.WALL_LIGHT_CAM_81A0]: [
         CommandName.StationReboot,
         CommandName.StationTriggerAlarmSound,
         CommandName.StationDownloadImage,
