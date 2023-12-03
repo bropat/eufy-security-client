@@ -6417,6 +6417,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionDetectionTypeAllOhterMotionsWalllightProperty,
         [PropertyName.DeviceNotification]: DeviceNotificationWalllightProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeWalllightProperty,
+        [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
     },
     [DeviceType.CAMERA_GARAGE_T8453]: {
         ...GenericDeviceProperties,
