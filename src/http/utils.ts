@@ -3,11 +3,10 @@ import { timeZoneData } from "./const";
 import md5 from "crypto-js/md5";
 import enc_hex from "crypto-js/enc-hex";
 import sha256 from "crypto-js/sha256";
-import imageType from "image-type";
 
 import { Device } from "./device";
 import { Picture, Schedule } from "./interfaces";
-import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType } from "./types";
+import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes } from "./types";
 import { HTTPApi } from "./api";
 import { ensureError } from "../error";
 import { ImageBaseCodeError } from "./error";
@@ -497,11 +496,12 @@ export const getImagePath = function(path: string): string {
 };
 
 export const getImage = async function(api: HTTPApi, serial: string, url: string): Promise<Picture> {
+    const { default: imageType } = await import("image-type");
     const image = await api.getImage(serial, url);
     const type = await imageType(image);
     return {
         data: image,
-        type: type !== null ? type : { ext: "unknown", mime: "application/octet-stream" }
+        type: type !== null && type !== undefined ? type : { ext: "unknown", mime: "application/octet-stream" }
     };
 };
 
@@ -520,4 +520,18 @@ export const decryptTrackerData = (data: Buffer, key: Buffer): Buffer => {
         decipher.update(data),
         decipher.final()]
     );
+}
+
+export const isT8170DetectionModeEnabled = function(value: number, type: T8170DetectionTypes): boolean {
+    return (type & value) == type;
+}
+
+export const getT8170DetectionMode = function(value: number, type: T8170DetectionTypes, enable: boolean): number {
+    let result = 0;
+    if (!enable) {
+        result = type ^ value;
+    } else {
+        result = type | value;
+    }
+    return result;
 }

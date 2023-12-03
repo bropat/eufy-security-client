@@ -21,6 +21,7 @@
 | ![T8123 image](_media/solocaml20_small.jpg) | SoloCam L40 (T8123) | :heavy_check_mark: |  |
 | ![T8124 image](_media/solocams40_small.jpg) | SoloCam S40 (T8124) | :heavy_check_mark: |  |
 | ![T8134 image](_media/solocamss220_small.jpg) | SoloCam S220 (T8134) | :heavy_check_mark: |  |
+| ![T8170 image](_media/solocams340_small.jpg) | SoloCam S340 (T8170) | :heavy_check_mark: | Firmware: 3.0.9.6 (20231125) |
 | ![T8420 image](_media/floodlight_small.jpg) | Floodlight Camera (T8420) | :heavy_check_mark: | Firmware: 1.0.0.35 Hardware: 2.2 (20211219) |
 | ![T8420X image](_media/floodlight_small.jpg) | Floodlight Camera (T8420X) | :heavy_check_mark: | Firmware: 2.0.6.1 (20220824) |
 | ![T8422 image](_media/floodlight_small.jpg) | Floodlight Cam (T8422) | :heavy_check_mark: |  |
@@ -33,6 +34,7 @@
 | ![T8203 image](_media/wireddoorbelldual_small.jpg) | S330 Video Doorbell (T8203; Video Doorbell Dual) | :heavy_check_mark: | Firmware: 2.0.4.6 (20220417) |
 | ![T8210 image](_media/batterydoorbell2k_small.jpg) | Battery Doorbell 2K (T8210) | :heavy_check_mark: |  |
 | ![T8213 image](_media/batterydoorbell2kdual_small.jpg) | Battery Doorbell 2K Dual (T8213) | :heavy_check_mark: | Firmware: 0.1.2.5 (20220331) |
+| ![T8214 image](_media/batterydoorbell_e340_small.jpg) | Video Doorbell E340 (T8214; Battery Powered) | :heavy_check_mark: | Firmware:  |
 | ![T8222 image](_media/batterydoorbell1080p_small.jpg) | Battery Doorbell 1080p (T8222) | :heavy_check_mark: |  |
 | ![T8900 image](_media/sensor_small.jpg) | Entry Sensor (T8900) | :heavy_check_mark: |  |
 | ![T8910 image](_media/motionsensor_small.jpg) | Motion sensor (T8910) | :heavy_check_mark: |  |
