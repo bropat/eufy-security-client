@@ -39,7 +39,11 @@
         "lib": ["ES2022", "DOM"],
 
         "sourceMap": true,
-        "inlineSourceMap": false
+        "inlineSourceMap": false,
+
+        "paths": {
+            "got": ["./node_modules/got/dist/source"]
+        }
     },
     "include": [
         "src/**/*.ts",
