@@ -1825,6 +1825,12 @@ export const DeviceCameraLightSettingsBrightnessManualProperty: PropertyMetadata
     default: 100,
 }
 
+export const DeviceCameraLightSettingsBrightnessManualWalllightS120Property: PropertyMetadataNumeric = {
+    ...DeviceFloodlightLightSettingsBrightnessManualProperty,
+    min: 10,
+    default: 100,
+}
+
 export const DeviceFloodlightLightSettingsBrightnessMotionProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR,
     name: PropertyName.DeviceLightSettingsBrightnessMotion,
@@ -6403,7 +6409,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DevicePicture]: DevicePictureProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
         [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
-        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceCameraLightSettingsBrightnessManualWalllightS120Property,
         [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredProperty,
         [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeWalllightProperty,
