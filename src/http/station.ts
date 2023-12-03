@@ -6618,15 +6618,30 @@ export class Station extends TypedEmitter<StationEvents> {
         }
         this.log.debug(`Station calibrate - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial() });
         if (device.isPanAndTiltCamera()) {
-            this.p2pSession.sendCommandWithStringPayload({
-                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
-                value: JSON.stringify({
-                    "commandType": CommandType.CMD_INDOOR_PAN_CALIBRATION
-                }),
-                channel: device.getChannel()
-            }, {
-                command: commandData
-            });
+            if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
+                this.p2pSession.sendCommandWithStringPayload({
+                    commandType: CommandType.CMD_SET_PAYLOAD,
+                    value: JSON.stringify({
+                        "account_id": this.rawStation.member.admin_user_id,
+                        "cmd": CommandType.CMD_INDOOR_PAN_CALIBRATION,
+                        "mValue3": 0,
+                        "payload": {},
+                    }),
+                    channel: device.getChannel()
+                }, {
+                    command: commandData
+                });
+            } else {
+                this.p2pSession.sendCommandWithStringPayload({
+                    commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                    value: JSON.stringify({
+                        "commandType": CommandType.CMD_INDOOR_PAN_CALIBRATION
+                    }),
+                    channel: device.getChannel()
+                }, {
+                    command: commandData
+                });
+            }
         } else {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name } });
         }
