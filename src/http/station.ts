@@ -921,6 +921,7 @@ export class Station extends TypedEmitter<StationEvents> {
         cameraInfo.params.forEach(param => {
             this._handleCameraInfoParameters(devices, param.dev_type, param.param_type, param.param_value);
         });
+        //TODO: Fix issue: TypeError: cameraInfo.db_bypass_str?.forEach is not a function
         cameraInfo.db_bypass_str?.forEach(param => {
             this._handleCameraInfoParameters(devices, param.channel, param.param_type, Buffer.from(param.param_value, "base64").toString());
         });
@@ -1878,7 +1879,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
-        } else if (device.isCamera3Product()) {
+        } else if (device.isCamera3Product() || device.isSmartDrop()) {
             this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SET_PIRSENSITIVITY,
                 value: value,
@@ -2260,7 +2261,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
-        } else if (device.isBatteryDoorbellDualE340()) {
+        } else if (device.isBatteryDoorbellDualE340() || device.isSmartDrop()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -3305,7 +3306,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
-        } else if (device.isBatteryDoorbell() || device.isCamera2CPro() || device.isWiredDoorbellDual() || device.isCamera3() || device.isCamera3C()) {
+        } else if (device.isBatteryDoorbell() || device.isCamera2CPro() || device.isWiredDoorbellDual() || device.isCamera3() || device.isCamera3C() || device.isSmartDrop()) {
             this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY,
                 value: value,
@@ -4231,6 +4232,20 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
+        } else if (device.isSmartDrop()) {
+            if (!Object.values(WatermarkSetting1).includes(value as WatermarkSetting1)) {
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting1);
+                return;
+            }
+            this.p2pSession.sendCommandWithIntString({
+                commandType: CommandType.CMD_SET_DEVS_OSD,
+                value: value,
+                valueSub: device.getChannel(),
+                strValue: this.rawStation.member.admin_user_id,
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
         } else {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
         }
@@ -4399,7 +4414,28 @@ export class Station extends TypedEmitter<StationEvents> {
         this.log.debug(`Station start livestream - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), videoCodec: videoCodec });
         const rsa_key = this.p2pSession.getRSAPrivateKey();
 
-        if (device.isOutdoorPanAndTiltCamera()) {
+        if (device.isSmartDrop()) {
+            this.log.debug(`Station start livestream - sending command (smart drop)`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), videoCodec: videoCodec, main_sw_version: this.getSoftwareVersion() });
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_START_REALTIME_MEDIA,
+                    "mChannel": 0,
+                    "mValue3": CommandType.CMD_START_REALTIME_MEDIA,
+                    "payload": {
+                        "ClientOS": "Android",
+                        "camera_type": 0,
+                        "entrytype": 0,
+                        "key": rsa_key?.exportKey("components-public").n.subarray(1).toString("hex"),
+                        "streamtype": videoCodec === VideoCodec.H264 ? 1 : 2,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                command: commandData
+            });
+        } else if (device.isOutdoorPanAndTiltCamera()) {
             this.log.debug(`Station start livestream - sending command using CMD_DOORBELL_SET_PAYLOAD (1)`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), videoCodec: videoCodec, main_sw_version: this.getSoftwareVersion() });
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -6911,7 +6947,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new LivestreamNotRunningError("Livestream for device is not running", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name } });
         }
         this.log.debug(`Station start talkback - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial() });
-        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isWiredDoorbell() || device.isSmartDrop() || device.isStarlight4GLTE() || device.isWallLightCam() || device.isGarageCamera() || device.isOutdoorPanAndTiltCamera()) {
+        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isWiredDoorbell() || device.isStarlight4GLTE() || device.isWallLightCam() || device.isGarageCamera() || device.isOutdoorPanAndTiltCamera()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -6921,7 +6957,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 command: commandData
             });
-        } else if (device.isBatteryDoorbell() && isGreaterEqualMinVersion("2.0.6.8", this.getSoftwareVersion())) {
+        } else if ((device.isBatteryDoorbell() && isGreaterEqualMinVersion("2.0.6.8", this.getSoftwareVersion())) || device.isSmartDrop()) {
             this.p2pSession.sendCommandWithInt({
                 commandType: CommandType.CMD_START_TALKBACK,
                 value: 0,
@@ -6956,7 +6992,7 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new LivestreamNotRunningError("Livestream for device is not running", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name } });
         }
         this.log.debug(`Station stop talkback - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial() });
-        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isWiredDoorbell() || device.isSmartDrop() || device.isStarlight4GLTE() || device.isWallLightCam() || device.isGarageCamera() || device.isOutdoorPanAndTiltCamera()) {
+        if (device.isIndoorCamera() || device.isSoloCamera() || device.isFloodLight() || device.isWiredDoorbell() || device.isStarlight4GLTE() || device.isWallLightCam() || device.isGarageCamera() || device.isOutdoorPanAndTiltCamera()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -6966,7 +7002,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 command: commandData
             });
-        } else if (device.isBatteryDoorbell() && isGreaterEqualMinVersion("2.0.6.8", this.getSoftwareVersion())) {
+        } else if ((device.isBatteryDoorbell() && isGreaterEqualMinVersion("2.0.6.8", this.getSoftwareVersion())) || device.isSmartDrop()) {
             this.p2pSession.sendCommandWithInt({
                 commandType: CommandType.CMD_STOP_TALKBACK,
                 value: 0,
@@ -9065,5 +9101,105 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private onStorageInfoHB3(channel: number, storageInfo: StorageInfoBodyHB3): void {
         this.emit("storage info hb3", this, channel, storageInfo);
+    }
+
+    public setOpenMethod(device: Device, value: number): void {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceOpenMethod,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError("Device is not managed by this station", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
+        }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
+        this.log.debug(`Station set open method - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
+        this.p2pSession.sendCommandWithStringPayload({
+            commandType: CommandType.CMD_SET_PAYLOAD,
+            value: JSON.stringify({
+                "account_id": this.rawStation.member.admin_user_id,
+                "cmd": CommandType.CMD_SMART_DROP_DELIVERY_MODE,
+                "mChannel": device.getChannel(),
+                "mValue3": 0,
+                "payload": {
+                    "isDeniedDelivery": 0,
+                    "userIndex": 0,
+                    "workmode": value,
+                }
+            }),
+            channel: device.getChannel(),
+        }, {
+            property: propertyData
+        });
+    }
+
+    public setMotionActivatedPrompt(device: Device, value: boolean): void {
+        const propertyData: PropertyData = {
+            name: PropertyName.DeviceMotionActivatedPrompt,
+            value: value
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError("Device is not managed by this station", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
+        }
+        if (!device.hasProperty(propertyData.name)) {
+            throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
+        }
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
+
+        this.log.debug(`Station set motion activated prompt - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
+        this.p2pSession.sendCommandWithStringPayload({
+            commandType: CommandType.CMD_SET_PAYLOAD,
+            value: JSON.stringify({
+                "account_id": this.rawStation.member.admin_user_id,
+                "cmd": CommandType.CMD_SET_AUDIO_MOTION_ACTIVATED_PROMPT,
+                "mChannel": device.getChannel(),
+                "mValue3": 0,
+                "payload": {
+                    "channel": device.getChannel(),
+                    "enable": value === true ? 1 : 0,
+                }
+            }),
+            channel: device.getChannel(),
+        }, {
+            property: propertyData
+        });
+    }
+
+    public open(device: Device): void {
+        const commandData: CommandData = {
+            name: CommandName.DeviceOpen
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError("Device is not managed by this station", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name } });
+        }
+        if (!device.hasCommand(CommandName.DeviceUnlock)) {
+            throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name } });
+        }
+        this.log.debug(`Station open - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial() });
+        if (device.isSmartDrop()) {
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_SMART_DROP_OPEN_LID,
+                    "mChannel": device.getChannel(),
+                    "mValue3": 0,
+                    "payload": {
+                        "isOpen": 1,
+                        "userIndex": 0.
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                command: commandData
+            });
+        } else {
+            throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name } });
+        }
     }
 }

@@ -567,6 +567,14 @@ export enum CommandType {
     //CMD_CAMERA_GARAGE_DOOR_UNKNOWN3 = 7506,
     CMD_CAMERA_GARAGE_DOOR_SENSORS = 7503,
     CMD_STORAGE_INFO_HB3 = 1307,
+    CMD_SMART_DROP_DELIVERY_MODE = 2103,
+    CMD_SMART_DROP_OPEN = 2105,
+    CMD_SMART_DROP_OPEN_LID = 2100,
+    CMD_SMART_DROP_IS_DENIED_DELIVERY = 2106,
+    // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+    CMD_SMART_DROP_HAS_MASTER_PIN = 2109,
+    // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+    CMD_SMART_DROP_IS_PIN_REQUIRED = 2107,
 }
 
 export enum MessageType {

@@ -266,4 +266,10 @@ export interface DeviceEvents {
     "long time not close": (device: Device, state: boolean) => void;
     "low battery": (device: Device, state: boolean) => void;
     "jammed": (device: Device, state: boolean) => void;
+    "tampering": (device: Device, state: boolean) => void;
+    "low temperature": (device: Device, state: boolean) => void;
+    "high temperature": (device: Device, state: boolean) => void;
+    "pin incorrect": (device: Device, state: boolean) => void;
+    "lid stuck": (device: Device, state: boolean) => void;
+    "battery fully charged": (device: Device, state: boolean) => void;
 }

@@ -45,6 +45,8 @@ export interface CusPushData {
     user_name?: string;                 // Username
     bat_low?: string;
     msg_type: number;
+    r?: string;
+    u?: string;
 }
 
 export interface EufyPushMessage {
@@ -299,6 +301,9 @@ export interface PushMessage {
     person_id?: number;
     door_id?: number;
     power?: number;
+    open?: number;
+    openType?: number;
+    pin?: string;
 }
 
 export interface PlatformPushMode {

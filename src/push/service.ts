@@ -419,7 +419,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 this.log.error(`Normalize push message - Type ${DeviceType[normalized_message.type]} CusPush - push_time - Error`, { error: getError(error), message: message });
             }
 
-            const excludeDevices = !Device.isBatteryDoorbell(normalized_message.type) && !Device.isWiredDoorbellDual(normalized_message.type) && !Device.isSensor(normalized_message.type) && !Device.isGarageCamera(normalized_message.type);
+            const excludeDevices = !Device.isBatteryDoorbell(normalized_message.type) && !Device.isWiredDoorbellDual(normalized_message.type) && !Device.isSensor(normalized_message.type) && !Device.isGarageCamera(normalized_message.type) && !Device.isSmartDrop(normalized_message.type);
             if ((normalized_message.station_sn.startsWith("T8030") && excludeDevices) || normalized_message.type === DeviceType.HB3) {
                 const push_data = message.payload.payload as PlatformPushMode;
                 normalized_message.name = push_data.name ? push_data.name : "";
@@ -573,6 +573,25 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                             normalized_message.file_path = push_data.file_path
                         }
                         normalized_message.msg_type = push_data.msg_type;
+                    } else if (Device.isSmartDrop(normalized_message.type)) {
+                        try {
+                            normalized_message.open = push_data.e !== undefined ? Number.parseInt(push_data.e) : 0;
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error(`Normalize push message - Type ${DeviceType[normalized_message.type]} CusPushData - open - Error`, { error: getError(error), message: message });
+                        }
+                        try {
+                            normalized_message.openType = push_data.r !== undefined ? Number.parseInt(push_data.r) : 0;
+                        } catch (err) {
+                            const error = ensureError(err);
+                            this.log.error(`Normalize push message - Type ${DeviceType[normalized_message.type]} CusPushData - openType - Error`, { error: getError(error), message: message });
+                        }
+                        normalized_message.person_name = push_data.p;
+                        normalized_message.pin = push_data.u;
+                        normalized_message.channel = push_data.channel !== undefined ? push_data.channel : 0;
+                        normalized_message.cipher = push_data.cipher !== undefined ? push_data.cipher : 0;
+                        normalized_message.event_session = push_data.session_id !== undefined ? push_data.session_id : "";
+                        normalized_message.file_path = push_data.file_path !== undefined ? push_data.file_path : "";
                     }
                 }
             }
