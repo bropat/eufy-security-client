@@ -921,9 +921,11 @@ export class Station extends TypedEmitter<StationEvents> {
         cameraInfo.params.forEach(param => {
             this._handleCameraInfoParameters(devices, param.dev_type, param.param_type, param.param_value);
         });
-        cameraInfo.db_bypass_str?.forEach(param => {
-            this._handleCameraInfoParameters(devices, param.channel, param.param_type, Buffer.from(param.param_value, "base64").toString());
-        });
+        if (Array.isArray(cameraInfo.db_bypass_str)) {
+            cameraInfo.db_bypass_str?.forEach(param => {
+                this._handleCameraInfoParameters(devices, param.channel, param.param_type, Buffer.from(param.param_value, "base64").toString());
+            });
+        }
         Object.keys(devices).forEach(device => {
             this.emit("raw device property changed", device, devices[device]);
         });
