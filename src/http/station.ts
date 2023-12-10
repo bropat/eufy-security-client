@@ -9202,4 +9202,5 @@ export class Station extends TypedEmitter<StationEvents> {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name } });
         }
     }
+
 }
