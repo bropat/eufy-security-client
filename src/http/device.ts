@@ -3680,8 +3680,6 @@ export class SmartDrop extends Camera {
                     } else {
                         this.log.debug("SmartDrop process push notification - Unhandled SmartDrop push event type", message);
                     }
-
-                    this.log.warn("SmartDrop unhandled push notification", JSON.stringify(message));
                 } catch (err) {
                     const error = ensureError(err);
                     this.log.debug(`SmartDrop process push notification - Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
