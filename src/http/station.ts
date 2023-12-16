@@ -9178,7 +9178,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError("Device is not managed by this station", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name } });
         }
-        if (!device.hasCommand(CommandName.DeviceUnlock)) {
+        if (!device.hasCommand(CommandName.DeviceOpen)) {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name } });
         }
         this.log.debug(`Station open - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial() });
