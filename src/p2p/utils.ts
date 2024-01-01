@@ -293,7 +293,16 @@ export const buildCommandWithStringTypePayload = (encryptionType: EncryptionType
 export const sortP2PMessageParts = (messages: P2PMessageParts): Buffer => {
     let completeMessage = Buffer.from([]);
     Object.keys(messages).map(Number)
-        .sort((a, b) => a - b) // assure the seqNumbers are in correct order
+        .sort((a, b) => {
+            if (Math.abs(a - b) > 65000) {
+                if (a < b) {
+                    return 1;
+                } else if (b < a) {
+                    return -1;
+                }
+            }
+            return a - b;
+        }) // assure the seqNumbers are in correct order
         .forEach((key: number) => {
             completeMessage = Buffer.concat([completeMessage, messages[key]]);
         });
@@ -447,7 +456,10 @@ export const decodeLockPayload = (data: Buffer): string => {
 }
 
 export const decodeBase64 = (data: string): Buffer => {
-    return Buffer.from(data, "base64");
+    const base64RegExp = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{4})$/;
+    if (base64RegExp.test(data))
+        return Buffer.from(data, "base64");
+    return Buffer.from(data);
 }
 
 export const eslTimestamp = function(timestamp_in_sec = new Date().getTime() / 1000): number[] {

@@ -1,11 +1,15 @@
-import got, { Got, HTTPError } from "got";
+import type { Got, OptionsOfUnknownResponseBody } from "got" with {
+    "resolution-mode": "import"
+};
+import type { AnyFunction, ThrottledFunction } from "p-throttle" with {
+    "resolution-mode": "import"
+};
 import { TypedEmitter } from "tiny-typed-emitter";
 import { dummyLogger, Logger } from "ts-log";
 import { isValid as isValidCountry } from "i18n-iso-countries";
 import { isValid as isValidLanguage } from "@cospired/i18n-iso-languages";
 import { createECDH, ECDH } from "crypto";
 import * as schedule from "node-schedule";
-import pThrottle from "p-throttle";
 
 import { ResultResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry, ApiResponse, CaptchaResponse, LoginRequest, HouseDetail, DeviceListResponse, StationListResponse, HouseInviteListResponse, HouseListResponse, PassportProfileResponse, UsersResponse, User, AddUserResponse } from "./models"
 import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites, HTTPApiRequest, HTTPApiPersistentData, Houses, LoginOptions } from "./interfaces";
@@ -16,6 +20,8 @@ import { InvalidCountryCodeError, InvalidLanguageCodeError, ensureError } from "
 import { getError, getShortUrl, md5, mergeDeep, parseJSON } from "./../utils";
 import { ApiBaseLoadError, ApiGenericError, ApiHTTPResponseCodeError, ApiInvalidResponseError, ApiRequestError, ApiResponseCodeError } from "./error";
 import { getNullTerminatedString } from "../p2p/utils";
+
+type pThrottledFunction = <F extends AnyFunction>(function_: F) => ThrottledFunction<F>;
 
 export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
@@ -34,12 +40,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     private log: Logger;
     private connected = false;
-    private requestEufyCloud: Got;
 
-    private throttle = pThrottle({
-        limit: 5,
-        interval: 1000,
-    });
+    private requestEufyCloud!: Got;
+    private throttle!: pThrottledFunction;
 
     private devices: FullDevices = {};
     private hubs: Hubs = {};
@@ -112,7 +115,34 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 this.persistentData.serverPublicKey = this.SERVER_PUBLIC_KEY;
             }
         }
+    }
 
+    public static async getApiBaseFromCloud(country: string): Promise<string> {
+        const { default: got } = await import("got");
+        const response = await got(`domain/${country}`, {
+            prefixUrl: this.apiDomainBase,
+            method: "GET",
+            responseType: "json",
+            retry: {
+                limit: 1,
+                methods: ["GET"]
+            }
+        });
+
+        const result: ResultResponse = response.body as ResultResponse;
+        if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+            return `https://${result.data.domain}`;
+        }
+        throw new ApiBaseLoadError("Error identifying API base from cloud", { context: { code: result.code, message: result.msg } });
+    }
+
+    private async loadLibraries(): Promise<void> {
+        const { default: pThrottle } = await import("p-throttle");
+        const { default: got } = await import("got");
+        this.throttle = pThrottle({
+            limit: 5,
+            interval: 1000,
+        });
         this.requestEufyCloud = got.extend({
             prefixUrl: this.apiBase,
             headers: this.headers,
@@ -160,7 +190,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 };
 
                                 // Update the defaults
-                                this.requestEufyCloud.defaults.options = this.requestEufyCloud.mergeOptions(this.requestEufyCloud.defaults.options, updatedOptions);
+                                this.requestEufyCloud.defaults.options.merge(updatedOptions);
 
                                 // Make a new retry
                                 return retryWithMergedOptions(updatedOptions);
@@ -172,13 +202,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 ],
                 beforeRetry: [
-                    (options, error, retryCount) => {
+                    (error) => {
                         // This will be called on `retryWithMergedOptions(...)`
-                        const statusCode = error?.response?.statusCode || 0;
-                        const { method, url, prefixUrl } = options;
-                        const shortUrl = getShortUrl(url, prefixUrl);
-                        const body = error?.response?.body ? error?.response?.body : error?.message;
-                        this.log.debug(`Retrying [${retryCount}]: ${error?.code} (${error?.request?.requestUrl})\n${statusCode} ${method} ${shortUrl}\n${body}`);
+                        const statusCode = error.response?.statusCode || 0;
+                        const { method, url, prefixUrl } = error.options;
+                        const shortUrl = getShortUrl(typeof url === "string" ? new URL(url) : url === undefined ? new URL("") : url, typeof prefixUrl === "string" ? prefixUrl : prefixUrl.toString());
+                        const body = error.response?.body ? error.response?.body : error.message;
+                        this.log.debug(`Retrying [${error.request?.retryCount !== undefined ? error.request?.retryCount + 1 : 1}]: ${error.code} (${error.request?.requestUrl})\n${statusCode} ${method} ${shortUrl}\n${body}`);
                         // Retrying [1]: ERR_NON_2XX_3XX_RESPONSE
                     }
                 ],
@@ -187,7 +217,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         const { response, options } = error;
                         const statusCode = response?.statusCode || 0;
                         const { method, url, prefixUrl } = options;
-                        const shortUrl = getShortUrl(url, prefixUrl);
+                        const shortUrl = getShortUrl(typeof url === "string" ? new URL(url) : url === undefined ? new URL("") : url, typeof prefixUrl === "string" ? prefixUrl : prefixUrl.toString());
                         const body = response?.body ? response.body : error.message;
                         if (response?.body) {
                             error.name = "EufyApiError";
@@ -206,28 +236,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         });
     }
 
-    public static async getApiBaseFromCloud(country: string): Promise<string> {
-        const response = await got(`domain/${country}`, {
-            prefixUrl: this.apiDomainBase,
-            method: "GET",
-            responseType: "json",
-            retry: {
-                limit: 1,
-                methods: ["GET"]
-            }
-        });
-
-        const result: ResultResponse = response.body as ResultResponse;
-        if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
-            return `https://${result.data.domain}`;
-        }
-        throw new ApiBaseLoadError("Error identifying API base from cloud", { context: { code: result.code, message: result.msg } });
-    }
-
     static async initialize(country: string, username: string, password: string, log: Logger = dummyLogger, persistentData?: HTTPApiPersistentData): Promise<HTTPApi> {
         if (isValidCountry(country) && country.length === 2) {
             const apiBase = await this.getApiBaseFromCloud(country);
-            return new HTTPApi(apiBase, country, username, password, log, persistentData);
+            const api = new HTTPApi(apiBase, country, username, password, log, persistentData);
+            await api.loadLibraries();
+            return api;
         }
         throw new InvalidCountryCodeError("Invalid ISO 3166-1 Alpha-2 country code", { context: { countryCode: country } });
     }
@@ -614,14 +628,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    public async request(request: HTTPApiRequest): Promise<ApiResponse> {
+    public async request(request: HTTPApiRequest, withoutUrlPrefix = false): Promise<ApiResponse> {
         this.log.debug("Api request", { method: request.method, endpoint: request.endpoint, responseType: request.responseType, token: this.token, data: request.data });
         try {
-            const internalResponse = await this.requestEufyCloud(request.endpoint, {
+            const options: OptionsOfUnknownResponseBody = {
                 method: request.method,
                 json: request.data,
-                responseType: request.responseType !== undefined ? request.responseType : "json"
-            });
+                responseType: request.responseType !== undefined ? request.responseType : "json",
+            };
+            if (withoutUrlPrefix)
+                options.prefixUrl = "";
+            const internalResponse = await this.requestEufyCloud(request.endpoint, options);
             const response: ApiResponse = {
                 status: internalResponse.statusCode,
                 statusText: internalResponse.statusMessage ? internalResponse.statusMessage : "",
@@ -633,7 +650,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             return response;
         } catch (err) {
             const error = ensureError(err);
-            if (error instanceof HTTPError) {
+            if (error instanceof (await import("got")).HTTPError) {
                 if (error.response.statusCode === 401) {
                     this.invalidateToken();
                     this.log.error("Status return code 401, invalidate token", { status: error.response.statusCode, statusText: error.response.statusMessage });
@@ -854,7 +871,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
 
     public getAPIBase(): string {
-        return this.requestEufyCloud.defaults.options.prefixUrl;
+        return typeof this.requestEufyCloud.defaults.options.prefixUrl === "string" ? this.requestEufyCloud.defaults.options.prefixUrl : this.requestEufyCloud.defaults.options.prefixUrl.toString();
     }
 
     public setOpenUDID(openudid: string): void {
@@ -1445,9 +1462,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (station) {
                         const response = await this.request({
                             method: "GET",
-                            endpoint: new URL(url),
+                            endpoint: url,
                             responseType: "buffer"
-                        });
+                        }, true);
                         if (response.status == 200) {
                             return decodeImage(station.p2p_did, response.data as Buffer);
                         } else {
