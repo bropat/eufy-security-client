@@ -1,4 +1,4 @@
-import { DynamicLighting, MotionZone, RGBColor } from "../p2p";
+import { CrossTrackingGroupEntry, DynamicLighting, MotionZone, RGBColor } from "../p2p";
 import { CommandType, TrackerCommandType, IndoorSoloSmartdropCommandType } from "../p2p/types";
 import { Commands, IndexedProperty, Properties, PropertyMetadataBoolean, PropertyMetadataNumeric, PropertyMetadataObject, PropertyMetadataString } from "./interfaces";
 
@@ -23,7 +23,7 @@ export enum DeviceType {
     HB3 = 18,
     CAMERA3 = 19,
     CAMERA3C = 23,
-    PROGESSIONAL_247 = 24, // T8600
+    PROFESSIONAL_247 = 24, // T8600
     INDOOR_CAMERA = 30,
     INDOOR_PT_CAMERA = 31,
     SOLO_CAMERA = 32,
@@ -752,6 +752,7 @@ export enum PropertyName {
     DeviceTrackerType = "trackerType",
     DeviceLeftBehindAlarm = "leftBehindAlarm",
     DeviceFindPhone = "findPhone",
+    DeviceFlickerAdjustment = "flickerAdjustment",
 
     DeviceHiddenMotionDetectionSensitivity = "hidden-motionDetectionSensitivity",
     DeviceHiddenMotionDetectionMode = "hidden-motionDetectionMode",
@@ -792,6 +793,11 @@ export enum PropertyName {
     StationSdCapacityAvailable = "sdCapacityAvailable",
     StationStorageInfoEmmc = "storageInfoEmmc",
     StationStorageInfoHdd = "storageInfoHdd",
+    StationCrossCameraTracking = "crossCameraTracking",
+    StationContinuousTrackingTime = "continuousTrackingTime",
+    StationTrackingAssistance = "trackingAssistance",
+    StationCrossTrackingCameraList = "crossTrackingCameraList",
+    StationCrossTrackingGroupList = "crossTrackingGroupList",
 }
 
 export const DeviceNameProperty: PropertyMetadataString = {
@@ -2232,6 +2238,17 @@ export const DeviceVideoStreamingQualityCamera3Property: PropertyMetadataNumeric
         6: "Low",
         7: "Medium",
         8: "High",
+        10: "Ultra 4K"
+    },
+}
+
+export const DeviceVideoStreamingQualityCameraProfessionalProperty: PropertyMetadataNumeric = {
+    ...DeviceVideoStreamingQualityCamera3Property,
+    states: {
+        5: "Auto",
+        6: "720P",
+        7: "1080P",
+        8: "2K",
         10: "Ultra 4K"
     },
 }
@@ -4504,6 +4521,19 @@ export const DeviceFindPhoneProperty: PropertyMetadataBoolean = {
     default: false,
 }
 
+export const DeviceFlickerAdjustmentProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SET_FLICKER_ADJUSTMENT,
+    name: PropertyName.DeviceFlickerAdjustment,
+    label: "Flicker Adjustment",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        1: "50Hz",
+        2: "60Hz",
+    }
+}
+
 export const FloodlightT8420XDeviceProperties: IndexedProperty = {
     ...GenericDeviceProperties,
     [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
@@ -4834,16 +4864,14 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceLightSettingsBrightnessManualCamera3Property,
         [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
     },
-    [DeviceType.PROGESSIONAL_247]: {
+    [DeviceType.PROFESSIONAL_247]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
         [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
         [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
-        [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty, //TODO: Check cloud property id
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
-        [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
-        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
@@ -4854,24 +4882,19 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
         [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeCamera3Property,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
-        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityCamera2Property,
-        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
-        [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
-        [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
-        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusCamera3Property,
+        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty, //Placeholder...
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
-        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
         [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
         [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
         [PropertyName.DevicePersonName]: DevicePersonNameProperty,
-        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityCamera3Property,
-        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityCamera3Property,
-        [PropertyName.DeviceLightSettingsEnable]: DeviceFloodlightLightSettingsEnableProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityCameraProfessionalProperty,
         [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceLightSettingsBrightnessManualCamera3Property,
         [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceImageMirrored]: DeviceImageMirroredProperty,
+        [PropertyName.DeviceFlickerAdjustment]: DeviceFlickerAdjustmentProperty,
     },
     [DeviceType.CAMERA]: {
         ...GenericDeviceProperties,
@@ -7061,6 +7084,87 @@ export const StationStorageInfoHddProperty: PropertyMetadataObject = {
     type: "object",
 }
 
+export const StationContinuousTrackingTimeProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SET_CONTINUOUS_TRACKING_TIME,
+    name: PropertyName.StationContinuousTrackingTime,
+    label: "Continuous Tracking Time",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        120: "2 min.",
+        180: "3 min.",
+        240: "4 min.",
+        300: "5 min.",
+        600: "10 min.",
+        900: "15 min.",
+        1800: "30 min.",
+    },
+    unit: "sec",
+}
+
+export const StationCrossCameraTrackingProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SET_CROSS_CAMERA_TRACKING,
+    name: PropertyName.StationCrossCameraTracking,
+    label: "Cross Camera Tracking",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+    default: false,
+}
+
+export const StationTrackingAssistanceProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SET_TRACKING_ASSISTANCE,
+    name: PropertyName.StationTrackingAssistance,
+    label: "Tracking Assistance",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+    default: false,
+}
+
+export const StationCrossTrackingCameraListProperty: PropertyMetadataObject = {
+    key: CommandType.CMD_SET_CROSS_TRACKING_CAMERA_LIST,
+    name: PropertyName.StationCrossTrackingCameraList,
+    label: "Cross Tracking Camera List",
+    readable: true,
+    writeable: true,
+    type: "object",
+    isValidObject: (obj: Array<string>) => {
+        if (Array.isArray(obj)) {
+            return obj.length > 0 &&
+                obj.every((value) => {
+                    return typeof value === "string";
+                });
+        }
+        return false;
+    },
+}
+
+export const StationCrossTrackingGroupListProperty: PropertyMetadataObject = {
+    key: CommandType.CMD_SET_CROSS_TRACKING_GROUP_LIST,
+    name: PropertyName.StationCrossTrackingGroupList,
+    label: "Cross Tracking Group List",
+    readable: true,
+    writeable: true,
+    type: "object",
+    isValidObject: (obj: Array<CrossTrackingGroupEntry>) => {
+        if (Array.isArray(obj)) {
+            return obj.length > 0 &&
+                obj.every((element) => {
+                    return typeof element === "object" &&
+                    "value" in element &&
+                    Array.isArray(element.value) &&
+                    element.value.length > 0 &&
+                    element.value.every((value) => {
+                        return typeof value === "string";
+                    })
+                });
+        }
+        return false;
+    },
+}
+
 export const StationProperties: Properties = {
     [DeviceType.STATION]: {
         ...BaseStationProperties,
@@ -7125,6 +7229,11 @@ export const StationProperties: Properties = {
         [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,*/
         [PropertyName.StationStorageInfoEmmc]: StationStorageInfoEmmcProperty,
         [PropertyName.StationStorageInfoHdd]: StationStorageInfoHddProperty,
+        [PropertyName.StationCrossCameraTracking]: StationCrossCameraTrackingProperty,
+        [PropertyName.StationContinuousTrackingTime]: StationContinuousTrackingTimeProperty,
+        [PropertyName.StationTrackingAssistance]: StationTrackingAssistanceProperty,
+        [PropertyName.StationCrossTrackingCameraList]: StationCrossTrackingCameraListProperty,
+        [PropertyName.StationCrossTrackingGroupList]: StationCrossTrackingGroupListProperty,
     },
     [DeviceType.INDOOR_CAMERA]: {
         ...BaseStationProperties,
@@ -7521,7 +7630,7 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStopTalkback,
         CommandName.DeviceSnooze,
     ],
-    [DeviceType.PROGESSIONAL_247]: [
+    [DeviceType.PROFESSIONAL_247]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceTriggerAlarmSound,

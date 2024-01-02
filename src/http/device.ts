@@ -616,6 +616,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     this.log.error("Device convert raw property - CMD_BAT_DOORBELL_RECORD_QUALITY2 Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
                     return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
+            } else if (property.key === CommandType.CMD_DEV_RECORD_AUTOSTOP && this.getDeviceType() === DeviceType.PROFESSIONAL_247) {
+                return value !== undefined ? (value === "0" ? true : false) : false;
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
@@ -800,7 +802,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.CAMERA3 ||
             type == DeviceType.CAMERA3C ||
-            type == DeviceType.PROGESSIONAL_247 ||
+            type == DeviceType.PROFESSIONAL_247 ||
             type == DeviceType.INDOOR_CAMERA_1080 ||
             type == DeviceType.INDOOR_PT_CAMERA_1080 ||
             type == DeviceType.OUTDOOR_PT_CAMERA ||
@@ -840,7 +842,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.CAMERA3 ||
             type == DeviceType.CAMERA3C ||
-            type == DeviceType.PROGESSIONAL_247 ||
+            type == DeviceType.PROFESSIONAL_247 ||
             type == DeviceType.SOLO_CAMERA ||
             type == DeviceType.SOLO_CAMERA_PRO ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
@@ -1125,7 +1127,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     static isCameraProfessional247(type: number): boolean {
         // T8600 - E330
-        return DeviceType.PROGESSIONAL_247 == type;
+        return DeviceType.PROFESSIONAL_247 == type;
     }
 
     static isCamera3Product(type: number): boolean {
