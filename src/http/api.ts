@@ -269,7 +269,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     private invalidateToken(): void {
         this.token = null;
-        this.requestEufyCloud.defaults.options.headers["X-Auth-Token"] = undefined;
+        this.requestEufyCloud.defaults.options.merge({
+            headers: {
+                "X-Auth-Token": undefined
+            }
+        });
         this.tokenExpiration = null;
         this.clearScheduleRenewAuthToken();
         this.emit("auth token invalidated");
@@ -277,7 +281,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public setPhoneModel(model: string): void {
         this.headers.phone_model = model.toUpperCase();
-        this.requestEufyCloud.defaults.options.headers = this.headers;
+        this.requestEufyCloud.defaults.options.merge({
+            headers: this.headers
+        });
     }
 
     public getPhoneModel(): string {
@@ -291,7 +297,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     public setLanguage(language: string): void {
         if (isValidLanguage(language) && language.length === 2) {
             this.headers.language = language;
-            this.requestEufyCloud.defaults.options.headers = this.headers;
+            this.requestEufyCloud.defaults.options.merge({
+                headers: this.headers
+            });
         } else
             throw new InvalidLanguageCodeError("Invalid ISO 639 language code", { context: { languageCode: language } });
     }
@@ -863,7 +871,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public setToken(token: string): void {
         this.token = token;
-        this.requestEufyCloud.defaults.options.headers["X-Auth-Token"] = token;
+        this.requestEufyCloud.defaults.options.merge({
+            headers: {
+                "X-Auth-Token": token
+            }
+        });
     }
 
     public setTokenExpiration(tokenExpiration: Date): void {
@@ -876,12 +888,16 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public setOpenUDID(openudid: string): void {
         this.headers.openudid = openudid;
-        this.requestEufyCloud.defaults.options.headers = this.headers;
+        this.requestEufyCloud.defaults.options.merge({
+            headers: this.headers
+        });
     }
 
     public setSerialNumber(serialnumber: string): void {
         this.headers.sn = serialnumber;
-        this.requestEufyCloud.defaults.options.headers = this.headers;
+        this.requestEufyCloud.defaults.options.merge({
+            headers: this.headers
+        });
     }
 
     private async _getEvents(functionName: string, endpoint: string, startTime: Date, endTime: Date, filter?: EventFilterType, maxResults?: number): Promise<Array<EventRecordResponse>> {
