@@ -57,7 +57,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         serverPublicKey: this.SERVER_PUBLIC_KEY
     };
 
-    private headers: Record<string, string> = {
+    private headers: Record<string, string | undefined> = {
+        "User-Agent": undefined,
         App_version: "v4.6.0_1630",
         Os_type: "android",
         Os_version: "31",
@@ -287,11 +288,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
 
     public getPhoneModel(): string {
-        return this.headers.phone_model;
+        return this.headers.phone_model!;
     }
 
     public getCountry(): string {
-        return this.headers.country;
+        return this.headers.country!;
     }
 
     public setLanguage(language: string): void {
@@ -305,7 +306,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
 
     public getLanguage(): string {
-        return this.headers.language;
+        return this.headers.language!;
     }
 
     public async login(options?: LoginOptions): Promise<void> {
@@ -316,7 +317,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (!this.token || (this.tokenExpiration && (new Date()).getTime() >= this.tokenExpiration.getTime()) || options.verifyCode || options.captcha || options.force) {
             try {
                 const data: LoginRequest = {
-                    ab: this.headers.country,
+                    ab: this.headers.country!,
                     client_secret_info: {
                         public_key: this.ecdh.getPublicKey("hex")
                     },
