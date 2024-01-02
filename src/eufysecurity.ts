@@ -15,7 +15,7 @@ import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
 import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, GarageCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera, Tracker } from "./http/device";
 import { AlarmEvent, ChargingType, CommandType, DatabaseReturnCode, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
-import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata, DatabaseQueryLatestInfoLocal, DatabaseQueryLatestInfoCloud, RGBColor, DynamicLighting, MotionZone } from "./p2p/interfaces";
+import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata, DatabaseQueryLatestInfoLocal, DatabaseQueryLatestInfoCloud, RGBColor, DynamicLighting, MotionZone, CrossTrackingGroupEntry } from "./p2p/interfaces";
 import { CommandResult, StorageInfoBodyHB3 } from "./p2p/models";
 import { generateSerialnumber, generateUDID, getError, handleUpdate, md5, parseValue, removeLastChar, waitForEvent } from "./utils";
 import { DeviceNotFoundError, StationNotFoundError, ReadOnlyPropertyError, NotSupportedError, AddUserError, DeleteUserError, UpdateUserUsernameError, UpdateUserPasscodeError, UpdateUserScheduleError, ensureError } from "./error";
@@ -1574,6 +1574,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
                 break;
             }
+            case PropertyName.DeviceImageMirrored:
+                station.setMirrorMode(device, value as boolean);
+                break;
+            case PropertyName.DeviceFlickerAdjustment:
+                station.setFlickerAdjustment(device, value as number);
+                break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
                     throw new ReadOnlyPropertyError("Property is read only", { context: { device: deviceSN, propertyName: name, propertyValue: value } });
@@ -1625,6 +1631,21 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 break;
             case PropertyName.StationTurnOffAlarmWithButton:
                 station.setStationTurnOffAlarmWithButton(value as boolean);
+                break;
+            case PropertyName.StationCrossCameraTracking:
+                station.setCrossCameraTracking(value as boolean);
+                break;
+            case PropertyName.StationContinuousTrackingTime:
+                station.setContinuousTrackingTime(value as number);
+                break;
+            case PropertyName.StationTrackingAssistance:
+                station.setTrackingAssistance(value as boolean);
+                break;
+            case PropertyName.StationCrossTrackingCameraList:
+                station.setCrossTrackingCameraList(value as Array<string>);
+                break;
+            case PropertyName.StationCrossTrackingGroupList:
+                station.setCrossTrackingGroupList(value as Array<CrossTrackingGroupEntry>);
                 break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))

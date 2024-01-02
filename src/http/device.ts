@@ -616,6 +616,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     this.log.error("Device convert raw property - CMD_BAT_DOORBELL_RECORD_QUALITY2 Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
                     return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
+            } else if (property.key === CommandType.CMD_DEV_RECORD_AUTOSTOP && this.getDeviceType() === DeviceType.PROFESSIONAL_247) {
+                return value !== undefined ? (value === "0" ? true : false) : false;
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
@@ -800,6 +802,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.CAMERA3 ||
             type == DeviceType.CAMERA3C ||
+            type == DeviceType.PROFESSIONAL_247 ||
             type == DeviceType.INDOOR_CAMERA_1080 ||
             type == DeviceType.INDOOR_PT_CAMERA_1080 ||
             type == DeviceType.OUTDOOR_PT_CAMERA ||
@@ -839,6 +842,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.CAMERA3 ||
             type == DeviceType.CAMERA3C ||
+            type == DeviceType.PROFESSIONAL_247 ||
             type == DeviceType.SOLO_CAMERA ||
             type == DeviceType.SOLO_CAMERA_PRO ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
@@ -1121,8 +1125,13 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.CAMERA3C == type;
     }
 
+    static isCameraProfessional247(type: number): boolean {
+        // T8600 - E330
+        return DeviceType.PROFESSIONAL_247 == type;
+    }
+
     static isCamera3Product(type: number): boolean {
-        return Device.isCamera3(type) || Device.isCamera3C(type);
+        return Device.isCamera3(type) || Device.isCamera3C(type) || Device.isCameraProfessional247(type);
     }
 
     static isEntrySensor(type: number): boolean {
@@ -1371,6 +1380,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isCamera3C(): boolean {
         return Device.isCamera3C(this.rawDevice.device_type);
+    }
+
+    public isCameraProfessional247(): boolean {
+        return Device.isCameraProfessional247(this.rawDevice.device_type);
     }
 
     public isCamera3Product(): boolean {
