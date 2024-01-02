@@ -397,7 +397,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         } else if (!this.connected) {
             try {
                 const profile = await this.getPassportProfile();
-                if (profile !== null) {
+                if (profile !== null && !this.connected) {
                     this.connected = true;
                     this.emit("connect");
                     this.scheduleRenewAuthToken();
