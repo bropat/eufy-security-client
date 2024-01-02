@@ -10,7 +10,7 @@ import { HTTPApi } from "./http/api";
 import { Devices, FullDevices, Hubs, PropertyValue, RawValues, Stations, Houses, LoginOptions, Schedule, Picture } from "./http/interfaces";
 import { Station } from "./http/station";
 import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, StationListResponse } from "./http/models";
-import { CommandName, DeviceType, HB3DetectionTypes, NotificationSwitchMode, NotificationType, PropertyName, T8170DetectionTypes } from "./http/types";
+import { CommandName, DeviceType, HB3DetectionTypes, IndoorS350NotificationTypes, NotificationSwitchMode, NotificationType, PropertyName, T8170DetectionTypes } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
 import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, GarageCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera, Tracker } from "./http/device";
@@ -1190,19 +1190,39 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 station.setNotificationType(device, value as NotificationType);
                 break;
             case PropertyName.DeviceNotificationPerson:
-                station.setNotificationPerson(device, value as boolean);
+                if (device.isIndoorPanAndTiltCameraS350()) {
+                    station.setNotificationIndoor(device, IndoorS350NotificationTypes.HUMAN, value as boolean);
+                } else {
+                    station.setNotificationPerson(device, value as boolean);
+                }
                 break;
             case PropertyName.DeviceNotificationPet:
-                station.setNotificationPet(device, value as boolean);
+                if (device.isIndoorPanAndTiltCameraS350()) {
+                    station.setNotificationIndoor(device, IndoorS350NotificationTypes.PET, value as boolean);
+                } else {
+                    station.setNotificationPet(device, value as boolean);
+                }
                 break;
             case PropertyName.DeviceNotificationAllOtherMotion:
-                station.setNotificationAllOtherMotion(device, value as boolean);
+                if (device.isIndoorPanAndTiltCameraS350()) {
+                    station.setNotificationIndoor(device, IndoorS350NotificationTypes.ALL_OTHER_MOTION, value as boolean);
+                } else {
+                    station.setNotificationAllOtherMotion(device, value as boolean);
+                }
                 break;
             case PropertyName.DeviceNotificationAllSound:
-                station.setNotificationAllSound(device, value as boolean);
+                if (device.isIndoorPanAndTiltCameraS350()) {
+                    station.setNotificationIndoor(device, IndoorS350NotificationTypes.ALL_SOUND, value as boolean);
+                } else {
+                    station.setNotificationAllSound(device, value as boolean);
+                }
                 break;
             case PropertyName.DeviceNotificationCrying:
-                station.setNotificationCrying(device, value as boolean);
+                if (device.isIndoorPanAndTiltCameraS350()) {
+                    station.setNotificationIndoor(device, IndoorS350NotificationTypes.CRYING, value as boolean);
+                } else {
+                    station.setNotificationCrying(device, value as boolean);
+                }
                 break;
             case PropertyName.DeviceNotificationMotion:
                 station.setNotificationMotion(device, value as boolean);
@@ -1579,6 +1599,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 break;
             case PropertyName.DeviceFlickerAdjustment:
                 station.setFlickerAdjustment(device, value as number);
+                break;
+            case PropertyName.DeviceSoundDetectionType:
+                station.setSoundDetectionType(device, value as number);
                 break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
