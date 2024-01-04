@@ -866,8 +866,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private writePersistentData(): void {
         this.persistentData.login_hash = md5(`${this.config.username}:${this.config.password}`);
-        this.persistentData.httpApi = this.api?.getPersistentData();
-        this.persistentData.country = this.api?.getCountry();
+        if (this.api.isConnected()) {
+            this.persistentData.httpApi = this.api?.getPersistentData();
+            this.persistentData.country = this.api?.getCountry();
+        }
         try {
             if(this.config.persistentData) {
                 this.emit("persistent data", JSON.stringify(this.persistentData));
