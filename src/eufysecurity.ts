@@ -159,6 +159,32 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             }
         }
 
+        if (this.persistentData.login_hash && this.persistentData.login_hash != "") {
+            this.log.debug("Load previous login_hash", { login_hash: this.persistentData.login_hash });
+            if (md5(`${this.config.username}:${this.config.password}`) != this.persistentData.login_hash) {
+                this.log.info("Authentication properties changed, invalidate saved cloud token.");
+                this.persistentData.cloud_token = "";
+                this.persistentData.cloud_token_expiration = 0;
+                this.persistentData.httpApi = undefined;
+            }
+        } else {
+            this.persistentData.cloud_token = "";
+            this.persistentData.cloud_token_expiration = 0;
+            this.persistentData.httpApi = undefined;
+        }
+        if (this.persistentData.country !== undefined && this.persistentData.country !== "" && this.persistentData.country !== this.config.country) {
+            this.log.info("Country property changed, invalidate saved cloud token.");
+            this.persistentData.cloud_token = "";
+            this.persistentData.cloud_token_expiration = 0;
+            this.persistentData.httpApi = undefined;
+        }
+        if (this.persistentData.httpApi !== undefined && (this.persistentData.httpApi.clientPrivateKey === undefined || this.persistentData.httpApi.clientPrivateKey === "" || this.persistentData.httpApi.serverPublicKey === undefined || this.persistentData.httpApi.serverPublicKey === "")) {
+            this.log.debug("Incomplete persistent data for v2 encrypted cloud api communication. Invalidate authenticated session data.");
+            this.persistentData.cloud_token = "";
+            this.persistentData.cloud_token_expiration = 0;
+            this.persistentData.httpApi = undefined;
+        }
+
         this.api = await HTTPApi.initialize(this.config.country, this.config.username, this.config.password, this.log, this.persistentData.httpApi);
         this.api.setLanguage(this.config.language);
         this.api.setPhoneModel(this.config.trustedDeviceName);
@@ -173,34 +199,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.api.on("tfa request", () => this.onTfaRequest());
         this.api.on("connection error", (error: Error) => this.onAPIConnectionError(error));
 
-        if (this.persistentData.login_hash && this.persistentData.login_hash != "") {
-            this.log.debug("Load previous login_hash", { login_hash: this.persistentData.login_hash });
-            if (md5(`${this.config.username}:${this.config.password}`) != this.persistentData.login_hash) {
-                this.log.info("Authentication properties changed, invalidate saved cloud token.");
-                this.persistentData.cloud_token = "";
-                this.persistentData.cloud_token_expiration = 0;
-                this.persistentData.httpApi = undefined;
-            }
-        } else {
-            this.persistentData.cloud_token = "";
-            this.persistentData.cloud_token_expiration = 0;
-        }
-        if (this.persistentData.country !== undefined && this.persistentData.country !== "" && this.persistentData.country !== this.config.country) {
-            this.log.info("Country property changed, invalidate saved cloud token.");
-            this.persistentData.cloud_token = "";
-            this.persistentData.cloud_token_expiration = 0;
-            this.persistentData.httpApi = undefined;
-        }
         if (this.persistentData.cloud_token && this.persistentData.cloud_token != "" && this.persistentData.cloud_token_expiration) {
-            this.log.debug("Load previous token", { token: this.persistentData.cloud_token, tokenExpiration: this.persistentData.cloud_token_expiration });
+            this.log.debug("Load previous token", { token: this.persistentData.cloud_token, tokenExpiration: this.persistentData.cloud_token_expiration, persistentHttpApi: this.persistentData.httpApi });
             this.api.setToken(this.persistentData.cloud_token);
             this.api.setTokenExpiration(new Date(this.persistentData.cloud_token_expiration));
-        }
-        if (this.persistentData.httpApi !== undefined && (this.persistentData.httpApi.clientPrivateKey === undefined || this.persistentData.httpApi.clientPrivateKey === "" || this.persistentData.httpApi.serverPublicKey === undefined || this.persistentData.httpApi.serverPublicKey === "")) {
-            this.log.debug("Incomplete persistent data for v2 encrypted cloud api communication. Invalidate authenticated session data.");
-            this.persistentData.cloud_token = "";
-            this.persistentData.cloud_token_expiration = 0;
-            this.persistentData.httpApi = undefined;
         }
         if (!this.persistentData.openudid || this.persistentData.openudid == "") {
             this.persistentData.openudid = generateUDID();

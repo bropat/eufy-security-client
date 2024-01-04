@@ -276,6 +276,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             }
         });
         this.tokenExpiration = null;
+        this.persistentData.serverPublicKey = this.SERVER_PUBLIC_KEY;
         this.clearScheduleRenewAuthToken();
         this.emit("auth token invalidated");
     }
@@ -1108,7 +1109,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 decryptedData = decryptAPIData(data, this.ecdh.computeSecret(Buffer.from(this.persistentData.serverPublicKey, "hex")));
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error("Data decryption error, invalidating session data and reconnecting...", { error: getError(error) });
+                this.log.error("Data decryption error, invalidating session data and reconnecting...", { error: getError(error), serverPublicKey: this.persistentData.serverPublicKey });
                 this.persistentData.serverPublicKey = this.SERVER_PUBLIC_KEY;
                 this.invalidateToken();
                 this.emit("close");
