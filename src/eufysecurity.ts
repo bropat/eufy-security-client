@@ -132,6 +132,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.log.debug("No stored data from last exit found", { error: getError(error) });
         }
 
+        this.log.debug("Loaded persistent data", { persistentData: this.persistentData });
         try {
             if (this.persistentData.version !== libVersion) {
                 const currentVersion = Number.parseFloat(removeLastChar(libVersion, "."));
@@ -141,7 +142,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 if (previousVersion < currentVersion) {
                     this.persistentData = handleUpdate(this.persistentData, this.log, previousVersion);
                     this.persistentData.version = libVersion;
-                    this.writePersistentData();
                 }
             }
         } catch(err) {
