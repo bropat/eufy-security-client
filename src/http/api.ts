@@ -269,6 +269,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
 
     private invalidateToken(): void {
+        this.connected = false;
         this.token = null;
         this.requestEufyCloud.defaults.options.merge({
             headers: {
@@ -664,7 +665,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 if (error.response.statusCode === 401) {
                     this.invalidateToken();
                     this.log.error("Status return code 401, invalidate token", { status: error.response.statusCode, statusText: error.response.statusMessage });
-                    this.connected = false;
                     this.emit("close");
                 }
             }
