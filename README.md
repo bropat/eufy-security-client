@@ -97,6 +97,7 @@ Please use GitHub issues for this.
 * (bropat) Added default values for some properties
 * (bropat) Lowered p2p keepalive interval for battery saving devices
 * (bropat) Fixed issue #380
+* (bropat) Fixed issue #323
 * (bropat) Fixed decode of parameters
 * (bropat) Fixed: not all types of motion detection can be deactivated at the same time (fallback to last value)
 * (bropat) Fixed issue that caused long running p2p livestreams to be interrupted (#431)
