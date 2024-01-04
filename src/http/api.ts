@@ -399,10 +399,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         } else if (!this.connected) {
             try {
                 const profile = await this.getPassportProfile();
-                if (profile !== null && !this.connected) {
-                    this.connected = true;
-                    this.emit("connect");
-                    this.scheduleRenewAuthToken();
+                if (profile !== null) {
+                    if (!this.connected) {
+                        this.connected = true;
+                        this.emit("connect");
+                        this.scheduleRenewAuthToken();
+                    }
                 } else {
                     this.emit("connection error", new ApiInvalidResponseError(`Invalid passport profile response`));
                 }
