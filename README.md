@@ -80,6 +80,32 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 3.0.0 (2024-01-xx)
+
+* (bropat/martijnpoppen) Added support for Video Doorbell E340 (T8214; #406)
+* (bropat/martijnpoppen) Added support for eufyCam E330 (Professional; T8600; #408)
+* (bropat/martijnpoppen) Added support for Solar Wall Light Cam S120 (T84A0; #409)
+* (bropat/martijnpoppen) Added support for SoloCam S340 (T8170; #410)
+* (bropat) Added support for Indoor Cam S350 (T8416; #398)
+* (bropat) Outdated, no longer functioning cloud livestream has been removed
+* (bropat) Improved cloud device lookup
+* (bropat) Implemented new p2p parameter format
+* (bropat) Implemented calibrate command for Floodlight T8423 (#280)
+* (martijnpoppen) OPT: persistentData via config instead of JSON file (#416)
+* (PhilippEngler) changed description of state of DualCamWatchViewMode (#402)
+* (PhilippEngler) Added support for storage info on HomeBase 3 (#405)
+* (bropat) Added default values for some properties
+* (bropat) Lowered p2p keepalive interval for battery saving devices
+* (bropat) Fixed issue #380
+* (bropat) Fixed decode of parameters
+* (bropat) Fixed: not all types of motion detection can be deactivated at the same time (fallback to last value)
+* (bropat) Fixed issue that caused long running p2p livestreams to be interrupted (#431)
+* (bropat/PhilippEngler) Fixed possible double api connect event (#439)
+* (bropat) Fixed possible issue with loading persistent data for cloud api
+* (bropat) Fixed api internal session invalidation
+* (bropat) Fixed update processing and persistent data consistency
+* (bropat) Fixed persistent data saving
+
 ### 2.9.1 (2023-11-04)
 
 * (bropat) Fixed data decryption for p2p command responses
