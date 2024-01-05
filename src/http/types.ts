@@ -7572,8 +7572,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
         [PropertyName.StationAlarm]: StationAlarmProperty,
         [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
-        //[PropertyName.StationNotificationSwitchModeSchedule]: StationNotificationSwitchModeScheduleProperty,
-        //[PropertyName.StationNotificationSwitchModeApp]: StationNotificationSwitchModeAppProperty,
+        //[PropertyName.StationNotificationSwitchModeSchedule]: StationNotificationSwitchModeScheduleProperty, //TODO: Implement correctly
+        //[PropertyName.StationNotificationSwitchModeApp]: StationNotificationSwitchModeAppProperty, //TODO: Implement correctly
     },
     [DeviceType.SOLO_CAMERA]: {
         ...BaseStationProperties,
@@ -7614,6 +7614,9 @@ export const StationProperties: Properties = {
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
         [PropertyName.StationAlarm]: StationAlarmProperty,
         [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+        [PropertyName.StationSdStatus]: StationSdStatusProperty,
+        [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
+        [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
     },
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR]: {
         ...BaseStationProperties,
@@ -8417,10 +8420,6 @@ export const StationCommands: Commands = {
         CommandName.StationReboot,
         CommandName.StationTriggerAlarmSound,
         CommandName.StationDownloadImage,
-        CommandName.StationDatabaseQueryLatestInfo,
-        CommandName.StationDatabaseQueryLocal,
-        CommandName.StationDatabaseCountByDate,
-        CommandName.StationDatabaseDelete,
     ],
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR]: [
         CommandName.StationReboot,
