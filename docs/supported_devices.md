@@ -7,6 +7,7 @@
 | ![T8010 image](_media/homebase2_small.jpg) | HomeBase S280 (T8010; Homebase 2) | :heavy_check_mark: |  |
 | ![T8030 image](_media/homebase3_small.jpg) | HomeBase S380 (T8030; HomeBase 3) | :wrench: | Firmware: 3.1.0.8 (20221101) |
 | ![T8021 image](_media/smartlockwifibridge_t8021_small.jpg) | Smart Lock Wi-Fi Bridge (T8021) | :heavy_check_mark: :wrench: |  |
+| ![T8023 image](_media/minibase_chime_T8023_small.jpg) | MiniBase Chime(T8023) | :heavy_check_mark: | Firmware: 3.3.1.5m_1.6 (20240103) |
 | ![T8111 image](_media/eufycam_small.jpg) | eufyCam (T8111) | :heavy_check_mark: |  |
 | ![T8112 image](_media/eufycam_small.jpg) | eufyCam E (T8112) | :heavy_check_mark: |  |
 | ![T8114 image](_media/eufycam2_small.jpg) | eufyCam 2 (T8114) | :heavy_check_mark: | Firmware: 2.7.4 |
