@@ -21,6 +21,7 @@
 | ![T8131 image](_media/solocame40_small.jpg) | SoloCam C120 (T8131; SoloCam E40) | :heavy_check_mark: |  |
 | ![T8122 image](_media/solocaml20_small.jpg) | SoloCam L20 (T8122) | :heavy_check_mark: | Firmware: 1.0.8.1 |
 | ![T8123 image](_media/solocaml20_small.jpg) | SoloCam L40 (T8123) | :heavy_check_mark: | Firmware: 1.1.0.6 (20231210) |
+| ![T8B0 image](_media/solocamc210_small.jpg) | SoloCam C210 (T8B0) | :heavy_check_mark: | Firmware: 3.2.3.5 (20231218) |
 | ![T8124 image](_media/solocams40_small.jpg) | SoloCam S230 (T8124; SoloCam S40) | :heavy_check_mark: |  |
 | ![T8134 image](_media/solocams220_small.jpg) | SoloCam S220 (T8134) | :heavy_check_mark: |  |
 | ![T8170 image](_media/solocams340_small.jpg) | SoloCam S340 (T8170) | :heavy_check_mark: | Firmware: 3.0.9.6 (20231125) |

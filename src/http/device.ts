@@ -2,7 +2,7 @@ import { TypedEmitter } from "tiny-typed-emitter";
 import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
-import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOtherMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType, T8170DetectionTypes, IndoorS350NotificationTypes } from "./types";
+import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOtherMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType, T8170DetectionTypes, IndoorS350NotificationTypes, SoloCameraDetectionTypes } from "./types";
 import { DeviceListResponse, Voice, GarageDoorSensorsProperty } from "./models"
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject } from "./interfaces";
@@ -570,6 +570,18 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     return booleanProperty.default !== undefined ? booleanProperty.default : false;
                 }
             } else if ((
+                property.name === PropertyName.DeviceMotionDetectionTypeHuman ||
+                property.name === PropertyName.DeviceMotionDetectionTypeAllOtherMotions
+            ) && this.isSoloCameraC210()) {
+                const booleanProperty = property as PropertyMetadataBoolean;
+                try {
+                    return property.name === PropertyName.DeviceMotionDetectionTypeHuman ? SoloCameraDetectionTypes.HUMAN_DETECTION === Number.parseInt(value) ? true : false : SoloCameraDetectionTypes.ALL_OTHER_MOTION === Number.parseInt(value) ? true : false;
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Device convert raw property - SoloCamera motion detection type Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+                    return booleanProperty.default !== undefined ? booleanProperty.default : false;
+                }
+            } else if ((
                 property.name === PropertyName.DeviceNotificationAllOtherMotion ||
                 property.name === PropertyName.DeviceNotificationPerson ||
                 property.name === PropertyName.DeviceNotificationPet ||
@@ -831,6 +843,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_2K ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
             type == DeviceType.SOLO_CAMERA_SOLAR ||
+            type == DeviceType.SOLO_CAMERA_C210 ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_2K ||
@@ -869,6 +882,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_2K ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
             type == DeviceType.SOLO_CAMERA_SOLAR ||
+            type == DeviceType.SOLO_CAMERA_C210 ||
             type == DeviceType.LOCK_WIFI ||
             type == DeviceType.LOCK_WIFI_NO_FINGER ||
             type == DeviceType.LOCK_8503 ||
@@ -1091,6 +1105,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.SOLO_CAMERA_SOLAR == type;
     }
 
+    static isSoloCameraC210(type: number): boolean {
+        return DeviceType.SOLO_CAMERA_C210 == type;
+    }
+
     static isSoloCameras(type: number): boolean {
         return Device.isSoloCamera(type) ||
             Device.isSoloCameraPro(type) ||
@@ -1098,7 +1116,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             Device.isSoloCameraSpotlight2k(type) ||
             Device.isSoloCameraSpotlightSolar(type) ||
             Device.isOutdoorPanAndTiltCamera(type) ||
-            Device.isSoloCameraSolar(type);
+            Device.isSoloCameraSolar(type) ||
+            Device.isSoloCameraC210(type);
     }
 
     static isStarlight4GLTE(type: number): boolean {
@@ -1356,6 +1375,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isSoloCameraSolar(): boolean {
         return Device.isSoloCameraSolar(this.rawDevice.device_type);
+    }
+
+    public isSoloCameraC210(): boolean {
+        return Device.isSoloCameraC210(this.rawDevice.device_type);
     }
 
     public isStarlight4GLTE(): boolean {

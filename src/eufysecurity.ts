@@ -10,7 +10,7 @@ import { HTTPApi } from "./http/api";
 import { Devices, FullDevices, Hubs, PropertyValue, RawValues, Stations, Houses, LoginOptions, Schedule, Picture } from "./http/interfaces";
 import { Station } from "./http/station";
 import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, StationListResponse } from "./http/models";
-import { CommandName, DeviceType, HB3DetectionTypes, IndoorS350NotificationTypes, NotificationSwitchMode, NotificationType, PropertyName, T8170DetectionTypes } from "./http/types";
+import { CommandName, DeviceType, HB3DetectionTypes, IndoorS350NotificationTypes, NotificationSwitchMode, NotificationType, PropertyName, SoloCameraDetectionTypes, T8170DetectionTypes } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
 import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, GarageCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera, Tracker } from "./http/device";
@@ -1500,6 +1500,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     station.setMotionDetectionTypeHuman(device, value as boolean);
                 } else if (device.isOutdoorPanAndTiltCamera()) {
                     station.setMotionDetectionTypeHB3(device, T8170DetectionTypes.HUMAN_DETECTION, value as boolean);
+                } else if (device.isSoloCameraC210()) {
+                    station.setMotionDetectionTypeHB3(device, SoloCameraDetectionTypes.HUMAN_DETECTION, value as boolean);
                 } else {
                     station.setMotionDetectionTypeHB3(device, HB3DetectionTypes.HUMAN_DETECTION, value as boolean);
                 }
@@ -1519,6 +1521,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     station.setMotionDetectionTypeAllOtherMotions(device, value as boolean);
                 } else if (device.isOutdoorPanAndTiltCamera()) {
                     station.setMotionDetectionTypeHB3(device, T8170DetectionTypes.ALL_OTHER_MOTION, value as boolean);
+                } else if (device.isSoloCameraC210()) {
+                    station.setMotionDetectionTypeHB3(device, SoloCameraDetectionTypes.ALL_OTHER_MOTION, value as boolean);
                 } else {
                     station.setMotionDetectionTypeHB3(device, HB3DetectionTypes.ALL_OTHER_MOTION, value as boolean);
                 }

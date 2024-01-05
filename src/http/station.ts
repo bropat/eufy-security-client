@@ -4,7 +4,7 @@ import { Logger } from "ts-log";
 import date from "date-and-time";
 
 import { HTTPApi } from "./api";
-import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode, VideoTypeStoreToNAS, HB3DetectionTypes, WalllightNotificationType, DailyLightingType, MotionActivationMode, BaseStationProperties, LightingActiveMode, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes } from "./types";
+import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode, VideoTypeStoreToNAS, HB3DetectionTypes, WalllightNotificationType, DailyLightingType, MotionActivationMode, BaseStationProperties, LightingActiveMode, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes, SoloCameraDetectionTypes } from "./types";
 import { SnoozeDetail, StationListResponse, StationSecuritySettings } from "./models"
 import { ParameterHelper } from "./parameter";
 import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValues, StationEvents, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, PropertyMetadataObject } from "./interfaces";
@@ -1251,6 +1251,23 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
+        } else if (device.isSoloCameraC210()) {
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.CMD_SET_NIGHT_VISION_TYPE,
+                    "mChannel": device.getChannel(),
+                    "mValue3": 0,
+                    "payload": {
+                        "channel": device.getChannel(),
+                        "night_sion": value === true ? 1 : 0,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
         } else {
             this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_IRCUT_SWITCH,
@@ -1329,7 +1346,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Station set motion detection - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
-        if (device.isSoloCameraSolar() || device.isOutdoorPanAndTiltCamera()) {
+        if (device.isSoloCameraSolar() || device.isOutdoorPanAndTiltCamera() || device.isSoloCameraC210()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -2000,7 +2017,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
-    public setMotionDetectionTypeHB3(device: Device, type: HB3DetectionTypes | T8170DetectionTypes, value: boolean): void {
+    public setMotionDetectionTypeHB3(device: Device, type: HB3DetectionTypes | T8170DetectionTypes | SoloCameraDetectionTypes, value: boolean): void {
         const propertyData: PropertyData = {
             name: type === HB3DetectionTypes.HUMAN_RECOGNITION ? PropertyName.DeviceMotionDetectionTypeHumanRecognition : type === HB3DetectionTypes.HUMAN_DETECTION || type === T8170DetectionTypes.HUMAN_DETECTION ? PropertyName.DeviceMotionDetectionTypeHuman : type === HB3DetectionTypes.PET_DETECTION ? PropertyName.DeviceMotionDetectionTypePet : type === HB3DetectionTypes.VEHICLE_DETECTION ? PropertyName.DeviceMotionDetectionTypeVehicle : PropertyName.DeviceMotionDetectionTypeAllOtherMotions,
             value: value
@@ -2017,6 +2034,10 @@ export class Station extends TypedEmitter<StationEvents> {
         this.log.debug(`Station set motion detection type HB3 - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), type: type, value: value });
         if (this.getDeviceType() === DeviceType.HB3) {
             try {
+                if (!Object.values(HB3DetectionTypes).includes(type as HB3DetectionTypes)) {
+                    this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(HB3DetectionTypes).filter((value) => typeof value === "number"));
+                    return;
+                }
                 const aiDetectionType = device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number) !== undefined ? device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)! : "0";
                 let newAiDetectionType = getHB3DetectionMode(Number.parseInt(aiDetectionType), type as HB3DetectionTypes, value);
                 if (newAiDetectionType === 0) {
@@ -2047,6 +2068,10 @@ export class Station extends TypedEmitter<StationEvents> {
             }
         } else if (device.isOutdoorPanAndTiltCamera()) {
             try {
+                if (!Object.values(T8170DetectionTypes).includes(type as T8170DetectionTypes)) {
+                    this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(T8170DetectionTypes).filter((value) => typeof value === "number"));
+                    return;
+                }
                 const aiDetectionType = device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number) !== undefined ? device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)! : "0";
                 let newAiDetectionType = getT8170DetectionMode(Number.parseInt(aiDetectionType), type as T8170DetectionTypes, value);
                 if (newAiDetectionType === 0) {
@@ -2073,7 +2098,40 @@ export class Station extends TypedEmitter<StationEvents> {
                 });
             } catch (err) {
                 const error = ensureError(err);
-                this.log.error(`setMotionDetectionTypeHB3 Error`, { error: getError(error), stationSN: this.getSerial(), deviceSN: device.getSerial() });
+                this.log.error(`setMotionDetectionTypeHB3 T8170DetectionTypes Error`, { error: getError(error), stationSN: this.getSerial(), deviceSN: device.getSerial() });
+            }
+        } else if (device.isSoloCameraC210()) {
+            try {
+                if (!Object.values(SoloCameraDetectionTypes).includes(type as SoloCameraDetectionTypes)) {
+                    this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(SoloCameraDetectionTypes).filter((value) => typeof value === "number"));
+                    return;
+                }
+                let newAiDetectionType = type;
+                if (!value) {
+                    newAiDetectionType = type === SoloCameraDetectionTypes.ALL_OTHER_MOTION ? SoloCameraDetectionTypes.HUMAN_DETECTION : SoloCameraDetectionTypes.ALL_OTHER_MOTION;
+                }
+                this.p2pSession.sendCommandWithStringPayload({
+                    commandType: CommandType.CMD_SET_PAYLOAD,
+                    value: JSON.stringify({
+                        "account_id": this.rawStation.member.admin_user_id,
+                        "cmd": CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
+                        "mChannel": device.getChannel(),
+                        "mValue3": 0,
+                        "payload": {
+                            "ai_detect_type": newAiDetectionType,
+                            "channel": device.getChannel(),
+                        }
+                    }),
+                    channel: device.getChannel()
+                }, {
+                    property: propertyData,
+                    onSuccess: () => {
+                        device.updateRawProperty(CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3, newAiDetectionType.toString(), "p2p");
+                    }
+                });
+            } catch (err) {
+                const error = ensureError(err);
+                this.log.error(`setMotionDetectionTypeHB3 SoloCameraDetectionTypes Error`, { error: getError(error), stationSN: this.getSerial(), deviceSN: device.getSerial() });
             }
         } else {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
@@ -2649,7 +2707,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.log.debug(`Station set notification type - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
         if (device.isFloodLight() || (device.isIndoorCamera() && !device.isIndoorPanAndTiltCameraS350()) || device.isSoloCameras() || device.isStarlight4GLTE() || device.isGarageCamera()) {
             if (!Object.values(NotificationType).includes(value as NotificationType)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, NotificationType);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(NotificationType).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithStringPayload({
@@ -2673,7 +2731,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isWiredDoorbellT8200X()) {
             if (!Object.values(NotificationType).includes(value as NotificationType)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, NotificationType);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(NotificationType).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithStringPayload({
@@ -2690,7 +2748,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isWallLightCam()) {
             if (!Object.values(WalllightNotificationType).includes(value as WalllightNotificationType)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WalllightNotificationType);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(WalllightNotificationType).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithStringPayload({
@@ -2705,7 +2763,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isBatteryDoorbellDualE340()) {
             if (!Object.values(NotificationType).includes(value as NotificationType)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, NotificationType);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(NotificationType).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithStringPayload({
@@ -2727,7 +2785,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isBatteryDoorbell() || device.isWiredDoorbellDual()) {
             if (!Object.values(NotificationType).includes(value as NotificationType)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, NotificationType);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(NotificationType).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithStringPayload({
@@ -2748,7 +2806,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isCameraProfessional247() || device.isIndoorPanAndTiltCameraS350()) {
             if (!Object.values(NotificationType).includes(value as NotificationType)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, NotificationType);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(NotificationType).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithStringPayload({
@@ -2768,7 +2826,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isCamera2Product() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E || device.isCamera3Product()) {
             if (!Object.values(NotificationType).includes(value as NotificationType)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, NotificationType);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(NotificationType).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithStringPayload({
@@ -2787,7 +2845,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isWiredDoorbell()) {
             if (!Object.values(NotificationType).includes(value as NotificationType)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, NotificationType);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(NotificationType).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithStringPayload({
@@ -3998,7 +4056,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     this.updateRawProperty(CommandType.CMD_HUB_NOTIFY_MODE, pushMode.toString(), "p2p");
                 }
             });
-        } else if (this.getDeviceType() === DeviceType.OUTDOOR_PT_CAMERA) {
+        } else if (this.getDeviceType() === DeviceType.OUTDOOR_PT_CAMERA || Device.isSoloCameraC210(this.getDeviceType())) {
             let oldvalue = 0;
             const rawproperty = this.getRawProperty(CommandType.CMD_HUB_NOTIFY_MODE);
             if (rawproperty !== undefined) {
@@ -4210,9 +4268,9 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         this.log.debug(`Station set watermark - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
-        if (device.isCamera2Product() || device.isCamera3Product() || device.isSoloCameraSolar() || device.isOutdoorPanAndTiltCamera() || device.isCameraProfessional247() || device.isIndoorPanAndTiltCameraS350()) {
+        if (device.isCamera2Product() || device.isCamera3Product() || device.isSoloCameraSolar() || device.isOutdoorPanAndTiltCamera() || device.isCameraProfessional247() || device.isIndoorPanAndTiltCameraS350() || device.isSoloCameraC210() ) {
             if (!Object.values(WatermarkSetting3).includes(value as WatermarkSetting3)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting3);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(WatermarkSetting3).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithIntString({
@@ -4226,7 +4284,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isSoloCameras() || device.isWiredDoorbell() || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 || device.isStarlight4GLTE()) {
             if (!Object.values(WatermarkSetting1).includes(value as WatermarkSetting1)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting1);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(WatermarkSetting1).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithIntString({
@@ -4240,7 +4298,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isIndoorCamera() || device.isFloodLight()) {
             if (!Object.values(WatermarkSetting4).includes(value as WatermarkSetting4)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting4);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(WatermarkSetting4).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithIntString({
@@ -4254,7 +4312,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isBatteryDoorbell() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E || device.isWiredDoorbellDual()) {
             if (!Object.values(WatermarkSetting2).includes(value as WatermarkSetting2)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values: `, WatermarkSetting2);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values: `, Object.values(WatermarkSetting2).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithIntString({
@@ -4268,7 +4326,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isWallLightCam()) {
             if (!Object.values(WatermarkSetting1).includes(value as WatermarkSetting1)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting1);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(WatermarkSetting1).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithStringPayload({
@@ -4283,7 +4341,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isGarageCamera()) {
             if (!Object.values(WatermarkSetting5).includes(value as WatermarkSetting5)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting5);
+                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(WatermarkSetting5).filter((value) => typeof value === "number"));
                 return;
             }
             this.p2pSession.sendCommandWithIntString({
