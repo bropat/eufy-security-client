@@ -3,7 +3,7 @@ import { Readable } from "stream";
 import { SortedMap } from "sweet-collections";
 
 import { AlarmMode, DeviceType, MicStatus, TriggerType, VideoType } from "../http/types";
-import { Address, CmdCameraInfoResponse, CommandResult, CustomData } from "./models";
+import { Address, CmdCameraInfoResponse, CommandResult, CustomData, StorageInfoBodyHB3 } from "./models";
 import { TalkbackStream } from "./talkback";
 import { AlarmEvent, AudioCodec, ChargingType, CommandType, DatabaseReturnCode, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, P2PStorageType, TFCardStatus, VideoCodec, InternalP2PCommandType } from "./types";
 
@@ -48,6 +48,7 @@ export interface P2PClientProtocolEvents {
     "database delete": (returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => void;
     "sensor status": (channel: number, status: number) => void;
     "garage door status": (channel: number, doorId: number, status: number) => void;
+    "storage info hb3": (channel: number, storageInfo: StorageInfoBodyHB3) => void;
 }
 
 export interface P2PQueueMessage {
@@ -387,4 +388,31 @@ export interface InternalDynamicLighting {
     id: number;
     speed: number;
     colors: Array<number>;
+}
+
+export interface MotionZonePoint {
+    x: number;
+    y: number;
+}
+
+export interface MotionZonePoints {
+    points: Array<MotionZonePoint>;
+}
+
+export interface MotionZone {
+    polygens: Array<MotionZonePoints>;
+}
+
+export interface VideoStreamingRecordingQuality {
+    mode_0: {
+        quality: number;
+    },
+    mode_1: {
+        quality: number;
+    },
+    cur_mode: number;
+}
+
+export interface CrossTrackingGroupEntry {
+    value: Array<string>;
 }
