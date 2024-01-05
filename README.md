@@ -83,6 +83,7 @@ Please use GitHub issues for this.
 ### 3.0.0 (2024-01-xx)
 
 * (bropat/martijnpoppen) Added support for Video Doorbell E340 (T8214; #406)
+* (martijnpoppen) Added support for MiniBase Chime (T8023)
 * (bropat/martijnpoppen) Added support for eufyCam E330 (Professional; T8600; #408)
 * (bropat/martijnpoppen) Added support for Solar Wall Light Cam S120 (T84A0; #409)
 * (bropat/martijnpoppen) Added support for SoloCam S340 (T8170; #410)
