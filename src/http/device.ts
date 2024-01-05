@@ -799,6 +799,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         }
     }
 
+    static isSupported(type: number): boolean {
+        return DeviceProperties[type] !== undefined ? true : false;
+    }
+
     static isCamera(type: number): boolean {
         if (type == DeviceType.CAMERA ||
             type == DeviceType.CAMERA2 ||

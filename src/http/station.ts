@@ -465,10 +465,13 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public isP2PConnectableDevice(): boolean {
-        if (!Device.isSmartTrack(this.getDeviceType())) {
-            return true;
+        if (Device.isSmartTrack(this.getDeviceType()) || (!Device.isSupported(this.getDeviceType()) && !this.isStation())) {
+            if (!Device.isSupported(this.getDeviceType()) && !this.isStation()) {
+                this.log.debug("Station not supported, no connection over p2p will be initiated", { stationSN: this.getSerial(), type: this.getDeviceType() });
+            }
+            return false;
         }
-        return false;
+        return true;
     }
 
     public getDeviceType(): number {
