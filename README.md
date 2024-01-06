@@ -88,6 +88,7 @@ Please use GitHub issues for this.
 * (bropat/martijnpoppen) Added support for Solar Wall Light Cam S120 (T84A0; #409)
 * (bropat/martijnpoppen) Added support for SoloCam S340 (T8170; #410)
 * (bropat) Added support for Indoor Cam S350 (T8416; #398)
+* (bropat) Added support for Floodlight Cam E340 (T8425; #388)
 * (bropat) Added support for SoloCam C210 (T8B00; #369)
 * (bropat) Outdated, no longer functioning cloud livestream has been removed
 * (bropat) Improved cloud device lookup

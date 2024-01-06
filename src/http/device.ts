@@ -2,12 +2,12 @@ import { TypedEmitter } from "tiny-typed-emitter";
 import { Logger } from "ts-log";
 
 import { HTTPApi } from "./api";
-import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOtherMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType, T8170DetectionTypes, IndoorS350NotificationTypes, SoloCameraDetectionTypes } from "./types";
-import { DeviceListResponse, Voice, GarageDoorSensorsProperty } from "./models"
+import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOtherMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType, T8170DetectionTypes, IndoorS350NotificationTypes, SoloCameraDetectionTypes, FloodlightT8425NotificationTypes } from "./types";
+import { DeviceListResponse, Voice, GarageDoorSensorsProperty, FloodlightDetectionRangeT8425Property, FloodlightLightSettingsMotionT8425Property, FloodlightLightSettingsBrightnessScheduleT8425Property } from "./models"
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject } from "./interfaces";
 import { CommandType, ESLAnkerBleConstant, TrackerCommandType } from "../p2p/types";
-import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImage, getImagePath, hexDate, hexTime, hexWeek, isHB3DetectionModeEnabled, isIndoorNotitficationEnabled, isPrioritySourceType, isT8170DetectionModeEnabled, SmartSafeByteWriter } from "./utils";
+import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImage, getImagePath, hexDate, hexTime, hexWeek, isFloodlightT8425NotitficationEnabled, isHB3DetectionModeEnabled, isIndoorNotitficationEnabled, isPrioritySourceType, isT8170DetectionModeEnabled, SmartSafeByteWriter } from "./utils";
 import { DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds } from "../p2p/utils";
 import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent, HB3PairedDevicePushEvent, GarageDoorPushEvent } from "../push/types";
 import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
@@ -596,6 +596,20 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     this.log.error("Device convert raw property - IndoorPanAndTiltCameraS350 notification Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
                     return booleanProperty.default !== undefined ? booleanProperty.default : false;
                 }
+            } else if ((
+                property.name === PropertyName.DeviceNotificationAllOtherMotion ||
+                property.name === PropertyName.DeviceNotificationPerson ||
+                property.name === PropertyName.DeviceNotificationPet ||
+                property.name === PropertyName.DeviceNotificationVehicle
+            ) && this.isFloodLightT8425()) {
+                const booleanProperty = property as PropertyMetadataBoolean;
+                try {
+                    return isFloodlightT8425NotitficationEnabled(Number.parseInt(value), property.name === PropertyName.DeviceNotificationAllOtherMotion ? FloodlightT8425NotificationTypes.ALL_OTHER_MOTION : property.name === PropertyName.DeviceNotificationPerson ? FloodlightT8425NotificationTypes.HUMAN : property.name === PropertyName.DeviceNotificationPet ? FloodlightT8425NotificationTypes.PET : FloodlightT8425NotificationTypes.VEHICLE);
+                } catch (err) {
+                    const error = ensureError(err);
+                    this.log.error("Device convert raw property - FloodLightT8425 notification Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+                    return booleanProperty.default !== undefined ? booleanProperty.default : false;
+                }
             } else if (property.key === CommandType.CELLULAR_INFO) {
                 switch (property.name) {
                     case PropertyName.DeviceCellularSignal: {
@@ -645,6 +659,54 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 }
             } else if (property.key === CommandType.CMD_DEV_RECORD_AUTOSTOP && this.getDeviceType() === DeviceType.PROFESSIONAL_247) {
                 return value !== undefined ? (value === "0" ? true : false) : false;
+            } else if (property.key === CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425) {
+                const currentValue = value as unknown as FloodlightDetectionRangeT8425Property;
+                switch (property.name) {
+                    case PropertyName.DeviceMotionDetectionRange: {
+                        const numericProperty = property as PropertyMetadataNumeric;
+                        return currentValue !== undefined && currentValue.cur_mode !== undefined ? currentValue.cur_mode : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                    }
+                    case PropertyName.DeviceMotionDetectionRangeStandardSensitivity: {
+                        const numericProperty = property as PropertyMetadataNumeric;
+                        return currentValue !== undefined && currentValue.mode0 !== undefined && Array.isArray(currentValue.mode0) && currentValue.mode0.length > 0 && currentValue.mode0.find((element) => element.id === 1) !== undefined ? currentValue.mode0.find((element) => element.id === 1)!.sst : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                    }
+                    case PropertyName.DeviceMotionDetectionRangeAdvancedLeftSensitivity: {
+                        const numericProperty = property as PropertyMetadataNumeric;
+                        return currentValue !== undefined && currentValue.mode1 !== undefined && Array.isArray(currentValue.mode1) && currentValue.mode1.length > 0 && currentValue.mode1.find((element) => element.id === 1) !== undefined ? currentValue.mode1.find((element) => element.id === 1)!.sst : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                    }
+                    case PropertyName.DeviceMotionDetectionRangeAdvancedRightSensitivity: {
+                        const numericProperty = property as PropertyMetadataNumeric;
+                        return currentValue !== undefined && currentValue.mode1 !== undefined && Array.isArray(currentValue.mode1) && currentValue.mode1.length > 0 && currentValue.mode1.find((element) => element.id === 2) !== undefined ? currentValue.mode1.find((element) => element.id === 2)!.sst : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                    }
+                    case PropertyName.DeviceMotionDetectionTestMode: {
+                        const booleanProperty = property as PropertyMetadataBoolean;
+                        return currentValue !== undefined && currentValue.test_mode !== undefined ? currentValue.test_mode === 1 ? true : false : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                    }
+                }
+            } else if (property.key === CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_SCH_T8425) {
+                const currentValue = value as unknown as FloodlightLightSettingsBrightnessScheduleT8425Property;
+                const numericProperty = property as PropertyMetadataNumeric;
+                return currentValue !== undefined && currentValue.brightness !== undefined ? currentValue.brightness : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+            } else if (property.key === CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425) {
+                const currentValue = value as unknown as FloodlightLightSettingsMotionT8425Property;
+                switch (property.name) {
+                    case PropertyName.DeviceLightSettingsBrightnessMotion: {
+                        const numericProperty = property as PropertyMetadataNumeric;
+                        return currentValue !== undefined && currentValue.brightness !== undefined ? currentValue.brightness : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                    }
+                    case PropertyName.DeviceLightSettingsMotionActivationMode: {
+                        const numericProperty = property as PropertyMetadataNumeric;
+                        return currentValue !== undefined && currentValue.mode !== undefined ? currentValue.mode : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                    }
+                    case PropertyName.DeviceLightSettingsMotionTriggeredTimer: {
+                        const numericProperty = property as PropertyMetadataNumeric;
+                        return currentValue !== undefined && currentValue.time !== undefined  ? currentValue.time : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                    }
+                    case PropertyName.DeviceLightSettingsMotionTriggered: {
+                        const booleanProperty = property as PropertyMetadataBoolean;
+                        return currentValue !== undefined && currentValue.enable !== undefined ? currentValue.enable === 1 ? true : false : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                    }
+                }
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
@@ -851,6 +913,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.FLOODLIGHT_CAMERA_8422 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8423 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8424 ||
+            type == DeviceType.FLOODLIGHT_CAMERA_8425 ||
             type == DeviceType.WALL_LIGHT_CAM ||
             type == DeviceType.WALL_LIGHT_CAM_81A0 ||
             type == DeviceType.CAMERA_GARAGE_T8453_COMMON ||
@@ -966,6 +1029,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (type == DeviceType.INDOOR_PT_CAMERA ||
             type == DeviceType.INDOOR_PT_CAMERA_1080 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8423 ||
+            type == DeviceType.FLOODLIGHT_CAMERA_8425 ||
             type == DeviceType.INDOOR_COST_DOWN_CAMERA ||
             type == DeviceType.OUTDOOR_PT_CAMERA ||
             type == DeviceType.INDOOR_PT_CAMERA_S350)
@@ -989,13 +1053,20 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (type == DeviceType.FLOODLIGHT ||
             type == DeviceType.FLOODLIGHT_CAMERA_8422 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8423 ||
-            type == DeviceType.FLOODLIGHT_CAMERA_8424)
+            type == DeviceType.FLOODLIGHT_CAMERA_8424 ||
+            type == DeviceType.FLOODLIGHT_CAMERA_8425)
             return true;
         return false;
     }
 
     static isFloodLightT8420X(type: number, serialnumber: string): boolean {
         if (type == DeviceType.FLOODLIGHT && serialnumber.startsWith("T8420") && serialnumber.length > 7 && serialnumber.charAt(6) === "6")
+            return true;
+        return false;
+    }
+
+    static isFloodLightT8425(type: number): boolean {
+        if (type == DeviceType.FLOODLIGHT_CAMERA_8425)
             return true;
         return false;
     }
@@ -1267,6 +1338,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isFloodLightT8420X(): boolean {
         return Device.isFloodLightT8420X(this.rawDevice.device_type, this.rawDevice.device_sn);
+    }
+
+    public isFloodLightT8425(): boolean {
+        return Device.isFloodLightT8425(this.rawDevice.device_type);
     }
 
     public isWallLightCam(): boolean {

@@ -30,6 +30,7 @@
 | ![T8422 image](_media/floodlight_small.jpg) | Floodlight Cam (T8422) | :heavy_check_mark: |  |
 | ![T8423 image](_media/floodlight2pro_small.jpg) | Floodlight Cam S330 (T8423; Floodlight Cam 2 Pro) | :heavy_check_mark: | Firmware: 1.0.7.4 (20211219) |
 | ![T8424 image](_media/floodlight2_small.jpg) | Floodlight Cam E221 (T8424; Floodlight Cam 2) | :heavy_check_mark: | Firmware: 2.0.8.8 (20230807) |
+| ![T8425 image](_media/floodlightcame340_small.jpg) | Floodlight Cam E340 (T8425) | :heavy_check_mark: | Firmware: 1.4.5.5 (20231218) |
 | ![T84A1 image](_media/walllight_s100_small.jpg) | Wired Wall Light Cam S100 (T84A1) | :heavy_check_mark: | Firmware: 1.0.8.2 (20230521) |
 | ![T84A1 image](_media/walllight_s120_small.jpg) | Solar Wall Light Cam S120 (T84A0) | :heavy_check_mark: | Firmware: 1.2.0.1 (20231203) |
 | ![T8200 image](_media/wireddoorbell2k_small.jpg) | Video Doorbell 2K (Wired) (T8200; Wired Doorbell 2k) | :heavy_check_mark: |  |

@@ -6,7 +6,7 @@ import sha256 from "crypto-js/sha256";
 
 import { Device } from "./device";
 import { Picture, Schedule } from "./interfaces";
-import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes } from "./types";
+import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes, FloodlightT8425NotificationTypes } from "./types";
 import { HTTPApi } from "./api";
 import { ensureError } from "../error";
 import { ImageBaseCodeError } from "./error";
@@ -544,6 +544,20 @@ export const getIndoorNotification = function(value: number, type: IndoorS350Not
     let result = 0;
     if (!enable) {
         result = (type ^ value) + 800;
+    } else {
+        result = type | value;
+    }
+    return result;
+}
+
+export const isFloodlightT8425NotitficationEnabled = function(value: number, type: FloodlightT8425NotificationTypes): boolean {
+    return (type & value) == type;
+}
+
+export const getFloodLightT8425Notification = function(value: number, type: FloodlightT8425NotificationTypes, enable: boolean): number {
+    let result = 0;
+    if (!enable) {
+        result = (type ^ value);
     } else {
         result = type | value;
     }

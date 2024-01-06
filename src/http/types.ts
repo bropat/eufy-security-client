@@ -37,6 +37,7 @@ export enum DeviceType {
     INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT = 44,
     INDOOR_OUTDOOR_CAMERA_2K = 45,
     INDOOR_OUTDOOR_CAMERA_1080P = 46,
+    FLOODLIGHT_CAMERA_8425 = 47,
     OUTDOOR_PT_CAMERA = 48, //S340
     LOCK_BLE = 50,
     LOCK_WIFI = 51,
@@ -376,6 +377,13 @@ export enum IndoorS350NotificationTypes {
     ALL_SOUND = 816,
 }
 
+export enum FloodlightT8425NotificationTypes {
+    ALL_OTHER_MOTION = 1,
+    HUMAN = 2,
+    PET = 4,
+    VEHICLE = 512,
+}
+
 export enum VideoType {
     RECEIVED_RING = 1000,
     MISSED_RING = 1001,
@@ -476,6 +484,23 @@ export enum TrackerType {
     HANDBAG = 9,
 }
 
+export enum MotionDetectionRangeType {
+    STANDARD = 0,
+    ADVANCED = 1,
+    AUTOMATIC = 2,
+}
+
+export enum ViewModeType {
+    SINGLE_VIEW = 0,
+    DUAL_VIEW = 12,
+}
+
+export enum PresetPositionType {
+    PRESET_1 = 0,
+    PRESET_2 = 1,
+    PRESET_3 = 2,
+    PRESET_4 = 3,
+}
 
 export interface EventFilterType {
     deviceSN?: string;
@@ -631,6 +656,7 @@ export enum PropertyName {
     DeviceNotificationRing = "notificationRing",  //BatteryDoorbell
     DeviceNotificationMotion = "notificationMotion",  //BatteryDoorbell
     DeviceNotificationRadarDetector = "notificationRadarDetector",  //BatteryDoorbell Dual
+    DeviceNotificationVehicle = "notificationVehicle",  //Floodlight
     DeviceContinuousRecording = "continuousRecording",
     DeviceContinuousRecordingType = "continuousRecordingType",
     DeviceChirpVolume = "chirpVolume",
@@ -1194,6 +1220,7 @@ export const DeviceEnabledProperty: PropertyMetadataBoolean = {
     writeable: true,
     type: "boolean",
     commandId: CommandType.CMD_DEVS_SWITCH,
+    default: true
 }
 
 export const DeviceEnabledStandaloneProperty: PropertyMetadataBoolean = {
@@ -1892,6 +1919,11 @@ export const DeviceFloodlightLightSettingsBrightnessMotionProperty: PropertyMeta
     max: 100,
 }
 
+export const DeviceFloodlightLightSettingsBrightnessMotionT8425Property: PropertyMetadataNumeric = {
+    ...DeviceFloodlightLightSettingsBrightnessMotionProperty,
+    key: CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425,
+}
+
 export const DeviceFloodlightLightSettingsBrightnessScheduleProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_SCH,
     name: PropertyName.DeviceLightSettingsBrightnessSchedule,
@@ -1903,6 +1935,11 @@ export const DeviceFloodlightLightSettingsBrightnessScheduleProperty: PropertyMe
     max: 100,
 }
 
+export const DeviceFloodlightLightSettingsBrightnessScheduleT8425Property: PropertyMetadataNumeric = {
+    ...DeviceFloodlightLightSettingsBrightnessScheduleProperty,
+    key: CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_SCH_T8425,
+}
+
 export const DeviceFloodlightLightSettingsMotionTriggeredProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_SET_LIGHT_CTRL_PIR_SWITCH,
     name: PropertyName.DeviceLightSettingsMotionTriggered,
@@ -1910,6 +1947,11 @@ export const DeviceFloodlightLightSettingsMotionTriggeredProperty: PropertyMetad
     readable: true,
     writeable: true,
     type: "boolean",
+}
+
+export const DeviceFloodlightLightSettingsMotionTriggeredT8425Property: PropertyMetadataBoolean = {
+    ...DeviceFloodlightLightSettingsMotionTriggeredProperty,
+    key: CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425
 }
 
 export const DeviceFloodlightLightSettingsMotionTriggeredDistanceProperty: PropertyMetadataNumeric = {
@@ -1943,6 +1985,11 @@ export const DeviceFloodlightLightSettingsMotionTriggeredTimerProperty: Property
         300: "5 min.",
         900: "15 min.",
     },
+}
+
+export const DeviceFloodlightLightSettingsMotionTriggeredTimerT8425Property: PropertyMetadataNumeric = {
+    ...DeviceFloodlightLightSettingsMotionTriggeredTimerProperty,
+    key: CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425,
 }
 
 export const DeviceMicrophoneProperty: PropertyMetadataBoolean = {
@@ -2778,6 +2825,11 @@ export const DeviceMotionDetectionRangeProperty: PropertyMetadataNumeric = {
     },
 }
 
+export const DeviceMotionDetectionRangeT8425Property: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionRangeProperty,
+    key: CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425,
+}
+
 export const DeviceMotionDetectionRangeStandardSensitivityProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_STD_SENSITIVITY,
     name: PropertyName.DeviceMotionDetectionRangeStandardSensitivity,
@@ -2795,11 +2847,21 @@ export const DeviceMotionDetectionRangeStandardSensitivityProperty: PropertyMeta
     },
 }
 
+export const DeviceMotionDetectionRangeStandardSensitivityT8425Property: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionRangeStandardSensitivityProperty,
+    key: CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425,
+}
+
 export const DeviceMotionDetectionRangeAdvancedLeftSensitivityProperty: PropertyMetadataNumeric = {
     ...DeviceMotionDetectionRangeStandardSensitivityProperty,
     key: CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_ADV_LEFT_SENSITIVITY,
     name: PropertyName.DeviceMotionDetectionRangeAdvancedLeftSensitivity,
     label: "Motion Detection Range Advanced Left Sensitivity",
+}
+
+export const DeviceMotionDetectionRangeAdvancedLeftSensitivityT8425Property: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionRangeAdvancedLeftSensitivityProperty,
+    key: CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425,
 }
 
 export const DeviceMotionDetectionRangeAdvancedMiddleSensitivityProperty: PropertyMetadataNumeric = {
@@ -2816,6 +2878,11 @@ export const DeviceMotionDetectionRangeAdvancedRightSensitivityProperty: Propert
     label: "Motion Detection Range Advanced Right Sensitivity",
 }
 
+export const DeviceMotionDetectionRangeAdvancedRightSensitivityT8425Property: PropertyMetadataNumeric = {
+    ...DeviceMotionDetectionRangeAdvancedRightSensitivityProperty,
+    key: CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425,
+}
+
 export const DeviceMotionDetectionTestModeProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_SET_PIR_TEST_MODE,
     name: PropertyName.DeviceMotionDetectionTestMode,
@@ -2823,6 +2890,11 @@ export const DeviceMotionDetectionTestModeProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: true,
     type: "boolean",
+}
+
+export const DeviceMotionDetectionTestModeT8425Property: PropertyMetadataBoolean = {
+    ...DeviceMotionDetectionTestModeProperty,
+    key: CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425,
 }
 
 export const DeviceMotionTrackingSensitivityProperty: PropertyMetadataNumeric = {
@@ -2895,6 +2967,11 @@ export const DeviceLightSettingsMotionActivationModeProperty: PropertyMetadataNu
         0: "Smart",
         1: "Fast",
     },
+}
+
+export const DeviceLightSettingsMotionActivationModeT8425Property: PropertyMetadataNumeric = {
+    ...DeviceLightSettingsMotionActivationModeProperty,
+    key: CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425,
 }
 
 export const DeviceVideoNightvisionImageAdjustmentProperty: PropertyMetadataBoolean = {
@@ -3510,7 +3587,7 @@ export const DeviceNotificationIntervalTimeProperty: PropertyMetadataNumeric = {
     writeable: true,
     type: "number",
     unit: "min",
-    default: 180,
+    default: 0,
     states: {
         0: "0",
         60: "1",
@@ -4661,6 +4738,15 @@ export const DeviceNotificationCryingS350Property: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
+export const DeviceNotificationVehicleProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_INDOOR_SET_MOTION_DETECTION_TYPE,
+    name: PropertyName.DeviceNotificationVehicle,
+    label: "Notification Vehicle detected",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
 export const FloodlightT8420XDeviceProperties: IndexedProperty = {
     ...GenericDeviceProperties,
     [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
@@ -5592,6 +5678,58 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
         [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+    },
+    [DeviceType.FLOODLIGHT_CAMERA_8425]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
+        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
+        [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+        [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedIndoorS350Property,
+        [PropertyName.DevicePicture]: DevicePictureProperty,
+        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceLightSettingsEnable]: DeviceFloodlightLightSettingsEnableProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceLightSettingsBrightnessMotion]: DeviceFloodlightLightSettingsBrightnessMotionT8425Property,
+        [PropertyName.DeviceLightSettingsBrightnessSchedule]: DeviceFloodlightLightSettingsBrightnessScheduleT8425Property,
+        [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredT8425Property,
+        [PropertyName.DeviceLightSettingsMotionTriggeredTimer]: DeviceFloodlightLightSettingsMotionTriggeredTimerT8425Property,
+        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
+        [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
+        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeFloodlightT8423Property,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityS340Property,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityS340Property,
+        [PropertyName.DeviceMotionTracking]: DeviceMotionTrackingProperty,
+        [PropertyName.DeviceMotionDetectionRange]: DeviceMotionDetectionRangeT8425Property,
+        [PropertyName.DeviceMotionDetectionRangeStandardSensitivity]: DeviceMotionDetectionRangeStandardSensitivityT8425Property,
+        [PropertyName.DeviceMotionDetectionRangeAdvancedLeftSensitivity]: DeviceMotionDetectionRangeAdvancedLeftSensitivityT8425Property,
+        [PropertyName.DeviceMotionDetectionRangeAdvancedRightSensitivity]: DeviceMotionDetectionRangeAdvancedRightSensitivityT8425Property,
+        [PropertyName.DeviceMotionDetectionTestMode]: DeviceMotionDetectionTestModeT8425Property,
+        [PropertyName.DeviceMotionAutoCruise]: DeviceMotionAutoCruiseProperty,
+        [PropertyName.DeviceMotionOutOfViewDetection]: DeviceMotionOutOfViewDetectionProperty,
+        [PropertyName.DeviceLightSettingsMotionActivationMode]: DeviceLightSettingsMotionActivationModeT8425Property,
+        [PropertyName.DeviceAutoCalibration]: DeviceAutoCalibrationProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+        [PropertyName.DeviceRotationSpeed]: DeviceRotationSpeedProperty,
+        [PropertyName.DeviceDualCamWatchViewMode]: DeviceDualCamWatchViewModeS340Property,
+        [PropertyName.DeviceImageMirrored]: DeviceImageMirroredProperty,
+        [PropertyName.DeviceNotificationPerson]: DeviceNotificationPersonS350Property,
+        [PropertyName.DeviceNotificationPet]: DeviceNotificationPetS350Property,
+        [PropertyName.DeviceNotificationVehicle]: DeviceNotificationVehicleProperty,
+        [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionS350Property,
+        [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
+        [PropertyName.DeviceNotificationIntervalTime]: DeviceNotificationIntervalTimeProperty,
     },
     [DeviceType.INDOOR_CAMERA]: {
         ...GenericDeviceProperties,
@@ -7741,6 +7879,16 @@ export const StationProperties: Properties = {
         [PropertyName.StationAlarm]: StationAlarmProperty,
         [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
+    [DeviceType.FLOODLIGHT_CAMERA_8425]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+        [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+    },
     [DeviceType.WALL_LIGHT_CAM]: {
         ...BaseStationProperties,
         [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
@@ -7843,6 +7991,10 @@ export enum CommandName {
     DeviceVerifyPIN = "deviceVerifyPIN",
     DeviceQueryAllUserId = "deviceQueryAllUserId",
     DeviceCalibrateGarageDoor = "deviceCalibrateGarageDoor",
+    DevicePresetPosition = "devicePresetPosition",
+    DeviceSavePresetPosition = "deviceSavePresetPosition",
+    DeviceDeletePresetPosition = "deviceDeletePresetPosition",
+
     StationReboot = "stationReboot",
     StationTriggerAlarmSound = "stationTriggerAlarmSound",
     StationChime = "stationChime",
@@ -8212,6 +8364,20 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStopTalkback,
         CommandName.DeviceSnooze,
     ],
+    [DeviceType.FLOODLIGHT_CAMERA_8425]: [
+        CommandName.DeviceStartLivestream,
+        CommandName.DeviceStopLivestream,
+        CommandName.DevicePanAndTilt,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
+        CommandName.DeviceCalibrate,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
+        CommandName.DevicePresetPosition,
+        CommandName.DeviceSavePresetPosition,
+        CommandName.DeviceDeletePresetPosition,
+    ],
     [DeviceType.WALL_LIGHT_CAM]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
@@ -8548,6 +8714,15 @@ export const StationCommands: Commands = {
         CommandName.StationDatabaseDelete,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8424]: [
+        CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
+        CommandName.StationDownloadImage,
+        CommandName.StationDatabaseQueryLatestInfo,
+        CommandName.StationDatabaseQueryLocal,
+        CommandName.StationDatabaseCountByDate,
+        CommandName.StationDatabaseDelete,
+    ],
+    [DeviceType.FLOODLIGHT_CAMERA_8425]: [
         CommandName.StationReboot,
         CommandName.StationTriggerAlarmSound,
         CommandName.StationDownloadImage,

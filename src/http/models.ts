@@ -617,3 +617,35 @@ export interface GarageDoorSensorsProperty {
         }
     };
 }
+
+export interface FloodlightDetectionRangeT8425Property {
+    cur_mode: number;
+    test_mode: number;
+    mode0:Array<{
+        id: number;
+        sst: number;
+    }>;
+    mode1:Array<{
+        id: number;
+        sst: number;
+    }>;
+    mode2:Array<{
+        id: number;
+        sst: number;
+    }>;
+}
+
+export interface FloodlightLightSettingsBrightnessScheduleT8425Property {
+    sunset2rise: number;
+    longtitude: string;
+    latitude: string;
+    brightness: number;
+    schedule: Array<unknown>;
+}
+
+export interface FloodlightLightSettingsMotionT8425Property {
+    brightness: number;
+    enable: number;
+    mode: number;
+    time: number;
+}
