@@ -1,4 +1,4 @@
-import { Logger } from "ts-log";
+import { Category } from "typescript-logging-category-style";
 
 import { CommandType, TrackerCommandType } from "../p2p/types";
 import { decodeBase64, getNullTerminatedString } from "../p2p/utils";
@@ -9,7 +9,7 @@ import { ensureError } from "../error";
 
 export class ParameterHelper {
 
-    public static readValue(serialNumber: string, type: number, value: string, log: Logger): string | undefined {
+    public static readValue(serialNumber: string, type: number, value: string, log: Category): string | undefined {
         if (value) {
             if (type === ParamType.SNOOZE_MODE ||
                 type === ParamType.CAMERA_MOTION_ZONES ||

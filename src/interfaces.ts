@@ -9,7 +9,8 @@ import { CommandResult } from "./p2p/models";
 import { TalkbackStream } from "./p2p/talkback";
 import { AlarmEvent, DatabaseReturnCode, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent } from "./p2p/types";
 import { Credentials, PushMessage } from "./push/models";
-import { Jsonable } from ".";
+import { Jsonable, LoggingCategories } from ".";
+import { LogLevel } from "typescript-logging";
 
 export interface StationIPAddresses {
     [index: string]: string;
@@ -28,6 +29,13 @@ export interface EufySecurityConfig {
     eventDurationSeconds: number;
     acceptInvitations?: boolean;
     stationIPAddresses?: StationIPAddresses;
+    logging?: {
+        level?: LogLevel;
+        categories?: Array<{
+            category: LoggingCategories;
+            level: LogLevel;
+        }>;
+    }
 }
 
 export interface EufySecurityPersistentData {

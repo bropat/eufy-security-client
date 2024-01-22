@@ -1,5 +1,5 @@
 import * as crypto from "crypto";
-import { Logger } from "ts-log";
+import { Category } from "typescript-logging-category-style";
 import EventEmitter from "events";
 
 import { ErrorObject, EufySecurityPersistentData } from "./interfaces";
@@ -32,7 +32,7 @@ export const generateSerialnumber = function(length: number): string {
 export const md5 = (contents: string): string => crypto.createHash("md5").update(contents).digest("hex");
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const handleUpdate = function(config: EufySecurityPersistentData, log: Logger, oldVersion: number): EufySecurityPersistentData {
+export const handleUpdate = function(config: EufySecurityPersistentData, oldVersion: number): EufySecurityPersistentData {
     if (oldVersion <= 1.24) {
         config.cloud_token = "";
         config.cloud_token_expiration = 0;
@@ -121,7 +121,7 @@ export const parseValue = function(metadata: PropertyMetadataAny, value: unknown
     return value;
 };
 
-export const parseJSON = function(data: string, log: Logger): any {
+export const parseJSON = function(data: string, log: Category): any {
     try {
         return JSON.parse(data.replace(/[\0]+$/g, ""));
     } catch(err) {

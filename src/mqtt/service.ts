@@ -1,6 +1,5 @@
 import * as mqtt from "mqtt"
 import { TypedEmitter } from "tiny-typed-emitter";
-import { dummyLogger, Logger } from "ts-log";
 import * as fse from "fs-extra";
 import * as path from "path";
 import { load, Root } from "protobufjs";
@@ -8,6 +7,7 @@ import { load, Root } from "protobufjs";
 import { MQTTServiceEvents } from "./interface";
 import { DeviceSmartLockMessage } from "./model";
 import { getError } from "../utils";
+import { rootMQTTLogger } from "../logging";
 
 export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
 
@@ -19,7 +19,6 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
 
     private static proto: Root | null = null;
 
-    private log: Logger;
     private connected = false;
     private client: mqtt.MqttClient | null = null;
     private connecting = false;
@@ -33,16 +32,15 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
 
     private deviceSmartLockMessageModel: any;
 
-    private constructor(log: Logger = dummyLogger) {
+    private constructor() {
         super();
-        this.log = log;
 
         this.deviceSmartLockMessageModel = MQTTService.proto!.lookupType("DeviceSmartLockMessage");
     }
 
-    public static async init(log: Logger = dummyLogger): Promise<MQTTService> {
+    public static async init(): Promise<MQTTService> {
         this.proto = await load(path.join(__dirname, "./proto/lock.proto"));
-        return new MQTTService(log);
+        return new MQTTService();
     }
 
     private parseSmartLockMessage(data: Buffer): DeviceSmartLockMessage {
@@ -111,17 +109,17 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
             });
             this.client.on("error", (error) => {
                 this.connecting = false;
-                this.log.error("MQTT Error", { error: getError(error) });
+                rootMQTTLogger.error("MQTT Error", { error: getError(error) });
                 if ((error as any).code === 1 || (error as any).code === 2 || (error as any).code === 4 || (error as any).code === 5)
                     this.client?.end();
             });
             this.client.on("message", (topic, message, _packet) => {
                 if (topic.includes("smart_lock")) {
                     const parsedMessage = this.parseSmartLockMessage(message);
-                    this.log.debug("Received a smart lock message over MQTT", { message: parsedMessage });
+                    rootMQTTLogger.debug("Received a smart lock message over MQTT", { message: parsedMessage });
                     this.emit("lock message", parsedMessage);
                 } else {
-                    this.log.debug("MQTT message received", { topic: topic, message: message.toString("hex") });
+                    rootMQTTLogger.debug("MQTT message received", { topic: topic, message: message.toString("hex") });
                 }
             });
         }
@@ -130,10 +128,10 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
     private _subscribeLock(deviceSN: string): void {
         this.client?.subscribe(this.SUBSCRIBE_LOCK_FORMAT.replace("<device_sn>", deviceSN), { qos: 1 }, (error, granted) => {
             if (error) {
-                this.log.error(`Subscribe error for lock ${deviceSN}`, { error: getError(error), deviceSN: deviceSN });
+                rootMQTTLogger.error(`Subscribe error for lock ${deviceSN}`, { error: getError(error), deviceSN: deviceSN });
             }
             if (granted) {
-                this.log.info(`Successfully registered to MQTT notifications for lock ${deviceSN}`);
+                rootMQTTLogger.info(`Successfully registered to MQTT notifications for lock ${deviceSN}`);
             }
         });
     }
