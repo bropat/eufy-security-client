@@ -22,9 +22,9 @@ export class InternalLogger {
 }
 
 const getMethodName = function(): string | undefined {
-    const matches = new Error("").stack?.split("\n")[6].match(/ at ([a-zA-Z0-9_\.]+) /);
-    if (matches !== null && matches !== undefined && matches[1] !== undefined && matches[1] !== "eval") {
-        return matches[1];
+    const matches = new Error("").stack?.split("\n")[6].match(/ at( new){0,1} ([a-zA-Z0-9_\.]+) /);
+    if (matches !== null && matches !== undefined && matches[2] !== undefined && matches[2] !== "eval") {
+        return matches[2];
     }
     return undefined;
 }
