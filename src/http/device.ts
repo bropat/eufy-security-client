@@ -1,7 +1,7 @@
 import { TypedEmitter } from "tiny-typed-emitter";
 
 import { HTTPApi } from "./api";
-import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOtherMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType, T8170DetectionTypes, IndoorS350NotificationTypes, SoloCameraDetectionTypes, FloodlightT8425NotificationTypes } from "./types";
+import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOtherMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType, T8170DetectionTypes, IndoorS350NotificationTypes, SoloCameraDetectionTypes, FloodlightT8425NotificationTypes, DeviceAudioRecordingProperty, DeviceMotionDetectionSensitivityCamera2Property, DeviceVideoRecordingQualitySoloCamerasHB3Property, DeviceNotificationTypeProperty, DeviceMotionDetectionProperty } from "./types";
 import { DeviceListResponse, Voice, GarageDoorSensorsProperty, FloodlightDetectionRangeT8425Property, FloodlightLightSettingsMotionT8425Property, FloodlightLightSettingsBrightnessScheduleT8425Property } from "./models"
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject } from "./interfaces";
@@ -16,6 +16,7 @@ import { DeviceSmartLockNotifyData } from "../mqtt/model";
 import { DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor, VideoStreamingRecordingQuality } from "../p2p";
 import { ensureError } from "../error";
 import { rootHTTPLogger } from "../logging"
+import { Station } from "./station";
 
 export class Device extends TypedEmitter<DeviceEvents> {
 
@@ -570,7 +571,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             } else if ((
                 property.name === PropertyName.DeviceMotionDetectionTypeHuman ||
                 property.name === PropertyName.DeviceMotionDetectionTypeAllOtherMotions
-            ) && this.isSoloCameraC210()) {
+            ) && this.isSoloCameras()) {
                 const booleanProperty = property as PropertyMetadataBoolean;
                 try {
                     return property.name === PropertyName.DeviceMotionDetectionTypeHuman ? SoloCameraDetectionTypes.HUMAN_DETECTION === Number.parseInt(value) ? true : false : SoloCameraDetectionTypes.ALL_OTHER_MOTION === Number.parseInt(value) ? true : false;
@@ -655,7 +656,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     rootHTTPLogger.error("Device convert raw property - CMD_BAT_DOORBELL_RECORD_QUALITY2 Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
                     return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
-            } else if (property.key === CommandType.CMD_DEV_RECORD_AUTOSTOP && this.getDeviceType() === DeviceType.PROFESSIONAL_247) {
+            } else if (property.key === CommandType.CMD_DEV_RECORD_AUTOSTOP && this.isCameraProfessional247()) {
                 return value !== undefined ? (value === "0" ? true : false) : false;
             } else if (property.key === CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425) {
                 const currentValue = value as unknown as FloodlightDetectionRangeT8425Property;
@@ -781,8 +782,20 @@ export class Device extends TypedEmitter<DeviceEvents> {
             metadata = {
                 ...WiredDoorbellT8200XDeviceProperties
             };
+        } else if (this.isSoloCameras() && Station.isStationHomeBase3BySn(this.getStationSerial())) {
+            const newMetadata = {
+                ...metadata
+            };
+
+            newMetadata[PropertyName.DeviceAudioRecording] = DeviceAudioRecordingProperty;
+            newMetadata[PropertyName.DeviceMotionDetectionSensitivity] = DeviceMotionDetectionSensitivityCamera2Property;
+            newMetadata[PropertyName.DeviceVideoRecordingQuality] = DeviceVideoRecordingQualitySoloCamerasHB3Property;
+            newMetadata[PropertyName.DeviceNotificationType] = DeviceNotificationTypeProperty;
+            newMetadata[PropertyName.DeviceMotionDetection] = DeviceMotionDetectionProperty;
+
+            metadata = newMetadata;
         }
-        if (this.getStationSerial().startsWith("T8030") && metadata[PropertyName.DeviceMotionDetectionType] !== undefined && this.isCamera()) {
+        if (Station.isStationHomeBase3BySn(this.getStationSerial()) && (metadata[PropertyName.DeviceMotionDetectionType] !== undefined || metadata[PropertyName.DeviceMotionDetectionTypeAllOtherMotions] !== undefined) && this.isCamera()) {
             const newMetadata = {
                 ...metadata
             };
@@ -1280,6 +1293,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isIntegratedDeviceBySn(sn: string): boolean {
+        //TODO: Update this implementation!
         return sn.startsWith("T8420") ||
             sn.startsWith("T820") ||
             sn.startsWith("T8410") ||
@@ -1304,6 +1318,58 @@ export class Device extends TypedEmitter<DeviceEvents> {
             sn.startsWith("T8123") ||
             sn.startsWith("T8124") ||
             sn.startsWith("T8134");
+    }
+
+    static isSmartDropBySn(sn: string): boolean {
+        return sn.startsWith("T8790");
+    }
+
+    static isLockBySn(sn: string): boolean {
+        return sn.startsWith("T8510") ||
+        sn.startsWith("T8520") ||
+        sn.startsWith("T8500") ||
+        sn.startsWith("T8501") ||
+        sn.startsWith("T8503") ||
+        sn.startsWith("T8502") ||
+        sn.startsWith("T8504") ||
+        sn.startsWith("T8530");
+    }
+
+    static isGarageCameraBySn(sn: string): boolean {
+        return sn.startsWith("T8453") ||
+        sn.startsWith("T8452");
+    }
+
+    static isFloodlightBySn(sn: string): boolean {
+        return sn.startsWith("T8420") ||
+        sn.startsWith("T8422") ||
+        sn.startsWith("T8423") ||
+        sn.startsWith("T8424");
+        //(sn.startsWith("T8420") && sn.length > 7 && sn[6] == "6");
+    }
+
+    static isIndoorCameraBySn(sn: string): boolean {
+        return sn.startsWith("T8410") ||
+        sn.startsWith("T8400") ||
+        sn.startsWith("T8401") ||
+        sn.startsWith("T8411") ||
+        sn.startsWith("T8440") ||
+        sn.startsWith("T8441") ||
+        sn.startsWith("T8442") ||
+        sn.startsWith("T8414");
+    }
+
+    static is4GCameraBySn(sn: string): boolean {
+        return sn.startsWith("T8150") ||
+        sn.startsWith("T8151") ||
+        sn.startsWith("T8152") ||
+        sn.startsWith("T8153");
+    }
+
+    static isSmartSafeBySn(sn: string): boolean {
+        return sn.startsWith("T7400") ||
+        sn.startsWith("T7401") ||
+        sn.startsWith("T7402");
     }
 
     static isSmartTrackCard(type: number): boolean {
@@ -1970,6 +2036,19 @@ export class SoloCamera extends Camera {
 
     public isMotionDetectionEnabled(): PropertyValue {
         return this.getPropertyValue(PropertyName.DeviceMotionDetection);
+    }
+
+    protected convertRawPropertyValue(property: PropertyMetadataAny, value: string): PropertyValue {
+        try {
+            switch (property.key) {
+                case CommandType.CMD_DEV_RECORD_AUTOSTOP:
+                    return value !== undefined ? (value === "0" ? true : false) : false;
+            }
+        } catch (err) {
+            const error = ensureError(err);
+            rootHTTPLogger.error("SoloCamera convert raw property - Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+        }
+        return super.convertRawPropertyValue(property, value);
     }
 
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
