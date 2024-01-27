@@ -111,6 +111,7 @@ Please use GitHub issues for this.
 * (bropat) Fixed api internal session invalidation
 * (bropat) Fixed update processing and persistent data consistency
 * (bropat) Fixed persistent data saving
+* (bropat) Fixed push notification in connection with HomeBase 3
 
 ### 2.9.1 (2023-11-04)
 
