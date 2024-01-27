@@ -196,3 +196,8 @@ export enum NotificationStyle {
     THUMB = 2,
     ALL = 3
 }
+
+export enum AlarmAction {
+    CANCEL_APP = 0,
+    CANCEL_NOLIGHT = 1,
+}

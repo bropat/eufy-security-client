@@ -981,6 +981,15 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return false;
     }
 
+    static isCamera1(type: number): boolean {
+        return DeviceType.CAMERA == type;
+    }
+
+    static isCameraE(type: number): boolean {
+        return DeviceType.CAMERA_E == type;
+    }
+
+
     static isSensor(type: number): boolean {
         if (type == DeviceType.SENSOR ||
             type == DeviceType.MOTION_SENSOR)
@@ -1219,6 +1228,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     static isIndoorCamMini(type: number): boolean {
         return DeviceType.INDOOR_COST_DOWN_CAMERA == type;
+    }
+
+    static isCamera1Product(type: number): boolean {
+        return Device.isCamera1(type) || Device.isCameraE(type);
     }
 
     static isCamera2(type: number): boolean {
