@@ -10,6 +10,7 @@ import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, Sou
 import { HTTPApi } from "./api";
 import { ensureError } from "../error";
 import { ImageBaseCodeError } from "./error";
+import { LockPushEvent } from "..";
 
 const normalizeVersionString = function (version: string): number[] {
     const trimmed = version ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, "$1") : "";
@@ -562,4 +563,30 @@ export const getFloodLightT8425Notification = function(value: number, type: Floo
         result = type | value;
     }
     return result;
+}
+
+export const getLockEventType = function(event: LockPushEvent): number {
+    switch(event) {
+        case LockPushEvent.AUTO_LOCK:
+        case LockPushEvent.AUTO_UNLOCK:
+            return 1;
+        case LockPushEvent.MANUAL_LOCK:
+        case LockPushEvent.MANUAL_UNLOCK:
+            return 2;
+        case LockPushEvent.APP_LOCK:
+        case LockPushEvent.APP_UNLOCK:
+            return 3;
+        case LockPushEvent.PW_LOCK:
+        case LockPushEvent.PW_UNLOCK:
+            return 4;
+        case LockPushEvent.FINGER_LOCK:
+        case LockPushEvent.FINGERPRINT_UNLOCK:
+            return 5;
+        case LockPushEvent.TEMPORARY_PW_LOCK:
+        case LockPushEvent.TEMPORARY_PW_UNLOCK:
+            return 6;
+        case LockPushEvent.KEYPAD_LOCK:
+            return 7;
+    }
+    return 0;
 }

@@ -12,8 +12,8 @@ import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, Sta
 import { CommandName, DeviceType, FloodlightT8425NotificationTypes, HB3DetectionTypes, IndoorS350NotificationTypes, NotificationSwitchMode, NotificationType, PropertyName, SoloCameraDetectionTypes, T8170DetectionTypes } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
-import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, GarageCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera, Tracker } from "./http/device";
-import { AlarmEvent, ChargingType, CommandType, DatabaseReturnCode, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
+import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, GarageCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera, Tracker, DoorbellLock } from "./http/device";
+import { AlarmEvent, CommandType, DatabaseReturnCode, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata, DatabaseQueryLatestInfoLocal, DatabaseQueryLatestInfoCloud, RGBColor, DynamicLighting, MotionZone, CrossTrackingGroupEntry } from "./p2p/interfaces";
 import { CommandResult, StorageInfoBodyHB3 } from "./p2p/models";
 import { generateSerialnumber, generateUDID, getError, handleUpdate, md5, parseValue, removeLastChar, waitForEvent } from "./utils";
@@ -27,6 +27,7 @@ import { PhoneModels } from "./http/const";
 import { randomNumber } from "./http/utils";
 import { Logger, dummyLogger, InternalLogger, rootMainLogger, setLoggingLevel, LoggingCategories } from "./logging"
 import { LogLevel } from "typescript-logging";
+import { isCharging } from "./p2p/utils";
 
 export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
@@ -494,7 +495,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         station.on("raw property changed", (station: Station, type: number, value: string) => this.onStationRawPropertyChanged(station, type, value));
                         station.on("alarm event", (station: Station, alarmEvent: AlarmEvent) => this.onStationAlarmEvent(station, alarmEvent));
                         station.on("runtime state", (station: Station, channel: number, batteryLevel: number, temperature: number) => this.onStationRuntimeState(station, channel, batteryLevel, temperature,));
-                        station.on("charging state", (station: Station, channel: number, chargeType: ChargingType, batteryLevel: number) => this.onStationChargingState(station, channel, chargeType, batteryLevel));
+                        station.on("charging state", (station: Station, channel: number, chargeType: number, batteryLevel: number) => this.onStationChargingState(station, channel, chargeType, batteryLevel));
                         station.on("wifi rssi", (station: Station, channel: number, rssi: number) => this.onStationWifiRssi(station, channel, rssi));
                         station.on("floodlight manual switch", (station: Station, channel: number, enabled: boolean) => this.onFloodlightManualSwitch(station, channel, enabled));
                         station.on("alarm delay event", (station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number) => this.onStationAlarmDelayEvent(station, alarmDelayEvent, alarmDelay));
@@ -600,6 +601,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     new_device = IndoorCamera.getInstance(this.api, device);
                 } else if (Device.isSoloCameras(device.device_type)) {
                     new_device = SoloCamera.getInstance(this.api, device);
+                } else if (Device.isLockWifiVideo(device.device_type)) {
+                    new_device = DoorbellLock.getInstance(this.api, device);
                 } else if (Device.isBatteryDoorbell(device.device_type)) {
                     new_device = BatteryDoorbellCamera.getInstance(this.api, device);
                 } else if (Device.isWiredDoorbell(device.device_type) || Device.isWiredDoorbellDual(device.device_type)) {
@@ -1642,6 +1645,27 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             case PropertyName.DeviceSoundDetectionType:
                 station.setSoundDetectionType(device, value as number);
                 break;
+            case PropertyName.DeviceLeavingDetection:
+                station.setLeavingDetection(device, value as boolean);
+                break;
+            case PropertyName.DeviceLeavingReactionNotification:
+                station.setLeavingReactionNotification(device, value as boolean);
+                break;
+            case PropertyName.DeviceLeavingReactionStartTime:
+                station.setLeavingReactionStartTime(device, value as string);
+                break;
+            case PropertyName.DeviceLeavingReactionEndTime:
+                station.setLeavingReactionEndTime(device, value as string);
+                break;
+            case PropertyName.DeviceBeepVolume:
+                station.setBeepVolume(device, value as number);
+                break;
+            case PropertyName.DeviceNightvisionOptimization:
+                station.setNightvisionOptimization(device, value as boolean);
+                break;
+            case PropertyName.DeviceNightvisionOptimizationSide:
+                station.setNightvisionOptimizationSide(device, value as number);
+                break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
                     throw new ReadOnlyPropertyError("Property is read only", { context: { device: deviceSN, propertyName: name, propertyValue: value } });
@@ -1791,7 +1815,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
             }
             this.getStationDevice(station.getSerial(), result.channel).then((device: Device) => {
-                if ((result.customData !== undefined && result.customData.property !== undefined && !device.isLockWifiR10() && !device.isLockWifiR20() && !device.isLockWifiVideo() && !device.isSmartSafe()) ||
+                if ((result.customData !== undefined && result.customData.property !== undefined && !device.isLockWifiR10() && !device.isLockWifiR20() && !device.isSmartSafe()) ||
                     (result.customData !== undefined && result.customData.property !== undefined && device.isSmartSafe() && result.command_type !== CommandType.CMD_SMARTSAFE_SETTINGS)) {
                     if (device.hasProperty(result.customData.property.name)) {
                         const metadata = device.getPropertyMetadata(result.customData.property.name);
@@ -2156,11 +2180,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         });
     }
 
-    private onStationChargingState(station: Station, channel: number, chargeType: ChargingType, batteryLevel: number): void {
+    private onStationChargingState(station: Station, channel: number, chargeType: number, batteryLevel: number): void {
         this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             if (device.hasProperty(PropertyName.DeviceBattery)) {
                 const metadataBattery = device.getPropertyMetadata(PropertyName.DeviceBattery);
-                if (chargeType !== ChargingType.PLUGGED && batteryLevel > 0)
+                if (isCharging(chargeType) && batteryLevel > 0)
                     device.updateRawProperty(metadataBattery.key as number, batteryLevel.toString(), "p2p");
             }
             if (device.hasProperty(PropertyName.DeviceChargingStatus)) {
@@ -2169,7 +2193,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             }
         }).catch((err) => {
             const error = ensureError(err);
-            rootMainLogger.error(`Station charging state error`, { error: getError(error), stationSN: station.getSerial(), channel: channel, chargeType: ChargingType[chargeType], batteryLevel: batteryLevel });
+            rootMainLogger.error(`Station charging state error`, { error: getError(error), stationSN: station.getSerial(), channel: channel, chargeType: chargeType, charging: isCharging(chargeType), batteryLevel: batteryLevel });
         });
     }
 

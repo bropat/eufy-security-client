@@ -743,3 +743,19 @@ export const getNullTerminatedString = function(data: Buffer, encoding?: BufferE
     const index  = data.indexOf(0);
     return data.toString(encoding, 0, index === -1 ? data.length : index);
 }
+
+export const isUsbCharging = function(value: number): boolean {
+    return (value & 1) == 1;
+}
+
+export const isSolarCharging = function(value: number): boolean {
+    return ((value >> 2) & 1) == 1;
+}
+
+export const isPlugSolarCharging = function(value: number): boolean {
+    return ((value >> 3) & 1) == 1;
+}
+
+export const isCharging = function(value: number): boolean {
+    return isUsbCharging(value) || isSolarCharging(value) || isPlugSolarCharging(value);
+}

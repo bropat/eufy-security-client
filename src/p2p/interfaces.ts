@@ -5,7 +5,7 @@ import { SortedMap } from "sweet-collections";
 import { AlarmMode, DeviceType, MicStatus, TriggerType, VideoType } from "../http/types";
 import { Address, CmdCameraInfoResponse, CommandResult, CustomData, StorageInfoBodyHB3 } from "./models";
 import { TalkbackStream } from "./talkback";
-import { AlarmEvent, AudioCodec, ChargingType, CommandType, DatabaseReturnCode, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, P2PStorageType, TFCardStatus, VideoCodec, InternalP2PCommandType } from "./types";
+import { AlarmEvent, AudioCodec, CommandType, DatabaseReturnCode, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, P2PStorageType, TFCardStatus, VideoCodec, InternalP2PCommandType } from "./types";
 
 export interface P2PClientProtocolEvents {
     "alarm mode": (mode: AlarmMode) => void;
@@ -23,7 +23,7 @@ export interface P2PClientProtocolEvents {
     "parameter": (channel: number, param: number, value: string) => void;
     "timeout": () => void;
     "runtime state": (channel: number, batteryLevel: number, temperature: number) => void;
-    "charging state": (channel: number, chargeType: ChargingType, batteryLevel: number) => void;
+    "charging state": (channel: number, chargeType: number, batteryLevel: number) => void;
     "rtsp livestream started": (channel: number) => void;
     "rtsp livestream stopped": (channel: number) => void;
     "floodlight manual switch": (channel: number, enabled: boolean) => void;

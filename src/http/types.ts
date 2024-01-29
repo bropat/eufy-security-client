@@ -520,6 +520,8 @@ export enum DeviceEvent {
     PackageStranded,
     SomeoneLoitering,
     RadarMotionDetected,
+    SomeoneGoing,
+    LeftOpen,
     Jammed,
     Alarm911,
     LowBattery,
@@ -531,7 +533,8 @@ export enum DeviceEvent {
     VehicleDetected,
     DogDetected,
     DogLickDetected,
-    DogPoopDetected
+    DogPoopDetected,
+    Lock,
 }
 
 export enum PropertyName {
@@ -795,6 +798,15 @@ export enum PropertyName {
     DeviceLeftBehindAlarm = "leftBehindAlarm",
     DeviceFindPhone = "findPhone",
     DeviceFlickerAdjustment = "flickerAdjustment",
+    DeviceLeavingDetection = "leavingDetection",
+    DeviceLeavingReactionNotification = "leavingReactionNotification",
+    DeviceLeavingReactionStartTime = "leavingReactionStartTime",
+    DeviceLeavingReactionEndTime = "leavingReactionEndTime",
+    DeviceSomeoneGoing = "someoneGoing",
+    DeviceLockEventOrigin = "lockEventOrigin",
+    DeviceBeepVolume = "beepVolume",
+    DeviceNightvisionOptimization = "nightvisionOptimization",
+    DeviceNightvisionOptimizationSide = "nightvisionOptimizationSide",
 
     DeviceHiddenMotionDetectionSensitivity = "hidden-motionDetectionSensitivity",
     DeviceHiddenMotionDetectionMode = "hidden-motionDetectionMode",
@@ -818,12 +830,12 @@ export enum PropertyName {
     StationSwitchModeWithAccessCode = "switchModeWithAccessCode",
     StationAutoEndAlarm = "autoEndAlarm",
     StationTurnOffAlarmWithButton = "turnOffAlarmWithButton",
-    StationHomeSecuritySettings = "stationHomeSecuritySettings",
-    StationAwaySecuritySettings = "stationAwaySecuritySettings",
-    StationCustom1SecuritySettings = "stationCustom1SecuritySettings",
-    StationCustom2SecuritySettings = "stationCustom2SecuritySettings",
-    StationCustom3SecuritySettings = "stationCustom3SecuritySettings",
-    StationOffSecuritySettings = "stationOffSecuritySettings",
+    StationHomeSecuritySettings = "hidden-stationHomeSecuritySettings",
+    StationAwaySecuritySettings = "hidden-stationAwaySecuritySettings",
+    StationCustom1SecuritySettings = "hidden-stationCustom1SecuritySettings",
+    StationCustom2SecuritySettings = "hidden-stationCustom2SecuritySettings",
+    StationCustom3SecuritySettings = "hidden-stationCustom3SecuritySettings",
+    StationOffSecuritySettings = "hidden-stationOffSecuritySettings",
     StationAlarm = "alarm",
     StationAlarmType = "alarmType",
     StationAlarmArmed = "alarmArmed",
@@ -2182,20 +2194,8 @@ export const DeviceChargingStatusProperty: PropertyMetadataNumeric = {
     writeable: false,
     type: "number",
     states: {
+        0: "Not Charging",
         1: "Charging",
-        2: "Unplugged",
-        3: "Plugged",
-        4: "Solar charging"
-    },
-}
-
-export const DeviceChargingStatusCamera3Property: PropertyMetadataNumeric = {
-    ...DeviceChargingStatusProperty,
-    states: {
-        0: "Unplugged",
-        1: "Charging",
-        3: "Plugged",
-        4: "Solar charging"
     },
 }
 
@@ -2487,6 +2487,17 @@ export const DeviceVideoRecordingQualitySoloCamerasHB3Property: PropertyMetadata
         1: "2K HD",
         2: "Full HD (1080P)",
     },
+}
+
+export const DeviceVideoRecordingQualityT8530Property: PropertyMetadataNumeric = {
+    ...DeviceVideoRecordingQualityIndoorProperty,
+    key: CommandType.CMD_SET_RECORD_QUALITY,
+    states: {
+        1: "2K HD",
+        2: "Full HD",
+        3: "Storage Saver",
+    },
+    commandId: CommandType.CMD_SET_RECORD_QUALITY,
 }
 
 export const DeviceWDRProperty: PropertyMetadataBoolean = {
@@ -3085,6 +3096,7 @@ export const DeviceWrongTryProtectionProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: true,
     type: "boolean",
+    default: true,
 }
 
 export const DeviceWrongTryProtectionSmartSafeProperty: PropertyMetadataBoolean = {
@@ -3106,7 +3118,7 @@ export const DeviceWrongTryLockdownTimeProperty: PropertyMetadataNumeric = {
         240: "4 min.",
         300: "5 min.",
     },
-    default: 300,
+    default: 180,
     unit: "sec",
 }
 
@@ -3125,7 +3137,7 @@ export const DeviceWrongTryAttemptsProperty: PropertyMetadataNumeric = {
     type: "number",
     min: 3,
     max: 10,
-    default: 6,
+    default: 5,
 }
 
 export const DeviceWrongTryAttemptsSmartSafeProperty: PropertyMetadataNumeric = {
@@ -4755,6 +4767,115 @@ export const DeviceNotificationVehicleProperty: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
+export const DeviceLeavingDetectionProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_MOTION_SET_LEAVING_DETECTION,
+    name: PropertyName.DeviceLeavingDetection,
+    label: "Leaving Detection",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+    default: false,
+}
+
+export const DeviceLeavingReactionNotificationProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_MOTION_SET_LEAVING_REACTIONS,
+    name: PropertyName.DeviceLeavingReactionNotification,
+    label: "Leaving Reaction Notification",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+    default: false,
+}
+
+export const DeviceLeavingReactionStartTimeProperty: PropertyMetadataString = {
+    key: CommandType.CMD_MOTION_SET_LEAVING_REACTIONS,
+    name: PropertyName.DeviceLeavingReactionStartTime,
+    label: "Leaving Reaction Starttime (24-hour clock)",
+    readable: true,
+    writeable: true,
+    type: "string",
+    default: "0:00",
+    format: /^[0-9]{1,2}:[0-9]{1,2}$/,
+}
+
+export const DeviceLeavingReactionEndTimeProperty: PropertyMetadataString = {
+    key: CommandType.CMD_MOTION_SET_LEAVING_REACTIONS,
+    name: PropertyName.DeviceLeavingReactionEndTime,
+    label: "Leaving Reaction Endtime (24-hour clock)",
+    readable: true,
+    writeable: true,
+    type: "string",
+    default: "23:59",
+    format: /^[0-9]{1,2}:[0-9]{1,2}$/,
+}
+
+export const DeviceSomeoneGoingProperty: PropertyMetadataBoolean = {
+    key: "custom_someoneGoing",
+    name: PropertyName.DeviceSomeoneGoing,
+    label: "Someone Going",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+    default: false,
+}
+
+export const DeviceLockEventOriginProperty: PropertyMetadataNumeric = {
+    key: "custom_lockEventOrigin",
+    name: PropertyName.DeviceLockEventOrigin,
+    label: "Lock Event Origin",
+    readable: true,
+    writeable: false,
+    type: "number",
+    states: {
+        0: "None",
+        1: "Automatic",
+        2: "Manual",
+        3: "App",
+        4: "Password",
+        5: "Fingerprint",
+        6: "Temporary Password",
+        7: "Keypad",
+    },
+    default: 0,
+}
+
+export const DeviceBeepVolumeProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SMARTLOCK_VOLUME,
+    name: PropertyName.DeviceBeepVolume,
+    label: "Beep Volume",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Mute",
+        1: "Soft",
+        2: "Medium",
+        3: "Loud",
+    },
+}
+
+export const DeviceNightvisionOptimizationProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMARTLOCK_NIGHT_VISION_ENHANCE,
+    name: PropertyName.DeviceNightvisionOptimization,
+    label: "Nighvision Optimization",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceNightvisionOptimizationSideProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SMARTLOCK_NIGHT_VISION_SIDE,
+    name: PropertyName.DeviceNightvisionOptimizationSide,
+    label: "Nighvision Optimization Side",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        1: "Left",
+        2: "Right",
+    },
+}
+
 export const FloodlightT8420XDeviceProperties: IndexedProperty = {
     ...GenericDeviceProperties,
     [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
@@ -5029,7 +5150,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
         [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
-        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusCamera3Property,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
@@ -5070,7 +5191,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
         [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
-        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusCamera3Property,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
@@ -5526,6 +5647,96 @@ export const DeviceProperties: Properties = {
         [PropertyName.DevicePackageStranded]: DevicePackageStrandedProperty,
         [PropertyName.DevicePackageTaken]: DevicePackageTakenProperty,
         [PropertyName.DeviceSomeoneLoitering]: DeviceSomeoneLoiteringProperty,
+    },
+    [DeviceType.LOCK_8530]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledProperty, //OK
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty, //OK
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty, //OK
+        [PropertyName.DeviceWatermark]: DeviceWatermarkBatteryDoorbellCamera1Property, //OK
+        [PropertyName.DeviceState]: DeviceStateProperty,
+        [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
+        [PropertyName.DeviceLastChargingFalseEvents]: DeviceLastChargingFalseEventsProperty,
+        [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
+        [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
+        [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
+        [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+        [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+        [PropertyName.DeviceRinging]: DeviceRingingProperty,
+        [PropertyName.DevicePicture]: DevicePictureProperty,
+        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty, //OK
+        [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeBatteryDoorbellProperty, //OK
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
+        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty, // OK
+        [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeBatteryDoorbellProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
+        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalBatteryDoorbellProperty,
+        [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityBatteryDoorbellProperty, //OK
+        [PropertyName.DeviceVideoRecordingQuality]:DeviceVideoRecordingQualityT8530Property, //OK
+        [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
+        [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty, //OK
+        [PropertyName.DeviceChimeHomebaseRingtoneVolume]: DeviceChimeHomebaseRingtoneVolumeBatteryDoorbellProperty, //OK
+        [PropertyName.DeviceChimeHomebaseRingtoneType]: DeviceChimeHomebaseRingtoneTypeBatteryDoorbellProperty, //OK
+        [PropertyName.DeviceNotificationType]: DeviceNotificationTypeBatteryDoorbellProperty, //OK
+        [PropertyName.DeviceNotificationRing]: DeviceNotificationRingProperty, //OK
+        [PropertyName.DeviceNotificationMotion]: DeviceNotificationMotionProperty, //OK
+        [PropertyName.DeviceMotionDetectionSensitivityMode]: DeviceMotionDetectionSensitivityModeProperty,
+        [PropertyName.DeviceMotionDetectionSensitivityStandard]: DeviceMotionDetectionSensitivityStandardProperty,
+        [PropertyName.DeviceMotionDetectionSensitivityAdvancedA]: DeviceMotionDetectionSensitivityAdvancedAProperty,
+        [PropertyName.DeviceMotionDetectionSensitivityAdvancedB]: DeviceMotionDetectionSensitivityAdvancedBProperty,
+        [PropertyName.DeviceMotionDetectionSensitivityAdvancedC]: DeviceMotionDetectionSensitivityAdvancedCProperty,
+        [PropertyName.DeviceMotionDetectionSensitivityAdvancedD]: DeviceMotionDetectionSensitivityAdvancedDProperty,
+        [PropertyName.DeviceMotionDetectionSensitivityAdvancedE]: DeviceMotionDetectionSensitivityAdvancedEProperty,
+        [PropertyName.DeviceMotionDetectionSensitivityAdvancedF]: DeviceMotionDetectionSensitivityAdvancedFProperty,
+        [PropertyName.DeviceMotionDetectionSensitivityAdvancedG]: DeviceMotionDetectionSensitivityAdvancedGProperty,
+        [PropertyName.DeviceMotionDetectionSensitivityAdvancedH]: DeviceMotionDetectionSensitivityAdvancedHProperty,
+        [PropertyName.DeviceLoiteringDetection]: DeviceLoiteringDetectionProperty, //OK
+        [PropertyName.DeviceLoiteringDetectionLength]: DeviceLoiteringDetectionLengthProperty,
+        [PropertyName.DeviceLoiteringDetectionRange]: DeviceLoiteringDetectionRangeProperty,
+        [PropertyName.DeviceLoiteringCustomResponsePhoneNotification]: DeviceLoiteringCustomResponsePhoneNotificationProperty,
+        [PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponse]: DeviceLoiteringCustomResponseAutoVoiceResponseProperty,
+        [PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponseVoice]: DeviceLoiteringCustomResponseAutoVoiceResponseVoiceProperty,
+        [PropertyName.DeviceLoiteringCustomResponseHomeBaseNotification]: DeviceLoiteringCustomResponseHomeBaseNotificationProperty,
+        [PropertyName.DeviceLoiteringCustomResponseTimeFrom]: DeviceLoiteringCustomResponseTimeFromProperty,
+        [PropertyName.DeviceLoiteringCustomResponseTimeTo]: DeviceLoiteringCustomResponseTimeToProperty,
+        [PropertyName.DeviceSomeoneLoitering]: DeviceSomeoneLoiteringProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
+        [PropertyName.DeviceSnoozeHomebase]: DeviceSnoozeHomebaseProperty,
+        [PropertyName.DeviceSnoozeChime]: DeviceSnoozeChimeProperty,
+        [PropertyName.DeviceSnoozeMotion]: DeviceSnoozeMotionProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+        [PropertyName.DeviceLocked]: DeviceLockedProperty,
+        [PropertyName.DeviceLockStatus]: DeviceBasicLockStatusProperty,
+        [PropertyName.DeviceLeavingDetection]: DeviceLeavingDetectionProperty,
+        [PropertyName.DeviceLeavingReactionNotification]: DeviceLeavingReactionNotificationProperty,
+        [PropertyName.DeviceLeavingReactionStartTime]: DeviceLeavingReactionStartTimeProperty,
+        [PropertyName.DeviceLeavingReactionEndTime]: DeviceLeavingReactionEndTimeProperty,
+        [PropertyName.DeviceSomeoneGoing]: DeviceSomeoneGoingProperty,
+        [PropertyName.DeviceAutoLock]: DeviceAutoLockProperty,
+        [PropertyName.DeviceAutoLockTimer]: DeviceAutoLockTimerProperty,
+        [PropertyName.DeviceAutoLockSchedule]: DeviceAutoLockScheduleProperty,
+        [PropertyName.DeviceAutoLockScheduleStartTime]: DeviceAutoLockScheduleStartTimeProperty,
+        [PropertyName.DeviceAutoLockScheduleEndTime]: DeviceAutoLockScheduleEndTimeProperty,
+        [PropertyName.DeviceOneTouchLocking]: DeviceOneTouchLockingProperty,
+        [PropertyName.DeviceWrongTryProtection]: DeviceWrongTryProtectionProperty,
+        [PropertyName.DeviceWrongTryAttempts]: DeviceWrongTryAttemptsProperty,
+        [PropertyName.DeviceWrongTryLockdownTime]: DeviceWrongTryLockdownTimeProperty,
+        [PropertyName.DeviceScramblePasscode]: DeviceScramblePasscodeProperty,
+        [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedProperty,
+        [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedProperty,
+        [PropertyName.DeviceLockEventOrigin]: DeviceLockEventOriginProperty,
+        [PropertyName.DeviceBeepVolume]: DeviceBeepVolumeProperty,
+        [PropertyName.DeviceNightvisionOptimization]: DeviceNightvisionOptimizationProperty,
+        [PropertyName.DeviceNightvisionOptimizationSide]: DeviceNightvisionOptimizationSideProperty,
     },
     [DeviceType.FLOODLIGHT]: { // T8420 Firmware: 1.0.0.35 Hardware: 2.2 (20211219)
         ...GenericDeviceProperties,
@@ -6438,7 +6649,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceDetectionStatisticsDetectedEvents]: DeviceDetectionStatisticsDetectedEventsProperty,
         [PropertyName.DeviceDetectionStatisticsRecordedEvents]: DeviceDetectionStatisticsRecordedEventsProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
-        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusCamera3Property,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
         [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
@@ -6478,7 +6689,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceDetectionStatisticsDetectedEvents]: DeviceDetectionStatisticsDetectedEventsProperty,
         [PropertyName.DeviceDetectionStatisticsRecordedEvents]: DeviceDetectionStatisticsRecordedEventsProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
-        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusCamera3Property,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
         [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
@@ -6513,6 +6724,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedProperty,
         [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedProperty,
         [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+        [PropertyName.DeviceLockEventOrigin]: DeviceLockEventOriginProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.LOCK_WIFI_NO_FINGER]: {
         ...GenericDeviceProperties,
@@ -6534,6 +6747,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedProperty,
         [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedProperty,
         [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+        [PropertyName.DeviceLockEventOrigin]: DeviceLockEventOriginProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.LOCK_8503]: {
         ...GenericDeviceProperties,
@@ -6555,6 +6770,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedProperty,
         [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedProperty,
         [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+        [PropertyName.DeviceLockEventOrigin]: DeviceLockEventOriginProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.LOCK_85A3]: {
         ...GenericDeviceProperties,
@@ -6580,6 +6797,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedProperty,
         [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedProperty,
         [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+        [PropertyName.DeviceLockEventOrigin]: DeviceLockEventOriginProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
     [DeviceType.LOCK_BLE]: {
         ...GenericDeviceProperties,
@@ -8469,6 +8688,17 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceUpdateUserPasscode,
         CommandName.DeviceUpdateUserSchedule,
         CommandName.DeviceUpdateUsername,
+    ],
+    [DeviceType.LOCK_8530]: [
+        CommandName.DeviceStartLivestream,
+        CommandName.DeviceStopLivestream,
+        CommandName.DeviceQuickResponse,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
+        CommandName.DeviceLockCalibration,
     ],
     [DeviceType.MOTION_SENSOR]: [],
     [DeviceType.SENSOR]: [],

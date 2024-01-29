@@ -542,12 +542,13 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.name = smartSafePushData.dev_name !== undefined ? smartSafePushData.dev_name : "";
                     /*normalizedMessage.short_user_id = smartSafePushData.short_user_id !== undefined ? smartSafePushData.short_user_id : "";
                     normalizedMessage.user_id = smartSafePushData.user_id !== undefined ? smartSafePushData.user_id : "";*/
-                } else if (Device.isLock(normalizedMessage.type)) {
+                } else if (Device.isLock(normalizedMessage.type) && !Device.isLockWifiVideo(normalizedMessage.type)) {
                     const lockPushData = payload.payload as LockPushData;
                     normalizedMessage.event_type = lockPushData.event_type;
                     normalizedMessage.short_user_id = lockPushData.short_user_id !== undefined ? lockPushData.short_user_id : "";
                     normalizedMessage.user_id = lockPushData.user_id !== undefined ? lockPushData.user_id : "";
                     normalizedMessage.name = lockPushData.device_name !== undefined ? lockPushData.device_name : "";
+                    normalizedMessage.person_name = lockPushData.nick_name !== undefined ? lockPushData.nick_name : "";
                 } else if (Device.isGarageCamera(normalizedMessage.type)) {
                     const garageDoorPushData = payload.payload as GarageDoorPushData;
                     normalizedMessage.event_type = garageDoorPushData.event_type;
@@ -560,12 +561,12 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.power = garageDoorPushData.power !== undefined ? garageDoorPushData.power : undefined;
                 } else {
                     const cusPushData = payload.payload as CusPushData;
-                    normalizedMessage.name = cusPushData.device_name && cusPushData.device_name !== null && cusPushData.device_name !== "" ? cusPushData.device_name : cusPushData.n ? cusPushData.n : "";
-                    normalizedMessage.channel = cusPushData.c;
-                    normalizedMessage.cipher = cusPushData.k;
+                    normalizedMessage.name = cusPushData.device_name && cusPushData.device_name !== null && cusPushData.device_name !== "" ? cusPushData.device_name : cusPushData.n ? cusPushData.n : cusPushData.name ? cusPushData.name : "";
+                    normalizedMessage.channel = cusPushData.c ? cusPushData.c : cusPushData.channel;
+                    normalizedMessage.cipher = cusPushData.k ? cusPushData.k : cusPushData.cipher;
                     normalizedMessage.event_session = cusPushData.session_id;
-                    normalizedMessage.event_type = cusPushData.a;
-                    normalizedMessage.file_path = cusPushData.c !== undefined && cusPushData.p !== undefined && cusPushData.p !== "" ? getAbsoluteFilePath(normalizedMessage.type, cusPushData.c, cusPushData.p) : "";
+                    normalizedMessage.event_type = cusPushData.a ? cusPushData.a : cusPushData.event_type;
+                    normalizedMessage.file_path = cusPushData.c !== undefined && cusPushData.p !== undefined && cusPushData.p !== "" ? getAbsoluteFilePath(normalizedMessage.type, cusPushData.c, cusPushData.p) : cusPushData.file_path ? cusPushData.file_path : "";
                     normalizedMessage.pic_url = cusPushData.pic_url !== undefined ? cusPushData.pic_url : "";
                     normalizedMessage.push_count = cusPushData.push_count !== undefined ? cusPushData.push_count : 1;
                     normalizedMessage.notification_style = cusPushData.notification_style;
@@ -580,7 +581,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.short_user_id = cusPushData.short_user_id;
                     normalizedMessage.station_guard_mode = cusPushData.arming;
                     normalizedMessage.station_current_mode = cusPushData.mode;
-                    normalizedMessage.person_name = cusPushData.f;
+                    normalizedMessage.person_name = cusPushData.f && cusPushData.f !== "" ? cusPushData.f : cusPushData.nick_name && cusPushData.nick_name ? cusPushData.nick_name : "";
                     normalizedMessage.sensor_open = cusPushData.e !== undefined ? cusPushData.e == "1" ? true : false : undefined;
                     normalizedMessage.device_online = cusPushData.m !== undefined ? cusPushData.m === 1 ? true : false : undefined;
                     try {
@@ -602,6 +603,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.automation_id = cusPushData.automation_id;
                     normalizedMessage.click_action = cusPushData.click_action;
                     normalizedMessage.news_id = cusPushData.news_id;
+                    normalizedMessage.msg_type = cusPushData.msg_type;
 
                     if (Device.isStarlight4GLTE(normalizedMessage.type)) {
                         if (cusPushData.channel && cusPushData.channel !== null && cusPushData.channel !== undefined) {
@@ -616,7 +618,6 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         if (cusPushData.file_path && cusPushData.file_path !== null && cusPushData.file_path !== undefined) {
                             normalizedMessage.file_path = cusPushData.file_path
                         }
-                        normalizedMessage.msg_type = cusPushData.msg_type;
                     }
                 }
             }

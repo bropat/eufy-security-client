@@ -83,6 +83,7 @@ Please use GitHub issues for this.
 ### 3.0.0 (2024-01-xx)
 
 * (bropat) **Breaking Change** New modular logging implementation
+* (bropat) Added support for Video Smart Lock S330 (T8530; #220)
 * (bropat/martijnpoppen) Added support for Video Doorbell E340 (T8214; #406)
 * (martijnpoppen) Added support for MiniBase Chime (T8023)
 * (bropat/martijnpoppen) Added support for eufyCam E330 (Professional; T8600; #408)
@@ -100,6 +101,8 @@ Please use GitHub issues for this.
 * (PhilippEngler) Added support for storage info on HomeBase 3 (#405)
 * (bropat) Added default values for some properties
 * (bropat) Lowered p2p keepalive interval for battery saving devices
+* (bropat) Added name of the person who locked/unlocked the lock
+* (bropat) Added origin who locked/unlocked the lock
 * (bropat) Fixed issue #380
 * (bropat) Fixed issue #323
 * (bropat) Fixed issue #452

@@ -6,8 +6,8 @@ import { DeviceListResponse, Voice, GarageDoorSensorsProperty, FloodlightDetecti
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject } from "./interfaces";
 import { CommandType, ESLAnkerBleConstant, TrackerCommandType } from "../p2p/types";
-import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImage, getImagePath, hexDate, hexTime, hexWeek, isFloodlightT8425NotitficationEnabled, isHB3DetectionModeEnabled, isIndoorNotitficationEnabled, isPrioritySourceType, isT8170DetectionModeEnabled, SmartSafeByteWriter } from "./utils";
-import { DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds } from "../p2p/utils";
+import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImage, getImagePath, getLockEventType, hexDate, hexTime, hexWeek, isFloodlightT8425NotitficationEnabled, isHB3DetectionModeEnabled, isIndoorNotitficationEnabled, isPrioritySourceType, isT8170DetectionModeEnabled, SmartSafeByteWriter } from "./utils";
+import { DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds, isCharging } from "../p2p/utils";
 import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent, HB3PairedDevicePushEvent, GarageDoorPushEvent } from "../push/types";
 import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
 import { getError, isEmpty, validValue } from "../utils";
@@ -298,7 +298,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceLoiteringCustomResponseTimeFrom:{
                         const stringProperty = property as PropertyMetadataString;
                         try {
-                            return ((value as any).setting !== undefined && (value as any).setting.length > 0 !== undefined && (value as any).setting[0].start_hour !== undefined && (value as any).setting[0].start_min !== undefined) ? `${(value as any).setting[0].start_hour.padStart(2, "0")}:${(value as any).setting[0].start_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
+                            return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].start_hour !== undefined && (value as any).setting[0].start_min !== undefined) ? `${(value as any).setting[0].start_hour.padStart(2, "0")}:${(value as any).setting[0].start_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseTimeFrom Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -308,7 +308,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceLoiteringCustomResponseTimeTo:{
                         const stringProperty = property as PropertyMetadataString;
                         try {
-                            return ((value as any).setting !== undefined && (value as any).setting.length > 0 !== undefined && (value as any).setting[0].end_hour !== undefined && (value as any).setting[0].end_min !== undefined) ? `${(value as any).setting[0].end_hour.padStart(2, "0")}:${(value as any).setting[0].end_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
+                            return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].end_hour !== undefined && (value as any).setting[0].end_min !== undefined) ? `${(value as any).setting[0].end_hour.padStart(2, "0")}:${(value as any).setting[0].end_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseTimeTo Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -348,7 +348,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponseVoice:{
                         const numericProperty = property as PropertyMetadataNumeric;
                         try {
-                            return ((value as any).setting !== undefined && (value as any).setting.length > 0 !== undefined && (value as any).setting[0].auto_voice_id !== undefined) ? (value as any).setting[0].auto_voice_id : numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
+                            return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].auto_voice_id !== undefined) ? (value as any).setting[0].auto_voice_id : numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseAutoVoiceResponseVoice Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -399,7 +399,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceRingAutoResponseTimeFrom:{
                         const stringProperty = property as PropertyMetadataString;
                         try {
-                            return ((value as any).setting !== undefined && (value as any).setting.length > 0 !== undefined && (value as any).setting[0].start_hour !== undefined && (value as any).setting[0].start_min !== undefined) ? `${(value as any).setting[0].start_hour.padStart(2, "0")}:${(value as any).setting[0].start_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
+                            return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].start_hour !== undefined && (value as any).setting[0].start_min !== undefined) ? `${(value as any).setting[0].start_hour.padStart(2, "0")}:${(value as any).setting[0].start_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseTimeFrom Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -409,7 +409,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceRingAutoResponseTimeTo:{
                         const stringProperty = property as PropertyMetadataString;
                         try {
-                            return ((value as any).setting !== undefined && (value as any).setting.length > 0 !== undefined && (value as any).setting[0].end_hour !== undefined && (value as any).setting[0].end_min !== undefined) ? `${(value as any).setting[0].end_hour.padStart(2, "0")}:${(value as any).setting[0].end_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
+                            return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].end_hour !== undefined && (value as any).setting[0].end_min !== undefined) ? `${(value as any).setting[0].end_hour.padStart(2, "0")}:${(value as any).setting[0].end_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseTimeTo Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -419,7 +419,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceRingAutoResponseVoiceResponseVoice:{
                         const numericProperty = property as PropertyMetadataNumeric;
                         try {
-                            return ((value as any).setting !== undefined && (value as any).setting.length > 0 !== undefined && (value as any).setting[0].auto_voice_id !== undefined) ? (value as any).setting[0].auto_voice_id : numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
+                            return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].auto_voice_id !== undefined) ? (value as any).setting[0].auto_voice_id : numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseVoiceResponseVoice Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -476,6 +476,39 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     const error = ensureError(err);
                     rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_PACKAGE_GUARD_VOICE Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
                     return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
+                }
+            } else if (property.key === CommandType.CMD_MOTION_SET_LEAVING_REACTIONS) {
+                switch (property.name) {
+                    case PropertyName.DeviceLeavingReactionStartTime:{
+                        const stringProperty = property as PropertyMetadataString;
+                        try {
+                            return (value !== undefined && (value as any).start_hour !== undefined && (value as any).start_min !== undefined) ? `${(value as any).start_hour.padStart(2, "0")}:${(value as any).start_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
+                        } catch (err) {
+                            const error = ensureError(err);
+                            rootHTTPLogger.error("Device convert raw property - CMD_MOTION_SET_LEAVING_REACTIONS DeviceLeavingReactionStartTime Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+                            return stringProperty.default !== undefined ? stringProperty.default : "";
+                        }
+                    }
+                    case PropertyName.DeviceLeavingReactionEndTime:{
+                        const stringProperty = property as PropertyMetadataString;
+                        try {
+                            return (value !== undefined && (value as any).end_hour !== undefined && (value as any).end_min !== undefined) ? `${(value as any).end_hour.padStart(2, "0")}:${(value as any).end_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
+                        } catch (err) {
+                            const error = ensureError(err);
+                            rootHTTPLogger.error("Device convert raw property - CMD_MOTION_SET_LEAVING_REACTIONS DeviceLeavingReactionEndTime Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+                            return stringProperty.default !== undefined ? stringProperty.default : "";
+                        }
+                    }
+                    case PropertyName.DeviceLeavingReactionNotification: {
+                        const booleanProperty = property as PropertyMetadataBoolean;
+                        try {
+                            return value !== undefined && (value as any).push_notify === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                        } catch (err) {
+                            const error = ensureError(err);
+                            rootHTTPLogger.error("Device convert raw property - CMD_MOTION_SET_LEAVING_REACTIONS DeviceLeavingReactionNotification Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+                            return booleanProperty.default !== undefined ? booleanProperty.default : false;
+                        }
+                    }
                 }
             } else if (property.key === CommandType.CMD_SET_SNOOZE_MODE) {
                 switch (property.name) {
@@ -705,6 +738,16 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         return currentValue !== undefined && currentValue.enable !== undefined ? currentValue.enable === 1 ? true : false : booleanProperty.default !== undefined ? booleanProperty.default : false;
                     }
+                }
+            } else if (property.key === CommandType.SUB1G_REP_UNPLUG_POWER_LINE) {
+                const numericProperty = property as PropertyMetadataNumeric;
+                try {
+                    const rawCharging = Number.parseInt(value);
+                    return rawCharging !== undefined ? (isCharging(rawCharging) ? 1 : 0) : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                } catch (err) {
+                    const error = ensureError(err);
+                    rootHTTPLogger.warn("Device convert raw property - SUB1G_REP_UNPLUG_POWER_LINE Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+                    return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
@@ -2379,6 +2422,14 @@ export class DoorbellCamera extends Camera {
                                 this.eventTimeouts.delete(DeviceEvent.RadarMotionDetected);
                             }, eventDurationSeconds * 1000));
                             break;
+                        case DoorbellPushEvent.AWAY_FROM_HOME:
+                            this.updateProperty(PropertyName.DeviceSomeoneGoing, true);
+                            this.clearEventTimeout(DeviceEvent.SomeoneGoing);
+                            this.eventTimeouts.set(DeviceEvent.SomeoneGoing, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceSomeoneGoing, false);
+                                this.eventTimeouts.delete(DeviceEvent.SomeoneGoing);
+                            }, eventDurationSeconds * 1000));
+                            break;
                         default:
                             rootHTTPLogger.debug("DoorbellCamera process push notification - Unhandled doorbell push event", message);
                             break;
@@ -2988,7 +3039,7 @@ export class Lock extends Device {
     public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(message, eventDurationSeconds);
         if (message.event_type !== undefined) {
-            this.processNotification(message.event_type, message.event_time, message.device_sn, eventDurationSeconds, "push");
+            this.processNotification(message.event_type, message.event_time, message.device_sn, message.person_name!, eventDurationSeconds, "push");
         }
     }
 
@@ -3000,11 +3051,11 @@ export class Lock extends Device {
         } else if (message.eventType === LockPushEvent.OTA_STATUS) {
             // OTA Status - ignore event
         } else {
-            this.processNotification(message.eventType, message.eventTime, this.getSerial(), eventDurationSeconds, "mqtt");
+            this.processNotification(message.eventType, message.eventTime, this.getSerial(), message.nickName, eventDurationSeconds, "mqtt");
         }
     }
 
-    private processNotification(eventType: number, eventTime: number, deviceSN: string, eventDurationSeconds: number, source: SourceType): void {
+    private processNotification(eventType: number, eventTime: number, deviceSN: string, personName: string, eventDurationSeconds: number, source: SourceType): void {
         if (deviceSN === this.getSerial()) {
             try {
                 switch (eventType) {
@@ -3018,6 +3069,17 @@ export class Lock extends Device {
                     {
                         const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
                         this.updateRawProperty(cmdType, "4", source);
+
+                        if (!isEmpty(personName)) {
+                            this.updateProperty(PropertyName.DevicePersonName, personName);
+                            this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(eventType));
+                            this.clearEventTimeout(DeviceEvent.Lock);
+                            this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePersonName, "");
+                                this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
+                                this.eventTimeouts.delete(DeviceEvent.Lock);
+                            }, eventDurationSeconds * 1000));
+                        }
                         break;
                     }
                     case LockPushEvent.APP_UNLOCK:
@@ -3029,6 +3091,17 @@ export class Lock extends Device {
                     {
                         const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
                         this.updateRawProperty(cmdType, "3", source);
+
+                        if (!isEmpty(personName)) {
+                            this.updateProperty(PropertyName.DevicePersonName, personName);
+                            this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(eventType));
+                            this.clearEventTimeout(DeviceEvent.Lock);
+                            this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePersonName, "");
+                                this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
+                                this.eventTimeouts.delete(DeviceEvent.Lock);
+                            }, eventDurationSeconds * 1000));
+                        }
                         break;
                     }
                     case LockPushEvent.LOCK_MECHANICAL_ANOMALY:
@@ -3739,6 +3812,149 @@ export class Tracker extends Device {
             rootHTTPLogger.error("Tracker set tracker type - Error", { error: getError(error), deviceSN: this.getSerial(), value: value });
         }
         return false;
+    }
+
+}
+
+export class DoorbellLock extends DoorbellCamera {
+
+    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<DoorbellLock> {
+        const voices = await api.getVoices(device.device_sn);
+        return new DoorbellLock(api, device, voices);
+    }
+
+    public getStateChannel(): string {
+        return "locks";
+    }
+
+    protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
+        super.handlePropertyChange(metadata, oldValue, newValue);
+        if (metadata.name === PropertyName.DeviceLocked) {
+            this.emit("locked", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceLowBatteryAlert) {
+            this.emit("low battery", this, newValue as boolean);
+        } else if ((metadata.key === CommandType.CMD_DOORLOCK_GET_STATE || metadata.key === CommandType.CMD_SMARTLOCK_QUERY_STATUS) && ((oldValue !== undefined && ((oldValue === 4 && newValue !== 4) || (oldValue !== 4 && newValue === 4))) || oldValue === undefined)) {
+            this.updateProperty(PropertyName.DeviceLocked, newValue === 4 ? true : false);
+        }
+    }
+
+    protected convertRawPropertyValue(property: PropertyMetadataAny, value: string): PropertyValue {
+        try {
+            switch (property.key) {
+                case CommandType.CMD_DEV_RECORD_AUTOSTOP:
+                    return value !== undefined ? (value === "0" ? true : false) : false;
+            }
+        } catch (err) {
+            const error = ensureError(err);
+            rootHTTPLogger.error("DoorbellLock convert raw property - Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+        }
+        return super.convertRawPropertyValue(property, value);
+    }
+
+    public getState(): PropertyValue {
+        return this.getPropertyValue(PropertyName.DeviceState);
+    }
+
+    public getBatteryValue(): PropertyValue {
+        return this.getPropertyValue(PropertyName.DeviceBattery);
+    }
+
+    public getWifiRssi(): PropertyValue {
+        return this.getPropertyValue(PropertyName.DeviceWifiRSSI);
+    }
+
+    public isLocked(): PropertyValue {
+        const param = this.getLockStatus();
+        return param ? (param === 4 ? true : false) : false;
+    }
+
+    public getLockStatus(): PropertyValue {
+        return this.getPropertyValue(PropertyName.DeviceLockStatus);
+    }
+
+    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(message, eventDurationSeconds);
+        if (message.event_type !== undefined && message.device_sn === this.getSerial()) {
+            try {
+                switch (message.event_type) {
+                    case LockPushEvent.APP_LOCK:
+                    case LockPushEvent.AUTO_LOCK:
+                    case LockPushEvent.FINGER_LOCK:
+                    case LockPushEvent.KEYPAD_LOCK:
+                    case LockPushEvent.MANUAL_LOCK:
+                    case LockPushEvent.PW_LOCK:
+                    case LockPushEvent.TEMPORARY_PW_LOCK:
+                    {
+                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        this.updateRawProperty(cmdType, "4", "push");
+
+                        if (!isEmpty(message.person_name)) {
+                            this.updateProperty(PropertyName.DevicePersonName, message.person_name!);
+                            this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(message.event_type));
+                            this.clearEventTimeout(DeviceEvent.Lock);
+                            this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePersonName, "");
+                                this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
+                                this.eventTimeouts.delete(DeviceEvent.Lock);
+                            }, eventDurationSeconds * 1000));
+                        }
+                        break;
+                    }
+                    case LockPushEvent.APP_UNLOCK:
+                    case LockPushEvent.AUTO_UNLOCK:
+                    case LockPushEvent.FINGERPRINT_UNLOCK:
+                    case LockPushEvent.MANUAL_UNLOCK:
+                    case LockPushEvent.PW_UNLOCK:
+                    case LockPushEvent.TEMPORARY_PW_UNLOCK:
+                    {
+                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        this.updateRawProperty(cmdType, "3", "push");
+
+                        if (!isEmpty(message.person_name)) {
+                            this.updateProperty(PropertyName.DevicePersonName, message.person_name!);
+                            this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(message.event_type));
+                            this.clearEventTimeout(DeviceEvent.Lock);
+                            this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePersonName, "");
+                                this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
+                                this.eventTimeouts.delete(DeviceEvent.Lock);
+                            }, eventDurationSeconds * 1000));
+                        }
+                        break;
+                    }
+                    case LockPushEvent.LOCK_MECHANICAL_ANOMALY:
+                    case LockPushEvent.MECHANICAL_ANOMALY:
+                    case LockPushEvent.VIOLENT_DESTRUCTION:
+                    case LockPushEvent.MULTIPLE_ERRORS:
+                    {
+                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        this.updateRawProperty(cmdType, "5", "push");
+                        break;
+                    }
+                    case LockPushEvent.LOW_POWER:
+                    case LockPushEvent.VERY_LOW_POWER:
+                        this.updateProperty(PropertyName.DeviceLowBatteryAlert, true);
+                        this.clearEventTimeout(DeviceEvent.LowBattery);
+                        this.eventTimeouts.set(DeviceEvent.LowBattery, setTimeout(async () => {
+                            this.updateProperty(PropertyName.DeviceLowBatteryAlert, false);
+                            this.eventTimeouts.delete(DeviceEvent.LowBattery);
+                        }, eventDurationSeconds * 1000));
+                        break;
+                    case LockPushEvent.DOOR_OPEN_LEFT: //TODO: Implement event
+                        break;
+                    case LockPushEvent.DOOR_TAMPER: //TODO: Implement event
+                        break;
+                    case LockPushEvent.DOOR_STATE_ERROR: //TODO: Implement event
+                        break;
+                    default:
+                        rootHTTPLogger.debug("DoorbellLock process push notification - Unhandled lock notification event", { eventType: message.event_type, eventTime: message.event_time, deviceSN: this.getSerial() });
+                        break;
+                }
+            } catch (err) {
+                const error = ensureError(err);
+                rootHTTPLogger.debug(`DoorbellLock process push notification - Error`, { error: getError(error), deviceSN: this.getSerial(), eventType: message.event_type, eventTime: message.event_time, eventDurationSeconds: eventDurationSeconds });
+            }
+        }
     }
 
 }

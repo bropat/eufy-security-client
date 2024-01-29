@@ -5,9 +5,9 @@ import { Readable } from "stream";
 import { SortedMap } from "sweet-collections";
 import date from "date-and-time";
 
-import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, ESLStationP2PThroughData, SmartSafeSettingsNotification, SmartSafeStatusNotification, CustomData, ESLBleV12P2PThroughData, CmdDatabaseImageResponse, EntrySensorStatus, GarageDoorStatus, StorageInfoHB3 } from "./models";
+import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, ESLStationP2PThroughData, SmartSafeSettingsNotification, SmartSafeStatusNotification, CustomData, ESLBleV12P2PThroughData, CmdDatabaseImageResponse, EntrySensorStatus, GarageDoorStatus, StorageInfoHB3, ESLAdvancedLockStatusNotificationT8530 } from "./models";
 import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateBasicLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildVoidCommandPayload, isP2PQueueMessage, buildTalkbackAudioFrameHeader, getLocalIpAddress, decodeP2PCloudIPs, getLockV12P2PCommand, decodeSmartSafeData, decryptPayloadData, decryptP2PData, getP2PCommandEncryptionKey, getNullTerminatedString } from "./utils";
-import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, P2PConnectionType, ChargingType, AlarmEvent, IndoorSoloSmartdropCommandType, SmartSafeCommandCode, ESLCommand, ESLBleCommand, TFCardStatus, EncryptionType, InternalP2PCommandType } from "./types";
+import { RequestMessageType, ResponseMessageType, CommandType, ErrorCode, P2PDataType, P2PDataTypeHeader, AudioCodec, VideoCodec, P2PConnectionType, AlarmEvent, IndoorSoloSmartdropCommandType, SmartSafeCommandCode, ESLCommand, ESLBleCommand, TFCardStatus, EncryptionType, InternalP2PCommandType } from "./types";
 import { AlarmMode } from "../http/types";
 import { P2PDataMessage, P2PDataMessageAudio, P2PDataMessageBuilder, P2PMessageState, P2PDataMessageVideo, P2PMessage, P2PDataHeader, P2PDataMessageState, P2PClientProtocolEvents, DeviceSerial, P2PQueueMessage, P2PCommand, P2PVideoMessageState, P2PDatabaseResponse, P2PDatabaseQueryLatestInfoResponse, P2PDatabaseDeleteResponse, DatabaseQueryLatestInfo, DatabaseCountByDate, P2PDatabaseCountByDateResponse, P2PDatabaseQueryLocalResponse, DatabaseQueryLocal, P2PDatabaseQueryLocalHistoryRecordInfo, P2PDatabaseQueryLocalRecordCropPictureInfo } from "./interfaces";
 import { DskKeyResponse, ResultResponse, StationListResponse } from "../http/models";
@@ -951,6 +951,29 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     tmpSendQueue.forEach(element => {
                         this.sendQueue.push(element);
                     });
+                } else if (this.rawStation.devices !== undefined && this.rawStation.devices.length > 0 && Device.isLockWifiVideo(this.rawStation.devices[0].device_type)) {
+                    const tmpSendQueue: Array<P2PQueueMessage> = [ ...this.sendQueue ];
+                    this.sendQueue = [];
+                    const payload = buildVoidCommandPayload(255);
+                    const data = Buffer.concat([buildCommandHeader(0, CommandType.CMD_GATEWAYINFO), payload.subarray(0, payload.length - 2), buildCommandHeader(0, CommandType.CMD_PING).subarray(2), payload]);
+                    const message: P2PMessageState = {
+                        sequence: this.seqNumber,
+                        commandType: CommandType.CMD_PING,
+                        channel: 255,
+                        data: data,
+                        retries: 0,
+                        acknowledged: false,
+                        returnCode: ErrorCode.ERROR_COMMAND_TIMEOUT,
+                    };
+                    this.messageStates.set(message.sequence, message);
+                    message.retryTimeout = setTimeout(() => {
+                        this.resendNotAcknowledgedCommand(message.sequence);
+                    }, this.RESEND_NOT_ACKNOWLEDGED_COMMAND);
+                    this.seqNumber = this._incrementSequence(this.seqNumber);
+                    this.sendMessage(`Send lock wifi gateway command to station`, this.connectAddress!, RequestMessageType.DATA, data);
+                    tmpSendQueue.forEach(element => {
+                        this.sendQueue.push(element);
+                    });
                 } else {
                     const tmpSendQueue: Array<P2PQueueMessage> = [ ...this.sendQueue ];
                     this.sendQueue = [];
@@ -1645,7 +1668,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 case CommandType.SUB1G_REP_UNPLUG_POWER_LINE:
                     try {
                         rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - SUB1G_REP_UNPLUG_POWER_LINE`, { stationSN: this.rawStation.station_sn, payload: data.toString() });
-                        const chargeType = data.subarray(0, 4).readUInt32LE() as ChargingType;
+                        const chargeType = data.subarray(0, 4).readUInt32LE();
                         const batteryLevel = data.subarray(4, 8).readUInt32LE();
                         this.emit("charging state", message.channel, chargeType, batteryLevel);
                     } catch (err) {
@@ -1711,6 +1734,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 } else {
                                     rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Not implemented`, { stationSN: this.rawStation.station_sn, commandIdName: CommandType[json.cmd], commandId: json.cmd, message: data.toString() });
                                 }
+                            } else if (json.cmd === CommandType.P2P_QUERY_STATUS_IN_LOCK) {
+                                // Example: {"code":0,"slBattery":"99","slState":"4","slOpenDirection":"1","trigger":2}
+                                const payload: ESLAdvancedLockStatusNotificationT8530 = json.payload as ESLAdvancedLockStatusNotificationT8530;
+                                this.emit("parameter", message.channel, CommandType.CMD_GET_BATTERY, payload.slBattery);
+                                this.emit("parameter", message.channel, CommandType.CMD_DOORLOCK_GET_STATE, payload.slState);
+                                this.emit("parameter", message.channel, CommandType.CMD_SMARTLOCK_NIGHT_VISION_SIDE, payload.slOpenDirection);
                             } else if (json.cmd === CommandType.CMD_DOORLOCK_P2P_SEQ) {
                                 const payload: ESLStationP2PThroughData = json.payload as ESLStationP2PThroughData;
                                 switch (payload.lock_cmd) {
