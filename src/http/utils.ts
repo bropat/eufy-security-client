@@ -3,14 +3,14 @@ import { timeZoneData } from "./const";
 import md5 from "crypto-js/md5";
 import enc_hex from "crypto-js/enc-hex";
 import sha256 from "crypto-js/sha256";
-import imageType from "image-type";
 
 import { Device } from "./device";
 import { Picture, Schedule } from "./interfaces";
-import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType } from "./types";
+import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes, FloodlightT8425NotificationTypes } from "./types";
 import { HTTPApi } from "./api";
 import { ensureError } from "../error";
 import { ImageBaseCodeError } from "./error";
+import { LockPushEvent } from "..";
 
 const normalizeVersionString = function (version: string): number[] {
     const trimmed = version ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, "$1") : "";
@@ -176,7 +176,7 @@ export const calculateCellularSignalLevel = function(rssi: number): SignalLevel 
 }
 
 export const encryptAPIData = (data: string, key: Buffer): string => {
-    const cipher = createCipheriv("aes-256-cbc", key, key.slice(0, 16));
+    const cipher = createCipheriv("aes-256-cbc", key, key.subarray(0, 16));
     return (
         cipher.update(data, "utf8", "base64") +
         cipher.final("base64")
@@ -184,7 +184,7 @@ export const encryptAPIData = (data: string, key: Buffer): string => {
 }
 
 export const decryptAPIData = (data: string, key: Buffer): Buffer => {
-    const cipher = createDecipheriv("aes-256-cbc", key, key.slice(0, 16));
+    const cipher = createDecipheriv("aes-256-cbc", key, key.subarray(0, 16));
     return Buffer.concat([
         cipher.update(data, "base64"),
         cipher.final()]
@@ -468,14 +468,14 @@ export const getImageKey = function(serialnumber: string, p2pDid: string, code: 
 
 export const decodeImage = function(p2pDid: string, data: Buffer): Buffer {
     if (data.length >= 12) {
-        const header = data.slice(0, 12).toString();
+        const header = data.subarray(0, 12).toString();
         if (header === "eufysecurity") {
-            const serialnumber = data.slice(13, 29).toString();
-            const code = data.slice(30, 40).toString();
+            const serialnumber = data.subarray(13, 29).toString();
+            const code = data.subarray(30, 40).toString();
             const imageKey = getImageKey(serialnumber, p2pDid, code);
-            const otherData = data.slice(41);
-            const encryptedData = otherData.slice(0, 256);
-            const cipher = createDecipheriv("aes-128-ecb", Buffer.from(imageKey, "utf-8").slice(0, 16), null);
+            const otherData = data.subarray(41);
+            const encryptedData = otherData.subarray(0, 256);
+            const cipher = createDecipheriv("aes-128-ecb", Buffer.from(imageKey, "utf-8").subarray(0, 16), null);
             cipher.setAutoPadding(false);
             const decryptedData =  Buffer.concat([
                 cipher.update(encryptedData),
@@ -497,11 +497,12 @@ export const getImagePath = function(path: string): string {
 };
 
 export const getImage = async function(api: HTTPApi, serial: string, url: string): Promise<Picture> {
+    const { default: imageType } = await import("image-type");
     const image = await api.getImage(serial, url);
     const type = await imageType(image);
     return {
         data: image,
-        type: type !== null ? type : { ext: "unknown", mime: "application/octet-stream" }
+        type: type !== null && type !== undefined ? type : { ext: "unknown", mime: "application/octet-stream" }
     };
 };
 
@@ -511,4 +512,81 @@ export const isPrioritySourceType = function(current: SourceType | undefined, up
         return true;
     }
     return false;
+}
+
+export const decryptTrackerData = (data: Buffer, key: Buffer): Buffer => {
+    const decipher = createDecipheriv("aes-128-ecb", key, null);
+    decipher.setAutoPadding(false);
+    return Buffer.concat([
+        decipher.update(data),
+        decipher.final()]
+    );
+}
+
+export const isT8170DetectionModeEnabled = function(value: number, type: T8170DetectionTypes): boolean {
+    return (type & value) == type;
+}
+
+export const getT8170DetectionMode = function(value: number, type: T8170DetectionTypes, enable: boolean): number {
+    let result = 0;
+    if (!enable) {
+        result = type ^ value;
+    } else {
+        result = type | value;
+    }
+    return result;
+}
+
+export const isIndoorNotitficationEnabled = function(value: number, type: IndoorS350NotificationTypes): boolean {
+    return (type & value) == type;
+}
+
+export const getIndoorNotification = function(value: number, type: IndoorS350NotificationTypes, enable: boolean): number {
+    let result = 0;
+    if (!enable) {
+        result = (type ^ value) + 800;
+    } else {
+        result = type | value;
+    }
+    return result;
+}
+
+export const isFloodlightT8425NotitficationEnabled = function(value: number, type: FloodlightT8425NotificationTypes): boolean {
+    return (type & value) == type;
+}
+
+export const getFloodLightT8425Notification = function(value: number, type: FloodlightT8425NotificationTypes, enable: boolean): number {
+    let result = 0;
+    if (!enable) {
+        result = (type ^ value);
+    } else {
+        result = type | value;
+    }
+    return result;
+}
+
+export const getLockEventType = function(event: LockPushEvent): number {
+    switch(event) {
+        case LockPushEvent.AUTO_LOCK:
+        case LockPushEvent.AUTO_UNLOCK:
+            return 1;
+        case LockPushEvent.MANUAL_LOCK:
+        case LockPushEvent.MANUAL_UNLOCK:
+            return 2;
+        case LockPushEvent.APP_LOCK:
+        case LockPushEvent.APP_UNLOCK:
+            return 3;
+        case LockPushEvent.PW_LOCK:
+        case LockPushEvent.PW_UNLOCK:
+            return 4;
+        case LockPushEvent.FINGER_LOCK:
+        case LockPushEvent.FINGERPRINT_UNLOCK:
+            return 5;
+        case LockPushEvent.TEMPORARY_PW_LOCK:
+        case LockPushEvent.TEMPORARY_PW_UNLOCK:
+            return 6;
+        case LockPushEvent.KEYPAD_LOCK:
+            return 7;
+    }
+    return 0;
 }

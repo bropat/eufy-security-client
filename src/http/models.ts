@@ -370,14 +370,6 @@ export interface EventRecordResponse {
     storage_alias: number;
 }
 
-export interface StreamResponse {
-    url: string;
-    domain:  string;
-    stream_name:  string;
-    time:  string;
-    token:  string;
-}
-
 export interface EventRecordRequest {
     device_sn: string;
     end_time: number;
@@ -511,7 +503,7 @@ export interface HouseInviteListResponse {
     house_id: string;
     email: string;
     user_id: string;
-    role_type: string;
+    role_type: number;
 }
 
 export interface ConfirmHouseInvite {
@@ -624,4 +616,36 @@ export interface GarageDoorSensorsProperty {
             needota: number;
         }
     };
+}
+
+export interface FloodlightDetectionRangeT8425Property {
+    cur_mode: number;
+    test_mode: number;
+    mode0:Array<{
+        id: number;
+        sst: number;
+    }>;
+    mode1:Array<{
+        id: number;
+        sst: number;
+    }>;
+    mode2:Array<{
+        id: number;
+        sst: number;
+    }>;
+}
+
+export interface FloodlightLightSettingsBrightnessScheduleT8425Property {
+    sunset2rise: number;
+    longtitude: string;
+    latitude: string;
+    brightness: number;
+    schedule: Array<unknown>;
+}
+
+export interface FloodlightLightSettingsMotionT8425Property {
+    brightness: number;
+    enable: number;
+    mode: number;
+    time: number;
 }

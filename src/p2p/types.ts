@@ -1,41 +1,41 @@
 import { LockV12P2PCommandType } from "./models";
 
 export const RequestMessageType = {
-    STUN:               Buffer.from([0xF1, 0x00]),
-    LOOKUP:             Buffer.from([0xF1, 0x20]),
-    LOOKUP_WITH_KEY:    Buffer.from([0xF1, 0x26]),
-    LOOKUP_WITH_KEY2:   Buffer.from([0xF1, 0x6a]),
-    LOOKUP_WITH_KEY3:   Buffer.from([0xF1, 0x80]),
-    UNKNOWN_70:         Buffer.from([0xF1, 0x70]),
-    UNKNOWN_71:         Buffer.from([0xF1, 0x72]),
-    CHECK_CAM2:         Buffer.from([0xF1, 0x83]),
-    LOCAL_LOOKUP:       Buffer.from([0xF1, 0x30]),
-    PING:               Buffer.from([0xF1, 0xE0]),
-    PONG:               Buffer.from([0xF1, 0xE1]),
-    CHECK_CAM:          Buffer.from([0xF1, 0x41]),
-    DATA:               Buffer.from([0xF1, 0xD0]),
-    ACK:                Buffer.from([0xF1, 0xD1]),
-    END:                Buffer.from([0xF1, 0xF0])
+    STUN:                   Buffer.from([0xF1, 0x00]),
+    LOOKUP:                 Buffer.from([0xF1, 0x20]),
+    LOOKUP_WITH_KEY:        Buffer.from([0xF1, 0x26]),
+    LOOKUP_WITH_KEY2:       Buffer.from([0xF1, 0x6a]),
+    TURN_LOOKUP_WITH_KEY:   Buffer.from([0xF1, 0x80]),
+    TURN_SERVER_INIT:       Buffer.from([0xF1, 0x70]),
+    TURN_CLIENT_OK:         Buffer.from([0xF1, 0x72]),
+    CHECK_CAM2:             Buffer.from([0xF1, 0x83]),
+    LOCAL_LOOKUP:           Buffer.from([0xF1, 0x30]),
+    PING:                   Buffer.from([0xF1, 0xE0]),
+    PONG:                   Buffer.from([0xF1, 0xE1]),
+    CHECK_CAM:              Buffer.from([0xF1, 0x41]),
+    DATA:                   Buffer.from([0xF1, 0xD0]),
+    ACK:                    Buffer.from([0xF1, 0xD1]),
+    END:                    Buffer.from([0xF1, 0xF0])
 }
 
 export const ResponseMessageType = {
-    STUN:               Buffer.from([0xF1, 0x01]),
-    LOOKUP_RESP:        Buffer.from([0xF1, 0x21]),
-    LOOKUP_ADDR:        Buffer.from([0xF1, 0x40]),
-    LOCAL_LOOKUP_RESP:  Buffer.from([0xF1, 0x41]),
-    //UNKNOWN_69:         Buffer.from([0xF1, 0x69]),
-    UNKNOWN_71:         Buffer.from([0xF1, 0x71]),
-    UNKNOWN_73:         Buffer.from([0xF1, 0x73]),
-    UNKNOWN_81:         Buffer.from([0xF1, 0x81]),
-    LOOKUP_ADDR2:       Buffer.from([0xF1, 0x82]),
-    UNKNOWN_83:         Buffer.from([0xF1, 0x83]),
-    CAM_ID2:            Buffer.from([0xF1, 0x84]),
-    END:                Buffer.from([0xF1, 0xF0]),
-    PONG:               Buffer.from([0xF1, 0xE1]),
-    PING:               Buffer.from([0xF1, 0xE0]),
-    CAM_ID:             Buffer.from([0xF1, 0x42]),
-    ACK:                Buffer.from([0xF1, 0xD1]),
-    DATA:               Buffer.from([0xF1, 0xD0])
+    STUN:                   Buffer.from([0xF1, 0x01]),
+    LOOKUP_RESP:            Buffer.from([0xF1, 0x21]),
+    LOOKUP_ADDR:            Buffer.from([0xF1, 0x40]),
+    LOCAL_LOOKUP_RESP:      Buffer.from([0xF1, 0x41]),
+    TURN_SERVER_LIST:       Buffer.from([0xF1, 0x69]),
+    TURN_SERVER_OK:         Buffer.from([0xF1, 0x71]),
+    TURN_SERVER_TOKEN:      Buffer.from([0xF1, 0x73]),
+    TURN_SERVER_LOOKUP_OK:  Buffer.from([0xF1, 0x81]),
+    LOOKUP_ADDR2:           Buffer.from([0xF1, 0x82]),
+    UNKNOWN_83:             Buffer.from([0xF1, 0x83]),
+    TURN_SERVER_CAM_ID:     Buffer.from([0xF1, 0x84]),
+    END:                    Buffer.from([0xF1, 0xF0]),
+    PONG:                   Buffer.from([0xF1, 0xE1]),
+    PING:                   Buffer.from([0xF1, 0xE0]),
+    CAM_ID:                 Buffer.from([0xF1, 0x42]),
+    ACK:                    Buffer.from([0xF1, 0xD1]),
+    DATA:                   Buffer.from([0xF1, 0xD0])
 }
 
 export enum P2PDataType {
@@ -84,6 +84,8 @@ export enum CommandType {
     CMD_BAT_DOORBELL_SET_RINGTONE_VOLUME = 1708,
     CMD_BAT_DOORBELL_UPDATE_QUICK_RESPONSE = 1707,
     CMD_BAT_DOORBELL_VIDEO_QUALITY = 1705,
+    CMD_BAT_DOORBELL_VIDEO_QUALITY2 = 2730,
+    CMD_BAT_DOORBELL_RECORD_QUALITY2 = 2731,
     CMD_BAT_DOORBELL_WDR_SWITCH = 1704,
     CMD_BIND_BROADCAST = 1000,
     CMD_BIND_SYNC_ACCOUNT_INFO = 1001,
@@ -275,6 +277,7 @@ export enum CommandType {
     CMD_SET_AUDDEC_SENSITIVITY = 1213,
     CMD_SET_AUDIOSENSITIVITY = 1227,
     CMD_SET_AUDIO_MUTE_RECORD = 1288,
+    CMD_SET_AUDIO_MOTION_ACTIVATED_PROMPT = 2123,
     CMD_SET_AUTO_DELETE_RECORD = 1367,
     CMD_SET_BITRATE = 1206,
     CMD_SET_CUSTOM_MODE = 1256,
@@ -311,7 +314,9 @@ export enum CommandType {
     CMD_SET_JSON_SCHEDULE = 1254,
     CMD_SET_LANGUAGE = 1200,
     CMD_SET_LIGHT_CTRL_BRIGHT_PIR = 1412,
+    CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425 = 1422,
     CMD_SET_LIGHT_CTRL_BRIGHT_SCH = 1413,
+    CMD_SET_LIGHT_CTRL_BRIGHT_SCH_T8425 = 1421,
     CMD_SET_LIGHT_CTRL_LAMP_VALUE = 1410,
     CMD_SET_LIGHT_CTRL_PIR_SWITCH = 1408,
     CMD_SET_LIGHT_CTRL_PIR_TIME = 1409,
@@ -373,6 +378,7 @@ export enum CommandType {
     CMD_INDOOR_AI_PERSON_ENABLE = 6022,
     CMD_INDOOR_AI_PET_ENABLE = 6026,
     CMD_INDOOR_AI_SOUND_ENABLE = 6025,
+    CMD_INDOOR_SET_MOTION_DETECTION_TYPE = 6027,
     CMD_INDOOR_CONTINUE_RECORD_SCHEDULE = 6013,
     CMD_INDOOR_DET_SET_ACTIVE_ZONE = 6042,
     CMD_INDOOR_DET_SET_MOTION_DETECT_ENABLE = 6040,
@@ -391,6 +397,7 @@ export enum CommandType {
     CMD_INDOOR_NAS_STORAGE_TYPE = 6050,
     CMD_INDOOR_OWNER_STREAM_TYPE = 6052,
     CMD_INDOOR_PAN_CALIBRATION = 6017,
+    CMD_OUTDOOR_PAN_CALIBRATION = 6251,
     CMD_INDOOR_PAN_MOTION_TRACK = 6016,
     CMD_INDOOR_PAN_SPEED = 6015,
     CMD_INDOOR_PUSH_JUMP_TYPE = 6021,
@@ -401,6 +408,7 @@ export enum CommandType {
     CMD_INDOOR_SHOW_SDCARD = 6054,
     CMD_INDOOR_TFCARD_NAS_STATUS = 6051,
     CMD_INDOOR_ROTATE = 6030,
+    CMD_OUTDOOR_ROTATE = 6038,
     CMD_INDOOR_ENABLE_PRIVACY_MODE = 6090,
     CMD_INDOOR_SET_PRIVACY_ANGLE = 6091,
     CMD_INDOOR_DEFAULT_ANGLE_SET = 6092,
@@ -437,12 +445,15 @@ export enum CommandType {
     SUB1G_REP_POWER_OFF = 2110,
     SUB1G_REP_RUNTIME_STATE = 2107,
     SUB1G_REP_UNPLUG_POWER_LINE = 2111,
+    CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425 = 6073,
     CMD_FLOODLIGHT_SET_DETECTION_RANGE = 6086,
     CMD_FLOODLIGHT_SET_DETECTION_RANGE_STD_SENSITIVITY = 6087,
     CMD_FLOODLIGHT_SET_DETECTION_RANGE_ADV_LEFT_SENSITIVITY = 6081,
     CMD_FLOODLIGHT_SET_DETECTION_RANGE_ADV_MIDDLE_SENSITIVITY = 6083,
     CMD_FLOODLIGHT_SET_DETECTION_RANGE_ADV_RIGHT_SENSITIVITY = 6085,
     CMD_FLOODLIGHT_SET_MOTION_TRACKING_SENSITIVITY = 6107,
+    CMD_FLOODLIGHT_SAVE_MOTION_PRESET_POSITION = 6032,
+    CMD_FLOODLIGHT_DELETE_MOTION_PRESET_POSITION = 6033,
     CMD_FLOODLIGHT_SET_MOTION_PRESET_POSITION = 6035,
     CMD_FLOODLIGHT_SET_MOTION_AUTO_CRUISE = 6031,
     CMD_FLOODLIGHT_SET_MOTION_OUT_OF_VIEW_DETECTION = 6098,
@@ -468,7 +479,14 @@ export enum CommandType {
     CMD_SMARTLOCK_AUTO_LOCK_TIMER = 6600,
     CMD_SMARTLOCK_WRONG_TRY_LOCKDOWN = 6604,
     CMD_SMARTLOCK_WRONG_TRY_ATTEMPTS = 6603,
+    CMD_SMARTLOCK_NIGHT_VISION_ENHANCE = 6614,
+    CMD_SMARTLOCK_NIGHT_VISION_SIDE = 6615,
+    //CMD_SMARTLOCK_OPEN_DIRECTION = 6615,
+    CMD_SMARTLOCK_LEFT_OPEN_ALARM = 6616,
+    CMD_SMARTLOCK_TAMPER_ALARM = 6617,
+    CMD_SMARTLOCK_VOLUME = 6618,
     CMD_DOORBELL_DUAL_VIEW_MODE = 2700,
+    CMD_DOORBELL_DUAL_VIEW_MODE2 = 6243,
     CMD_DOORBELL_DUAL_RADAR_WD_DETECTION_SENSITIVITY = 2705,
     CMD_DOORBELL_DUAL_RADAR_WD_SWITCH = 2706,
     CMD_DOORBELL_DUAL_RADAR_WD_DISTANCE = 2707,
@@ -560,6 +578,25 @@ export enum CommandType {
     CMD_CAMERA_GARAGE_DOOR_CALIBRATE = 7505,
     //CMD_CAMERA_GARAGE_DOOR_UNKNOWN3 = 7506,
     CMD_CAMERA_GARAGE_DOOR_SENSORS = 7503,
+    CMD_STORAGE_INFO_HB3 = 1307,
+    CMD_SET_FLICKER_ADJUSTMENT = 8000,
+    CMD_SET_CROSS_CAMERA_TRACKING = 1065,
+    CMD_SET_TRACKING_ASSISTANCE = 1069,
+    CMD_SET_CONTINUOUS_TRACKING_TIME = 1070,
+    CMD_SET_CROSS_TRACKING_CAMERA_LIST = 1072,
+    CMD_SET_CROSS_TRACKING_GROUP_LIST = 1073,
+    CMD_INDOOR_SET_SOUND_DETECT_ROUND_LOOK_S350 = 6208,
+    CMD_INDOOR_ENABLE_PRIVACY_MODE_S350 = 6250,
+    CMD_MOTION_SET_LEAVING_DETECTION = 2726,
+    CMD_MOTION_SET_LEAVING_REACTIONS = 2727,
+    CMD_SMARKLOCK_ADD_FINGER = 1965,
+    CMD_SMARKLOCK_ADD_FINGER_STEP = 1967,
+    CMD_SMARKLOCK_CANCLE_FINGER = 1966,
+    CMD_SMARTLOCK_ALARM_NOTIFY = 1970,
+    CMD_SMARTLOCK_ALARM_STOP = 1971,
+    CMD_SMARTLOCK_GET_DOOR_STATUS = 1972,
+    CMD_TRANSFER_PAYLOAD = 1940,
+    CMD_WIFILOCK_KEYPAD_ENTER_OTA = 1933,
 }
 
 export enum MessageType {
@@ -889,13 +926,6 @@ export enum P2PConnectionType {
     QUICKEST = 2
 }
 
-export enum ChargingType {
-    CHARGING = 1,
-    UNPLUGGED = 2,
-    PLUGGED = 3,
-    SOLAR_CHARGING = 4
-}
-
 export enum IndoorSoloSmartdropCommandType {
     //com.eufy.security.indoorcam.logic.net.IcP2PCommandType
     //com.eufy.security.smartdrop.logic.net.SDP2PCommandType
@@ -1123,4 +1153,21 @@ export enum InternalP2PCommandType {
     WithStringPayload,
     WithString,
     WithoutData,
+}
+
+export enum TrackerCommandType {
+    COMMAND_ANTILOST = 1001,
+    COMMAND_AUDIO_SETTING = 999,
+    COMMAND_BATTERY = 1003,
+    COMMAND_LOCATION = 1002,
+    COMMAND_LOST_MODE = 998,
+    COMMAND_NEW_LOCATION = 1008,
+    COMMAND_NOTIFICATION = 1004,
+    COMMAND_OPEN_ANTI_TOUCH = 1010,
+    COMMAND_TYPE_FINDMYPHONE = 1000,
+    DISTURB_LOCATION_LIST = 1007,
+    LOCATION_ADDRESS = 1006,
+    LOCATION_NEW_ADDRESS = 1009,
+    TYPE_ICON_INDEX = 1005,
+
 }

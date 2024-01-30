@@ -16,6 +16,11 @@ export interface CmdCameraInfoResponse {
     }>;
     main_sw_version: string;
     sec_sw_version: string;
+    db_bypass_str?: Array<{
+        channel: number;
+        param_type: number;
+        param_value: string;
+    }>;
 }
 
 export interface PropertyData {
@@ -44,7 +49,7 @@ export interface CommandResult {
 
 export interface CmdNotifyPayload {
     cmd: number;
-    payload: ESLStationP2PThroughData | ESLAdvancedLockStatusNotification | SmartSafeSettingsNotification | SmartSafeStatusNotification | ESLBleV12P2PThroughData | EntrySensorStatus | GarageDoorStatus | string,
+    payload: ESLStationP2PThroughData | ESLAdvancedLockStatusNotification | SmartSafeSettingsNotification | SmartSafeStatusNotification | ESLBleV12P2PThroughData | EntrySensorStatus | GarageDoorStatus | StorageInfoHB3 | string,
     payloadLen?: number;
 }
 
@@ -61,6 +66,10 @@ export interface ESLAdvancedLockStatusNotification {
     slBattery: string;
     slState: string;
     trigger: number;
+}
+
+export interface ESLAdvancedLockStatusNotificationT8530 extends ESLAdvancedLockStatusNotification {
+    slOpenDirection: string;
 }
 
 export interface SmartSafeSettingsNotification {
@@ -83,11 +92,14 @@ export interface SmartSafeNotificationResponse {
     data: Buffer;
 }
 
-export interface LockAdvancedOnOffRequestPayload {
+export interface LockAdvancedOnOffRequestBasePayload {
     shortUserId: string;
     slOperation: number;
     userId: string;
     userName: string;
+}
+
+export interface LockAdvancedOnOffRequestPayload extends LockAdvancedOnOffRequestBasePayload {
     seq_num: number;
 }
 
@@ -109,6 +121,38 @@ export interface AdvancedLockSetParamsType {
     scheduleStart: string;
     wrongTryTime: number;
     seq_num: number;
+}
+
+export interface AdvancedLockSetParamsTypeT8520 {
+    [index: string]: unknown;
+    autoLockTime: number;
+    isAutoLock: number;
+    isLockNotification: number;
+    isNotification: number;
+    isOneTouchLock: number;
+    isSchedule: number;
+    isScramblePasscode: number;
+    isUnLockNotification: number;
+    isWrongTryProtect: number;
+    lockDownTime: number;
+    lockOpenDirection: number;
+    lockVolume: number;
+    nightVisionEnhance: number;
+    openLeftAlarmEnable: number;
+    openLeftAlarmScheduleEnd: string;
+    openLeftAlarmScheduleStart: string;
+    openLeftAlarmScheduled: number;
+    openLeftAlarmTimer: number;
+    openLeftAlarmWays: number;
+    paramType: number;
+    scheduleEnd: string;
+    scheduleStart: string;
+    tamperAlarmEnable: number;
+    tamperAlarmScheduleEnd: string;
+    tamperAlarmScheduleStart: string;
+    tamperAlarmScheduled: number;
+    tamperAlarmWays: number;
+    wrongTryTime: number;
 }
 
 export interface LockP2PCommandType {
@@ -180,4 +224,66 @@ export interface GarageDoorStatus {
     type: number;
     notify_tag: string;
     door_id: number;
+}
+
+export interface StorageInfoHB3 {
+    cmd: number;
+    version: number;
+    mIntRet: number;
+    msg: string;
+    old_storage_label: string;
+    cur_storage_label: string;
+    body: StorageInfoBodyHB3;
+}
+
+export interface StorageInfoBodyHB3 {
+    body_version: number;
+    storage_days: number;
+    storage_events: number;
+    con_video_hours: number;
+    format_transaction: string;
+    format_errcode: number;
+    hdd_info: StorageInfoHddHB3;
+    move_disk_info: StorageInfoMoveDiskInfoHB3;
+    emmc_info: StorageInfoEmmcHB3;
+}
+
+export interface StorageInfoHddHB3 {
+    serial_number: string;
+    disk_path: string;
+    disk_size: number;
+    system_size: number;
+    disk_used: number;
+    video_used: number;
+    video_size: number;
+    cur_temperate: number;
+    parted_status: number;
+    work_status: number;
+    hdd_label: string;
+    health: number;
+    device_module: string;
+    hdd_type: number;
+}
+
+export interface StorageInfoMoveDiskInfoHB3 {
+    disk_path: string;
+    disk_size: number;
+    disk_used: number;
+    part_layout_arr: string[];
+    data: string[];
+}
+
+export interface StorageInfoEmmcHB3 {
+    disk_nominal: number;
+    disk_size: number;
+    system_size: number;
+    disk_used: number;
+    data_used_percent: number;
+    swap_size: number;
+    video_size: number;
+    video_used: number;
+    data_partition_size: number;
+    eol_percent: number;
+    work_status: number;
+    health: number;
 }

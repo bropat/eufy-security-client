@@ -41,8 +41,8 @@ export class BleCommandFactory {
             this.dataType = data.readUint8();
             this.packageFlag = data.readInt8(7);
             this.responseCode = this.packageFlag === -64 ? data.readUint8(8) : data.readUint8(12);
-            this.data = data.slice(this.packageFlag === -64 ? 8 : 12, data.length - 1);
-            if (BleCommandFactory.generateHash(data.slice(0, data.length - 1)) !== data.readUint8(data.length - 1)) {
+            this.data = data.subarray(this.packageFlag === -64 ? 8 : 12, data.length - 1);
+            if (BleCommandFactory.generateHash(data.subarray(0, data.length - 1)) !== data.readUint8(data.length - 1)) {
                 throw new BleInvalidChecksumError("Invalid BLE data, checksum mismatch");
             }
         }

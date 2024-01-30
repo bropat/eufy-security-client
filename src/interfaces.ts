@@ -9,6 +9,8 @@ import { CommandResult } from "./p2p/models";
 import { TalkbackStream } from "./p2p/talkback";
 import { AlarmEvent, DatabaseReturnCode, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent } from "./p2p/types";
 import { Credentials, PushMessage } from "./push/models";
+import { Jsonable, LoggingCategories } from ".";
+import { LogLevel } from "typescript-logging";
 
 export interface StationIPAddresses {
     [index: string]: string;
@@ -21,11 +23,19 @@ export interface EufySecurityConfig {
     language?: string;
     trustedDeviceName?: string;
     persistentDir?: string;
+    persistentData?: string;
     p2pConnectionSetup: number;
     pollingIntervalMinutes: number;
     eventDurationSeconds: number;
     acceptInvitations?: boolean;
     stationIPAddresses?: StationIPAddresses;
+    logging?: {
+        level?: LogLevel;
+        categories?: Array<{
+            category: LoggingCategories;
+            level: LogLevel;
+        }>;
+    }
 }
 
 export interface EufySecurityPersistentData {
@@ -108,8 +118,7 @@ export interface EufySecurityEvents {
     "connection error": (error: Error) => void;
     "tfa request": () => void;
     "captcha request": (id: string, captcha: string) => void;
-    "cloud livestream start": (station: Station, device: Device, url: string) => void;
-    "cloud livestream stop": (station: Station, device: Device) => void;
+    "persistent data": (data: string) => void;
     "mqtt connect": () => void;
     "mqtt close": () => void;
     "mqtt lock message": (message: DeviceSmartLockMessage) => void;
@@ -122,6 +131,8 @@ export interface EufySecurityEvents {
 }
 
 export interface ErrorObject {
+    cause: unknown;
     message: string;
+    context: Jsonable;
     stacktrace?: string;
 }

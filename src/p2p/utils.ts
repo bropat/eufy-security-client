@@ -293,7 +293,16 @@ export const buildCommandWithStringTypePayload = (encryptionType: EncryptionType
 export const sortP2PMessageParts = (messages: P2PMessageParts): Buffer => {
     let completeMessage = Buffer.from([]);
     Object.keys(messages).map(Number)
-        .sort((a, b) => a - b) // assure the seqNumbers are in correct order
+        .sort((a, b) => {
+            if (Math.abs(a - b) > 65000) {
+                if (a < b) {
+                    return 1;
+                } else if (b < a) {
+                    return -1;
+                }
+            }
+            return a - b;
+        }) // assure the seqNumbers are in correct order
         .forEach((key: number) => {
             completeMessage = Buffer.concat([completeMessage, messages[key]]);
         });
@@ -338,11 +347,11 @@ export const decryptAESData = (hexkey: string, data: Buffer): Buffer => {
 export const findStartCode = (data: Buffer): boolean => {
     if (data !== undefined && data.length > 0) {
         if (data.length >= 4) {
-            const startcode = [...data.slice(0, 4)]
+            const startcode = [...data.subarray(0, 4)]
             if ((startcode[0] === 0 && startcode[1] === 0 && startcode[2] === 1) || (startcode[0] === 0 && startcode[1] === 0 && startcode[2] === 0 && startcode[3] === 1))
                 return true;
         } else if (data.length === 3) {
-            const startcode = [...data.slice(0, 3)]
+            const startcode = [...data.subarray(0, 3)]
             if ((startcode[0] === 0 && startcode[1] === 0 && startcode[2] === 1))
                 return true;
         }
@@ -354,7 +363,7 @@ export const isIFrame = (data: Buffer): boolean => {
     const validValues = [64, 66, 68, 78, 101, 103];
     if (data !== undefined && data.length > 0) {
         if (data.length >= 5) {
-            const startcode = [...data.slice(0, 5)]
+            const startcode = [...data.subarray(0, 5)]
             if (validValues.includes(startcode[3]) || validValues.includes(startcode[4]))
                 return true;
         }
@@ -447,7 +456,10 @@ export const decodeLockPayload = (data: Buffer): string => {
 }
 
 export const decodeBase64 = (data: string): Buffer => {
-    return Buffer.from(data, "base64");
+    const base64RegExp = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{4})$/;
+    if (base64RegExp.test(data))
+        return Buffer.from(data, "base64");
+    return Buffer.from(data);
 }
 
 export const eslTimestamp = function(timestamp_in_sec = new Date().getTime() / 1000): number[] {
@@ -472,7 +484,7 @@ export const getVideoCodec = (data: Buffer): VideoCodec => {
     if (data !== undefined && data.length > 0) {
         if (data.length >= 5) {
             const h265Values = [38, 64, 66, 68, 78];
-            const startcode = [...data.slice(0, 5)]
+            const startcode = [...data.subarray(0, 5)]
             if (h265Values.includes(startcode[3]) || h265Values.includes(startcode[4])) {
                 return VideoCodec.H265;
             } else if (startcode[3] === 103 || startcode[4] === 103) {
@@ -540,7 +552,7 @@ export const eufyKDF = (key: Buffer): Buffer => {
         digest.copy(buffer, hash_length * step);
     }
 
-    return buffer.slice(0, digest_length);
+    return buffer.subarray(0, digest_length);
 }
 
 export const getAdvancedLockKey = (key: string, publicKey: string): string => {
@@ -550,9 +562,9 @@ export const getAdvancedLockKey = (key: string, publicKey: string): string => {
     const randomValue = randomBytes(16);
 
     const derivedKey = eufyKDF(secret);
-    const encryptedData = encryptPayloadData(key, derivedKey.slice(0, 16), randomValue);
+    const encryptedData = encryptPayloadData(key, derivedKey.subarray(0, 16), randomValue);
 
-    const hmac = createHmac("sha256", derivedKey.slice(16));
+    const hmac = createHmac("sha256", derivedKey.subarray(16));
     hmac.update(randomValue);
     hmac.update(encryptedData);
     const hmacDigest = hmac.digest();
@@ -567,9 +579,9 @@ export const getLockV12Key = (key: string, publicKey: string): string => {
     const randomValue = randomBytes(16);
 
     const derivedKey = eufyKDF(secret);
-    const encryptedData = encryptPayloadData(Buffer.from(key, "hex"), derivedKey.slice(0, 16), randomValue);
+    const encryptedData = encryptPayloadData(Buffer.from(key, "hex"), derivedKey.subarray(0, 16), randomValue);
 
-    const hmac = createHmac("sha256", derivedKey.slice(16));
+    const hmac = createHmac("sha256", derivedKey.subarray(16));
     hmac.update(randomValue);
     hmac.update(encryptedData);
     const hmacDigest = hmac.digest();
@@ -730,4 +742,20 @@ export const RGBColorToDecimal = function(color: RGBColor): number {
 export const getNullTerminatedString = function(data: Buffer, encoding?: BufferEncoding): string {
     const index  = data.indexOf(0);
     return data.toString(encoding, 0, index === -1 ? data.length : index);
+}
+
+export const isUsbCharging = function(value: number): boolean {
+    return (value & 1) == 1;
+}
+
+export const isSolarCharging = function(value: number): boolean {
+    return ((value >> 2) & 1) == 1;
+}
+
+export const isPlugSolarCharging = function(value: number): boolean {
+    return ((value >> 3) & 1) == 1;
+}
+
+export const isCharging = function(value: number): boolean {
+    return isUsbCharging(value) || isSolarCharging(value) || isPlugSolarCharging(value);
 }

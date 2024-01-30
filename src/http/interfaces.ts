@@ -1,10 +1,14 @@
 import { Readable } from "stream";
-import { Method } from "got";
-import { ImageType as ImageFileExtension } from "image-type";
+import type { Method } from "got" with {
+    "resolution-mode": "import"
+};
+import type { ImageFileExtension } from "image-type" with {
+    "resolution-mode": "import"
+};
 
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata } from "../p2p/interfaces";
-import { CommandResult } from "../p2p/models";
-import { AlarmEvent, ChargingType, DatabaseReturnCode, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "../p2p/types";
+import { CommandResult, StorageInfoBodyHB3 } from "../p2p/models";
+import { AlarmEvent, DatabaseReturnCode, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "../p2p/types";
 import { Camera, Device } from "./device";
 import { Cipher, Voice, Invite, DeviceListResponse, StationListResponse, HouseListResponse } from "./models";
 import { Station } from "./station";
@@ -165,7 +169,7 @@ export interface Schedule {
 }
 
 export interface ImageType {
-    ext: ImageFileExtension|"unknown";
+    ext: ImageFileExtension |"unknown";
     mime: string;
 }
 
@@ -207,7 +211,7 @@ export interface StationEvents {
     "alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
     "ready": (station: Station) => void;
     "runtime state": (station: Station, channel: number, batteryLevel: number, temperature: number) => void;
-    "charging state": (station: Station, channel: number, chargeType: ChargingType, batteryLevel: number) => void;
+    "charging state": (station: Station, channel: number, chargeType: number, batteryLevel: number) => void;
     "wifi rssi": (station: Station, channel: number, rssi: number) => void;
     "floodlight manual switch": (station: Station, channel: number, enabled: boolean) => void;
     "alarm delay event": (station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
@@ -231,6 +235,7 @@ export interface StationEvents {
     "database delete": (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => void;
     "sensor status": (station: Station, channel: number, status: number) => void;
     "garage door status": (station: Station, channel: number, doorId: number, status: number) => void;
+    "storage info hb3": (station: Station, channel: number, storageInfo: StorageInfoBodyHB3) => void;
 }
 
 export interface DeviceEvents {

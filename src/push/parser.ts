@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import * as path from "path";
-import { dummyLogger, Logger } from "ts-log";
 import { BufferReader, load, Root } from "protobufjs";
 import { TypedEmitter } from "tiny-typed-emitter";
 
@@ -8,6 +6,7 @@ import { MessageTag, ProcessingState } from "./models";
 import { PushClientParserEvents } from "./interfaces";
 import { ensureError } from "../error";
 import { MCSProtocolMessageTagError, MCSProtocolProcessingStateError, MCSProtocolVersionError } from "./error";
+import { rootPushLogger } from "../logging";
 
 export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
 
@@ -20,11 +19,8 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
     private messageTag = 0;
     private handshakeComplete = false;
 
-    private log: Logger;
-
-    private constructor(log: Logger = dummyLogger) {
+    private constructor() {
         super();
-        this.log = log;
     }
 
     public resetState(): void {
@@ -38,9 +34,9 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
         this.removeAllListeners();
     }
 
-    public static async init(log: Logger = dummyLogger): Promise<PushClientParser> {
+    public static async init(): Promise<PushClientParser> {
         this.proto = await load(path.join(__dirname, "./proto/mcs.proto"));
-        return new PushClientParser(log);
+        return new PushClientParser();
     }
 
     handleData(newData: Buffer): void {
@@ -78,14 +74,14 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
                 this.onGotMessageBytes();
                 break;
             default:
-                this.log.warn("Push Parser - Unknown state", { state: this.state });
+                rootPushLogger.warn("Push Parser - Unknown state", { state: this.state });
                 break;
         }
     }
 
     private onGotVersion(): void {
         const version = this.data.readInt8(0);
-        this.data = this.data.slice(1);
+        this.data = this.data.subarray(1);
         if (version < 41 && version !== 38) {
             throw new MCSProtocolVersionError("Got wrong protocol version", { context: { version: version } });
         }
@@ -96,7 +92,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
 
     private onGotMessageTag(): void {
         this.messageTag = this.data.readInt8(0);
-        this.data = this.data.slice(1);
+        this.data = this.data.subarray(1);
         this.onGotMessageSize();
     }
 
@@ -122,7 +118,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
             return;
         }
 
-        this.data = this.data.slice(reader.pos);
+        this.data = this.data.subarray(reader.pos);
         this.sizePacketSoFar = 0;
 
         if (this.messageSize > 0) {
@@ -148,8 +144,8 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
             return;
         }
 
-        const buffer = this.data.slice(0, this.messageSize);
-        this.data = this.data.slice(this.messageSize);
+        const buffer = this.data.subarray(0, this.messageSize);
+        this.data = this.data.subarray(this.messageSize);
         const message = protobuf.decode(buffer);
         const object = protobuf.toObject(message, {
             longs: String,
@@ -161,7 +157,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
 
         if (this.messageTag === MessageTag.LoginResponse) {
             if (this.handshakeComplete) {
-                this.log.error("Push Parser - Unexpected login response!");
+                rootPushLogger.error("Push Parser - Unexpected login response!");
             } else {
                 this.handshakeComplete = true;
             }
