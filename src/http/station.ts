@@ -8302,6 +8302,30 @@ export class Station extends TypedEmitter<StationEvents> {
             this._sendLockV12P2PCommand(command, {
                 command: commandData
             });
+        } else if (device.isLockWifiVideo()) {
+            const command = {
+                "account_id": this.rawStation.member.admin_user_id,
+                "cmd": CommandType.P2P_ADD_PW,
+                "mChannel": device.getChannel(),
+                "mValue3": 0,
+                "payload": {
+                    "endDay": schedule !== undefined && schedule.endDateTime !== undefined ? hexDate(schedule.endDateTime) : "ffffffff",
+                    "endTime": schedule !== undefined && schedule.endDateTime !== undefined ? hexTime(schedule.endDateTime) : "ffff",
+                    "passcode": encodePasscode(passcode).padEnd(16, "0"),
+                    "startDay": schedule !== undefined && schedule.startDateTime !== undefined ? hexDate(schedule.startDateTime) : "00000000",
+                    "startTime": schedule !== undefined && schedule.startDateTime !== undefined ? hexTime(schedule.startDateTime) : "0000",
+                    "userId": shortUserId,
+                    "week": schedule !== undefined && schedule.week !== undefined ? hexWeek(schedule) : "ff",
+                }
+            };
+            rootHTTPLogger.debug("Add user...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify(command),
+                channel: device.getChannel()
+            }, {
+                command: commandData
+            });
         } else {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
@@ -8354,6 +8378,24 @@ export class Station extends TypedEmitter<StationEvents> {
             rootHTTPLogger.debug("Station delete user - payload", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
 
             this._sendLockV12P2PCommand(command, {
+                command: commandData
+            });
+        } else if (device.isLockWifiVideo()) {
+            const command = {
+                "account_id": this.rawStation.member.admin_user_id,
+                "cmd": CommandType.P2P_DELETE_USER,
+                "mChannel": device.getChannel(),
+                "mValue3": 0,
+                "payload": {
+                    "userId": shortUserId,
+                }
+            };
+            rootHTTPLogger.debug(" Station delete user - payload", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify(command),
+                channel: device.getChannel()
+            }, {
                 command: commandData
             });
         } else {
@@ -8416,6 +8458,29 @@ export class Station extends TypedEmitter<StationEvents> {
             this._sendLockV12P2PCommand(command, {
                 command: commandData
             });
+        } else if (device.isLockWifiVideo()) {
+            const command = {
+                "account_id": this.rawStation.member.admin_user_id,
+                "cmd": CommandType.P2P_UPDATE_USER_TIME,
+                "mChannel": device.getChannel(),
+                "mValue3": 0,
+                "payload": {
+                    "endDay": schedule !== undefined && schedule.endDateTime !== undefined ? hexDate(schedule.endDateTime) : "ffffffff",
+                    "endTime": schedule !== undefined && schedule.endDateTime !== undefined ? hexTime(schedule.endDateTime) : "ffff",
+                    "startDay": schedule !== undefined && schedule.startDateTime !== undefined ? hexDate(schedule.startDateTime) : "00000000",
+                    "startTime": schedule !== undefined && schedule.startDateTime !== undefined ? hexTime(schedule.startDateTime) : "0000",
+                    "userId": shortUserId,
+                    "week": schedule !== undefined && schedule.week !== undefined ? hexWeek(schedule) : "ff",
+                }
+            };
+            rootHTTPLogger.debug(" Station update user schedule - payload", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify(command),
+                channel: device.getChannel()
+            }, {
+                command: commandData
+            });
         } else {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
@@ -8473,6 +8538,25 @@ export class Station extends TypedEmitter<StationEvents> {
             rootHTTPLogger.debug("Station update user passcode - payload", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
 
             this._sendLockV12P2PCommand(command, {
+                command: commandData
+            });
+        } else if (device.isLockWifiVideo()) {
+            const command = {
+                "account_id": this.rawStation.member.admin_user_id,
+                "cmd": CommandType.P2P_UPDATE_PW,
+                "mChannel": device.getChannel(),
+                "mValue3": 0,
+                "payload": {
+                    "passcode": encodePasscode(passcode).padEnd(16, "0"),
+                    "passwordId": shortUserId,
+                }
+            };
+            rootHTTPLogger.debug(" Station user passcode - payload", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify(command),
+                channel: device.getChannel()
+            }, {
                 command: commandData
             });
         } else {
@@ -8895,6 +8979,21 @@ export class Station extends TypedEmitter<StationEvents> {
             this._sendLockV12P2PCommand(command, {
                 command: commandData
             });*/
+        } else if (device.isLockWifiVideo()) {
+            rootHTTPLogger.debug("Querying all user id...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id });
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.P2P_GET_USER_AND_PW_ID,
+                    "mChannel": device.getChannel(),
+                    "mValue3": 0,
+                    "payload": {}
+                }),
+                channel: device.getChannel()
+            }, {
+                command: commandData
+            });
         } else {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name } });
         }
