@@ -80,10 +80,11 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 3.0.0 (2024-01-xx)
+### 3.0.0 (2024-02-xx)
 
 * (bropat) **Breaking Change** New modular logging implementation
 * (bropat) Added support for Video Smart Lock S330 (T8530; #220)
+* (bropat) Added support for Smart Lock C220 (T8506; #377 #356)
 * (bropat/martijnpoppen) Added support for Video Doorbell E340 (T8214; #406)
 * (martijnpoppen) Added support for MiniBase Chime (T8023)
 * (bropat/martijnpoppen) Added support for eufyCam E330 (Professional; T8600; #408)

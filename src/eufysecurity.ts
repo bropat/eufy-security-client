@@ -561,6 +561,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.refreshEufySecurityP2PTimeout[station.getSerial()] = setTimeout(() => {
                 station.getCameraInfo();
             }, this.P2P_REFRESH_INTERVAL_MIN * 60 * 1000);
+        } else if (Device.isLock(station.getDeviceType())) {
+            station.getLockParameters();
+            if (this.refreshEufySecurityP2PTimeout[station.getSerial()] !== undefined) {
+                clearTimeout(this.refreshEufySecurityP2PTimeout[station.getSerial()]);
+                delete this.refreshEufySecurityP2PTimeout[station.getSerial()];
+            }
+            this.refreshEufySecurityP2PTimeout[station.getSerial()] = setTimeout(() => {
+                station.getLockParameters();
+                station.getLockStatus();
+            }, this.P2P_REFRESH_INTERVAL_MIN * 60 * 1000);
         }
     }
 
@@ -1815,8 +1825,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
             }
             this.getStationDevice(station.getSerial(), result.channel).then((device: Device) => {
-                if ((result.customData !== undefined && result.customData.property !== undefined && !device.isLockWifiR10() && !device.isLockWifiR20() && !device.isSmartSafe()) ||
-                    (result.customData !== undefined && result.customData.property !== undefined && device.isSmartSafe() && result.command_type !== CommandType.CMD_SMARTSAFE_SETTINGS)) {
+                if ((result.customData !== undefined && result.customData.property !== undefined && !device.isLockWifiR10() && !device.isLockWifiR20() && !device.isSmartSafe() && !device.isLockWifiT8506()) ||
+                    (result.customData !== undefined && result.customData.property !== undefined && device.isSmartSafe() && result.command_type !== CommandType.CMD_SMARTSAFE_SETTINGS) ||
+                    (result.customData !== undefined && result.customData.property !== undefined && device.isLockWifiT8506() && result.command_type !== CommandType.CMD_DOORLOCK_SET_PUSH_MODE)) {
                     if (device.hasProperty(result.customData.property.name)) {
                         const metadata = device.getPropertyMetadata(result.customData.property.name);
                         if (typeof result.customData.property.value !== "object" || metadata.type === "object") {

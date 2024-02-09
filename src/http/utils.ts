@@ -6,11 +6,11 @@ import sha256 from "crypto-js/sha256";
 
 import { Device } from "./device";
 import { Picture, Schedule } from "./interfaces";
-import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes, FloodlightT8425NotificationTypes } from "./types";
+import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes, FloodlightT8425NotificationTypes, SmartLockNotification } from "./types";
 import { HTTPApi } from "./api";
 import { ensureError } from "../error";
 import { ImageBaseCodeError } from "./error";
-import { LockPushEvent } from "..";
+import { LockPushEvent } from "./../push/types";
 
 const normalizeVersionString = function (version: string): number[] {
     const trimmed = version ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, "$1") : "";
@@ -293,7 +293,7 @@ export const getAdvancedLockTimezone = function(stationSN: string): string {
     return "";
 };
 
-export class SmartSafeByteWriter {
+export class WritePayload {
 
     private split_byte = -95;
     private data = Buffer.from([]);
@@ -306,6 +306,105 @@ export class SmartSafeByteWriter {
 
     public getData(): Buffer {
         return this.data;
+    }
+
+}
+
+export class ParsePayload {
+
+    private data;
+
+    constructor(data: Buffer) {
+        this.data = data;
+    }
+
+    public readUint32BE(indexValue: number): number {
+        return this.readData(indexValue).readUint32BE();
+    }
+
+    public readUint32LE(indexValue: number): number {
+        return this.readData(indexValue).readUint32LE();
+    }
+
+    public readUint16BE(indexValue: number): number {
+        return this.readData(indexValue).readUint16BE();
+    }
+
+    public readUint16LE(indexValue: number): number {
+        return this.readData(indexValue).readUint16LE();
+    }
+
+    public readString(indexValue: number): string {
+        return this.readData(indexValue).toString("utf8");
+    }
+
+    public readStringHex(indexValue: number): string {
+        return this.readData(indexValue).toString("hex");
+    }
+
+    public readInt8(indexValue: number): number {
+        let dataPosition = this.getDataPosition(indexValue);
+        if (dataPosition == -1) {
+            return 0;
+        }
+        dataPosition = dataPosition + 2;
+        if (dataPosition >= this.data.length) {
+            return 0;
+        }
+        return this.data.readInt8(dataPosition);
+    }
+
+    public readData(indexValue: number): Buffer {
+        let dataPosition = this.getDataPosition(indexValue);
+        if (dataPosition == -1) {
+            return Buffer.from("");
+        }
+        dataPosition++;
+        if (dataPosition >= this.data.length) {
+            return Buffer.from("");
+        }
+        const nextStep = this.getNextStep(indexValue, dataPosition, this.data);
+        let tmp;
+        if (nextStep == 1) {
+            tmp = this.data.readInt8(dataPosition);
+        } else {
+            tmp = this.data.readUint16LE(dataPosition);
+        }
+        if (dataPosition + nextStep + tmp > this.data.length) {
+            return Buffer.from("");
+        }
+        return this.data.subarray(dataPosition + nextStep, dataPosition + nextStep + tmp);
+    }
+
+    private getDataPosition(indexValue: number): number {
+        if (this.data && this.data.length >= 1) {
+            for (let currentPosition = 0; currentPosition < this.data.length;) {
+                if (this.data.readInt8(currentPosition) == indexValue) {
+                    return currentPosition;
+                } else {
+                    const value = this.data.readInt8(currentPosition);
+                    currentPosition++;
+                    if (currentPosition >= this.data.length) {
+                        break;
+                    }
+                    const nextStep = this.getNextStep(value, currentPosition, this.data);
+                    if ((currentPosition + nextStep) >= this.data.length) {
+                        break;
+                    }
+                    if (nextStep == 1) {
+                        currentPosition = this.data.readInt8(currentPosition) + currentPosition + nextStep;
+                    } else {
+                        currentPosition = this.data.readUint16LE(currentPosition) + currentPosition + nextStep;
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+
+    private getNextStep(indexValue: number, position: number, data: Buffer): number {
+        const newPosition = position + 1 + data.readUInt8(position);
+        return (newPosition == data.length || newPosition > data.length || data.readInt8(newPosition) == indexValue + 1) ? 1 : 2;
     }
 
 }
@@ -589,4 +688,18 @@ export const getLockEventType = function(event: LockPushEvent): number {
             return 7;
     }
     return 0;
+}
+
+export const switchSmartLockNotification = function(currentValue: number, mode: SmartLockNotification, enable: boolean): number {
+    let result = 0;
+    if (enable) {
+        result = mode | currentValue;
+    } else {
+        result = ~mode & currentValue;
+    }
+    return result;
+}
+
+export const isSmartLockNotification = function(value: number, mode: SmartLockNotification): boolean {
+    return (value & mode) !== 0;
 }

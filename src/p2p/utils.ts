@@ -5,11 +5,12 @@ import { randomBytes, createCipheriv, createECDH, ECDH, createHmac, createDeciph
 import * as os from "os";
 
 import { P2PMessageParts, P2PMessageState, P2PQueueMessage, RGBColor } from "./interfaces";
-import { CommandType, ESLCommand, ESLBleCommand, LockV12P2PCommand, P2PDataTypeHeader, SmartSafeCommandCode, VideoCodec, EncryptionType } from "./types";
-import { Address, LockP2PCommandPayloadType, LockP2PCommandType, LockV12P2PCommandPayloadType, SmartSafeNotificationResponse, SmartSafeP2PCommandType } from "./models";
+import { CommandType, ESLCommand, ESLBleCommand, LockV12P2PCommand, P2PDataTypeHeader, SmartSafeCommandCode, VideoCodec, EncryptionType, SmartLockP2PCommand, SmartLockFunctionType, SmartLockBleCommandFunctionType1, SmartLockCommand, SmartLockBleCommandFunctionType2 } from "./types";
+import { Address, LockP2PCommandPayloadType, LockP2PCommandType, LockV12P2PCommandPayloadType, SmartLockP2PCommandPayloadType, SmartSafeNotificationResponse, SmartSafeP2PCommandType } from "./models";
 import { DeviceType } from "../http/types";
 import { Device, Lock, SmartSafe } from "../http/device";
 import { BleCommandFactory } from "./ble";
+import { rootP2PLogger } from "../logging";
 
 export const MAGIC_WORD = "XZYH";
 
@@ -639,7 +640,7 @@ export const decodeP2PCloudIPs = (data: string): Array<Address> => {
 }
 
 export const decodeSmartSafeData = function(deviceSN: string, data: Buffer): SmartSafeNotificationResponse {
-    const response = new BleCommandFactory(data);
+    const response = BleCommandFactory.parseSmartSafe(data);
     return {
         versionCode: response.getVersionCode(),
         dataType: response.getDataType(),
@@ -658,6 +659,8 @@ export const getSmartSafeP2PCommand = function(deviceSN: string, user_id: string
         .setDataType(-1)
         .setData(encPayload)
         .getSmartSafeCommand();
+
+    rootP2PLogger.debug(`Generate smart safe command`, { deviceSN: deviceSN, userId: user_id, command: command, intCommand: intCommand, channel: channel, sequence: sequence, data: data.toString("hex") });
 
     return {
         commandType: CommandType.CMD_SET_PAYLOAD,
@@ -681,6 +684,9 @@ export const getLockP2PCommand = function(deviceSN: string, user_id: string, com
     const ecdhKey = getAdvancedLockKey(key, lockPublicKey);
     const iv = getLockVectorBytes(deviceSN);
     const encPayload = encryptLockAESData(key, iv, Buffer.from(JSON.stringify(payload)));
+
+    rootP2PLogger.debug(`Generate lock command`, { deviceSN: deviceSN, userId: user_id, command: command, channel: channel, data: JSON.stringify(payload) });
+
     return {
         commandType: CommandType.CMD_SET_PAYLOAD,
         value: JSON.stringify({
@@ -701,6 +707,9 @@ export const getLockV12P2PCommand = function(deviceSN: string, user_id: string, 
     const encryptedAesKey = getLockV12Key(key, lockPublicKey);
     const iv = getLockVectorBytes(deviceSN);
     const encPayload = encryptPayloadData(data, Buffer.from(key, "hex"), Buffer.from(iv, "hex"));
+
+    rootP2PLogger.debug(`Generate smart lock v12 command`, { deviceSN: deviceSN, userId: user_id, command: command, channel: channel, sequence: sequence, data: data.toString("hex") });
+
     const bleCommand = new BleCommandFactory()
         .setVersionCode(Lock.VERSION_CODE_LOCKV12)
         .setCommandCode(Number.parseInt(ESLBleCommand[ESLCommand[command] as unknown as number]))  //TODO: Change internal command identification?
@@ -758,4 +767,54 @@ export const isPlugSolarCharging = function(value: number): boolean {
 
 export const isCharging = function(value: number): boolean {
     return isUsbCharging(value) || isSolarCharging(value) || isPlugSolarCharging(value);
+}
+
+export const getSmartLockCurrentTimeInSeconds = function(): number {
+    return Math.trunc(new Date().getTime() / 1000) | Math.trunc(Math.random() * 100);
+}
+
+export const generateSmartLockAESKey = (adminUserId: string, time: number): Buffer => {
+    const buffer = Buffer.allocUnsafe(4);
+    buffer.writeUint32BE(time);
+    return Buffer.concat([Buffer.from(adminUserId.substring(adminUserId.length - 12)), buffer]);
+}
+
+export const getSmartLockP2PCommand = function(deviceSN: string, user_id: string, command: CommandType | SmartLockCommand, channel: number, sequence: number, data: Buffer, functionType = SmartLockFunctionType.TYPE_2): SmartLockP2PCommand {
+    const time = getSmartLockCurrentTimeInSeconds();
+    const key = generateSmartLockAESKey(user_id, time);
+    const iv = getLockVectorBytes(deviceSN);
+    const encPayload = encryptPayloadData(data, key, Buffer.from(iv, "hex"));
+
+    rootP2PLogger.debug(`Generate smart lock command`, { deviceSN: deviceSN, userId: user_id, command: command, channel: channel, sequence: sequence,data: data.toString("hex"), functionType: functionType });
+
+    let commandCode = 0;
+    if (functionType === SmartLockFunctionType.TYPE_1) {
+        commandCode = Number.parseInt(SmartLockBleCommandFunctionType1[SmartLockCommand[command] as unknown as number]);
+    } else if (functionType === SmartLockFunctionType.TYPE_2) {
+        commandCode = Number.parseInt(SmartLockBleCommandFunctionType2[SmartLockCommand[command] as unknown as number]);
+    }
+
+    const bleCommand = new BleCommandFactory()
+        .setVersionCode(Lock.VERSION_CODE_SMART_LOCK)
+        .setCommandCode(commandCode)
+        .setDataType(functionType)
+        .setData(encPayload);
+    return {
+        bleCommand: bleCommand.getCommandCode()!,
+        payload: {
+            commandType: CommandType.CMD_SET_PAYLOAD,
+            value: JSON.stringify({
+                account_id: user_id,
+                cmd: CommandType.CMD_TRANSFER_PAYLOAD,
+                mChannel: channel,
+                mValue3: 0,
+                payload: {
+                    apiCommand: command,
+                    lock_payload: bleCommand.getSmartLockCommand().toString("hex"),
+                    seq_num: sequence,
+                    time: time,
+                }
+            } as SmartLockP2PCommandPayloadType)
+        }
+    };
 }
