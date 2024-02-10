@@ -72,7 +72,6 @@ export enum DeviceType {
     SMART_TRACK_LINK = 157, //T87B0
     SMART_TRACK_CARD = 159, //T87B2
     LOCK_8502 = 180,
-    // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
     LOCK_8506 = 184,
     WALL_LIGHT_CAM_81A0 = 10005,
     INDOOR_PT_CAMERA_S350 = 104,
@@ -501,6 +500,12 @@ export enum PresetPositionType {
     PRESET_3 = 2,
     PRESET_4 = 3,
 }
+
+export const enum SmartLockNotification {
+    ENABLED = 1,
+    UNLOCKED = 2,
+    LOCKED = 4,
+};
 
 export interface EventFilterType {
     deviceSN?: string;
@@ -966,7 +971,8 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
         151: "Wired Wall Light Cam S100 (T84A1)",
         157: "SmartTrack Link (T87B0)",
         159: "SmartTrack Card (T87B2)",
-        180: "Lock T8502 / T8506",
+        180: "Lock T8502",
+        184: "Lock T8506",
         10005: "Solar Wall Light Cam S120 (T81A0)",
     },
 }
@@ -3065,7 +3071,7 @@ export const DeviceAutoLockScheduleStartTimeProperty: PropertyMetadataString = {
     readable: true,
     writeable: true,
     type: "string",
-    default: "23:00",
+    default: "06:00",
     format: /^[0-9]{1,2}:[0-9]{1,2}$/,
 }
 
@@ -3076,7 +3082,7 @@ export const DeviceAutoLockScheduleEndTimeProperty: PropertyMetadataString = {
     readable: true,
     writeable: true,
     type: "string",
-    default: "6:00",
+    default: "23:00",
     format: /^[0-9]{1,2}:[0-9]{1,2}$/,
 }
 
@@ -3197,6 +3203,12 @@ export const DeviceNotificationProperty: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
+export const DeviceNotificationSmartLockProperty: PropertyMetadataBoolean = {
+    ...DeviceNotificationProperty,
+    key: CommandType.CMD_DOORLOCK_SET_PUSH_MODE,
+}
+
+
 export const DeviceNotificationWalllightProperty: PropertyMetadataBoolean = {
     ...DeviceNotificationProperty,
     key: CommandType.CMD_WALL_LIGHT_NOTIFICATION,
@@ -3211,6 +3223,11 @@ export const DeviceNotificationUnlockedProperty: PropertyMetadataBoolean = {
     type: "boolean",
 }
 
+export const DeviceNotificationUnlockedSmartLockProperty: PropertyMetadataBoolean = {
+    ...DeviceNotificationUnlockedProperty,
+    key: CommandType.CMD_DOORLOCK_SET_PUSH_MODE,
+}
+
 export const DeviceNotificationLockedProperty: PropertyMetadataBoolean = {
     key: CommandType.CMD_SMARTLOCK_NOTIFICATION_LOCKED,
     name: PropertyName.DeviceNotificationLocked,
@@ -3218,6 +3235,11 @@ export const DeviceNotificationLockedProperty: PropertyMetadataBoolean = {
     readable: true,
     writeable: true,
     type: "boolean",
+}
+
+export const DeviceNotificationLockedSmartLockProperty: PropertyMetadataBoolean = {
+    ...DeviceNotificationLockedProperty,
+    key: CommandType.CMD_DOORLOCK_SET_PUSH_MODE,
 }
 
 export const DeviceLoiteringDetectionProperty: PropertyMetadataBoolean = {
@@ -6773,6 +6795,29 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLockEventOrigin]: DeviceLockEventOriginProperty,
         [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
+    [DeviceType.LOCK_8506]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceBattery]: DeviceBatteryLockProperty,
+        [PropertyName.DeviceLocked]: DeviceLockedProperty,
+        [PropertyName.DeviceLockStatus]: DeviceAdvancedLockStatusProperty,
+        [PropertyName.DeviceAutoLock]: DeviceAutoLockProperty,
+        [PropertyName.DeviceAutoLockTimer]: DeviceAutoLockTimerProperty,
+        [PropertyName.DeviceAutoLockSchedule]: DeviceAutoLockScheduleProperty,
+        [PropertyName.DeviceAutoLockScheduleStartTime]: DeviceAutoLockScheduleStartTimeProperty,
+        [PropertyName.DeviceAutoLockScheduleEndTime]: DeviceAutoLockScheduleEndTimeProperty,
+        [PropertyName.DeviceOneTouchLocking]: DeviceOneTouchLockingProperty,
+        [PropertyName.DeviceWrongTryProtection]: DeviceWrongTryProtectionProperty,
+        [PropertyName.DeviceWrongTryAttempts]: DeviceWrongTryAttemptsProperty,
+        [PropertyName.DeviceWrongTryLockdownTime]: DeviceWrongTryLockdownTimeProperty,
+        [PropertyName.DeviceScramblePasscode]: DeviceScramblePasscodeProperty,
+        [PropertyName.DeviceSound]: DeviceSoundProperty,
+        [PropertyName.DeviceNotification]: DeviceNotificationSmartLockProperty,
+        [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedSmartLockProperty,
+        [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedSmartLockProperty,
+        [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+        [PropertyName.DeviceLockEventOrigin]: DeviceLockEventOriginProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+    },
     [DeviceType.LOCK_85A3]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceBattery]: DeviceBatteryProperty,
@@ -8163,6 +8208,9 @@ export const StationProperties: Properties = {
     [DeviceType.LOCK_8504]: {
         ...BaseStationProperties,
     },
+    [DeviceType.LOCK_8506]: {
+        ...BaseStationProperties,
+    },
     [DeviceType.LOCK_8592]: {
         ...BaseStationProperties,
     },
@@ -8674,6 +8722,14 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceUpdateUsername,
     ],
     [DeviceType.LOCK_8504]: [
+        CommandName.DeviceLockCalibration,
+        CommandName.DeviceAddUser,
+        CommandName.DeviceDeleteUser,
+        CommandName.DeviceUpdateUserPasscode,
+        CommandName.DeviceUpdateUserSchedule,
+        CommandName.DeviceUpdateUsername,
+    ],
+    [DeviceType.LOCK_8506]: [
         CommandName.DeviceLockCalibration,
         CommandName.DeviceAddUser,
         CommandName.DeviceDeleteUser,

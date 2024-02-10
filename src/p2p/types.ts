@@ -1,4 +1,4 @@
-import { LockV12P2PCommandType } from "./models";
+import { LockV12P2PCommandType, SmartLockP2PCommandType } from "./models";
 
 export const RequestMessageType = {
     STUN:                   Buffer.from([0xF1, 0x00]),
@@ -1141,6 +1141,11 @@ export interface LockV12P2PCommand {
     payload: LockV12P2PCommandType;
 }
 
+export interface SmartLockP2PCommand {
+    bleCommand: number;
+    payload: SmartLockP2PCommandType;
+}
+
 export enum EncryptionType {
     NONE = 0,
     LEVEL_1 = 1,
@@ -1170,4 +1175,88 @@ export enum TrackerCommandType {
     LOCATION_NEW_ADDRESS = 1009,
     TYPE_ICON_INDEX = 1005,
 
+}
+
+export enum SmartLockCommand {
+    CALIBRATE_LOCK = 6017,
+    QUERY_STATUS_IN_LOCK = 6012,
+    ON_OFF_LOCK = 6018,
+    ADD_PW = 6002,
+    UPDATE_USER_TIME = 146,
+    UPDATE_PW = 6014,
+    QUERY_PW = 6009,
+    ADD_FINGER = 6003,
+    CANCEL_ADD_FINGER = 115,
+    DELETE_FINGER = 6006,
+    UPDATE_FINGER_NAME = 119,
+    QUERY_ALL_USERS = 6007,
+    DELETE_USER = 6004,
+    GET_FINGER_PW_USAGE = 6022,
+    WIFI_SCAN = 104,
+    WIFI_LIST = 105,
+    WIFI_CONNECT = 106,
+    ACTIVATE_DEVICE = 107,
+    SET_LOCK_PARAM = 6015,
+    GET_LOCK_PARAM = 6016,
+    GET_LOCK_EVENT = 122,
+    PULL_BLE = 6024,
+    NOTIFY = 142,
+    CONNECT = 138,
+    DISCONNECT = 141,
+    CAPACITY_NEGOTIATION = 139,
+    SET_CAPACITY = 140,
+    VERIFY_IDENTIFY = 6000,
+    BIND = 101,
+    UNBIND = 124,
+    HEARTBEAT = 6001,
+    RESET = 6019,
+    BIND_SUCCESS = 102
+}
+
+export enum SmartLockFunctionType {
+    TYPE_1 = 1,
+    TYPE_2 = 2
+}
+
+export enum SmartLockBleCommandFunctionType1 {
+    CONNECT = 1,
+    DISCONNECT = 2,
+    CAPACITY_NEGOTIATION = 3,
+    SET_CAPACITY = 5,
+    VERIFY_IDENTIFY = 34,
+    BIND = 35,
+    UNBIND = 36,
+    HEARTBEAT = 38,
+    GET_DEVICE_INFO = 41,
+    GET_OTA_STATUS = 44,
+    OTA_OPERATION = 45,
+    OTA_DATA_SENDING = 46,
+    RESET = 47,
+    BIND_SUCCESS = 48
+}
+
+export enum SmartLockBleCommandFunctionType2 {
+    CALIBRATE_LOCK = 33,
+    QUERY_STATUS_IN_LOCK = 34,
+    ON_OFF_LOCK = 35,
+    ADD_PW = 36,
+    UPDATE_USER_TIME = 37,
+    UPDATE_PW = 38,
+    QUERY_PW = 39,
+    ADD_FINGER = 40,
+    CANCEL_ADD_FINGER = 41,
+    DELETE_FINGER = 42,
+    UPDATE_FINGER_NAME = 43,
+    QUERY_ALL_USERS = 44,
+    DELETE_USER = 45,
+    GET_FINGER_PW_USAGE = 46,
+    WIFI_SCAN = 48,
+    WIFI_LIST = 49,
+    WIFI_CONNECT = 50,
+    ACTIVATE_DEVICE = 51,
+    SET_LOCK_PARAM = 52,
+    GET_LOCK_PARAM = 53,
+    GET_LOCK_EVENT = 56,
+    PULL_BLE = 61,
+    NOTIFY = 74,
 }

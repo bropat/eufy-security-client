@@ -11,10 +11,10 @@ import { createECDH, ECDH } from "crypto";
 import * as schedule from "node-schedule";
 
 import { ResultResponse, LoginResultResponse, TrustDevice, Cipher, Voice, EventRecordResponse, Invite, ConfirmInvite, SensorHistoryEntry, ApiResponse, CaptchaResponse, LoginRequest, HouseDetail, DeviceListResponse, StationListResponse, HouseInviteListResponse, HouseListResponse, PassportProfileResponse, UsersResponse, User, AddUserResponse } from "./models"
-import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites, HTTPApiRequest, HTTPApiPersistentData, Houses, LoginOptions } from "./interfaces";
-import { EventFilterType, PublicKeyType, ResponseErrorCode, StorageType, VerfyCodeTypes } from "./types";
+import { HTTPApiEvents, Ciphers, FullDevices, Hubs, Voices, Invites, HTTPApiRequest, HTTPApiPersistentData, Houses, LoginOptions, Schedule } from "./interfaces";
+import { EventFilterType, PublicKeyType, ResponseErrorCode, StorageType, UserPasswordType, VerfyCodeTypes } from "./types";
 import { ParameterHelper } from "./parameter";
-import { encryptAPIData, decryptAPIData, getTimezoneGMTString, decodeImage } from "./utils";
+import { encryptAPIData, decryptAPIData, getTimezoneGMTString, decodeImage, hexDate, hexTime, hexWeek } from "./utils";
 import { InvalidCountryCodeError, InvalidLanguageCodeError, ensureError } from "./../error";
 import { getError, getShortUrl, md5, mergeDeep, parseJSON } from "./../utils";
 import { ApiBaseLoadError, ApiGenericError, ApiHTTPResponseCodeError, ApiInvalidResponseError, ApiRequestError, ApiResponseCodeError } from "./error";
@@ -1492,6 +1492,48 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             }
         }
         return Buffer.alloc(0);
+    }
+
+    public async updateUserPassword(deviceSN: string, shortUserId: string, passwordId: string, schedule: Schedule, stationSN = ""): Promise<boolean> {
+        if (this.connected) {
+            try {
+                const response = await this.request({
+                    method: "post",
+                    endpoint: "v1/app/device/password/save_or_update",
+                    data: {
+                        device_sn: deviceSN,
+                        password_list: [{
+                            password_id: passwordId,
+                            password_type: UserPasswordType.PIN,
+                            schedule: JSON.stringify({
+                                endDay: schedule !== undefined && schedule.endDateTime !== undefined ? hexDate(schedule.endDateTime) : "ffffffff",
+                                endTime: schedule !== undefined && schedule.endDateTime !== undefined ? hexTime(schedule.endDateTime) : "ffff",
+                                startDay: schedule !== undefined && schedule.startDateTime !== undefined ? hexDate(schedule.startDateTime) : "00000000",
+                                startTime: schedule !== undefined && schedule.startDateTime !== undefined ? hexTime(schedule.startDateTime) : "0000",
+                                week: schedule !== undefined && schedule.week !== undefined ? hexWeek(schedule) : "ff",
+                            })
+                        }],
+                        short_user_id: shortUserId,
+                        station_sn: stationSN === deviceSN ? "" : stationSN,
+                        transaction: `${new Date().getTime().toString()}`
+                    }
+                });
+                if (response.status == 200) {
+                    const result: ResultResponse = response.data;
+                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                        return true;
+                    } else {
+                        rootHTTPLogger.error("Add user - Response code not ok", { code: result.code, msg: result.msg, data: response.data, deviceSN: deviceSN, shortUserId: shortUserId, schedule: schedule, stationSN: stationSN });
+                    }
+                } else {
+                    rootHTTPLogger.error("Add user - Status return code not 200", { status: response.status, statusText: response.statusText, data: response.data, deviceSN: deviceSN, shortUserId: shortUserId, schedule: schedule, stationSN: stationSN });
+                }
+            } catch (err) {
+                const error = ensureError(err);
+                rootHTTPLogger.error("Add user - Generic Error", { error: getError(error), deviceSN: deviceSN, shortUserId: shortUserId, schedule: schedule, stationSN: stationSN });
+            }
+        }
+        return false;
     }
 
 }

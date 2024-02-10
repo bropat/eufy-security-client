@@ -54,10 +54,8 @@ export interface P2PClientProtocolEvents {
 export interface P2PQueueMessage {
     p2pCommandType: InternalP2PCommandType;
     p2pCommand: P2PCommand;
-    //commandType: CommandType;
     nestedCommandType?: CommandType;
-    //channel: number;
-    //payload: Buffer;
+    nestedCommandType2?: number;
     timestamp: number;
     customData?: CustomData;
 }
@@ -66,6 +64,7 @@ export interface P2PMessageState {
     sequence: number;
     commandType: CommandType;
     nestedCommandType?: CommandType | IndoorSoloSmartdropCommandType;
+    nestedCommandType2?: number;
     channel: number;
     data: Buffer;
     retries: number;
@@ -415,4 +414,12 @@ export interface VideoStreamingRecordingQuality {
 
 export interface CrossTrackingGroupEntry {
     value: Array<string>;
+}
+
+export interface CustomDataType {
+    [index: number]: {
+        channel: number;
+        customData: CustomData,
+        timestamp: number;
+    };
 }

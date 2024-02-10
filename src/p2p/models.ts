@@ -54,10 +54,10 @@ export interface CmdNotifyPayload {
 }
 
 export interface ESLStationP2PThroughData {
-    channel?: number,
-    lock_cmd: number,
-    lock_payload: string,
-    seq_num?: number,
+    channel?: number;
+    lock_cmd: number;
+    lock_payload: string;
+    seq_num?: number;
     stationSn?: string;
 }
 
@@ -172,8 +172,8 @@ export interface LockP2PCommandPayloadType {
 }
 
 export interface ESLBleV12P2PThroughData {
-    dev_sn: string,
-    lock_payload: string,
+    dev_sn: string;
+    lock_payload: string;
 }
 
 export interface LockV12P2PCommandPayloadType {
@@ -189,7 +189,7 @@ export interface LockV12P2PCommandPayloadType {
 }
 
 export interface LockV12P2PCommandType {
-    commandType: CommandType,
+    commandType: CommandType;
     value: string;
 }
 
@@ -286,4 +286,28 @@ export interface StorageInfoEmmcHB3 {
     eol_percent: number;
     work_status: number;
     health: number;
+}
+
+export interface SmartLockP2PCommandPayloadType {
+    account_id: string;
+    cmd: CommandType;
+    mChannel: number;
+    mValue3: number;
+    payload: {
+        apiCommand: number;
+        lock_payload: string;
+        seq_num: number;
+        time: number;
+    }
+}
+
+export interface SmartLockP2PCommandType {
+    commandType: CommandType;
+    value: string;
+}
+
+export interface SmartLockP2PThroughData {
+    dev_sn: string;
+    lock_payload: string;
+    time: string;
 }
