@@ -45,12 +45,12 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private pinVerified = false;
 
-    protected constructor(api: HTTPApi, station: StationListResponse, ipAddress?: string, publicKey = "") {
+    protected constructor(api: HTTPApi, station: StationListResponse, ipAddress?: string, udpPort?: number, connectionType?: P2PConnectionType, publicKey = "") {
         super();
         this.api = api;
         this.rawStation = station;
         this.lockPublicKey = publicKey;
-        this.p2pSession = new P2PClientProtocol(this.rawStation, this.api, ipAddress, publicKey);
+        this.p2pSession = new P2PClientProtocol(this.rawStation, this.api, ipAddress, udpPort, connectionType, this.lockPublicKey);
         this.p2pSession.on("connect", (address: Address) => this.onConnect(address));
         this.p2pSession.on("close", () => this.onDisconnect());
         this.p2pSession.on("timeout", () => this.onTimeout());
@@ -106,12 +106,12 @@ export class Station extends TypedEmitter<StationEvents> {
         this.initializeState();
     }
 
-    static async getInstance(api: HTTPApi, stationData: StationListResponse, ipAddress?: string): Promise<Station> {
+    static async getInstance(api: HTTPApi, stationData: StationListResponse, ipAddress?: string, udpPort?: number, connectionType?: P2PConnectionType): Promise<Station> {
         let publicKey: string | undefined;
         if (Device.isLock(stationData.device_type) && !Device.isLockWifiT8506(stationData.device_type)) {
             publicKey = await api.getPublicKey(stationData.station_sn, PublicKeyType.LOCK);
         }
-        return new Station(api, stationData, ipAddress, publicKey);
+        return new Station(api, stationData, ipAddress, udpPort, connectionType, publicKey);
     }
 
     //TODO: To remove

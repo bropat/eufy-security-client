@@ -115,6 +115,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private connectAddress: Address | undefined = undefined;
     private localIPAddress: string | undefined = undefined;
     private preferredIPAddress: string | undefined = undefined;
+    private preferredUdpPort: number | undefined = 0;
     private dskKey = "";
     private dskExpiration: Date | null = null;
     private deviceSNs: DeviceSerial = {};
@@ -127,11 +128,17 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private encryption: EncryptionType = EncryptionType.NONE;
     private p2pKey?: Buffer;
 
-    constructor(rawStation: StationListResponse, api: HTTPApi, ipAddress?:string, publicKey = "") {
+    constructor(rawStation: StationListResponse, api: HTTPApi, ipAddress?: string, preferredUdpPort?: number | null, connectionType?: P2PConnectionType, publicKey = "") {
         super();
         this.api = api;
         this.lockPublicKey = publicKey;
         this.preferredIPAddress = ipAddress;
+        if(preferredUdpPort !== undefined && preferredUdpPort !== null) {
+            this.preferredUdpPort = preferredUdpPort;
+        }
+        if(connectionType !== undefined && connectionType !== null) {
+            this.connectionType = connectionType;
+        }
         this.cloudAddresses = decodeP2PCloudIPs(rawStation.app_conn);
         rootP2PLogger.debug("Loaded P2P cloud ip addresses", { stationSN: rawStation.station_sn, ipAddress: ipAddress, cloudAddresses: this.cloudAddresses });
         this.updateRawStation(rawStation);
@@ -465,7 +472,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             }
         }
         this.localLookup(host);
-        this.cloudLookup();
+        if(this.connectionType === P2PConnectionType.QUICKEST) {
+            this.cloudLookup();
+        }
         this._clearLookupTimeout();
         this._clearLookupRetryTimeout();
 
@@ -484,7 +493,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             this.terminating = false;
             await this.renewDSKKey();
             if (!this.binded)
-                this.socket.bind(0, () => {
+                this.socket.bind(this.preferredUdpPort, () => {
                     this.binded = true;
                     try {
                         this.socket.setRecvBufferSize(this.UDP_RECVBUFFERSIZE_BYTES);
