@@ -9,7 +9,7 @@ import { HTTPApi } from "./http/api";
 import { Devices, FullDevices, Hubs, PropertyValue, RawValues, Stations, Houses, LoginOptions, Schedule, Picture } from "./http/interfaces";
 import { Station } from "./http/station";
 import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, StationListResponse } from "./http/models";
-import { CommandName, DeviceType, FloodlightT8425NotificationTypes, HB3DetectionTypes, IndoorS350NotificationTypes, NotificationSwitchMode, NotificationType, PropertyName, SoloCameraDetectionTypes, T8170DetectionTypes } from "./http/types";
+import { CommandName, DeviceType, FloodlightT8425NotificationTypes, HB3DetectionTypes, IndoorS350NotificationTypes, NotificationSwitchMode, NotificationType, PropertyName, SoloCameraDetectionTypes, T8170DetectionTypes, UserPasswordType } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
 import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, GarageCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera, Tracker, DoorbellLock } from "./http/device";
@@ -24,7 +24,7 @@ import { ServerPushEvent } from "./push/types";
 import { MQTTService } from "./mqtt/service";
 import { TalkbackStream } from "./p2p/talkback";
 import { PhoneModels } from "./http/const";
-import { randomNumber } from "./http/utils";
+import { hexStringScheduleToSchedule, randomNumber } from "./http/utils";
 import { Logger, dummyLogger, InternalLogger, rootMainLogger, setLoggingLevel, LoggingCategories } from "./logging"
 import { LogLevel } from "typescript-logging";
 import { isCharging } from "./p2p/utils";
@@ -2413,6 +2413,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     public async updateUser(deviceSN: string, username: string, newUsername: string): Promise<void> {
         const device = await this.getDevice(deviceSN);
+        const station = await this.getStation(device.getStationSerial());
 
         if (!device.hasCommand(CommandName.DeviceUpdateUsername))
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: deviceSN, commandName: CommandName.DeviceUpdateUsername, usernmae: username, newUsername: newUsername } });
@@ -2423,6 +2424,19 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 let found = false;
                 for (const user of users) {
                     if (user.user_name === username) {
+                        if (device.isLockWifiT8506() && user.password_list.length > 0) {
+                            for (const entry of user.password_list) {
+                                if (entry.password_type === UserPasswordType.PIN) {
+                                    let schedule = entry.schedule;
+                                    if (schedule !== undefined && typeof schedule == "string") {
+                                        schedule = JSON.parse(schedule);
+                                    }
+                                    if (schedule !== undefined && schedule.endDay !== undefined && schedule.endTime !== undefined && schedule.startDay !== undefined && schedule.startTime !== undefined && schedule.week !== undefined) {
+                                        station.updateUserSchedule(device, newUsername, user.short_user_id, hexStringScheduleToSchedule(schedule.startDay, schedule.startTime, schedule.endDay, schedule.endTime, schedule.week));
+                                    }
+                                }
+                            }
+                        }
                         const result = await this.api.updateUser(deviceSN, device.getStationSerial(), user.short_user_id, newUsername);
                         if (result) {
                             this.emit("user username updated", device, username);

@@ -8731,11 +8731,11 @@ export const DeviceCommands: Commands = {
     ],
     [DeviceType.LOCK_8506]: [
         CommandName.DeviceLockCalibration,
-        /*CommandName.DeviceAddUser,  //TODO: Finish implementation
+        CommandName.DeviceAddUser,
         CommandName.DeviceDeleteUser,
         CommandName.DeviceUpdateUserPasscode,
         CommandName.DeviceUpdateUserSchedule,
-        CommandName.DeviceUpdateUsername,*/
+        CommandName.DeviceUpdateUsername,
     ],
     [DeviceType.LOCK_WIFI_NO_FINGER]: [
         CommandName.DeviceLockCalibration,

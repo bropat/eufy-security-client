@@ -3476,11 +3476,11 @@ export class Lock extends Device {
         return payload.getData();
     }
 
-    public static encodeCmdSmartLockDeleteUser(adminUserId: string, userId: string): Buffer {
+    public static encodeCmdSmartLockDeleteUser(adminUserId: string, shortUserId: string): Buffer {
         const payload = new WritePayload();
         payload.write(this.getCurrentTimeInSeconds());
         payload.write(Buffer.from(adminUserId));
-        payload.write(Buffer.from(userId, "hex"));
+        payload.write(Buffer.from(shortUserId, "hex"));
         return payload.getData();
     }
 

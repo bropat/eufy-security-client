@@ -335,7 +335,7 @@ export class ParsePayload {
     }
 
     public readString(indexValue: number): string {
-        return this.readData(indexValue).toString("utf8");
+        return this.readData(indexValue).toString();
     }
 
     public readStringHex(indexValue: number): string {
@@ -488,6 +488,31 @@ export const hexWeek = function(schedule: Schedule): string {
         return result.toString(16);
     }
     return "ff";
+}
+
+export const hexStringScheduleToSchedule = function(startDay: string, startTime: string, endDay:string, endTime: string, week: string): Schedule {
+    const SUNDAY    = 1;
+    const MONDAY    = 2;
+    const TUESDAY   = 4;
+    const WEDNESDAY = 8;
+    const THUERSDAY = 16;
+    const FRIDAY    = 32;
+    const SATURDAY  = 64;
+
+    const weekNumber = Number.parseInt(week, 16);
+    return {
+        startDateTime: startDay === "00000000" ? undefined : new Date(Number.parseInt(`${startDay.substring(2,4)}${startDay.substring(0,2)}`, 16), Number.parseInt(startDay.substring(4,6), 16) - 1, Number.parseInt(startDay.substring(6,8), 16), Number.parseInt(startTime.substring(0,2), 16), Number.parseInt(startTime.substring(2,4), 16)),
+        endDateTime: endDay === "ffffffff" ? undefined : new Date(Number.parseInt(`${endDay.substring(2,4)}${endDay.substring(0,2)}`, 16), Number.parseInt(endDay.substring(4,6), 16) - 1, Number.parseInt(endDay.substring(6,8), 16), Number.parseInt(endTime.substring(0,2), 16), Number.parseInt(endTime.substring(2,4), 16)),
+        week: {
+            monday: (weekNumber && MONDAY) == MONDAY,
+            tuesday: (weekNumber && TUESDAY) == TUESDAY,
+            wednesday: (weekNumber && WEDNESDAY) == WEDNESDAY,
+            thursday: (weekNumber && THUERSDAY) == THUERSDAY,
+            friday: (weekNumber && FRIDAY) == FRIDAY,
+            saturday: (weekNumber && SATURDAY) == SATURDAY,
+            sunday: (weekNumber && SUNDAY) == SUNDAY,
+        },
+    };
 }
 
 export const randomNumber = function(min: number, max: number): number {

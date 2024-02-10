@@ -7,8 +7,8 @@ import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMot
 import { FloodlightDetectionRangeT8425Property, FloodlightLightSettingsMotionT8425Property, SnoozeDetail, StationListResponse, StationSecuritySettings } from "./models"
 import { ParameterHelper } from "./parameter";
 import { IndexedProperty, PropertyMetadataAny, PropertyValue, PropertyValues, RawValues, StationEvents, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, PropertyMetadataObject } from "./interfaces";
-import { encodePasscode, getBlocklist, getFloodLightT8425Notification, getHB3DetectionMode, getIndoorNotification, getT8170DetectionMode, hexDate, hexTime, hexWeek, isGreaterEqualMinVersion, isNotificationSwitchMode, isPrioritySourceType, switchNotificationMode, switchSmartLockNotification } from "./utils";
-import { CrossTrackingGroupEntry, DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, DynamicLighting, InternalColoredLighting, InternalDynamicLighting, MotionZone, RGBColor, StreamMetadata } from "../p2p/interfaces";
+import { encodePasscode, getAdvancedLockTimezone, getBlocklist, getFloodLightT8425Notification, getHB3DetectionMode, getIndoorNotification, getT8170DetectionMode, hexDate, hexTime, hexWeek, isGreaterEqualMinVersion, isNotificationSwitchMode, isPrioritySourceType, switchNotificationMode, switchSmartLockNotification } from "./utils";
+import { CrossTrackingGroupEntry, DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, DynamicLighting, InternalColoredLighting, InternalDynamicLighting, MotionZone, P2PCommand, RGBColor, StreamMetadata } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
 import { AlarmEvent, CalibrateGarageType, CommandType, DatabaseReturnCode, ErrorCode, ESLBleCommand, ESLCommand, FilterDetectType, FilterEventType, FilterStorageType, IndoorSoloSmartdropCommandType, LockV12P2PCommand, P2PConnectionType, PanTiltDirection, SmartLockCommand, SmartSafeAlarm911Event, SmartSafeCommandCode, SmartSafeShakeAlarmEvent, TFCardStatus, VideoCodec, WatermarkSetting1, WatermarkSetting2, WatermarkSetting3, WatermarkSetting4, WatermarkSetting5 } from "../p2p/types";
 import { Address, CmdCameraInfoResponse, CommandResult, ESLStationP2PThroughData, LockAdvancedOnOffRequestPayload, AdvancedLockSetParamsType, PropertyData, CustomData, CommandData, StorageInfoBodyHB3, AdvancedLockSetParamsTypeT8520 } from "../p2p/models";
@@ -6237,7 +6237,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 SmartLockCommand.ON_OFF_LOCK,
                 device.getChannel(),
                 this.p2pSession.incLockSequenceNumber(),
-                Lock.encodeCmdSmartLockCalibrate(this.rawStation.member.short_user_id)
+                Lock.encodeCmdSmartLockCalibrate(this.rawStation.member.admin_user_id)
             );
             rootHTTPLogger.debug("Station calibrate lock - Calibrate lock...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command.payload });
 
@@ -8276,7 +8276,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 username: username,
                 shortUserId: shortUserId,
                 passcode: passcode,
-                schedule: schedule
+                schedule: schedule,
+                deviceSN: device.getSerial()
             }
         };
         if (device.getStationSerial() !== this.getSerial()) {
@@ -8371,9 +8372,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.p2pSession.incLockSequenceNumber(),
                 Lock.encodeCmdSmartLockAddUser(
                     this.rawStation.member.admin_user_id,
-                    this.rawStation.member.short_user_id,
-                    encodePasscode(passcode).padEnd(16, "0"),
-                    this.rawStation.member.nick_name,
+                    shortUserId,
+                    encodePasscode(passcode),
+                    username,
                     schedule
                 )
             );
@@ -10913,6 +10914,31 @@ export class Station extends TypedEmitter<StationEvents> {
                 Lock.encodeCmdSmartLockStatus(this.rawStation.member.admin_user_id)
             );
             this.p2pSession.sendCommandWithStringPayload(command.payload);
+        } else if (Device.isLockWifiR10(this.getDeviceType()) || Device.isLockWifiR20(this.getDeviceType())) {
+            rootHTTPLogger.debug(`Station lock v12 send get lock status command`, { stationSN: this.getSerial() });
+            const command = getLockV12P2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                ESLCommand.QUERY_STATUS_IN_LOCK,
+                0,
+                this.lockPublicKey,
+                this.p2pSession.incLockSequenceNumber(),
+                Lock.encodeCmdStatus(this.rawStation.member.admin_user_id)
+            );
+            this.p2pSession.sendCommandWithStringPayload(command.payload);
+        } else if (Device.isLockWifi(this.getDeviceType()) || Device.isLockWifiNoFinger(this.getDeviceType())) {
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "account_id": this.rawStation.member.admin_user_id,
+                    "cmd": CommandType.P2P_QUERY_STATUS_IN_LOCK,
+                    "mChannel": 0,
+                    "mValue3": 0,
+                    "payload": {
+                        "timezone": this.rawStation.time_zone === undefined || this.rawStation.time_zone === "" ? getAdvancedLockTimezone(this.rawStation.station_sn) : this.rawStation.time_zone,
+                    }}),
+                channel: 0
+            } as P2PCommand);
         }
     }
 }
