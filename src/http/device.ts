@@ -3485,7 +3485,6 @@ export class Lock extends Device {
     }
 
     public static encodeCmdSmartLockUpdateSchedule(adminUserId: string, shortUserId: string, username: string, schedule: Schedule, userPermission = 4): Buffer {
-        //TODO: Verifiy if correct!
         const payload = new WritePayload();
         payload.write(this.getCurrentTimeInSeconds());
         payload.write(Buffer.from(adminUserId));

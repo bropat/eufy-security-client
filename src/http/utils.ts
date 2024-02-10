@@ -504,13 +504,13 @@ export const hexStringScheduleToSchedule = function(startDay: string, startTime:
         startDateTime: startDay === "00000000" ? undefined : new Date(Number.parseInt(`${startDay.substring(2,4)}${startDay.substring(0,2)}`, 16), Number.parseInt(startDay.substring(4,6), 16) - 1, Number.parseInt(startDay.substring(6,8), 16), Number.parseInt(startTime.substring(0,2), 16), Number.parseInt(startTime.substring(2,4), 16)),
         endDateTime: endDay === "ffffffff" ? undefined : new Date(Number.parseInt(`${endDay.substring(2,4)}${endDay.substring(0,2)}`, 16), Number.parseInt(endDay.substring(4,6), 16) - 1, Number.parseInt(endDay.substring(6,8), 16), Number.parseInt(endTime.substring(0,2), 16), Number.parseInt(endTime.substring(2,4), 16)),
         week: {
-            monday: (weekNumber && MONDAY) == MONDAY,
-            tuesday: (weekNumber && TUESDAY) == TUESDAY,
-            wednesday: (weekNumber && WEDNESDAY) == WEDNESDAY,
-            thursday: (weekNumber && THUERSDAY) == THUERSDAY,
-            friday: (weekNumber && FRIDAY) == FRIDAY,
-            saturday: (weekNumber && SATURDAY) == SATURDAY,
-            sunday: (weekNumber && SUNDAY) == SUNDAY,
+            monday: (weekNumber & MONDAY) == MONDAY,
+            tuesday: (weekNumber & TUESDAY) == TUESDAY,
+            wednesday: (weekNumber & WEDNESDAY) == WEDNESDAY,
+            thursday: (weekNumber & THUERSDAY) == THUERSDAY,
+            friday: (weekNumber & FRIDAY) == FRIDAY,
+            saturday: (weekNumber & SATURDAY) == SATURDAY,
+            sunday: (weekNumber & SUNDAY) == SUNDAY,
         },
     };
 }
