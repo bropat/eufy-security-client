@@ -1088,6 +1088,7 @@ export enum FilterDetectType {
     // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
     PACKAGE_PICK_UP = 512,
     PACKAGE_DELIVERED = 1024,
+    CROSS_DELIVERED = 2048,
 }
 
 export enum CalibrateGarageType {
