@@ -1152,7 +1152,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isLockKeypad(type: number): boolean {
-        return Device.isLockWifiR10Keypad(type);
+        return Device.isLockWifiR10Keypad(type) || Device.isLockWifiR20Keypad(type);
     }
 
     static isLockBle(type: number): boolean {
@@ -1185,6 +1185,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     static isLockWifiR10Keypad(type: number): boolean {
         return DeviceType.LOCK_85A3 == type;
+    }
+
+    static isLockWifiR20Keypad(type: number): boolean {
+        return DeviceType.LOCK_8592 == type;
     }
 
     static isLockWifiT8506(type: number): boolean {
@@ -1527,6 +1531,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isLockWifiR10Keypad(): boolean {
         return Device.isLockWifiR10Keypad(this.rawDevice.device_type);
+    }
+
+    public isLockWifiR20Keypad(): boolean {
+        return Device.isLockWifiR20Keypad(this.rawDevice.device_type);
     }
 
     public isLockWifiT8506(): boolean {
@@ -3526,6 +3534,18 @@ export class Lock extends Device {
 
     public static encodeCmdSmartLockGetParams(adminUserId: string): Buffer {
         return this.encodeCmdSmartLockStatus(adminUserId);
+    }
+
+}
+
+export class LockKeypad extends Device {
+
+    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<LockKeypad> {
+        return new LockKeypad(api, device);
+    }
+
+    public getStateChannel(): string {
+        return "lock_keypads";
     }
 
 }
