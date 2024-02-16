@@ -207,3 +207,16 @@ export function getShortUrl(url: URL, prefixUrl?: string): string {
 
     return shortUrl;
 }
+
+export function isValidUrl(value: string, protocols: Array<string> = ["http", "https"]): boolean {
+    try {
+        const url = new URL(value);
+        return protocols
+            ? url.protocol
+                ? protocols.map(protocol => `${protocol.toLowerCase()}:`).includes(url.protocol)
+                : false
+            : true;
+    } catch (err) {
+        return false;
+    }
+};

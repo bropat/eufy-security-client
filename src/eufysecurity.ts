@@ -16,7 +16,7 @@ import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, G
 import { AlarmEvent, CommandType, DatabaseReturnCode, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata, DatabaseQueryLatestInfoLocal, DatabaseQueryLatestInfoCloud, RGBColor, DynamicLighting, MotionZone, CrossTrackingGroupEntry } from "./p2p/interfaces";
 import { CommandResult, StorageInfoBodyHB3 } from "./p2p/models";
-import { generateSerialnumber, generateUDID, getError, handleUpdate, md5, parseValue, removeLastChar, waitForEvent } from "./utils";
+import { generateSerialnumber, generateUDID, getError, handleUpdate, isValidUrl, md5, parseValue, removeLastChar, waitForEvent } from "./utils";
 import { DeviceNotFoundError, StationNotFoundError, ReadOnlyPropertyError, NotSupportedError, AddUserError, DeleteUserError, UpdateUserUsernameError, UpdateUserPasscodeError, UpdateUserScheduleError, ensureError } from "./error";
 import { libVersion } from ".";
 import { InvalidPropertyError } from "./http/error";
@@ -1049,12 +1049,17 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             });
             this.getDevices().then((devices: Device[]) => {
                 devices.forEach(device => {
-                    try {
-                        device.processPushNotification(message, this.config.eventDurationSeconds);
-                    } catch (err) {
+                    this.getStation(device.getStationSerial()).then((station) => {
+                        try {
+                            device.processPushNotification(station, message, this.config.eventDurationSeconds);
+                        } catch (err) {
+                            const error = ensureError(err);
+                            rootMainLogger.error(`Error processing push notification for device`, { error: getError(error), deviceSN: device.getSerial(), message: message });
+                        }
+                    }).catch((err) => {
                         const error = ensureError(err);
-                        rootMainLogger.error(`Error processing push notification for device`, { error: getError(error), deviceSN: device.getSerial(), message: message });
-                    }
+                        rootMainLogger.error("Process push notification for devices loading station", { error: getError(error), message: message });
+                    });
                 });
             }).catch((err) => {
                 const error = ensureError(err);
@@ -2046,14 +2051,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             } else if (name === PropertyName.DeviceRTSPStream && (value as boolean) === false) {
                 device.setCustomPropertyValue(PropertyName.DeviceRTSPStreamUrl, "");
             } else if (name === PropertyName.DevicePictureUrl && value !== "") {
-                this.getStation(device.getStationSerial()).then((station: Station) => {
-                    if (station.hasCommand(CommandName.StationDownloadImage)) {
-                        station.downloadImage(value as string);
-                    }
-                }).catch((err) => {
-                    const error = ensureError(err);
-                    rootMainLogger.error(`Device property changed error - station download image`, { error: getError(error), deviceSN: device.getSerial(), stationSN: device.getStationSerial(), propertyName: name, propertyValue: value, ready: ready });
-                });
+                if (!isValidUrl(value as string)) {
+                    this.getStation(device.getStationSerial()).then((station: Station) => {
+                        if (station.hasCommand(CommandName.StationDownloadImage)) {
+                            station.downloadImage(value as string);
+                        }
+                    }).catch((err) => {
+                        const error = ensureError(err);
+                        rootMainLogger.error(`Device property changed error - station download image`, { error: getError(error), deviceSN: device.getSerial(), stationSN: device.getStationSerial(), propertyName: name, propertyValue: value, ready: ready });
+                    });
+                }
             }
         } catch (err) {
             const error = ensureError(err);

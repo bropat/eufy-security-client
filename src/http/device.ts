@@ -901,7 +901,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return this.getCommands().includes(name);
     }
 
-    public processPushNotification(_message: PushMessage, _eventDurationSeconds: number): void {
+    public processPushNotification(_station: Station, _message: PushMessage, _eventDurationSeconds: number): void {
         // Nothing to do
     }
 
@@ -1936,12 +1936,25 @@ export class Camera extends Device {
         }
     }
 
-    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
-        super.processPushNotification(message, eventDurationSeconds);
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined) {
             if (message.event_type === CusPushEvent.SECURITY && message.device_sn === this.getSerial()) {
                 try {
-                    if (!isEmpty(message.pic_url)) {
+                    if (station.hasCommand(CommandName.StationDatabaseQueryLatestInfo)) {
+                        station.databaseQueryLatestInfo(() => {
+                            if (!isEmpty(message.pic_url)) {
+                                getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
+                                    if (image.data.length > 0) {
+                                        this.updateProperty(PropertyName.DevicePicture, image, true);
+                                    }
+                                }).catch((err) => {
+                                    const error = ensureError(err);
+                                    rootHTTPLogger.debug(`Camera process push notification - CusPushEvent.SECURITY - Device Get picture - Fallback Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                                });
+                            }
+                        });
+                    } else if (!isEmpty(message.pic_url)) {
                         getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image, true);
@@ -1977,7 +1990,20 @@ export class Camera extends Device {
             } else if (message.msg_type === DeviceType.HB3) {
                 if (message.device_sn === this.getSerial()) {
                     try {
-                        if (!isEmpty(message.pic_url)) {
+                        if (station.hasCommand(CommandName.StationDatabaseQueryLatestInfo)) {
+                            station.databaseQueryLatestInfo(() => {
+                                if (!isEmpty(message.pic_url)) {
+                                    getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
+                                        if (image.data.length > 0) {
+                                            this.updateProperty(PropertyName.DevicePicture, image, true);
+                                        }
+                                    }).catch((err) => {
+                                        const error = ensureError(err);
+                                        rootHTTPLogger.debug(`Camera process push notification - HB3PairedDevicePushEvent - Device Get picture - Fallback Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                                    });
+                                }
+                            });
+                        } else if (!isEmpty(message.pic_url)) {
                             getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                                 if (image.data.length > 0) {
                                     this.updateProperty(PropertyName.DevicePicture, image, true);
@@ -2125,12 +2151,25 @@ export class SoloCamera extends Camera {
         return super.convertRawPropertyValue(property, value);
     }
 
-    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
-        super.processPushNotification(message, eventDurationSeconds);
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
             if (message.device_sn === this.getSerial()) {
                 try {
-                    if (!isEmpty(message.pic_url)) {
+                    if (station.hasCommand(CommandName.StationDatabaseQueryLatestInfo)) {
+                        station.databaseQueryLatestInfo(() => {
+                            if (!isEmpty(message.pic_url)) {
+                                getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
+                                    if (image.data.length > 0) {
+                                        this.updateProperty(PropertyName.DevicePicture, image, true);
+                                    }
+                                }).catch((err) => {
+                                    const error = ensureError(err);
+                                    rootHTTPLogger.debug(`SoloCamera process push notification - Device Get picture - Fallback Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                                });
+                            }
+                        });
+                    } else if (!isEmpty(message.pic_url)) {
                         getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image, true);
@@ -2215,12 +2254,25 @@ export class IndoorCamera extends Camera {
         return this.getPropertyValue(PropertyName.DeviceCryingDetected) as boolean;
     }
 
-    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
-        super.processPushNotification(message, eventDurationSeconds);
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
             if (message.device_sn === this.getSerial()) {
                 try {
-                    if (!isEmpty(message.pic_url)) {
+                    if (station.hasCommand(CommandName.StationDatabaseQueryLatestInfo)) {
+                        station.databaseQueryLatestInfo(() => {
+                            if (!isEmpty(message.pic_url)) {
+                                getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
+                                    if (image.data.length > 0) {
+                                        this.updateProperty(PropertyName.DevicePicture, image, true);
+                                    }
+                                }).catch((err) => {
+                                    const error = ensureError(err);
+                                    rootHTTPLogger.debug(`IndoorCamera process push notification - Device Get picture - Fallback Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                                });
+                            }
+                        });
+                    } else if (!isEmpty(message.pic_url)) {
                         getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image, true);
@@ -2357,12 +2409,25 @@ export class DoorbellCamera extends Camera {
         }
     }
 
-    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
-        super.processPushNotification(message, eventDurationSeconds);
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
             if (message.device_sn === this.getSerial()) {
                 try {
-                    if (!isEmpty(message.pic_url)) {
+                    if (station.hasCommand(CommandName.StationDatabaseQueryLatestInfo)) {
+                        station.databaseQueryLatestInfo(() => {
+                            if (!isEmpty(message.pic_url)) {
+                                getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
+                                    if (image.data.length > 0) {
+                                        this.updateProperty(PropertyName.DevicePicture, image, true);
+                                    }
+                                }).catch((err) => {
+                                    const error = ensureError(err);
+                                    rootHTTPLogger.debug(`DoorbellCamera process push notification - Device Get picture - Fallback Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                                });
+                            }
+                        });
+                    } else if (!isEmpty(message.pic_url)) {
                         getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image, true);
@@ -2550,12 +2615,25 @@ export class FloodlightCamera extends Camera {
         return super.convertRawPropertyValue(property, value);
     }
 
-    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
-        super.processPushNotification(message, eventDurationSeconds);
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
             if (message.device_sn === this.getSerial()) {
                 try {
-                    if (!isEmpty(message.pic_url)) {
+                    if (station.hasCommand(CommandName.StationDatabaseQueryLatestInfo)) {
+                        station.databaseQueryLatestInfo(() => {
+                            if (!isEmpty(message.pic_url)) {
+                                getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
+                                    if (image.data.length > 0) {
+                                        this.updateProperty(PropertyName.DevicePicture, image, true);
+                                    }
+                                }).catch((err) => {
+                                    const error = ensureError(err);
+                                    rootHTTPLogger.debug(`FloodlightCamera process push notification - Device Get picture - Fallback Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                                });
+                            }
+                        });
+                    } else if (!isEmpty(message.pic_url)) {
                         getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image, true);
@@ -2673,12 +2751,25 @@ export class WallLightCam extends Camera {
         return metadata;
     }
 
-    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
-        super.processPushNotification(message, eventDurationSeconds);
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined) {
             if (message.device_sn === this.getSerial()) {
                 try {
-                    if (!isEmpty(message.pic_url)) {
+                    if (station.hasCommand(CommandName.StationDatabaseQueryLatestInfo)) {
+                        station.databaseQueryLatestInfo(() => {
+                            if (!isEmpty(message.pic_url)) {
+                                getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
+                                    if (image.data.length > 0) {
+                                        this.updateProperty(PropertyName.DevicePicture, image);
+                                    }
+                                }).catch((err) => {
+                                    const error = ensureError(err);
+                                    rootHTTPLogger.debug(`WallLightCam process push notification - Device Get picture - Fallback Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                                });
+                            }
+                        });
+                    } else if (!isEmpty(message.pic_url)) {
                         getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image);
@@ -2797,12 +2888,25 @@ export class GarageCamera extends Camera {
         return super.convertRawPropertyValue(property, value);
     }
 
-    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
-        super.processPushNotification(message, eventDurationSeconds);
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined) {
             if (message.device_sn === this.getSerial()) {
                 try {
-                    if (!isEmpty(message.pic_url)) {
+                    if (station.hasCommand(CommandName.StationDatabaseQueryLatestInfo)) {
+                        station.databaseQueryLatestInfo(() => {
+                            if (!isEmpty(message.pic_url)) {
+                                getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
+                                    if (image.data.length > 0) {
+                                        this.updateProperty(PropertyName.DevicePicture, image);
+                                    }
+                                }).catch((err) => {
+                                    const error = ensureError(err);
+                                    rootHTTPLogger.debug(`GarageCamera process push notification - Device Get picture - Fallback Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                                });
+                            }
+                        });
+                    } else if (!isEmpty(message.pic_url)) {
                         getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                             if (image.data.length > 0) {
                                 this.updateProperty(PropertyName.DevicePicture, image);
@@ -2887,8 +2991,8 @@ export class EntrySensor extends Sensor {
         return this.getPropertyValue(PropertyName.DeviceBatteryLow);
     }
 
-    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
-        super.processPushNotification(message, eventDurationSeconds);
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined) {
             if (message.event_type === CusPushEvent.DOOR_SENSOR && message.device_sn === this.getSerial()) {
                 try {
@@ -2966,8 +3070,8 @@ export class MotionSensor extends Sensor {
         }
     }
 
-    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
-        super.processPushNotification(message, eventDurationSeconds);
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined) {
             if (message.event_type === CusPushEvent.MOTION_SENSOR_PIR && message.device_sn === this.getSerial()) {
                 try {
@@ -3055,8 +3159,8 @@ export class Lock extends Device {
         return Buffer.concat([buf1, buf2, buf3, buf4]);
     }
 
-    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
-        super.processPushNotification(message, eventDurationSeconds);
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
         if (message.event_type !== undefined) {
             this.processNotification(message.event_type, message.event_time, message.device_sn, message.person_name!, eventDurationSeconds, "push");
         }
@@ -3813,8 +3917,8 @@ export class SmartSafe extends Device {
         }, eventDurationSeconds * 1000));
     }
 
-    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
-        super.processPushNotification(message, eventDurationSeconds);
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
         if (message.event_type !== undefined) {
             if (message.station_sn === this.getSerial()) {
                 try {
@@ -4067,8 +4171,8 @@ export class DoorbellLock extends DoorbellCamera {
         return this.getPropertyValue(PropertyName.DeviceLockStatus);
     }
 
-    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
-        super.processPushNotification(message, eventDurationSeconds);
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
         if (message.event_type !== undefined && message.device_sn === this.getSerial()) {
             try {
                 switch (message.event_type) {

@@ -95,6 +95,7 @@ Please use GitHub issues for this.
 * (bropat) Added support for SoloCam C210 (T8B00; #369)
 * (bropat) Outdated, no longer functioning cloud livestream has been removed
 * (bropat) Improved cloud device lookup
+* (bropat) Implemented new image gathering from p2p initiated by push notifications
 * (bropat) Implemented new p2p parameter format
 * (bropat) Implemented calibrate command for Floodlight T8423 (#280)
 * (martijnpoppen) OPT: persistentData via config instead of JSON file (#416)
