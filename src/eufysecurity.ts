@@ -284,6 +284,15 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         });
     }
 
+    public updateLogging(category: LoggingCategories, level: LogLevel): void {
+        if (typeof level === "number" &&
+        Object.values(LogLevel).includes(level) &&
+        typeof category === "string" &&
+        ["main", "http", "p2p" , "push", "mqtt"].includes(category.toLowerCase())) {
+            setLoggingLevel(category, level);
+        }
+    }
+
     public getPushService(): PushNotificationService {
         return this.pushService;
     }
