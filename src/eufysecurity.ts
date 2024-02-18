@@ -1841,9 +1841,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
             }
             this.getStationDevice(station.getSerial(), result.channel).then((device: Device) => {
-                if ((result.customData !== undefined && result.customData.property !== undefined && !device.isLockWifiR10() && !device.isLockWifiR20() && !device.isSmartSafe() && !device.isLockWifiT8506()&& !device.isLockWifiT8502()) ||
+                if ((result.customData !== undefined && result.customData.property !== undefined && !device.isLockWifiR10() && !device.isLockWifiR20() && !device.isSmartSafe() && !device.isLockWifiT8506() && !device.isLockWifiT8502() && !device.isLockWifiT8510P() && !device.isLockWifiT8520P()) ||
                     (result.customData !== undefined && result.customData.property !== undefined && device.isSmartSafe() && result.command_type !== CommandType.CMD_SMARTSAFE_SETTINGS) ||
-                    (result.customData !== undefined && result.customData.property !== undefined && (device.isLockWifiT8506() || device.isLockWifiT8502()) && result.command_type !== CommandType.CMD_DOORLOCK_SET_PUSH_MODE)) {
+                    (result.customData !== undefined && result.customData.property !== undefined && (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) && result.command_type !== CommandType.CMD_DOORLOCK_SET_PUSH_MODE)) {
                     if (device.hasProperty(result.customData.property.name)) {
                         const metadata = device.getPropertyMetadata(result.customData.property.name);
                         if (typeof result.customData.property.value !== "object" || metadata.type === "object") {
@@ -2442,7 +2442,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 let found = false;
                 for (const user of users) {
                     if (user.user_name === username) {
-                        if ((device.isLockWifiT8506() || device.isLockWifiT8502()) && user.password_list.length > 0) {
+                        if ((device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) && user.password_list.length > 0) {
                             for (const entry of user.password_list) {
                                 if (entry.password_type === UserPasswordType.PIN) {
                                     let schedule = entry.schedule;

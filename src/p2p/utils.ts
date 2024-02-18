@@ -415,8 +415,8 @@ export const getCurrentTimeInSeconds = function(): number {
     return Math.trunc(new Date().getTime() / 1000);
 }
 
-export const generateLockSequence = (deviceType: DeviceType): number => {
-    if (Device.isLockWifi(deviceType) || Device.isLockWifiNoFinger(deviceType))
+export const generateLockSequence = (deviceType: DeviceType, serialnumber: string): number => {
+    if (Device.isLockWifi(deviceType, serialnumber) || Device.isLockWifiNoFinger(deviceType))
         return Math.trunc(Math.random() * 1000);
     return getCurrentTimeInSeconds();
 }

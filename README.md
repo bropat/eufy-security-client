@@ -86,6 +86,8 @@ Please use GitHub issues for this.
 * (bropat) Added support for Video Smart Lock S330 (T8530; #220)
 * (bropat) Added support for Smart Lock C210 (T8502; #291)
 * (bropat) Added support for Smart Lock C220 (T8506; #377 #356)
+* (bropat) Added support for Smart Lock S230 (T8510P; #458)
+* (bropat) Added support for Smart Lock S231 (T8520P; untested)
 * (bropat/martijnpoppen) Added support for Video Doorbell E340 (T8214; #406)
 * (martijnpoppen) Added support for MiniBase Chime (T8023)
 * (bropat/martijnpoppen) Added support for eufyCam E330 (Professional; T8600; #408)

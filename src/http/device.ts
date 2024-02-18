@@ -1,7 +1,7 @@
 import { TypedEmitter } from "tiny-typed-emitter";
 
 import { HTTPApi } from "./api";
-import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOtherMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType, T8170DetectionTypes, IndoorS350NotificationTypes, SoloCameraDetectionTypes, FloodlightT8425NotificationTypes, DeviceAudioRecordingProperty, DeviceMotionDetectionSensitivityCamera2Property, DeviceVideoRecordingQualitySoloCamerasHB3Property, DeviceNotificationTypeProperty, DeviceMotionDetectionProperty, SmartLockNotification } from "./types";
+import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOtherMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType, T8170DetectionTypes, IndoorS350NotificationTypes, SoloCameraDetectionTypes, FloodlightT8425NotificationTypes, DeviceAudioRecordingProperty, DeviceMotionDetectionSensitivityCamera2Property, DeviceVideoRecordingQualitySoloCamerasHB3Property, DeviceNotificationTypeProperty, DeviceMotionDetectionProperty, SmartLockNotification, LockT8510PDeviceProperties, LockT8520PDeviceProperties } from "./types";
 import { DeviceListResponse, Voice, GarageDoorSensorsProperty, FloodlightDetectionRangeT8425Property, FloodlightLightSettingsMotionT8425Property, FloodlightLightSettingsBrightnessScheduleT8425Property } from "./models"
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject } from "./interfaces";
@@ -55,7 +55,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         const metadata = this.getPropertiesMetadata(true);
         for (const property of Object.values(metadata)) {
             if (this.rawDevice[property.key] !== undefined && typeof property.key === "string") {
-                this.updateProperty(property.name, property.key === "cover_path" ? getImagePath(this.rawDevice[property.key]) : this.rawDevice[property.key] as PropertyValue);
+                //this.updateProperty(property.name, property.key === "cover_path" ? getImagePath(this.rawDevice[property.key]) : this.rawDevice[property.key] as PropertyValue);
+                this.updateProperty(property.name, this.convertRawPropertyValue(property, property.key === "cover_path" ? getImagePath(this.rawDevice[property.key]) : this.rawDevice[property.key] as string));
             } else if (this.properties[property.name] === undefined && property.default !== undefined && !this.ready) {
                 this.updateProperty(property.name, property.default);
             }
@@ -749,6 +750,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     rootHTTPLogger.warn("Device convert raw property - SUB1G_REP_UNPLUG_POWER_LINE Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
                     return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                 }
+            } else if (property.name === PropertyName.Model && this.isLockWifiT8510P()) {
+                return "T8510P";
             } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
@@ -825,6 +828,16 @@ export class Device extends TypedEmitter<DeviceEvents> {
             metadata = {
                 ...WiredDoorbellT8200XDeviceProperties
             };
+        } else if (this.isLockWifiT8510P()) {
+            metadata = {
+                ...LockT8510PDeviceProperties
+            };
+            (metadata[PropertyName.Type] as PropertyMetadataNumeric).states![this.getDeviceType()] = "Smart Lock S230 (T8510P)";
+        } else if (this.isLockWifiT8520P()) {
+            metadata = {
+                ...LockT8520PDeviceProperties
+            };
+            (metadata[PropertyName.Type] as PropertyMetadataNumeric).states![this.getDeviceType()] = "Smart Lock S231 (T8520P)";
         } else if (this.isSoloCameras() && Station.isStationHomeBase3BySn(this.getStationSerial())) {
             const newMetadata = {
                 ...metadata
@@ -1143,7 +1156,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     static isLock(type: number): boolean {
         return Device.isLockBle(type) ||
-        Device.isLockWifi(type) ||
+        Device.isLockWifi(type, "") ||
         Device.isLockBleNoFinger(type) ||
         Device.isLockWifiNoFinger(type) ||
         Device.isLockWifiR10(type) ||
@@ -1165,8 +1178,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.LOCK_BLE_NO_FINGER == type;
     }
 
-    static isLockWifi(type: number): boolean {
-        return DeviceType.LOCK_WIFI == type;
+    static isLockWifi(type: number, serialnumber: string): boolean {
+        return DeviceType.LOCK_WIFI == type && !Device.isLockWifiT8510P(type, serialnumber) && !Device.isLockWifiT8520P(type, serialnumber);
     }
 
     static isLockWifiNoFinger(type: number): boolean {
@@ -1199,6 +1212,18 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     static isLockWifiT8502(type: number): boolean {
         return DeviceType.LOCK_8502 == type;
+    }
+
+    static isLockWifiT8510P(type: number, serialnumber: string): boolean {
+        if (type == DeviceType.LOCK_WIFI && serialnumber.startsWith("T8520") && serialnumber.length > 6 && serialnumber.charAt(6) === "8")
+            return true;
+        return false;
+    }
+
+    static isLockWifiT8520P(type: number, serialnumber: string): boolean {
+        if (type == DeviceType.LOCK_WIFI && serialnumber.startsWith("T8520") && serialnumber.length > 6 && serialnumber.charAt(6) === "9")
+            return true;
+        return false;
     }
 
     static isBatteryDoorbell1(type: number): boolean {
@@ -1404,6 +1429,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         sn.startsWith("T8503") ||
         sn.startsWith("T8502") ||
         sn.startsWith("T8504") ||
+        sn.startsWith("T8506") ||
         sn.startsWith("T8530");
     }
 
@@ -1516,7 +1542,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     public isLockWifi(): boolean {
-        return Device.isLockWifi(this.rawDevice.device_type);
+        return Device.isLockWifi(this.rawDevice.device_type, this.rawDevice.device_sn);
     }
 
     public isLockWifiNoFinger(): boolean {
@@ -1549,6 +1575,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isLockWifiT8502(): boolean {
         return Device.isLockWifiT8502(this.rawDevice.device_type);
+    }
+
+    public isLockWifiT8510P(): boolean {
+        return Device.isLockWifiT8510P(this.rawDevice.device_type, this.rawDevice.device_sn);
+    }
+
+    public isLockWifiT8520P(): boolean {
+        return Device.isLockWifiT8520P(this.rawDevice.device_type, this.rawDevice.device_sn);
     }
 
     public isBatteryDoorbell1(): boolean {
