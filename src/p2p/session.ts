@@ -27,7 +27,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private readonly MAX_RETRIES = 10;
     private readonly MAX_COMMAND_RESULT_WAIT = 30 * 1000;
-    private readonly MAX_AKNOWLEDGE_TIMEOUT = 15 * 1000;
+    private readonly MAX_GATEWAY_COMMAND_RESULT_WAIT = 5 * 1000;
+    private readonly MAX_CONNECTION_TIMEOUT = 25 * 1000;
+    private readonly MAX_AKNOWLEDGE_TIMEOUT = 5 * 1000;
     private readonly MAX_LOOKUP_TIMEOUT = 20 * 1000;
     private readonly LOOKUP_RETRY_TIMEOUT = 3 * 1000;
     private readonly LOOKUP2_TIMEOUT = 3 * 1000;
@@ -438,7 +440,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             this.connectTimeout = setTimeout(() => {
                 rootP2PLogger.warn(`Tried all hosts, no connection could be established to station ${this.rawStation.station_sn}.`);
                 this._disconnected();
-            }, this.MAX_AKNOWLEDGE_TIMEOUT);
+            }, this.MAX_CONNECTION_TIMEOUT);
     }
 
     private _connect(address: Address, p2p_did: string): void {
@@ -704,7 +706,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     data: data,
                     retries: 0,
                     acknowledged: false,
-                    returnCode: ErrorCode.ERROR_COMMAND_TIMEOUT,
+                    //returnCode: ErrorCode.ERROR_COMMAND_TIMEOUT,
                     customData: message.customData
                 };
                 message = messageState;
@@ -736,7 +738,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this.emit("command", {
                     command_type: message.nestedCommandType !== undefined ? message.nestedCommandType : message.commandType,
                     channel: message.channel,
-                    return_code: message.returnCode,
+                    return_code: ErrorCode.ERROR_COMMAND_TIMEOUT,
                     customData: message.customData
                 } as CommandResult);
                 this.messageStates.delete(message.sequence);
@@ -746,7 +748,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         }
 
         const messageState = message as P2PMessageState;
-        messageState.returnCode = ErrorCode.ERROR_COMMAND_TIMEOUT;
+        //messageState.returnCode = ErrorCode.ERROR_COMMAND_TIMEOUT;
         messageState.timeout = setTimeout(() => {
             this._clearTimeout(messageState.retryTimeout);
             this._sendCommand(messageState);
@@ -889,7 +891,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         data: data,
                         retries: 0,
                         acknowledged: false,
-                        returnCode: ErrorCode.ERROR_COMMAND_TIMEOUT,
+                        //returnCode: ErrorCode.ERROR_COMMAND_TIMEOUT,
                     };
                     this.messageStates.set(message.sequence, message);
                     message.retryTimeout = setTimeout(() => {
@@ -916,7 +918,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         data: data,
                         retries: 0,
                         acknowledged: false,
-                        returnCode: ErrorCode.ERROR_COMMAND_TIMEOUT,
+                        //returnCode: ErrorCode.ERROR_COMMAND_TIMEOUT,
                     };
                     this.messageStates.set(message.sequence, message);
                     message.retryTimeout = setTimeout(() => {
@@ -927,10 +929,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     tmpSendQueue.forEach(element => {
                         this.sendQueue.push(element);
                     });
-                } else if (Device.isLockWifiT8506(this.rawStation.device_type)) {
+                } else if (Device.isLockWifiT8506(this.rawStation.device_type) || Device.isLockWifiT8502(this.rawStation.device_type)) {
                     const tmpSendQueue: Array<P2PQueueMessage> = [ ...this.sendQueue ];
                     this.sendQueue = [];
-                    this.p2pDataSeqNumber = this._incrementSequence(this.p2pDataSeqNumber);
                     this.sendCommandWithoutData(CommandType.CMD_GATEWAYINFO, 255);
                     tmpSendQueue.forEach(element => {
                         this.sendQueue.push(element);
@@ -947,7 +948,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         data: data,
                         retries: 0,
                         acknowledged: false,
-                        returnCode: ErrorCode.ERROR_COMMAND_TIMEOUT,
+                        //returnCode: ErrorCode.ERROR_COMMAND_TIMEOUT,
                     };
                     this.messageStates.set(message.sequence, message);
                     message.retryTimeout = setTimeout(() => {
@@ -1027,7 +1028,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     rootP2PLogger.debug(`Result data for command CMD_GATEWAYINFO not received`, { stationSN: this.rawStation.station_sn, message: { sequence: msg_state.sequence, commandType: msg_state.commandType, nestedCommandType: msg_state.nestedCommandType, channel: msg_state.channel, acknowledged: msg_state.acknowledged, retries: msg_state.retries, returnCode: msg_state.returnCode, data: msg_state.data } });
                                 }
                                 this.sendQueuedMessage();
-                            }, this.MAX_COMMAND_RESULT_WAIT);
+                            }, msg_state.commandType !== CommandType.CMD_GATEWAYINFO ? this.MAX_COMMAND_RESULT_WAIT : this.MAX_GATEWAY_COMMAND_RESULT_WAIT);
                             this.messageStates.set(ackedSeqNo, msg_state);
                             this.sendQueuedMessage();
                         }
@@ -1289,7 +1290,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         rootP2PLogger.trace(`Handle DATA ${P2PDataType[message.dataType]} - Result data received - Detecting correct sequence number`, { stationSN: this.rawStation.station_sn, commandIdName: commandStr, commandId: message.commandId, seqNumber: message.seqNo, newSeqNumber: goodSeqNumber, p2pSeqMappingCount: this.p2pSeqMapping.size });
                         message.seqNo = goodSeqNumber;
                     }
-                } else if (message.commandId !== CommandType.CMD_GATEWAYINFO) {
+                } else {
                     this.p2pSeqMapping.delete(message.seqNo);
                     this.p2pDataSeqNumber--;
                 }

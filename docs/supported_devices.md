@@ -59,7 +59,8 @@
 | ![T8510 with Wi-Fi Bridge image](_media/smartlock_touch_t8510_wifibridge_small.jpg) | Smart Lock Touch with Wi-Fi Bridge (T8510) | :heavy_check_mark: :wrench: |  |
 | ![T8520 image](_media/smartlock_touch_and_wifi_t8520_small.jpg) | Smart Lock Touch & Wifi (T8520) | :heavy_check_mark: :wrench: | Firmware: 1.3.6.8 (20220205), 1.3.8.0 (20220816) |
 | ![T8530 image](_media/smartlock_video_t8530_small.jpg) | Video Smart Lock S330 (T8530) | :heavy_check_mark: | Firmware: 1.2.0.2 (20230530) |
-| ![T8506 image](_media/smartlock_touch_and_wifi_t8506_small.jpg) | Smart Lock C220 (T8506) | :heavy_check_mark: :wrench: | Firmware: 1.1.3.3 (20231125) |
+| ![T8502 image](_media/smartlock_touch_and_wifi_t8502_small.jpg) | Smart Lock C210 (T8502; E110) | :heavy_check_mark: | Firmware: 2.1.1.1 (20230913) |
+| ![T8506 image](_media/smartlock_touch_and_wifi_t8506_small.jpg) | Smart Lock C220 (T8506) | :heavy_check_mark: | Firmware: 1.1.3.3 (20231125) |
 | ![T8960 image](_media/keypad_small.jpg) | Keypad (T8960) | :heavy_check_mark: |  |
 | ![T7400 image](_media/smartsafe_s10_t7400_small.jpg) | Smart Safe S10 (T7400) | :heavy_check_mark: | Firmware: 1.0.3.4 (20221029) |
 | ![T7401 image](_media/smartsafe_s12_t7401_small.jpg) | Smart Safe S12 (T7401) | :heavy_exclamation_mark: |  |
