@@ -996,7 +996,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             msg_state.acknowledged = true;
                             msg_state.timeout = setTimeout(() => {
                                 //TODO: Retry command in these case?
-                                this.messageStates.delete(ackedSeqNo);
                                 if (msg_state.commandType !== CommandType.CMD_GATEWAYINFO) {
                                     rootP2PLogger.warn(`Result data for command not received`, { stationSN: this.rawStation.station_sn, message: { sequence: msg_state.sequence, commandType: msg_state.commandType, nestedCommandType: msg_state.nestedCommandType, channel: msg_state.channel, acknowledged: msg_state.acknowledged, retries: msg_state.retries, returnCode: msg_state.returnCode, data: msg_state.data } });
                                     this.emit("command", {
@@ -1014,6 +1013,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     this.p2pDataSeqNumber--;
                                     rootP2PLogger.debug(`Result data for command CMD_GATEWAYINFO not received`, { stationSN: this.rawStation.station_sn, message: { sequence: msg_state.sequence, commandType: msg_state.commandType, nestedCommandType: msg_state.nestedCommandType, channel: msg_state.channel, acknowledged: msg_state.acknowledged, retries: msg_state.retries, returnCode: msg_state.returnCode, data: msg_state.data } });
                                 }
+                                this.messageStates.delete(ackedSeqNo);
                                 this.sendQueuedMessage();
                             }, msg_state.commandType !== CommandType.CMD_GATEWAYINFO ? this.MAX_COMMAND_RESULT_WAIT : this.MAX_GATEWAY_COMMAND_RESULT_WAIT);
                             this.messageStates.set(ackedSeqNo, msg_state);
@@ -1777,7 +1777,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                             this.emit("secondary command", result);
                                             delete this.customDataStaging[commandType];
                                         }
-                                        rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD Lock V12 return code: ${returnCode}`, { stationSN: this.rawStation.station_sn, commandIdName: CommandType[json.cmd], commandId: json.cmd, decoded: data, bleCommandCode: ESLBleCommand[fac.getCommandCode()!], returnCode: returnCode, channel: customData?.channel, customData: customData?.customData });
+                                        rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD Lock V12 return code: ${returnCode}`, { stationSN: this.rawStation.station_sn, commandIdName: CommandType[json.cmd], commandId: json.cmd, decoded: data.toString("hex"), bleCommandCode: ESLBleCommand[fac.getCommandCode()!], returnCode: returnCode, channel: customData?.channel, customData: customData?.customData });
                                         this._clearSecondaryCommandTimeout();
                                         this.sendQueuedMessage();
                                     } else {
@@ -2190,6 +2190,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_GATEWAYINFO - set encryption level 1`, { stationSN: this.rawStation.station_sn, key: this.p2pKey.toString("hex") });
                         }
                         this._clearTimeout(this.messageStates.get(message.seqNo)?.timeout);
+                        this.p2pSeqMapping.forEach((value: number, key: number, map: Map<number, number>) => {
+                            if (value === message.seqNo) {
+                                map.delete(key);
+                            }
+                        })
+                        this.p2pDataSeqNumber--;
                         this.messageStates.delete(message.seqNo);
                         this.sendQueuedMessage();
                     }).catch((err) => {
@@ -2198,6 +2204,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         this.p2pKey = Buffer.from(getP2PCommandEncryptionKey(this.rawStation.station_sn, this.rawStation.p2p_did));
                         rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_GATEWAYINFO - set encryption level 1 (fallback)`, { error: getError(error), stationSN: this.rawStation.station_sn, message: { seqNo: message.seqNo, channel: message.channel, commandType: CommandType[message.commandId], signCode: message.signCode, type: message.type, dataType: P2PDataType[message.dataType], data: message.data.toString("hex") }, key: this.p2pKey.toString("hex") });
                         this._clearTimeout(this.messageStates.get(message.seqNo)?.timeout);
+                        this.p2pSeqMapping.forEach((value: number, key: number, map: Map<number, number>) => {
+                            if (value === message.seqNo) {
+                                map.delete(key);
+                            }
+                        })
+                        this.p2pDataSeqNumber--;
                         this.messageStates.delete(message.seqNo);
                         this.sendQueuedMessage();
                     });
