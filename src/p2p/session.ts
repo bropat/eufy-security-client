@@ -878,14 +878,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 if (isPrivateIp(rinfo.address))
                     this.localIPAddress = rinfo.address;
 
-                this.heartbeatTimeout = setTimeout(() => {
-                    this.scheduleHeartbeat();
-                }, this.getHeartbeatInterval());
+                this.scheduleHeartbeat();
 
                 if (this.energySavingDevice) {
-                    this.keepaliveTimeout = setTimeout(() => {
-                        this.scheduleP2PKeepalive();
-                    }, this.KEEPALIVE_INTERVAL);
+                    this.scheduleP2PKeepalive();
                 }
 
                 if (Device.isSmartSafe(this.rawStation.device_type)) {
