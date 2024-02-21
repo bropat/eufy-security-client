@@ -31,9 +31,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private readonly MAX_CONNECTION_TIMEOUT = 25 * 1000;
     private readonly MAX_AKNOWLEDGE_TIMEOUT = 5 * 1000;
     private readonly MAX_LOOKUP_TIMEOUT = 20 * 1000;
-    private readonly LOOKUP_RETRY_TIMEOUT = 3 * 1000;
+    private readonly LOCAL_LOOKUP_RETRY_TIMEOUT = 1 * 1000;
+    private readonly LOOKUP_RETRY_TIMEOUT = 1 * 1000;
     private readonly LOOKUP2_TIMEOUT = 3 * 1000;
-    private readonly LOOKUP2_RETRY_TIMEOUT = 3 * 1000;
+    private readonly LOOKUP2_RETRY_TIMEOUT = 1 * 1000;
     private readonly MAX_EXPECTED_SEQNO_WAIT = 20 * 1000;
     private readonly HEARTBEAT_INTERVAL = 5 * 1000;
     private readonly MAX_COMMAND_QUEUE_TIMEOUT = 120 * 1000;
@@ -97,6 +98,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private connectTimeout?: NodeJS.Timeout;
     private lookupTimeout?: NodeJS.Timeout;
+    private localLookupRetryTimeout?: NodeJS.Timeout;
     private lookupRetryTimeout?: NodeJS.Timeout;
     private lookup2Timeout?: NodeJS.Timeout;
     private lookup2RetryTimeout?: NodeJS.Timeout;
@@ -291,6 +293,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.lookupTimeout = undefined;
     }
 
+    private _clearLocalLookupRetryTimeout(): void {
+        this._clearTimeout(this.localLookupRetryTimeout);
+        this.localLookupRetryTimeout = undefined;
+    }
+
     private _clearLookupRetryTimeout(): void {
         this._clearTimeout(this.lookupRetryTimeout);
         this.lookupRetryTimeout = undefined;
@@ -326,6 +333,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private _disconnected(): void {
         this._clearHeartbeatTimeout();
         this._clearKeepaliveTimeout();
+        this._clearLocalLookupRetryTimeout();
         this._clearLookupRetryTimeout();
         this._clearLookup2Timeout();
         this._clearLookupTimeout();
@@ -380,22 +388,25 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private localLookup(host: string): void {
         rootP2PLogger.debug(`Trying to local lookup address for station ${this.rawStation.station_sn} with host ${host}`);
         this.localLookupByAddress({ host: host, port: 32108 });
+        this._clearLocalLookupRetryTimeout();
+        this.lookupRetryTimeout = setTimeout(() => {
+            this.localLookup(host);
+        }, this.LOCAL_LOOKUP_RETRY_TIMEOUT);
     }
 
     private cloudLookup(): void {
         this.cloudAddresses.map((address) => this.cloudLookupByAddress(address));
-        this._clearLookup2Timeout();
-        this.lookup2Timeout = setTimeout(() => {
-            this.cloudLookup2();
-        }, this.LOOKUP2_TIMEOUT);
+        this._clearLookupRetryTimeout();
+        this.lookupRetryTimeout = setTimeout(() => {
+            this.cloudLookup();
+        }, this.LOOKUP_RETRY_TIMEOUT);
     }
 
     private cloudLookup2(): void {
         this.cloudAddresses.map((address) => this.cloudLookupByAddress2(address));
         this._clearLookup2RetryTimeout();
         this.lookup2RetryTimeout = setTimeout(() => {
-            this.lookup2RetryTimeout = undefined;
-            this.cloudAddresses.map((address) => this.cloudLookupByAddress2(address));
+            this.cloudLookup2();
         }, this.LOOKUP2_RETRY_TIMEOUT);
     }
 
@@ -468,9 +479,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         }
         this.localLookup(host);
         this.cloudLookup();
-        this._clearLookupTimeout();
-        this._clearLookupRetryTimeout();
 
+        this._clearLookup2Timeout();
+        this.lookup2Timeout = setTimeout(() => {
+            this.cloudLookup2();
+        }, this.LOOKUP2_TIMEOUT);
+
+        this._clearLookupTimeout();
         this.lookupTimeout = setTimeout(() => {
             this.lookupTimeout = undefined;
             rootP2PLogger.error(`All address lookup tentatives failed.`, { stationSN: this.rawStation.station_sn });
@@ -803,7 +818,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (hasHeader(msg, ResponseMessageType.LOCAL_LOOKUP_RESP)) {
             if (!this.connected) {
                 this._clearLookupTimeout();
-                this._clearLookupRetryTimeout();
+                this._clearLocalLookupRetryTimeout();
 
                 const p2pDid = `${msg.subarray(4, 12).toString("utf8").replace(/[\0]+$/g, "")}-${msg.subarray(12, 16).readUInt32BE().toString().padStart(6, "0")}-${msg.subarray(16, 24).toString("utf8").replace(/[\0]+$/g, "")}`;
                 rootP2PLogger.trace(`Received message - LOCAL_LOOKUP_RESP - Got response`, { stationSN: this.rawStation.station_sn, ip: rinfo.address, port: rinfo.port, p2pDid: p2pDid });
@@ -848,6 +863,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             // Answer from the device to a CAM_CHECK message
             if (!this.connected) {
                 rootP2PLogger.debug(`Received message - CAM_ID - Connected to station ${this.rawStation.station_sn} on host ${rinfo.address} port ${rinfo.port}`);
+                this._clearLocalLookupRetryTimeout();
                 this._clearLookupRetryTimeout();
                 this._clearLookup2RetryTimeout();
                 this._clearLookupTimeout();
@@ -1136,13 +1152,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 const responseCode = msg.subarray(4, 6).readUInt16LE();
 
                 rootP2PLogger.trace(`Received message - LOOKUP_RESP - Got response`, { stationSN: this.rawStation.station_sn, remoteAddress: rinfo.address, remotePort: rinfo.port, response: { responseCode: responseCode }});
-
-                if (responseCode !== 0 && this.lookupTimeout !== undefined && this.lookupRetryTimeout === undefined) {
-                    this.lookupRetryTimeout = setTimeout(() => {
-                        this.lookupRetryTimeout = undefined;
-                        this.cloudAddresses.map((address) => this.cloudLookupByAddress(address));
-                    }, this.LOOKUP_RETRY_TIMEOUT);
-                }
             }
         } else {
             rootP2PLogger.debug(`Received unknown message`, { stationSN: this.rawStation.station_sn, remoteAddress: rinfo.address, remotePort: rinfo.port, response: { message: msg.toString("hex"), length: msg.length }});
@@ -2250,6 +2259,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     public async close(): Promise<void> {
         this.terminating = true;
         this._clearLookupTimeout();
+        this._clearLocalLookupRetryTimeout();
         this._clearLookupRetryTimeout();
         this._clearConnectTimeout();
         this._clearHeartbeatTimeout();
