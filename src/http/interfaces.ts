@@ -8,7 +8,7 @@ import type { ImageFileExtension } from "image-type" with {
 
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata } from "../p2p/interfaces";
 import { CommandResult, StorageInfoBodyHB3 } from "../p2p/models";
-import { AlarmEvent, ChargingType, DatabaseReturnCode, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "../p2p/types";
+import { AlarmEvent, DatabaseReturnCode, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "../p2p/types";
 import { Camera, Device } from "./device";
 import { Cipher, Voice, Invite, DeviceListResponse, StationListResponse, HouseListResponse } from "./models";
 import { Station } from "./station";
@@ -211,7 +211,7 @@ export interface StationEvents {
     "alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
     "ready": (station: Station) => void;
     "runtime state": (station: Station, channel: number, batteryLevel: number, temperature: number) => void;
-    "charging state": (station: Station, channel: number, chargeType: ChargingType, batteryLevel: number) => void;
+    "charging state": (station: Station, channel: number, chargeType: number, batteryLevel: number) => void;
     "wifi rssi": (station: Station, channel: number, rssi: number) => void;
     "floodlight manual switch": (station: Station, channel: number, enabled: boolean) => void;
     "alarm delay event": (station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;

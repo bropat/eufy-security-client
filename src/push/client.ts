@@ -3,7 +3,6 @@ import * as path from "path";
 import { load, Root } from "protobufjs";
 import * as tls from "tls";
 import { TypedEmitter } from "tiny-typed-emitter";
-import { dummyLogger, Logger } from "ts-log";
 
 import { Message, MessageTag, RawPushMessage } from "./models";
 import { PushClientParser } from "./parser";
@@ -12,6 +11,7 @@ import { getError, parseJSON } from "../utils";
 import { BuildHeartbeatAckRequestError, BuildHeartbeatPingRequestError, BuildLoginRequestError } from "./error";
 import { ensureError } from "../error";
 import { getNullTerminatedString } from "../p2p/utils";
+import { rootPushLogger } from "../logging";
 
 export class PushClient extends TypedEmitter<PushClientEvents> {
 
@@ -39,19 +39,16 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
         securityToken: string;
     };
 
-    private log: Logger;
-
-    private constructor(pushClientParser: PushClientParser, auth: { androidId: string; securityToken: string; }, log: Logger = dummyLogger) {
+    private constructor(pushClientParser: PushClientParser, auth: { androidId: string; securityToken: string; }) {
         super();
-        this.log = log;
         this.pushClientParser = pushClientParser;
         this.auth = auth;
     }
 
-    public static async init(auth: { androidId: string; securityToken: string }, log: Logger = dummyLogger): Promise<PushClient> {
+    public static async init(auth: { androidId: string; securityToken: string }): Promise<PushClient> {
         this.proto = await load(path.join(__dirname, "./proto/mcs.proto"));
-        const pushClientParser = await PushClientParser.init(log);
-        return new PushClient(pushClientParser, auth, log);
+        const pushClientParser = await PushClientParser.init();
+        return new PushClient(pushClientParser, auth);
     }
 
     private initialize(): void {
@@ -138,7 +135,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
             heartbeatPingRequest.last_stream_id_received = stream_id;
         }
 
-        this.log.debug(`Push client - heartbeatPingRequest`, { streamId: stream_id, request: JSON.stringify(heartbeatPingRequest) });
+        rootPushLogger.debug(`Push client - heartbeatPingRequest`, { streamId: stream_id, request: JSON.stringify(heartbeatPingRequest) });
         const HeartbeatPingRequestType = PushClient.proto!.lookupType("mcs_proto.HeartbeatPing");
         const errorMessage = HeartbeatPingRequestType.verify(heartbeatPingRequest);
         if (errorMessage) {
@@ -160,7 +157,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
             heartbeatAckRequest.last_stream_id_received = stream_id;
             heartbeatAckRequest.status = status;
         }
-        this.log.debug(`Push client - heartbeatAckRequest`, { streamId: stream_id, status: status, request: JSON.stringify(heartbeatAckRequest) });
+        rootPushLogger.debug(`Push client - heartbeatAckRequest`, { streamId: stream_id, status: status, request: JSON.stringify(heartbeatAckRequest) });
 
         const HeartbeatAckRequestType = PushClient.proto!.lookupType("mcs_proto.HeartbeatAck");
         const errorMessage = HeartbeatAckRequestType.verify(heartbeatAckRequest);
@@ -193,14 +190,14 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
 
     private onSocketError(err: any): void {
         const error = ensureError(err);
-        this.log.error(`Push client - Socket Error`, { error: getError(error) });
+        rootPushLogger.error(`Push client - Socket Error`, { error: getError(error) });
     }
 
     private handleParsedMessage(message: Message): void {
         this.resetCurrentDelay();
         switch (message.tag) {
             case MessageTag.DataMessageStanza:
-                this.log.debug(`Push client - DataMessageStanza`, { message: JSON.stringify(message) });
+                rootPushLogger.debug(`Push client - DataMessageStanza`, { message: JSON.stringify(message) });
                 if (message.object && message.object.persistentId)
                     this.persistentIds.push(message.object.persistentId);
 
@@ -213,10 +210,10 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
                 this.handleHeartbeatAck(message);
                 break;
             case MessageTag.Close:
-                this.log.debug(`Push client - Close: Server requested close`, { message: JSON.stringify(message) });
+                rootPushLogger.debug(`Push client - Close: Server requested close`, { message: JSON.stringify(message) });
                 break;
             case MessageTag.LoginResponse:
-                this.log.debug("Push client - Login response: GCM -> logged in -> waiting for push messages...", { message: JSON.stringify(message) });
+                rootPushLogger.debug("Push client - Login response: GCM -> logged in -> waiting for push messages...", { message: JSON.stringify(message) });
                 this.loggedIn = true;
                 this.persistentIds = [];
 
@@ -227,20 +224,20 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
                 }, this.getHeartbeatInterval());
                 break;
             case MessageTag.LoginRequest:
-                this.log.debug(`Push client - Login request`, { message: JSON.stringify(message) });
+                rootPushLogger.debug(`Push client - Login request`, { message: JSON.stringify(message) });
                 break;
             case MessageTag.IqStanza:
-                this.log.debug(`Push client - IqStanza: Not implemented`, { message: JSON.stringify(message) });
+                rootPushLogger.debug(`Push client - IqStanza: Not implemented`, { message: JSON.stringify(message) });
                 break;
             default:
-                this.log.debug(`Push client - Unknown message`, { message: JSON.stringify(message) });
+                rootPushLogger.debug(`Push client - Unknown message`, { message: JSON.stringify(message) });
                 return;
         }
         this.streamId++;
     }
 
     private handleHeartbeatPing(message: Message): void {
-        this.log.debug(`Push client - Heartbeat ping`, { message: JSON.stringify(message) });
+        rootPushLogger.debug(`Push client - Heartbeat ping`, { message: JSON.stringify(message) });
         let streamId = undefined;
         let status = undefined;
         if (this.newStreamIdAvailable()) {
@@ -253,7 +250,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
     }
 
     private handleHeartbeatAck(message: Message): void {
-        this.log.debug(`Push client - Heartbeat acknowledge`, { message: JSON.stringify(message) });
+        rootPushLogger.debug(`Push client - Heartbeat acknowledge`, { message: JSON.stringify(message) });
     }
 
     private convertPayloadMessage(message: Message): RawPushMessage {
@@ -261,7 +258,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
         const messageData: Record<string, any> = {};
         appData.forEach((kv: { key: string; value: any }) => {
             if (kv.key === "payload") {
-                const payload = parseJSON(getNullTerminatedString(Buffer.from(kv.value, "base64"),"utf8"), this.log);
+                const payload = parseJSON(getNullTerminatedString(Buffer.from(kv.value, "base64"),"utf8"), rootPushLogger);
                 messageData[kv.key] = payload;
             } else {
                 messageData[kv.key] = kv.value;
@@ -289,7 +286,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
                 this.scheduleHeartbeat(client);
             }, client.getHeartbeatInterval());
         } else {
-            this.log.debug("Push client - Heartbeat disabled!");
+            rootPushLogger.debug("Push client - Heartbeat disabled!");
         }
     }
 
@@ -300,11 +297,11 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
         }
 
         if (this.client && this.isConnected()) {
-            this.log.debug(`Push client - Sending heartbeat...`, { streamId: streamId });
+            rootPushLogger.debug(`Push client - Sending heartbeat...`, { streamId: streamId });
             this.client.write(this.buildHeartbeatPingRequest(streamId));
             return true;
         } else {
-            this.log.debug("Push client - No more connected, reconnect...");
+            rootPushLogger.debug("Push client - No more connected, reconnect...");
             this.scheduleReconnect();
         }
         return false;
@@ -336,7 +333,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
 
     private scheduleReconnect(): void {
         const delay = this.getCurrentDelay();
-        this.log.debug("Push client - Schedule reconnect...", { delay: delay });
+        rootPushLogger.debug("Push client - Schedule reconnect...", { delay: delay });
         if (!this.reconnectTimeout)
             this.reconnectTimeout = setTimeout(() => {
                 this.connect();

@@ -5,7 +5,7 @@ import { SortedMap } from "sweet-collections";
 import { AlarmMode, DeviceType, MicStatus, TriggerType, VideoType } from "../http/types";
 import { Address, CmdCameraInfoResponse, CommandResult, CustomData, StorageInfoBodyHB3 } from "./models";
 import { TalkbackStream } from "./talkback";
-import { AlarmEvent, AudioCodec, ChargingType, CommandType, DatabaseReturnCode, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, P2PStorageType, TFCardStatus, VideoCodec, InternalP2PCommandType } from "./types";
+import { AlarmEvent, AudioCodec, CommandType, DatabaseReturnCode, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, P2PStorageType, TFCardStatus, VideoCodec, InternalP2PCommandType } from "./types";
 
 export interface P2PClientProtocolEvents {
     "alarm mode": (mode: AlarmMode) => void;
@@ -23,7 +23,7 @@ export interface P2PClientProtocolEvents {
     "parameter": (channel: number, param: number, value: string) => void;
     "timeout": () => void;
     "runtime state": (channel: number, batteryLevel: number, temperature: number) => void;
-    "charging state": (channel: number, chargeType: ChargingType, batteryLevel: number) => void;
+    "charging state": (channel: number, chargeType: number, batteryLevel: number) => void;
     "rtsp livestream started": (channel: number) => void;
     "rtsp livestream stopped": (channel: number) => void;
     "floodlight manual switch": (channel: number, enabled: boolean) => void;
@@ -49,15 +49,14 @@ export interface P2PClientProtocolEvents {
     "sensor status": (channel: number, status: number) => void;
     "garage door status": (channel: number, doorId: number, status: number) => void;
     "storage info hb3": (channel: number, storageInfo: StorageInfoBodyHB3) => void;
+    "sequence error": (channel: number, command: number, sequence: number, serialnumber: string) => void;
 }
 
 export interface P2PQueueMessage {
     p2pCommandType: InternalP2PCommandType;
     p2pCommand: P2PCommand;
-    //commandType: CommandType;
     nestedCommandType?: CommandType;
-    //channel: number;
-    //payload: Buffer;
+    nestedCommandType2?: number;
     timestamp: number;
     customData?: CustomData;
 }
@@ -66,11 +65,12 @@ export interface P2PMessageState {
     sequence: number;
     commandType: CommandType;
     nestedCommandType?: CommandType | IndoorSoloSmartdropCommandType;
+    nestedCommandType2?: number;
     channel: number;
     data: Buffer;
     retries: number;
     acknowledged: boolean;
-    returnCode: number;
+    returnCode?: number;
     retryTimeout?: NodeJS.Timeout;
     timeout?: NodeJS.Timeout;
     customData?: CustomData;
@@ -411,4 +411,16 @@ export interface VideoStreamingRecordingQuality {
         quality: number;
     },
     cur_mode: number;
+}
+
+export interface CrossTrackingGroupEntry {
+    value: Array<string>;
+}
+
+export interface CustomDataType {
+    [index: number]: {
+        channel: number;
+        customData: CustomData,
+        timestamp: number;
+    };
 }

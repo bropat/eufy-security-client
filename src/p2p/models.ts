@@ -49,15 +49,15 @@ export interface CommandResult {
 
 export interface CmdNotifyPayload {
     cmd: number;
-    payload: ESLStationP2PThroughData | ESLAdvancedLockStatusNotification | SmartSafeSettingsNotification | SmartSafeStatusNotification | ESLBleV12P2PThroughData | EntrySensorStatus | GarageDoorStatus | StorageInfoHB3 | string,
+    payload: ESLStationP2PThroughData | ESLAdvancedLockStatusNotification | SmartSafeSettingsNotification | SmartSafeStatusNotification | ESLBleV12P2PThroughData | EntrySensorStatus | GarageDoorStatus | StorageInfoHB3 | SmartLockP2PSequenceData | string,
     payloadLen?: number;
 }
 
 export interface ESLStationP2PThroughData {
-    channel?: number,
-    lock_cmd: number,
-    lock_payload: string,
-    seq_num?: number,
+    channel?: number;
+    lock_cmd: number;
+    lock_payload: string;
+    seq_num?: number;
     stationSn?: string;
 }
 
@@ -66,6 +66,10 @@ export interface ESLAdvancedLockStatusNotification {
     slBattery: string;
     slState: string;
     trigger: number;
+}
+
+export interface ESLAdvancedLockStatusNotificationT8530 extends ESLAdvancedLockStatusNotification {
+    slOpenDirection: string;
 }
 
 export interface SmartSafeSettingsNotification {
@@ -88,11 +92,14 @@ export interface SmartSafeNotificationResponse {
     data: Buffer;
 }
 
-export interface LockAdvancedOnOffRequestPayload {
+export interface LockAdvancedOnOffRequestBasePayload {
     shortUserId: string;
     slOperation: number;
     userId: string;
     userName: string;
+}
+
+export interface LockAdvancedOnOffRequestPayload extends LockAdvancedOnOffRequestBasePayload {
     seq_num: number;
 }
 
@@ -116,6 +123,38 @@ export interface AdvancedLockSetParamsType {
     seq_num: number;
 }
 
+export interface AdvancedLockSetParamsTypeT8520 {
+    [index: string]: unknown;
+    autoLockTime: number;
+    isAutoLock: number;
+    isLockNotification: number;
+    isNotification: number;
+    isOneTouchLock: number;
+    isSchedule: number;
+    isScramblePasscode: number;
+    isUnLockNotification: number;
+    isWrongTryProtect: number;
+    lockDownTime: number;
+    lockOpenDirection: number;
+    lockVolume: number;
+    nightVisionEnhance: number;
+    openLeftAlarmEnable: number;
+    openLeftAlarmScheduleEnd: string;
+    openLeftAlarmScheduleStart: string;
+    openLeftAlarmScheduled: number;
+    openLeftAlarmTimer: number;
+    openLeftAlarmWays: number;
+    paramType: number;
+    scheduleEnd: string;
+    scheduleStart: string;
+    tamperAlarmEnable: number;
+    tamperAlarmScheduleEnd: string;
+    tamperAlarmScheduleStart: string;
+    tamperAlarmScheduled: number;
+    tamperAlarmWays: number;
+    wrongTryTime: number;
+}
+
 export interface LockP2PCommandType {
     commandType: CommandType;
     value: string;
@@ -133,8 +172,8 @@ export interface LockP2PCommandPayloadType {
 }
 
 export interface ESLBleV12P2PThroughData {
-    dev_sn: string,
-    lock_payload: string,
+    dev_sn: string;
+    lock_payload: string;
 }
 
 export interface LockV12P2PCommandPayloadType {
@@ -150,7 +189,7 @@ export interface LockV12P2PCommandPayloadType {
 }
 
 export interface LockV12P2PCommandType {
-    commandType: CommandType,
+    commandType: CommandType;
     value: string;
 }
 
@@ -247,4 +286,35 @@ export interface StorageInfoEmmcHB3 {
     eol_percent: number;
     work_status: number;
     health: number;
+}
+
+export interface SmartLockP2PCommandPayloadType {
+    account_id: string;
+    cmd: CommandType;
+    mChannel: number;
+    mValue3: number;
+    payload: {
+        apiCommand: number;
+        lock_payload: string;
+        seq_num: number;
+        time: number;
+    }
+}
+
+export interface SmartLockP2PCommandType {
+    commandType: CommandType;
+    value: string;
+}
+
+export interface SmartLockP2PThroughData {
+    dev_sn: string;
+    lock_payload: string;
+    time: string;
+}
+
+export interface SmartLockP2PSequenceData {
+    lock_cmd: number;
+    seq_num: number
+    dev_sn: string;
+    bus_type?: number;
 }

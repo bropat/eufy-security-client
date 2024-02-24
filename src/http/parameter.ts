@@ -1,4 +1,4 @@
-import { Logger } from "ts-log";
+import { Category } from "typescript-logging-category-style";
 
 import { CommandType, TrackerCommandType } from "../p2p/types";
 import { decodeBase64, getNullTerminatedString } from "../p2p/utils";
@@ -9,7 +9,7 @@ import { ensureError } from "../error";
 
 export class ParameterHelper {
 
-    public static readValue(serialNumber: string, type: number, value: string, log: Logger): string | undefined {
+    public static readValue(serialNumber: string, type: number, value: string, log: Category): string | undefined {
         if (value) {
             if (type === ParamType.SNOOZE_MODE ||
                 type === ParamType.CAMERA_MOTION_ZONES ||
@@ -30,7 +30,12 @@ export class ParameterHelper {
                 type === CommandType.CMD_INDOOR_DET_SET_ACTIVE_ZONE ||
                 type === CommandType.CMD_SET_PRIVACYPARAM ||
                 type === CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY2 ||
-                type === CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY2) {
+                type === CommandType.CMD_BAT_DOORBELL_RECORD_QUALITY2 ||
+                type === CommandType.CMD_SET_CROSS_TRACKING_CAMERA_LIST ||
+                type === CommandType.CMD_SET_CROSS_TRACKING_GROUP_LIST ||
+                type === CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425 ||
+                type === CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425 ||
+                type === CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_SCH_T8425) {
                 if (typeof value === "string") {
                     const parsedValue = parseJSON(getNullTerminatedString(decodeBase64(value), "utf-8"), log);
                     if (parsedValue === undefined) {
@@ -50,7 +55,8 @@ export class ParameterHelper {
                 type === CommandType.CMD_DOORBELL_DUAL_RADAR_WD_TIME ||
                 type === CommandType.CMD_DOORBELL_DUAL_DELIVERY_GUARD_SWITCH ||
                 type === CommandType.CMD_DOORBELL_DUAL_PACKAGE_GUARD_VOICE ||
-                type === CommandType.CMD_CAMERA_GARAGE_DOOR_SENSORS) {
+                type === CommandType.CMD_CAMERA_GARAGE_DOOR_SENSORS ||
+                type === CommandType.CMD_MOTION_SET_LEAVING_REACTIONS) {
                 if (typeof value === "string") {
                     const parsedValue = parseJSON(value, log);
                     if (parsedValue === undefined) {

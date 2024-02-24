@@ -6,10 +6,11 @@ import sha256 from "crypto-js/sha256";
 
 import { Device } from "./device";
 import { Picture, Schedule } from "./interfaces";
-import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes } from "./types";
+import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes, FloodlightT8425NotificationTypes, SmartLockNotification } from "./types";
 import { HTTPApi } from "./api";
 import { ensureError } from "../error";
 import { ImageBaseCodeError } from "./error";
+import { LockPushEvent } from "./../push/types";
 
 const normalizeVersionString = function (version: string): number[] {
     const trimmed = version ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, "$1") : "";
@@ -292,7 +293,7 @@ export const getAdvancedLockTimezone = function(stationSN: string): string {
     return "";
 };
 
-export class SmartSafeByteWriter {
+export class WritePayload {
 
     private split_byte = -95;
     private data = Buffer.from([]);
@@ -305,6 +306,105 @@ export class SmartSafeByteWriter {
 
     public getData(): Buffer {
         return this.data;
+    }
+
+}
+
+export class ParsePayload {
+
+    private data;
+
+    constructor(data: Buffer) {
+        this.data = data;
+    }
+
+    public readUint32BE(indexValue: number): number {
+        return this.readData(indexValue).readUint32BE();
+    }
+
+    public readUint32LE(indexValue: number): number {
+        return this.readData(indexValue).readUint32LE();
+    }
+
+    public readUint16BE(indexValue: number): number {
+        return this.readData(indexValue).readUint16BE();
+    }
+
+    public readUint16LE(indexValue: number): number {
+        return this.readData(indexValue).readUint16LE();
+    }
+
+    public readString(indexValue: number): string {
+        return this.readData(indexValue).toString();
+    }
+
+    public readStringHex(indexValue: number): string {
+        return this.readData(indexValue).toString("hex");
+    }
+
+    public readInt8(indexValue: number): number {
+        let dataPosition = this.getDataPosition(indexValue);
+        if (dataPosition == -1) {
+            return 0;
+        }
+        dataPosition = dataPosition + 2;
+        if (dataPosition >= this.data.length) {
+            return 0;
+        }
+        return this.data.readInt8(dataPosition);
+    }
+
+    public readData(indexValue: number): Buffer {
+        let dataPosition = this.getDataPosition(indexValue);
+        if (dataPosition == -1) {
+            return Buffer.from("");
+        }
+        dataPosition++;
+        if (dataPosition >= this.data.length) {
+            return Buffer.from("");
+        }
+        const nextStep = this.getNextStep(indexValue, dataPosition, this.data);
+        let tmp;
+        if (nextStep == 1) {
+            tmp = this.data.readInt8(dataPosition);
+        } else {
+            tmp = this.data.readUint16LE(dataPosition);
+        }
+        if (dataPosition + nextStep + tmp > this.data.length) {
+            return Buffer.from("");
+        }
+        return this.data.subarray(dataPosition + nextStep, dataPosition + nextStep + tmp);
+    }
+
+    private getDataPosition(indexValue: number): number {
+        if (this.data && this.data.length >= 1) {
+            for (let currentPosition = 0; currentPosition < this.data.length;) {
+                if (this.data.readInt8(currentPosition) == indexValue) {
+                    return currentPosition;
+                } else {
+                    const value = this.data.readInt8(currentPosition);
+                    currentPosition++;
+                    if (currentPosition >= this.data.length) {
+                        break;
+                    }
+                    const nextStep = this.getNextStep(value, currentPosition, this.data);
+                    if ((currentPosition + nextStep) >= this.data.length) {
+                        break;
+                    }
+                    if (nextStep == 1) {
+                        currentPosition = this.data.readInt8(currentPosition) + currentPosition + nextStep;
+                    } else {
+                        currentPosition = this.data.readUint16LE(currentPosition) + currentPosition + nextStep;
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+
+    private getNextStep(indexValue: number, position: number, data: Buffer): number {
+        const newPosition = position + 1 + data.readUInt8(position);
+        return (newPosition == data.length || newPosition > data.length || data.readInt8(newPosition) == indexValue + 1) ? 1 : 2;
     }
 
 }
@@ -388,6 +488,31 @@ export const hexWeek = function(schedule: Schedule): string {
         return result.toString(16);
     }
     return "ff";
+}
+
+export const hexStringScheduleToSchedule = function(startDay: string, startTime: string, endDay:string, endTime: string, week: string): Schedule {
+    const SUNDAY    = 1;
+    const MONDAY    = 2;
+    const TUESDAY   = 4;
+    const WEDNESDAY = 8;
+    const THUERSDAY = 16;
+    const FRIDAY    = 32;
+    const SATURDAY  = 64;
+
+    const weekNumber = Number.parseInt(week, 16);
+    return {
+        startDateTime: startDay === "00000000" ? undefined : new Date(Number.parseInt(`${startDay.substring(2,4)}${startDay.substring(0,2)}`, 16), Number.parseInt(startDay.substring(4,6), 16) - 1, Number.parseInt(startDay.substring(6,8), 16), Number.parseInt(startTime.substring(0,2), 16), Number.parseInt(startTime.substring(2,4), 16)),
+        endDateTime: endDay === "ffffffff" ? undefined : new Date(Number.parseInt(`${endDay.substring(2,4)}${endDay.substring(0,2)}`, 16), Number.parseInt(endDay.substring(4,6), 16) - 1, Number.parseInt(endDay.substring(6,8), 16), Number.parseInt(endTime.substring(0,2), 16), Number.parseInt(endTime.substring(2,4), 16)),
+        week: {
+            monday: (weekNumber & MONDAY) == MONDAY,
+            tuesday: (weekNumber & TUESDAY) == TUESDAY,
+            wednesday: (weekNumber & WEDNESDAY) == WEDNESDAY,
+            thursday: (weekNumber & THUERSDAY) == THUERSDAY,
+            friday: (weekNumber & FRIDAY) == FRIDAY,
+            saturday: (weekNumber & SATURDAY) == SATURDAY,
+            sunday: (weekNumber & SUNDAY) == SUNDAY,
+        },
+    };
 }
 
 export const randomNumber = function(min: number, max: number): number {
@@ -534,4 +659,72 @@ export const getT8170DetectionMode = function(value: number, type: T8170Detectio
         result = type | value;
     }
     return result;
+}
+
+export const isIndoorNotitficationEnabled = function(value: number, type: IndoorS350NotificationTypes): boolean {
+    return (type & value) == type;
+}
+
+export const getIndoorNotification = function(value: number, type: IndoorS350NotificationTypes, enable: boolean): number {
+    let result = 0;
+    if (!enable) {
+        result = (type ^ value) + 800;
+    } else {
+        result = type | value;
+    }
+    return result;
+}
+
+export const isFloodlightT8425NotitficationEnabled = function(value: number, type: FloodlightT8425NotificationTypes): boolean {
+    return (type & value) == type;
+}
+
+export const getFloodLightT8425Notification = function(value: number, type: FloodlightT8425NotificationTypes, enable: boolean): number {
+    let result = 0;
+    if (!enable) {
+        result = (type ^ value);
+    } else {
+        result = type | value;
+    }
+    return result;
+}
+
+export const getLockEventType = function(event: LockPushEvent): number {
+    switch(event) {
+        case LockPushEvent.AUTO_LOCK:
+        case LockPushEvent.AUTO_UNLOCK:
+            return 1;
+        case LockPushEvent.MANUAL_LOCK:
+        case LockPushEvent.MANUAL_UNLOCK:
+            return 2;
+        case LockPushEvent.APP_LOCK:
+        case LockPushEvent.APP_UNLOCK:
+            return 3;
+        case LockPushEvent.PW_LOCK:
+        case LockPushEvent.PW_UNLOCK:
+            return 4;
+        case LockPushEvent.FINGER_LOCK:
+        case LockPushEvent.FINGERPRINT_UNLOCK:
+            return 5;
+        case LockPushEvent.TEMPORARY_PW_LOCK:
+        case LockPushEvent.TEMPORARY_PW_UNLOCK:
+            return 6;
+        case LockPushEvent.KEYPAD_LOCK:
+            return 7;
+    }
+    return 0;
+}
+
+export const switchSmartLockNotification = function(currentValue: number, mode: SmartLockNotification, enable: boolean): number {
+    let result = 0;
+    if (enable) {
+        result = mode | currentValue;
+    } else {
+        result = ~mode & currentValue;
+    }
+    return result;
+}
+
+export const isSmartLockNotification = function(value: number, mode: SmartLockNotification): boolean {
+    return (value & mode) !== 0;
 }
