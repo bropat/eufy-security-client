@@ -4500,6 +4500,10 @@ export class SmartDrop extends Camera {
                 this.updateProperty(PropertyName.DeviceOpenedByName, "");
             }
             this.emit("open", this, open);
+        } else if (metadata.name === PropertyName.DeviceDeliveries) {
+            this.updateProperty(PropertyName.DevicePackageDelivered, newValue as number > 0);
+        } else if (metadata.name === PropertyName.DevicePackageDelivered) {
+            this.emit("package delivered", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceLowBatteryAlert) {
             this.emit("low battery", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceTamperingAlert) {

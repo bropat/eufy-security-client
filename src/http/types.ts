@@ -831,6 +831,7 @@ export enum PropertyName {
     DeviceBatteryFullyChargedAlert = "batteryFullyChargedAlert",
     DeviceIsDeliveryDenied = "isDeliveryDenied",
     DeviceHasMasterPin = "hasMasterPin",
+    DeviceDeliveries = "deliveries",
 
     DeviceHiddenMotionDetectionSensitivity = "hidden-motionDetectionSensitivity",
     DeviceHiddenMotionDetectionMode = "hidden-motionDetectionMode",
@@ -5100,6 +5101,16 @@ export const DeviceHasMasterPinProperty: PropertyMetadataBoolean = {
     default: false,
 }
 
+export const DeviceDeliveriesProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SMART_DROP_IS_PIN_REQUIRED,
+    name: PropertyName.DeviceDeliveries,
+    label: "Deliveries",
+    readable: true,
+    writeable: false,
+    type: "number",
+    default: 0,
+}
+
 export const FloodlightT8420XDeviceProperties: IndexedProperty = {
     ...GenericDeviceProperties,
     [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
@@ -7344,6 +7355,8 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualitySmartDropProperty,
         [PropertyName.DeviceIsDeliveryDenied]: DeviceIsDeliveryDeniedProperty,
         [PropertyName.DeviceHasMasterPin]: DeviceHasMasterPinProperty,
+        [PropertyName.DeviceDeliveries]: DeviceDeliveriesProperty,
+        [PropertyName.DevicePackageDelivered]: DevicePackageDeliveredProperty,
     },
     [DeviceType.WALL_LIGHT_CAM]: {
         ...GenericDeviceProperties,
