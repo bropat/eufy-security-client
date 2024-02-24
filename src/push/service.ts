@@ -618,6 +618,26 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         if (cusPushData.file_path && cusPushData.file_path !== null && cusPushData.file_path !== undefined) {
                             normalizedMessage.file_path = cusPushData.file_path
                         }
+                        normalizedMessage.msg_type = cusPushData.msg_type;
+                    } else if (Device.isSmartDrop(normalizedMessage.type)) {
+                        try {
+                            normalizedMessage.open = cusPushData.e !== undefined ? Number.parseInt(cusPushData.e) : 0;
+                        } catch (err) {
+                            const error = ensureError(err);
+                            rootPushLogger.error(`Normalize push message - Type ${DeviceType[normalizedMessage.type]} CusPushData - open - Error`, { error: getError(error), message: message });
+                        }
+                        try {
+                            normalizedMessage.openType = cusPushData.r !== undefined ? Number.parseInt(cusPushData.r) : 0;
+                        } catch (err) {
+                            const error = ensureError(err);
+                            rootPushLogger.error(`Normalize push message - Type ${DeviceType[normalizedMessage.type]} CusPushData - openType - Error`, { error: getError(error), message: message });
+                        }
+                        normalizedMessage.person_name = cusPushData.p;
+                        normalizedMessage.pin = cusPushData.u;
+                        normalizedMessage.channel = cusPushData.channel !== undefined ? cusPushData.channel : 0;
+                        normalizedMessage.cipher = cusPushData.cipher !== undefined ? cusPushData.cipher : 0;
+                        normalizedMessage.event_session = cusPushData.session_id !== undefined ? cusPushData.session_id : "";
+                        normalizedMessage.file_path = cusPushData.file_path !== undefined ? cusPushData.file_path : "";
                     }
                 }
             }

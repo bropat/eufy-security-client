@@ -68,7 +68,7 @@
 | ![T8960 image](_media/keypad_small.jpg) | Keypad (T8960) | :heavy_check_mark: |  |
 | ![T7400 image](_media/smartsafe_s10_t7400_small.jpg) | Smart Safe S10 (T7400) | :heavy_check_mark: | Firmware: 1.0.3.4 (20221029) |
 | ![T7401 image](_media/smartsafe_s12_t7401_small.jpg) | Smart Safe S12 (T7401) | :heavy_exclamation_mark: |  |
-| ![T8790 image](_media/smartdrop_t8790_small.jpg) | Smart Drop S300 (T8790; SmartDrop) |  |  |
+| ![T8790 image](_media/smartdrop_t8790_small.jpg) | Smart Drop S300 (T8790; SmartDrop) | :heavy_check_mark: | Firmware: 1.3.3.9 (20231209) |
 | ![T8452 image](_media/garage_camera_t8452_small.jpg) | Garage-Control Cam E110 (T8452; Garage-Control Cam) | :heavy_check_mark: | Firmware: 1.2.3.1 (20230521) |
 | ![T87B0 image](_media/smarttrack_link_t87B0_small.jpg) | SmartTrack Link (T87B0) | :heavy_check_mark: | Firmware: 1.5.6 (20231012) |
 | ![T87B2 image](_media/smarttrack_card_t87B2_small.jpg) | SmartTrack Card (T87B2) | :heavy_exclamation_mark: |  |

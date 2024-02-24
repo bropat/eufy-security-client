@@ -82,6 +82,12 @@ export interface EufySecurityEvents {
     "device low battery": (device: Device, state: boolean) => void;
     "device jammed": (device: Device, state: boolean) => void;
     "device pin verified": (device: Device, successfull: boolean) => void;
+    "device tampering": (device: Device, state: boolean) => void;
+    "device low temperature": (device: Device, state: boolean) => void;
+    "device high temperature": (device: Device, state: boolean) => void;
+    "device pin incorrect": (device: Device, state: boolean) => void;
+    "device lid stuck": (device: Device, state: boolean) => void;
+    "device battery fully charged": (device: Device, state: boolean) => void;
     "station added": (station: Station) => void;
     "station removed": (station: Station) => void;
     "station livestream start": (station: Station, device: Device, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;

@@ -597,6 +597,14 @@ export enum CommandType {
     CMD_SMARTLOCK_GET_DOOR_STATUS = 1972,
     CMD_TRANSFER_PAYLOAD = 1940,
     CMD_WIFILOCK_KEYPAD_ENTER_OTA = 1933,
+    CMD_SMART_DROP_DELIVERY_MODE = 2103,
+    CMD_SMART_DROP_OPEN = 2105,
+    CMD_SMART_DROP_OPEN_LID = 2100,
+    CMD_SMART_DROP_IS_DENIED_DELIVERY = 2106,
+    // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+    CMD_SMART_DROP_HAS_MASTER_PIN = 2109,
+    // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+    CMD_SMART_DROP_IS_PIN_REQUIRED = 2107,
 }
 
 export enum MessageType {

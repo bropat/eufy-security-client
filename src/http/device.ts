@@ -8,7 +8,7 @@ import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, Index
 import { CommandType, ESLAnkerBleConstant, TrackerCommandType } from "../p2p/types";
 import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImage, getImagePath, getLockEventType, hexDate, hexTime, hexWeek, isFloodlightT8425NotitficationEnabled, isHB3DetectionModeEnabled, isIndoorNotitficationEnabled, isPrioritySourceType, isSmartLockNotification, isT8170DetectionModeEnabled, WritePayload } from "./utils";
 import { DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds, isCharging } from "../p2p/utils";
-import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent, HB3PairedDevicePushEvent, GarageDoorPushEvent } from "../push/types";
+import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent, HB3PairedDevicePushEvent, GarageDoorPushEvent, SmartDropOpen, SmartDropOpenedBy, SmartDropPushEvent } from "../push/types";
 import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
 import { getError, isEmpty, validValue } from "../utils";
 import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
@@ -881,8 +881,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
             newMetadata[PropertyName.DeviceDetectionStatisticsDetectedEvents] = DeviceDetectionStatisticsDetectedEventsProperty;
             newMetadata[PropertyName.DeviceDetectionStatisticsRecordedEvents] = DeviceDetectionStatisticsRecordedEventsProperty;
 
-            //TODO: Check with future devices if this property overriding is correct (for example with indoor cameras etc.)
-            newMetadata[PropertyName.DeviceEnabled] = DeviceEnabledSoloProperty;
+            if (!this.isSmartDrop()) {
+                //TODO: Check with future devices if this property overriding is correct (for example with indoor cameras etc.)
+                newMetadata[PropertyName.DeviceEnabled] = DeviceEnabledSoloProperty;
+            }
 
             metadata = newMetadata;
         } else if (Object.keys(metadata).length === 0) {
@@ -987,7 +989,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA_GARAGE_T8453 ||
             type == DeviceType.CAMERA_GARAGE_T8452 ||
             type == DeviceType.CAMERA_FG ||
-            type == DeviceType.INDOOR_PT_CAMERA_S350)
+            type == DeviceType.INDOOR_PT_CAMERA_S350 ||
+            type == DeviceType.SMART_DROP)
             return true;
         return false;
     }
@@ -1027,6 +1030,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SMART_SAFE_7403 ||
             type == DeviceType.CAMERA_FG ||
             type == DeviceType.WALL_LIGHT_CAM_81A0 ||
+            type == DeviceType.SMART_DROP ||
             type == DeviceType.OUTDOOR_PT_CAMERA)
             //TODO: Add other battery devices
             return true;
@@ -4300,6 +4304,224 @@ export class DoorbellLock extends DoorbellCamera {
         }
     }
 
+}
+export class SmartDrop extends Camera {
+
+    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<SmartDrop> {
+        return new SmartDrop(api, device);
+    }
+
+    public getStateChannel(): string {
+        return "boxes";
+    }
+
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
+        if (message.type !== undefined && message.event_type !== undefined) {
+            if (message.device_sn === this.getSerial()) {
+                try {
+                    if (station.hasCommand(CommandName.StationDatabaseQueryLatestInfo)) {
+                        station.databaseQueryLatestInfo(() => {
+                            if (!isEmpty(message.pic_url)) {
+                                getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
+                                    if (image.data.length > 0) {
+                                        this.updateProperty(PropertyName.DevicePicture, image, true);
+                                    }
+                                }).catch((err) => {
+                                    const error = ensureError(err);
+                                    rootHTTPLogger.debug(`SmartDrop process push notification - CusPushEvent.SECURITY - Device Get picture - Fallback Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                                });
+                            }
+                        });
+                    } else if (!isEmpty(message.pic_url)) {
+                        getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
+                            if (image.data.length > 0) {
+                                this.updateProperty(PropertyName.DevicePicture, image, true);
+                            }
+                        }).catch((err) => {
+                            const error = ensureError(err);
+                            rootHTTPLogger.debug(`SmartDrop process push notification - CusPushEvent.SECURITY - Device Get picture - Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                        });
+                    }
+                    if (message.event_type === CusPushEvent.SMART_DROP) {
+                        switch (message.open) {
+                            case SmartDropOpen.OPEN:
+                                // Open
+                                this.updateRawProperty(CommandType.CMD_SMART_DROP_OPEN, "1", "push");
+                                switch (message.openType) {
+                                    case SmartDropOpenedBy.APP:
+                                        // Open remotely via App
+                                        this.updateProperty(PropertyName.DeviceOpenedByType, 1);
+                                        break;
+                                    case SmartDropOpenedBy.PIN:
+                                        // Open with PIN
+                                        if (message.pin === "0") {
+                                            // Master PIN
+                                            this.updateProperty(PropertyName.DeviceOpenedByType, 2);
+                                        } else {
+                                            // Delivery PIN
+                                            // who: message.person_name
+                                            this.updateProperty(PropertyName.DeviceOpenedByType, 3);
+                                            this.updateProperty(PropertyName.DeviceOpenedByName, message.person_name !== undefined ? message.person_name : "");
+                                        }
+                                        break;
+                                    case SmartDropOpenedBy.WITHOUT_KEY:
+                                        // Opened without key
+                                        this.updateProperty(PropertyName.DeviceOpenedByType, 4);
+                                        break;
+                                    case SmartDropOpenedBy.EMERGENCY_RELEASE_BUTTON:
+                                        // Opened via emergency release button
+                                        this.updateProperty(PropertyName.DeviceOpenedByType, 5);
+                                        break;
+                                    case SmartDropOpenedBy.KEY:
+                                        // Opened with key
+                                        this.updateProperty(PropertyName.DeviceOpenedByType, 6);
+                                        break;
+                                    default:
+                                        rootHTTPLogger.debug("SmartDrop process push notification - Unhandled SmartDrop push event (openType)", message);
+                                        break;
+                                }
+                                break;
+                            case SmartDropOpen.CLOSED:
+                                // Closed
+                                this.updateRawProperty(CommandType.CMD_SMART_DROP_OPEN, "0", "push");
+                                break;
+                            case SmartDropOpen.LID_STUCK:
+                                // The lid may be stuck
+                                this.updateProperty(PropertyName.DeviceLidStuckAlert, true);
+                                this.clearEventTimeout(DeviceEvent.LidStuckAlert);
+                                this.eventTimeouts.set(DeviceEvent.LidStuckAlert, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceLidStuckAlert, false);
+                                    this.eventTimeouts.delete(DeviceEvent.LidStuckAlert);
+                                }, eventDurationSeconds * 1000));
+                                break;
+                            case SmartDropOpen.PIN_INCORRECT:
+                                // Someone had entered incorrect PIN
+                                this.updateProperty(PropertyName.DevicePinIncorrectAlert, true);
+                                this.clearEventTimeout(DeviceEvent.PinIncorrectAlert);
+                                this.eventTimeouts.set(DeviceEvent.PinIncorrectAlert, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePinIncorrectAlert, false);
+                                    this.eventTimeouts.delete(DeviceEvent.PinIncorrectAlert);
+                                }, eventDurationSeconds * 1000));
+                                break;
+                            case SmartDropOpen.LEFT_OPENED:
+                                // Has been left opened for 1 minute
+                                this.updateProperty(PropertyName.DeviceLongTimeNotCloseAlert, true);
+                                this.clearEventTimeout(DeviceEvent.LongTimeNotClose);
+                                this.eventTimeouts.set(DeviceEvent.LongTimeNotClose, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceLongTimeNotCloseAlert, false);
+                                    this.eventTimeouts.delete(DeviceEvent.LongTimeNotClose);
+                                }, eventDurationSeconds * 1000));
+                                break;
+                            case SmartDropOpen.LOW_TEMPERATURE_WARNING:
+                                // Low temperature warning
+                                this.updateProperty(PropertyName.DeviceLowTemperatureAlert, true);
+                                this.clearEventTimeout(DeviceEvent.LowTemperatureAlert);
+                                this.eventTimeouts.set(DeviceEvent.LowTemperatureAlert, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceLowTemperatureAlert, false);
+                                    this.eventTimeouts.delete(DeviceEvent.LowTemperatureAlert);
+                                }, eventDurationSeconds * 1000));
+                                break;
+                            default:
+                                rootHTTPLogger.debug("SmartDrop process push notification - Unhandled SmartDrop push event (1)", message);
+                                break;
+                        }
+                    } else if (message.event_type !== 0) {
+                        switch(message.event_type) {
+                            case SmartDropPushEvent.LOW_BATTERY:
+                                // Low battery warning
+                                this.updateProperty(PropertyName.DeviceLowBatteryAlert, true);
+                                this.clearEventTimeout(DeviceEvent.LowBattery);
+                                this.eventTimeouts.set(DeviceEvent.LowBattery, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceLowBatteryAlert, false);
+                                    this.eventTimeouts.delete(DeviceEvent.LowBattery);
+                                }, eventDurationSeconds * 1000));
+                                break;
+                            case SmartDropPushEvent.OVERHEATING_WARNING:
+                                // Overheating warning
+                                this.updateProperty(PropertyName.DeviceHighTemperatureAlert, true);
+                                this.clearEventTimeout(DeviceEvent.HighTemperatureAlert);
+                                this.eventTimeouts.set(DeviceEvent.HighTemperatureAlert, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceHighTemperatureAlert, false);
+                                    this.eventTimeouts.delete(DeviceEvent.HighTemperatureAlert);
+                                }, eventDurationSeconds * 1000));
+                                break;
+                            case SmartDropPushEvent.TAMPERED_WARNING:
+                                if (message.type === 2) {
+                                    // Warning have been tampered
+                                    this.updateProperty(PropertyName.DeviceTamperingAlert, true);
+                                    this.clearEventTimeout(DeviceEvent.TamperingAlert);
+                                    this.eventTimeouts.set(DeviceEvent.TamperingAlert, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceTamperingAlert, false);
+                                        this.eventTimeouts.delete(DeviceEvent.TamperingAlert);
+                                    }, eventDurationSeconds * 1000));
+                                }
+                                break;
+                            case SmartDropPushEvent.BATTERY_FULLY_CHARGED:
+                                // Battery fully charged
+                                this.updateProperty(PropertyName.DeviceBatteryFullyChargedAlert, true);
+                                this.clearEventTimeout(DeviceEvent.BatteryFullyChargedAlert);
+                                this.eventTimeouts.set(DeviceEvent.BatteryFullyChargedAlert, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceBatteryFullyChargedAlert, false);
+                                    this.eventTimeouts.delete(DeviceEvent.BatteryFullyChargedAlert);
+                                }, eventDurationSeconds * 1000));
+                                break;
+                            case SmartDropPushEvent.PERSON_DETECTED:
+                                //Someone has been spotted
+                                this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
+                                this.updateProperty(PropertyName.DevicePersonDetected, true);
+                                this.clearEventTimeout(DeviceEvent.PersonDetected);
+                                this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePersonName, "");
+                                    this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                                }, eventDurationSeconds * 1000));
+                                break;
+                            default:
+                                rootHTTPLogger.debug("SmartDrop process push notification - Unhandled SmartDrop push event (2)", message);
+                        }
+                    } else {
+                        rootHTTPLogger.debug("SmartDrop process push notification - Unhandled SmartDrop push event type", message);
+                    }
+                } catch (err) {
+                    const error = ensureError(err);
+                    rootHTTPLogger.debug(`SmartDrop process push notification - Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                }
+            }
+        }
+    }
+
+    protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
+        super.handlePropertyChange(metadata, oldValue, newValue);
+        if (metadata.name === PropertyName.DeviceOpen) {
+            const open = (newValue as boolean);
+            if (open === false) {
+                this.updateProperty(PropertyName.DeviceOpenedByType, 0);
+                this.updateProperty(PropertyName.DeviceOpenedByName, "");
+            }
+            this.emit("open", this, open);
+        } else if (metadata.name === PropertyName.DeviceDeliveries) {
+            this.updateProperty(PropertyName.DevicePackageDelivered, newValue as number > 0);
+        } else if (metadata.name === PropertyName.DevicePackageDelivered) {
+            this.emit("package delivered", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceLowBatteryAlert) {
+            this.emit("low battery", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceTamperingAlert) {
+            this.emit("tampering", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceLongTimeNotCloseAlert) {
+            this.emit("long time not close", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceLowTemperatureAlert) {
+            this.emit("low temperature", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceHighTemperatureAlert) {
+            this.emit("high temperature", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DevicePinIncorrectAlert) {
+            this.emit("pin incorrect", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceLidStuckAlert) {
+            this.emit("lid stuck", this, newValue as boolean);
+        } else if (metadata.name === PropertyName.DeviceBatteryFullyChargedAlert) {
+            this.emit("battery fully charged", this, newValue as boolean);
+        }
+    }
 }
 
 export class UnknownDevice extends Device {

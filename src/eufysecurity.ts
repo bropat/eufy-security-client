@@ -12,7 +12,7 @@ import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, Sta
 import { CommandName, DeviceType, FloodlightT8425NotificationTypes, HB3DetectionTypes, IndoorS350NotificationTypes, NotificationSwitchMode, NotificationType, PropertyName, SoloCameraDetectionTypes, T8170DetectionTypes, UserPasswordType } from "./http/types";
 import { PushNotificationService } from "./push/service";
 import { Credentials, PushMessage } from "./push/models";
-import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, GarageCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera, Tracker, DoorbellLock, LockKeypad } from "./http/device";
+import { BatteryDoorbellCamera, Camera, Device, EntrySensor, FloodlightCamera, GarageCamera, IndoorCamera, Keypad, Lock, MotionSensor, SmartSafe, SoloCamera, UnknownDevice, WallLightCam, WiredDoorbellCamera, Tracker, DoorbellLock, LockKeypad, SmartDrop } from "./http/device";
 import { AlarmEvent, CommandType, DatabaseReturnCode, P2PConnectionType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, TFCardStatus } from "./p2p/types";
 import { DatabaseCountByDate, DatabaseQueryLatestInfo, DatabaseQueryLocal, StreamMetadata, DatabaseQueryLatestInfoLocal, DatabaseQueryLatestInfoCloud, RGBColor, DynamicLighting, MotionZone, CrossTrackingGroupEntry } from "./p2p/interfaces";
 import { CommandResult, StorageInfoBodyHB3 } from "./p2p/models";
@@ -633,6 +633,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     new_device = WallLightCam.getInstance(this.api, device);
                 } else if (Device.isGarageCamera(device.device_type)) {
                     new_device = GarageCamera.getInstance(this.api, device);
+                } else if (Device.isSmartDrop(device.device_type)) {
+                    new_device = SmartDrop.getInstance(this.api, device);
                 } else if (Device.isCamera(device.device_type)) {
                     new_device = Camera.getInstance(this.api, device);
                 } else if (Device.isLock(device.device_type)) {
@@ -682,6 +684,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         device.on("dog detected", (device: Device, state: boolean) => this.onDeviceDogDetected(device, state));
                         device.on("dog lick detected", (device: Device, state: boolean) => this.onDeviceDogLickDetected(device, state));
                         device.on("dog poop detected", (device: Device, state: boolean) => this.onDeviceDogPoopDetected(device, state));
+                        device.on("tampering", (device: Device, state: boolean) => this.onDeviceTampering(device, state));
+                        device.on("low temperature", (device: Device, state: boolean) => this.onDeviceLowTemperature(device, state));
+                        device.on("high temperature", (device: Device, state: boolean) => this.onDeviceHighTemperature(device, state));
+                        device.on("pin incorrect", (device: Device, state: boolean) => this.onDevicePinIncorrect(device, state));
+                        device.on("lid stuck", (device: Device, state: boolean) => this.onDeviceLidStuck(device, state));
+                        device.on("battery fully charged", (device: Device, state: boolean) => this.onDeviceBatteryFullyCharged(device, state));
                         this.addDevice(device);
                         device.initialize();
                     } catch (err) {
@@ -1693,6 +1701,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             case PropertyName.DeviceNightvisionOptimizationSide:
                 station.setNightvisionOptimizationSide(device, value as number);
                 break;
+            case PropertyName.DeviceOpenMethod:
+                station.setOpenMethod(device, value as number);
+                break;
+            case PropertyName.DeviceMotionActivatedPrompt:
+                station.setMotionActivatedPrompt(device, value as boolean);
+                break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
                     throw new ReadOnlyPropertyError("Property is read only", { context: { device: deviceSN, propertyName: name, propertyValue: value } });
@@ -2674,4 +2688,29 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             station.updateProperty(PropertyName.StationStorageInfoHdd, storageInfo.hdd_info);
         }
     }
+
+    private onDeviceTampering(device: Device, state: boolean): void {
+        this.emit("device tampering", device, state);
+    }
+
+    private onDeviceLowTemperature(device: Device, state: boolean): void {
+        this.emit("device low temperature", device, state);
+    }
+
+    private onDeviceHighTemperature(device: Device, state: boolean): void {
+        this.emit("device high temperature", device, state);
+    }
+
+    private onDevicePinIncorrect(device: Device, state: boolean): void {
+        this.emit("device pin incorrect", device, state);
+    }
+
+    private onDeviceLidStuck(device: Device, state: boolean): void {
+        this.emit("device lid stuck", device, state);
+    }
+
+    private onDeviceBatteryFullyCharged(device: Device, state: boolean): void {
+        this.emit("device battery fully charged", device, state);
+    }
+
 }

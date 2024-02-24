@@ -15,7 +15,8 @@ export enum CusPushEvent {
     MOTION_SENSOR_PIR = 14,
     ALARM_DELAY = 16,
     HUB_BATT_POWERED = 17,
-    SENSOR_NO_OPEN = 18
+    SENSOR_NO_OPEN = 18,
+    SMART_DROP = 20,
 }
 
 export enum CusPushAlarmType {
@@ -211,4 +212,29 @@ export enum NotificationStyle {
 export enum AlarmAction {
     CANCEL_APP = 0,
     CANCEL_NOLIGHT = 1,
+}
+
+export enum SmartDropPushEvent {
+    LOW_BATTERY = 6,
+    OVERHEATING_WARNING = 7,
+    TAMPERED_WARNING = 10,
+    BATTERY_FULLY_CHARGED = 11,
+    PERSON_DETECTED = 3102,
+}
+
+export enum SmartDropOpen {
+    OPEN = 1,
+    CLOSED = 2,
+    LID_STUCK = 3,
+    PIN_INCORRECT = 4,
+    LEFT_OPENED = 10,
+    LOW_TEMPERATURE_WARNING = 11
+}
+
+export enum SmartDropOpenedBy {
+    APP = 1,
+    PIN = 2,
+    WITHOUT_KEY = 3,
+    EMERGENCY_RELEASE_BUTTON = 4,
+    KEY = 5,
 }

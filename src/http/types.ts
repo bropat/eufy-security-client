@@ -540,6 +540,12 @@ export enum DeviceEvent {
     DogLickDetected,
     DogPoopDetected,
     Lock,
+    TamperingAlert,
+    LowTemperatureAlert,
+    HighTemperatureAlert,
+    LidStuckAlert,
+    PinIncorrectAlert,
+    BatteryFullyChargedAlert,
 }
 
 export enum PropertyName {
@@ -812,6 +818,20 @@ export enum PropertyName {
     DeviceBeepVolume = "beepVolume",
     DeviceNightvisionOptimization = "nightvisionOptimization",
     DeviceNightvisionOptimizationSide = "nightvisionOptimizationSide",
+    DeviceOpenMethod = "openMethod",
+    DeviceMotionActivatedPrompt = "motionActivatedPrompt",
+    DeviceOpen = "open",
+    DeviceOpenedByType = "openedByType",
+    DeviceOpenedByName = "openedByName",
+    DeviceTamperingAlert = "tamperingAlert",
+    DeviceLowTemperatureAlert = "lowTemperatureAlert",
+    DeviceHighTemperatureAlert = "highTemperatureAlert",
+    DeviceLidStuckAlert = "lidStuckAlert",
+    DevicePinIncorrectAlert = "pinIncorrectAlert",
+    DeviceBatteryFullyChargedAlert = "batteryFullyChargedAlert",
+    DeviceIsDeliveryDenied = "isDeliveryDenied",
+    DeviceHasMasterPin = "hasMasterPin",
+    DeviceDeliveries = "deliveries",
 
     DeviceHiddenMotionDetectionSensitivity = "hidden-motionDetectionSensitivity",
     DeviceHiddenMotionDetectionMode = "hidden-motionDetectionMode",
@@ -2139,6 +2159,15 @@ export const DeviceSpeakerVolumeWalllightProperty: PropertyMetadataNumeric = {
     },
 }
 
+export const DeviceSpeakerVolumeSmartDropProperty: PropertyMetadataNumeric = {
+    ...DeviceSpeakerVolumeProperty,
+    states: {
+        75: "Low",
+        85: "Medium",
+        100: "High"
+    },
+}
+
 export const DeviceRingtoneVolumeBatteryDoorbellProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_BAT_DOORBELL_SET_RINGTONE_VOLUME,
     name: PropertyName.DeviceRingtoneVolume,
@@ -2186,6 +2215,21 @@ export const DevicePowerWorkingModeProperty: PropertyMetadataNumeric = {
         0: "Optimal Battery Life",
         1: "Optimal Surveillance",
         2: "Custom Recording",
+    },
+}
+
+export const DevicePowerWorkingModeSmartDropProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SET_PIR_POWERMODE,
+    name: PropertyName.DevicePowerWorkingMode,
+    label: "Power Working Mode",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Optimal Battery Life",
+        1: "Optimal Surveillance",
+        2: "Custom Recording",
+        4: "Delivery Mode",
     },
 }
 
@@ -2380,6 +2424,16 @@ export const DeviceVideoStreamingQualityS340Property: PropertyMetadataNumeric = 
         1: "HD (720P)",
         2: "Full HD (1080P)",
         3: "3K HD",
+    },
+}
+
+export const DeviceVideoStreamingQualitySmartDropProperty: PropertyMetadataNumeric = {
+    ...DeviceVideoStreamingQualityBatteryDoorbellProperty,
+    states: {
+        0: "Auto",
+        1: "Low",
+        2: "Medium",
+        3: "High",
     },
 }
 
@@ -4905,6 +4959,158 @@ export const DeviceNightvisionOptimizationSideProperty: PropertyMetadataNumeric 
     },
 }
 
+export const DeviceOpenMethodProperty: PropertyMetadataNumeric = {
+    //TODO: Check cloud property ID
+    key: CommandType.CMD_SMART_DROP_DELIVERY_MODE,
+    name: PropertyName.DeviceOpenMethod,
+    label: "Open Method",
+    readable: true,
+    writeable: true,
+    type: "number",
+    states: {
+        0: "Auto Switch (Recommended)",
+        1: "Open via PIN",
+        2: "Press to Open",
+    },
+}
+
+export const DeviceMotionActivatedPromptProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SET_AUDIO_MOTION_ACTIVATED_PROMPT,
+    name: PropertyName.DeviceMotionActivatedPrompt,
+    label: "Motion-Activated Prompt",
+    readable: true,
+    writeable: true,
+    type: "boolean",
+}
+
+export const DeviceOpenProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMART_DROP_OPEN,
+    name: PropertyName.DeviceOpen,
+    label: "Open",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+}
+
+export const DeviceOpenedByTypeProperty: PropertyMetadataNumeric = {
+    key: "custom_openedByType",
+    name: PropertyName.DeviceOpenedByType,
+    label: "Opened By Type",
+    readable: true,
+    writeable: false,
+    type: "number",
+    states: {
+        0: "None",
+        1: "App",
+        2: "Master PIN",
+        3: "Delivery PIN",
+        4: "Without Key",
+        5: "Emergency Release Button",
+        6: "Key",
+    },
+    default: 0,
+}
+
+export const DeviceOpenedByNameProperty: PropertyMetadataString = {
+    key: "custom_openedByName",
+    name: PropertyName.DeviceOpenedByName,
+    label: "Opened By Name",
+    readable: true,
+    writeable: false,
+    type: "string",
+    default: "",
+}
+
+export const DeviceTamperingAlertProperty: PropertyMetadataBoolean = {
+    key: "custom_tamperingAlert",
+    name: PropertyName.DeviceTamperingAlert,
+    label: "Tampering Alert",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+    default: false,
+}
+
+export const DeviceLowTemperatureAlertProperty: PropertyMetadataBoolean = {
+    key: "custom_lowTemperatureAlert",
+    name: PropertyName.DeviceLowTemperatureAlert,
+    label: "Low Temperature Alert",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+    default: false,
+}
+
+export const DeviceHighTemperatureAlertProperty: PropertyMetadataBoolean = {
+    key: "custom_highTemperatureAlert",
+    name: PropertyName.DeviceHighTemperatureAlert,
+    label: "High Temperature Alert",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+    default: false,
+}
+
+export const DeviceLidStuckAlertProperty: PropertyMetadataBoolean = {
+    key: "custom_lidStuckAlert",
+    name: PropertyName.DeviceLidStuckAlert,
+    label: "Lid Stuck Alert",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+    default: false,
+}
+
+export const DevicePinIncorrectAlertProperty: PropertyMetadataBoolean = {
+    key: "custom_pinIncorrectAlert",
+    name: PropertyName.DevicePinIncorrectAlert,
+    label: "PIN Incorrect Alert",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+    default: false,
+}
+
+export const DeviceBatteryFullyChargedAlertProperty: PropertyMetadataBoolean = {
+    key: "custom_batteryFullyChargedAlert",
+    name: PropertyName.DeviceBatteryFullyChargedAlert,
+    label: "Battery Fully Charged Alert",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+    default: false,
+}
+
+export const DeviceIsDeliveryDeniedProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMART_DROP_IS_DENIED_DELIVERY,
+    name: PropertyName.DeviceIsDeliveryDenied,
+    label: "Is Delivery Denied",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+    default: false,
+}
+
+export const DeviceHasMasterPinProperty: PropertyMetadataBoolean = {
+    key: CommandType.CMD_SMART_DROP_HAS_MASTER_PIN,
+    name: PropertyName.DeviceHasMasterPin,
+    label: "Has Master PIN",
+    readable: true,
+    writeable: false,
+    type: "boolean",
+    default: false,
+}
+
+export const DeviceDeliveriesProperty: PropertyMetadataNumeric = {
+    key: CommandType.CMD_SMART_DROP_IS_PIN_REQUIRED,
+    name: PropertyName.DeviceDeliveries,
+    label: "Deliveries",
+    readable: true,
+    writeable: false,
+    type: "number",
+    default: 0,
+}
+
 export const FloodlightT8420XDeviceProperties: IndexedProperty = {
     ...GenericDeviceProperties,
     [PropertyName.DeviceEnabled]: DeviceEnabledStandaloneProperty,
@@ -7112,6 +7318,46 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLongTimeNotCloseAlert]: DeviceLongTimeNotCloseAlertProperty,
         [PropertyName.DeviceWrongTryProtectAlert]: DeviceWrongTryProtectAlertProperty,
     },
+    [DeviceType.SMART_DROP]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
+        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityCamera2Property,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkSoloWiredDoorbellProperty,
+        [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+        [PropertyName.DevicePicture]: DevicePictureProperty,
+        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeSmartDropProperty,
+        [PropertyName.DeviceOpenMethod]: DeviceOpenMethodProperty,
+        [PropertyName.DeviceMotionActivatedPrompt]: DeviceMotionActivatedPromptProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceOpen]: DeviceOpenProperty,
+        [PropertyName.DeviceOpenedByName]: DeviceOpenedByNameProperty,
+        [PropertyName.DeviceOpenedByType]: DeviceOpenedByTypeProperty,
+        [PropertyName.DeviceTamperingAlert]: DeviceTamperingAlertProperty,
+        [PropertyName.DeviceLowTemperatureAlert]: DeviceLowTemperatureAlertProperty,
+        [PropertyName.DeviceHighTemperatureAlert]: DeviceHighTemperatureAlertProperty,
+        [PropertyName.DeviceLidStuckAlert]: DeviceLidStuckAlertProperty,
+        [PropertyName.DevicePinIncorrectAlert]: DevicePinIncorrectAlertProperty,
+        [PropertyName.DeviceBatteryFullyChargedAlert]: DeviceBatteryFullyChargedAlertProperty,
+        [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+        [PropertyName.DeviceLongTimeNotCloseAlert]: DeviceLongTimeNotCloseAlertProperty,
+        [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeSmartDropProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
+        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
+        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthWalllightProperty,
+        [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualitySmartDropProperty,
+        [PropertyName.DeviceIsDeliveryDenied]: DeviceIsDeliveryDeniedProperty,
+        [PropertyName.DeviceHasMasterPin]: DeviceHasMasterPinProperty,
+        [PropertyName.DeviceDeliveries]: DeviceDeliveriesProperty,
+        [PropertyName.DevicePackageDelivered]: DevicePackageDeliveredProperty,
+    },
     [DeviceType.WALL_LIGHT_CAM]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
@@ -8324,6 +8570,16 @@ export const StationProperties: Properties = {
     [DeviceType.SMART_TRACK_LINK]: {
         ...BaseStationProperties,
     },
+    [DeviceType.SMART_DROP]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+        [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+    },
 }
 
 export enum CommandName {
@@ -8354,6 +8610,7 @@ export enum CommandName {
     DeviceSavePresetPosition = "deviceSavePresetPosition",
     DeviceDeletePresetPosition = "deviceDeletePresetPosition",
 
+    DeviceOpen = "deviceOpen",
     StationReboot = "stationReboot",
     StationTriggerAlarmSound = "stationTriggerAlarmSound",
     StationChime = "stationChime",
@@ -8875,6 +9132,15 @@ export const DeviceCommands: Commands = {
     ],
     [DeviceType.SMART_TRACK_CARD]: [],
     [DeviceType.SMART_TRACK_LINK]: [],
+    [DeviceType.SMART_DROP]: [
+        CommandName.DeviceStartLivestream,
+        CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
+        CommandName.DeviceOpen,
+    ],
 }
 
 export const StationCommands: Commands = {
@@ -9186,4 +9452,6 @@ export const StationCommands: Commands = {
     [DeviceType.LOCK_WIFI_NO_FINGER]: [],
     [DeviceType.SMART_TRACK_CARD]: [],
     [DeviceType.SMART_TRACK_LINK]: [],
+    [DeviceType.SMART_DROP]: [
+    ],
 }
