@@ -90,6 +90,7 @@ Please use GitHub issues for this.
 * (bropat) Added support for Smart Lock S231 (T8520P; untested)
 * (bropat) Added support for Retrofit Smart Lock E110 (T8503; #208)
 * (bropat) Added support for Retrofit Smart Lock E130 (T8504; untested)
+* (bropat) Added support for Smart Drop S300 (T8790; #261 #364)
 * (bropat/martijnpoppen) Added support for Video Doorbell E340 (T8214; #406)
 * (martijnpoppen) Added support for MiniBase Chime (T8023)
 * (bropat/martijnpoppen) Added support for eufyCam E330 (Professional; T8600; #408)
