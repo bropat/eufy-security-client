@@ -92,6 +92,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.on("sensor status", (channel: number, status: number) => this.onSensorStatus(channel, status));
         this.p2pSession.on("garage door status", (channel: number, doorId: number, status: number) => this.onGarageDoorStatus(channel, doorId, status));
         this.p2pSession.on("storage info hb3", (channel: number, storageInfo: StorageInfoBodyHB3) => this.onStorageInfoHB3(channel, storageInfo));
+        this.p2pSession.on("sequence error", (channel: number, command: number, sequence: number, serialnumber: string) => this.onSequenceError(channel, command, sequence, serialnumber));
     }
 
     protected initializeState(): void {
@@ -8335,7 +8336,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 device.getChannel(),
                 this.lockPublicKey,
                 this.p2pSession.incLockSequenceNumber(),
-                Lock.encodeCmdAddUser(shortUserId, encodePasscode(passcode), username, schedule)
+                Lock.encodeCmdAddUser(shortUserId, encodePasscode(passcode).padEnd(16, "0"), username, schedule)
             );
             rootHTTPLogger.debug("Add user...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
 
@@ -8582,12 +8583,12 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
-    public updateUserPasscode(device: Device, username: string, shortUserId: string, passcode: string): void {
+    public updateUserPasscode(device: Device, username: string, passwordId: string, passcode: string): void {
         const commandData: CommandData = {
             name: CommandName.DeviceUpdateUserPasscode,
             value: {
                 username: username,
-                shortUserId: shortUserId,
+                passwordId: passwordId,
                 passcode: passcode
             }
         };
@@ -8600,11 +8601,11 @@ export class Station extends TypedEmitter<StationEvents> {
         if (passcode.length < 4 || passcode.length > 8 || !/^\d+$/.test(passcode)) {
             throw new InvalidCommandValueError("Passcode should contain only numbers and be between 4 and 8 long", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
-        rootHTTPLogger.debug(`Station update user passcode - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), username: username, shortUserId: shortUserId });
+        rootHTTPLogger.debug(`Station update user passcode - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), username: username, passwordId: passwordId });
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             const nestedPayload = {
                 passcode: encodePasscode(passcode),
-                passwordId: shortUserId,
+                passwordId: passwordId,
                 seq_num: this.p2pSession.incLockSequenceNumber()
             };
             const command = getLockP2PCommand(
@@ -8629,7 +8630,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 device.getChannel(),
                 this.lockPublicKey,
                 this.p2pSession.incLockSequenceNumber(),
-                Lock.encodeCmdModifyPassword(shortUserId, encodePasscode(passcode))
+                Lock.encodeCmdModifyPassword(passwordId, encodePasscode(passcode).padEnd(16, "0"))
             );
             rootHTTPLogger.debug("Station update user passcode - payload", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
 
@@ -8644,7 +8645,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 "mValue3": 0,
                 "payload": {
                     "passcode": encodePasscode(passcode).padEnd(16, "0"),
-                    "passwordId": shortUserId,
+                    "passwordId": passwordId,
                 }
             };
             rootHTTPLogger.debug("Station update user passcode - payload", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
@@ -8664,7 +8665,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.p2pSession.incLockSequenceNumber(),
                 Lock.encodeCmdSmartLockModifyPassword(
                     this.rawStation.member.admin_user_id,
-                    shortUserId,
+                    passwordId,
                     encodePasscode(passcode)
                 )
             );
@@ -8699,22 +8700,22 @@ export class Station extends TypedEmitter<StationEvents> {
                 case PropertyName.DeviceWrongTryProtection:
                     payload = Lock.encodeCmdSetLockParamWrongTryProtect(
                         value as boolean,
+                        device.getPropertyValue(PropertyName.DeviceWrongTryLockdownTime) as number,
                         device.getPropertyValue(PropertyName.DeviceWrongTryAttempts) as number,
-                        device.getPropertyValue(PropertyName.DeviceWrongTryLockdownTime) as number
                     );
                     break;
                 case PropertyName.DeviceWrongTryAttempts:
                     payload = Lock.encodeCmdSetLockParamWrongTryProtect(
                         device.getPropertyValue(PropertyName.DeviceWrongTryProtection) as boolean,
-                        value as number,
-                        device.getPropertyValue(PropertyName.DeviceWrongTryLockdownTime) as number
+                        device.getPropertyValue(PropertyName.DeviceWrongTryLockdownTime) as number,
+                        value as number
                     );
                     break;
                 case PropertyName.DeviceWrongTryLockdownTime:
                     payload = Lock.encodeCmdSetLockParamWrongTryProtect(
                         device.getPropertyValue(PropertyName.DeviceWrongTryProtection) as boolean,
+                        value as number,
                         device.getPropertyValue(PropertyName.DeviceWrongTryAttempts) as number,
-                        value as number
                     );
                     break;
                 case PropertyName.DeviceAutoLock:
@@ -9096,9 +9097,6 @@ export class Station extends TypedEmitter<StationEvents> {
         rootHTTPLogger.debug(`Station set notification - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             this.setAdvancedLockParams(device, PropertyName.DeviceNotification, value);
-        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
-            //TODO: Implement LockWifiR10 / LockWifiR20 commnand
-            throw new NotSupportedError("This functionality is not implemented by this device", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -9110,7 +9108,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
-        } else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        } else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiR10() || device.isLockWifiR20()) {
             let oldvalue = 0;
             const rawproperty = device.getRawProperty(CommandType.CMD_DOORLOCK_SET_PUSH_MODE);
             if (rawproperty !== undefined) {
@@ -9157,10 +9155,7 @@ export class Station extends TypedEmitter<StationEvents> {
         rootHTTPLogger.debug(`Station set notification locked - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
         if (device.isLockWifi() || device.isLockWifiNoFinger() || device.isLockWifiVideo()) {
             this.setAdvancedLockParams(device, PropertyName.DeviceNotificationLocked, value);
-        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
-            //TODO: Implement LockWifiR10 / LockWifiR20 commnand
-            throw new NotSupportedError("This functionality is not implemented by this device", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
-        } else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        } else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiR10() || device.isLockWifiR20()) {
             let oldvalue = 0;
             const rawproperty = device.getRawProperty(CommandType.CMD_DOORLOCK_SET_PUSH_MODE);
             if (rawproperty !== undefined) {
@@ -9207,10 +9202,7 @@ export class Station extends TypedEmitter<StationEvents> {
         rootHTTPLogger.debug(`Station set notification unlocked - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
         if (device.isLockWifi() || device.isLockWifiNoFinger() || device.isLockWifiVideo()) {
             this.setAdvancedLockParams(device, PropertyName.DeviceNotificationUnlocked, value);
-        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
-            //TODO: Implement LockWifiR10 / LockWifiR20 commnand
-            throw new NotSupportedError("This functionality is not implemented by this device", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
-        } else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        } else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiR10() || device.isLockWifiR20()) {
             let oldvalue = 0;
             const rawproperty = device.getRawProperty(CommandType.CMD_DOORLOCK_SET_PUSH_MODE);
             if (rawproperty !== undefined) {
@@ -10902,6 +10894,18 @@ export class Station extends TypedEmitter<StationEvents> {
                 Lock.encodeCmdSmartLockGetParams(this.rawStation.member.admin_user_id)
             );
             this.p2pSession.sendCommandWithStringPayload(command.payload);
+        } else if (Device.isLockWifiR10(this.getDeviceType()) || Device.isLockWifiR20(this.getDeviceType())) {
+            rootHTTPLogger.debug(`Station lock v12 send get lock parameters command`, { stationSN: this.getSerial() });
+            const command = getLockV12P2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                ESLCommand.GET_LOCK_PARAM,
+                0,
+                this.lockPublicKey,
+                this.p2pSession.incLockSequenceNumber(),
+                Lock.encodeCmdGetLockParam(this.rawStation.member.admin_user_id)
+            );
+            this._sendLockV12P2PCommand(command);
         }
     }
 
@@ -10929,7 +10933,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.p2pSession.incLockSequenceNumber(),
                 Lock.encodeCmdStatus(this.rawStation.member.admin_user_id)
             );
-            this.p2pSession.sendCommandWithStringPayload(command.payload);
+            this._sendLockV12P2PCommand(command);
         } else if (Device.isLockWifi(this.getDeviceType(), this.getSerial()) || Device.isLockWifiNoFinger(this.getDeviceType())) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -10945,4 +10949,46 @@ export class Station extends TypedEmitter<StationEvents> {
             } as P2PCommand);
         }
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onSequenceError(channel: number, command: number, sequence: number, serialnumber: string): void {
+        //TODO: Implement command retry for lock devices in case von sequence mismatch error
+        rootHTTPLogger.debug(`Station lock sequence error`, { stationSN: this.getSerial(), channel: channel, command: command, sequence: sequence, serialnumber: serialnumber });
+    }
+
+    public updateUsername(device: Device, username: string, passwordId: string): void {
+        const commandData: CommandData = {
+            name: CommandName.DeviceUpdateUsername,
+            value: {
+                username: username,
+                passwordId: passwordId,
+            }
+        };
+        if (device.getStationSerial() !== this.getSerial()) {
+            throw new WrongStationError("Device is not managed by this station", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
+        }
+        if (!device.hasCommand(CommandName.DeviceUpdateUsername)) {
+            throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
+        }
+        rootHTTPLogger.debug(`Station update username - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), username: username, passwordId: passwordId });
+        if (device.isLockWifiR10() || device.isLockWifiR20()) {
+            const command = getLockV12P2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                ESLCommand.MODIFY_NAME,
+                device.getChannel(),
+                this.lockPublicKey,
+                this.p2pSession.incLockSequenceNumber(),
+                Lock.encodeCmdModifyUsername(username, passwordId)
+            );
+            rootHTTPLogger.debug("Station update username - payload", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command });
+
+            this._sendLockV12P2PCommand(command, {
+                command: commandData
+            });
+        } else {
+            throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
+        }
+    }
+
 }

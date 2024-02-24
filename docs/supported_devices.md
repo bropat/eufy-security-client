@@ -61,6 +61,8 @@
 | ![T8530 image](_media/smartlock_video_t8530_small.jpg) | Video Smart Lock S330 (T8530) | :heavy_check_mark: | Firmware: 1.2.0.2 (20230530) |
 | ![T8502 image](_media/smartlock_touch_and_wifi_t8502_small.jpg) | Smart Lock C210 (T8502; E110) | :heavy_check_mark: | Firmware: 2.1.1.1 (20230913) |
 | ![T8506 image](_media/smartlock_touch_and_wifi_t8506_small.jpg) | Smart Lock C220 (T8506) | :heavy_check_mark: | Firmware: 1.1.3.3 (20231125) |
+| ![T8503 image](_media/smartlock_t8503_small.jpg) | Retrofit Smart Lock E110 (T8503; Smart Lock R10) | :heavy_check_mark: | Firmware: 1.0.7.7 (20230622) |
+| ![T8504 image](_media/smartlock_t8504_small.jpg) | Retrofit Smart Lock E130 (T8504; Smart Lock R20) | :heavy_exclamation_mark: |  |
 | ![T8510P image](_media/smartlock_t8510P_t8520P_small.jpg) | Smart Lock S230 (T8510P) | :heavy_check_mark: | Firmware: 1.1.0.0 (20240123) |
 | ![T8520P image](_media/smartlock_t8510P_t8520P_small.jpg) | Smart Lock S231 (T8520P) | :heavy_exclamation_mark: |  |
 | ![T8960 image](_media/keypad_small.jpg) | Keypad (T8960) | :heavy_check_mark: |  |

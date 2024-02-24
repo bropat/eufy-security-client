@@ -572,6 +572,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             }, this.P2P_REFRESH_INTERVAL_MIN * 60 * 1000);
         } else if (Device.isLock(station.getDeviceType())) {
             station.getLockParameters();
+            station.getLockStatus();
             if (this.refreshEufySecurityP2PTimeout[station.getSerial()] !== undefined) {
                 clearTimeout(this.refreshEufySecurityP2PTimeout[station.getSerial()]);
                 delete this.refreshEufySecurityP2PTimeout[station.getSerial()];
@@ -1935,7 +1936,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     this.getStationDevice(station.getSerial(), result.channel).then((device: Device) => {
                         switch (result.return_code) {
                             case 0:
-                                this.api.deleteUser(device.getSerial(), customValue.short_user_id, device.getStationSerial()).then((result) => {
+                                this.api.deleteUser(device.getSerial(), customValue.shortUserId, device.getStationSerial()).then((result) => {
                                     if (result) {
                                         this.emit("user deleted", device, customValue.username);
                                     } else {
@@ -2454,6 +2455,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     }
                                 }
                             }
+                        } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+                            for (const entry of user.password_list) {
+                                if (entry.password_type === UserPasswordType.PIN) {
+                                    station.updateUsername(device, newUsername, entry.password_id);
+                                }
+                            }
                         }
                         const result = await this.api.updateUser(deviceSN, device.getStationSerial(), user.short_user_id, newUsername);
                         if (result) {
@@ -2491,8 +2498,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 let found = false;
                 for (const user of users) {
                     if (user.user_name === username) {
-                        station.updateUserPasscode(device, user.user_name, user.short_user_id, passcode);
-                        found = true;
+                        for (const entry of user.password_list) {
+                            if (entry.password_type === UserPasswordType.PIN) {
+                                station.updateUserPasscode(device, user.user_name, entry.password_id, passcode);
+                                found = true;
+                            }
+                        }
                     }
                 }
                 if (!found) {
