@@ -4315,19 +4315,32 @@ export class SmartDrop extends Camera {
         return "boxes";
     }
 
-    public processPushNotification(message: PushMessage, eventDurationSeconds: number): void {
-        super.processPushNotification(message, eventDurationSeconds);
+    public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
+        super.processPushNotification(station, message, eventDurationSeconds);
         if (message.type !== undefined && message.event_type !== undefined) {
             if (message.device_sn === this.getSerial()) {
                 try {
-                    if (!isEmpty(message.pic_url)) {
+                    if (station.hasCommand(CommandName.StationDatabaseQueryLatestInfo)) {
+                        station.databaseQueryLatestInfo(() => {
+                            if (!isEmpty(message.pic_url)) {
+                                getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
+                                    if (image.data.length > 0) {
+                                        this.updateProperty(PropertyName.DevicePicture, image, true);
+                                    }
+                                }).catch((err) => {
+                                    const error = ensureError(err);
+                                    rootHTTPLogger.debug(`SmartDrop process push notification - CusPushEvent.SECURITY - Device Get picture - Fallback Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                                });
+                            }
+                        });
+                    } else if (!isEmpty(message.pic_url)) {
                         getImage(this.api, this.getSerial(), message.pic_url!).then((image) => {
                             if (image.data.length > 0) {
-                                this.updateProperty(PropertyName.DevicePicture, image);
+                                this.updateProperty(PropertyName.DevicePicture, image, true);
                             }
                         }).catch((err) => {
                             const error = ensureError(err);
-                            this.log.debug(`SmartDrop process push notification - Device Get picture - Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                            rootHTTPLogger.debug(`SmartDrop process push notification - CusPushEvent.SECURITY - Device Get picture - Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
                         });
                     }
                     if (message.event_type === CusPushEvent.SMART_DROP) {
@@ -4365,7 +4378,7 @@ export class SmartDrop extends Camera {
                                         this.updateProperty(PropertyName.DeviceOpenedByType, 6);
                                         break;
                                     default:
-                                        this.log.debug("SmartDrop process push notification - Unhandled SmartDrop push event (openType)", message);
+                                        rootHTTPLogger.debug("SmartDrop process push notification - Unhandled SmartDrop push event (openType)", message);
                                         break;
                                 }
                                 break;
@@ -4410,7 +4423,7 @@ export class SmartDrop extends Camera {
                                 }, eventDurationSeconds * 1000));
                                 break;
                             default:
-                                this.log.debug("SmartDrop process push notification - Unhandled SmartDrop push event (1)", message);
+                                rootHTTPLogger.debug("SmartDrop process push notification - Unhandled SmartDrop push event (1)", message);
                                 break;
                         }
                     } else if (message.event_type !== 0) {
@@ -4465,14 +4478,14 @@ export class SmartDrop extends Camera {
                                 }, eventDurationSeconds * 1000));
                                 break;
                             default:
-                                this.log.debug("SmartDrop process push notification - Unhandled SmartDrop push event (2)", message);
+                                rootHTTPLogger.debug("SmartDrop process push notification - Unhandled SmartDrop push event (2)", message);
                         }
                     } else {
-                        this.log.debug("SmartDrop process push notification - Unhandled SmartDrop push event type", message);
+                        rootHTTPLogger.debug("SmartDrop process push notification - Unhandled SmartDrop push event type", message);
                     }
                 } catch (err) {
                     const error = ensureError(err);
-                    this.log.debug(`SmartDrop process push notification - Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
+                    rootHTTPLogger.debug(`SmartDrop process push notification - Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
                 }
             }
         }

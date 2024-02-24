@@ -618,26 +618,26 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         if (cusPushData.file_path && cusPushData.file_path !== null && cusPushData.file_path !== undefined) {
                             normalizedMessage.file_path = cusPushData.file_path
                         }
-                        normalized_message.msg_type = push_data.msg_type;
-                    } else if (Device.isSmartDrop(normalized_message.type)) {
+                        normalizedMessage.msg_type = cusPushData.msg_type;
+                    } else if (Device.isSmartDrop(normalizedMessage.type)) {
                         try {
-                            normalized_message.open = push_data.e !== undefined ? Number.parseInt(push_data.e) : 0;
+                            normalizedMessage.open = cusPushData.e !== undefined ? Number.parseInt(cusPushData.e) : 0;
                         } catch (err) {
                             const error = ensureError(err);
-                            this.log.error(`Normalize push message - Type ${DeviceType[normalized_message.type]} CusPushData - open - Error`, { error: getError(error), message: message });
+                            rootPushLogger.error(`Normalize push message - Type ${DeviceType[normalizedMessage.type]} CusPushData - open - Error`, { error: getError(error), message: message });
                         }
                         try {
-                            normalized_message.openType = push_data.r !== undefined ? Number.parseInt(push_data.r) : 0;
+                            normalizedMessage.openType = cusPushData.r !== undefined ? Number.parseInt(cusPushData.r) : 0;
                         } catch (err) {
                             const error = ensureError(err);
-                            this.log.error(`Normalize push message - Type ${DeviceType[normalized_message.type]} CusPushData - openType - Error`, { error: getError(error), message: message });
+                            rootPushLogger.error(`Normalize push message - Type ${DeviceType[normalizedMessage.type]} CusPushData - openType - Error`, { error: getError(error), message: message });
                         }
-                        normalized_message.person_name = push_data.p;
-                        normalized_message.pin = push_data.u;
-                        normalized_message.channel = push_data.channel !== undefined ? push_data.channel : 0;
-                        normalized_message.cipher = push_data.cipher !== undefined ? push_data.cipher : 0;
-                        normalized_message.event_session = push_data.session_id !== undefined ? push_data.session_id : "";
-                        normalized_message.file_path = push_data.file_path !== undefined ? push_data.file_path : "";
+                        normalizedMessage.person_name = cusPushData.p;
+                        normalizedMessage.pin = cusPushData.u;
+                        normalizedMessage.channel = cusPushData.channel !== undefined ? cusPushData.channel : 0;
+                        normalizedMessage.cipher = cusPushData.cipher !== undefined ? cusPushData.cipher : 0;
+                        normalizedMessage.event_session = cusPushData.session_id !== undefined ? cusPushData.session_id : "";
+                        normalizedMessage.file_path = cusPushData.file_path !== undefined ? cusPushData.file_path : "";
                     }
                 }
             }

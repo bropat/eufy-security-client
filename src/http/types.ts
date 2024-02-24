@@ -539,7 +539,7 @@ export enum DeviceEvent {
     DogDetected,
     DogLickDetected,
     DogPoopDetected,
-    Lock,,
+    Lock,
     TamperingAlert,
     LowTemperatureAlert,
     HighTemperatureAlert,

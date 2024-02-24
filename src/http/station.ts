@@ -4550,21 +4550,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isSmartDrop()) {
             if (!Object.values(WatermarkSetting1).includes(value as WatermarkSetting1)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting1);
-                return;
-            }
-            this.p2pSession.sendCommandWithIntString({
-                commandType: CommandType.CMD_SET_DEVS_OSD,
-                value: value,
-                valueSub: device.getChannel(),
-                strValue: this.rawStation.member.admin_user_id,
-                channel: device.getChannel()
-            }, {
-                property: propertyData
-            });
-        } else if (device.isSmartDrop()) {
-            if (!Object.values(WatermarkSetting1).includes(value as WatermarkSetting1)) {
-                this.log.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting1);
+                rootHTTPLogger.error(`The device ${device.getSerial()} accepts only this type of values:`, WatermarkSetting1);
                 return;
             }
             this.p2pSession.sendCommandWithIntString({
@@ -4761,7 +4747,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const rsa_key = this.p2pSession.getRSAPrivateKey();
 
         if (device.isSmartDrop()) {
-            this.log.debug(`Station start livestream - sending command (smart drop)`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), videoCodec: videoCodec, main_sw_version: this.getSoftwareVersion() });
+            rootHTTPLogger.debug(`Station start livestream - sending command (smart drop)`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), videoCodec: videoCodec, main_sw_version: this.getSoftwareVersion() });
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -11055,7 +11041,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const property = device.getPropertyMetadata(propertyData.name);
         validValue(property, value);
 
-        this.log.debug(`Station set open method - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
+        rootHTTPLogger.debug(`Station set open method - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
         this.p2pSession.sendCommandWithStringPayload({
             commandType: CommandType.CMD_SET_PAYLOAD,
             value: JSON.stringify({
@@ -11089,7 +11075,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const property = device.getPropertyMetadata(propertyData.name);
         validValue(property, value);
 
-        this.log.debug(`Station set motion activated prompt - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
+        rootHTTPLogger.debug(`Station set motion activated prompt - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
         this.p2pSession.sendCommandWithStringPayload({
             commandType: CommandType.CMD_SET_PAYLOAD,
             value: JSON.stringify({
@@ -11118,7 +11104,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!device.hasCommand(CommandName.DeviceOpen)) {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name } });
         }
-        this.log.debug(`Station open - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial() });
+        rootHTTPLogger.debug(`Station open - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial() });
         if (device.isSmartDrop()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
