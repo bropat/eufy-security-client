@@ -6,11 +6,15 @@ import sha256 from "crypto-js/sha256";
 
 import { Device } from "./device";
 import { Picture, Schedule } from "./interfaces";
-import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes, FloodlightT8425NotificationTypes, SmartLockNotification } from "./types";
+import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes, FloodlightT8425NotificationTypes, SmartLockNotification, PropertyName, CommandName, NotificationType } from "./types";
 import { HTTPApi } from "./api";
 import { ensureError } from "../error";
 import { ImageBaseCodeError } from "./error";
 import { LockPushEvent } from "./../push/types";
+import { Station } from "./station";
+import { rootHTTPLogger } from "../logging";
+import { getError, isEmpty } from "../utils";
+import { PushMessage } from "../push/models";
 
 const normalizeVersionString = function (version: string): number[] {
     const trimmed = version ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, "$1") : "";
@@ -727,4 +731,54 @@ export const switchSmartLockNotification = function(currentValue: number, mode: 
 
 export const isSmartLockNotification = function(value: number, mode: SmartLockNotification): boolean {
     return (value & mode) !== 0;
+}
+
+export const getWaitSeconds = (device: Device): number => {
+    let seconds = 60;
+    const workingMode = device.getPropertyValue(PropertyName.DevicePowerWorkingMode);
+    if (workingMode !== undefined && workingMode === 2) {
+        const customValue = device.getPropertyValue(PropertyName.DeviceRecordingClipLength);
+        if (customValue !== undefined) {
+            seconds = customValue as number;
+        }
+    }
+    return seconds;
+};
+
+export const loadImageOverP2P = function (station: Station, device: Device, id: string, p2pTimeouts: Map<string, NodeJS.Timeout>): void {
+    if (station.hasCommand(CommandName.StationDatabaseQueryLatestInfo) && p2pTimeouts.get(id) === undefined) {
+        const seconds = getWaitSeconds(device);
+        p2pTimeouts.set(id, setTimeout(async () => {
+            station.databaseQueryLatestInfo();
+            p2pTimeouts.delete(id);
+        }, seconds * 1000));
+    }
+}
+
+export const loadEventImage = function(station: Station, api: HTTPApi, device: Device, message: PushMessage, p2pTimeouts: Map<string, NodeJS.Timeout>): void {
+    if (message.notification_style === NotificationType.MOST_EFFICIENT) {
+        loadImageOverP2P(station, device, device.getSerial(), p2pTimeouts);
+    } else {
+        if (!isEmpty(message.pic_url)) {
+            getImage(api, device.getSerial(), message.pic_url!).then((image) => {
+                if (image.data.length > 0) {
+                    if (p2pTimeouts.get(device.getSerial()) !== undefined) {
+                        clearTimeout(p2pTimeouts.get(device.getSerial()));
+                        p2pTimeouts.delete(device.getSerial())
+                    }
+                    device.updateProperty(PropertyName.DevicePicture, image, true);
+                } else {
+                    //fallback
+                    loadImageOverP2P(station, device, device.getSerial(), p2pTimeouts);
+                }
+            }).catch((err) => {
+                const error = ensureError(err);
+                rootHTTPLogger.debug(`Device load event image - Fallback Error`, { error: getError(error), stationSN: station.getSerial(), deviceSN: device.getSerial(), message: JSON.stringify(message) });
+                loadImageOverP2P(station, device, device.getSerial(), p2pTimeouts);
+            });
+        } else {
+            //fallback
+            loadImageOverP2P(station, device, device.getSerial(), p2pTimeouts);
+        }
+    }
 }

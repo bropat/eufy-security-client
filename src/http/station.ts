@@ -144,7 +144,6 @@ export class Station extends TypedEmitter<StationEvents> {
         const metadata = this.getPropertiesMetadata(true);
         for(const property of Object.values(metadata)) {
             if (this.rawStation[property.key] !== undefined && typeof property.key === "string") {
-                //this.updateProperty(property.name, this.rawStation[property.key] as PropertyValue);
                 this.updateProperty(property.name, this.convertRawPropertyValue(property, this.rawStation[property.key] as string));
             } else if (this.properties[property.name] === undefined && property.default !== undefined && !this.ready) {
                 this.updateProperty(property.name, property.default);
