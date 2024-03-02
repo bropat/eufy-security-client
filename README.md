@@ -111,6 +111,7 @@ Please use GitHub issues for this.
 * (bropat) Lowered p2p keepalive interval for battery saving devices
 * (bropat) Added name of the person who locked/unlocked the lock
 * (bropat) Added origin who locked/unlocked the lock
+* (bropat) Changed to simultaneous triggering of different detection types by receiving of a single type of push notification
 * (bropat) Fixed issue #380
 * (bropat) Fixed issue #323
 * (bropat) Fixed issue #452

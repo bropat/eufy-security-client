@@ -2009,15 +2009,14 @@ export class Camera extends Device {
                             this.updateProperty(PropertyName.DevicePersonDetected, false);
                             this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                         }, eventDurationSeconds * 1000));
-                    } else {
-                        // Motion detected
-                        this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                        this.clearEventTimeout(DeviceEvent.MotionDetected);
-                        this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                            this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                            this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                        }, eventDurationSeconds * 1000));
                     }
+                    // Motion detected
+                    this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                    this.clearEventTimeout(DeviceEvent.MotionDetected);
+                    this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                        this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                        this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                    }, eventDurationSeconds * 1000));
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.debug(`Camera process push notification - CusPushEvent.SECURITY - Error`, { error: getError(error), deviceSN: this.getSerial(), message: JSON.stringify(message), eventDurationSeconds: eventDurationSeconds });
@@ -2044,6 +2043,12 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DevicePersonDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                                 }, eventDurationSeconds * 1000));
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
                                 break;
                             case HB3PairedDevicePushEvent.CRYING_DETECTION:
                                 this.updateProperty(PropertyName.DeviceCryingDetected, true);
@@ -2052,6 +2057,12 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DeviceCryingDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.CryingDetected);
                                 }, eventDurationSeconds * 1000));
+                                this.updateProperty(PropertyName.DeviceSoundDetected, true);
+                                this.clearEventTimeout(DeviceEvent.SoundDetected);
+                                this.eventTimeouts.set(DeviceEvent.SoundDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceSoundDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.SoundDetected);
+                                }, eventDurationSeconds * 1000));
                                 break;
                             case HB3PairedDevicePushEvent.DOG_DETECTION:
                                 this.updateProperty(PropertyName.DeviceDogDetected, true);
@@ -2059,6 +2070,12 @@ export class Camera extends Device {
                                 this.eventTimeouts.set(DeviceEvent.DogDetected, setTimeout(async () => {
                                     this.updateProperty(PropertyName.DeviceDogDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.DogDetected);
+                                }, eventDurationSeconds * 1000));
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
                                 }, eventDurationSeconds * 1000));
                                 break;
                             case HB3PairedDevicePushEvent.DOG_LICK_DETECTION:
@@ -2084,6 +2101,12 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DevicePetDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.PetDetected);
                                 }, eventDurationSeconds * 1000));
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
                                 break;
                             case HB3PairedDevicePushEvent.SOUND_DETECTION:
                                 this.updateProperty(PropertyName.DeviceSoundDetected, true);
@@ -2100,6 +2123,12 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DeviceVehicleDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.VehicleDetected);
                                 }, eventDurationSeconds * 1000));
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
                                 break;
                             case HB3PairedDevicePushEvent.IDENTITY_PERSON_DETECTION:
                                 this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
@@ -2110,6 +2139,18 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DeviceIdentityPersonDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.IdentityPersonDetected);
                                 }, eventDurationSeconds * 1000));
+                                this.updateProperty(PropertyName.DevicePersonDetected, true);
+                                this.clearEventTimeout(DeviceEvent.PersonDetected);
+                                this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                                }, eventDurationSeconds * 1000));
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
                                 break;
                             case HB3PairedDevicePushEvent.STRANGER_PERSON_DETECTION:
                                 this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
@@ -2119,6 +2160,18 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DevicePersonName, "");
                                     this.updateProperty(PropertyName.DeviceStrangerPersonDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.StrangerPersonDetected);
+                                }, eventDurationSeconds * 1000));
+                                this.updateProperty(PropertyName.DevicePersonDetected, true);
+                                this.clearEventTimeout(DeviceEvent.PersonDetected);
+                                this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                                }, eventDurationSeconds * 1000));
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
                                 }, eventDurationSeconds * 1000));
                                 break;
                             default:
@@ -2187,6 +2240,12 @@ export class SoloCamera extends Camera {
                                 this.updateProperty(PropertyName.DevicePersonName, "");
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                            }, eventDurationSeconds * 1000));
+                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                            this.clearEventTimeout(DeviceEvent.MotionDetected);
+                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
                             }, eventDurationSeconds * 1000));
                             break;
                         default:
@@ -2269,6 +2328,12 @@ export class IndoorCamera extends Camera {
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                             }, eventDurationSeconds * 1000));
+                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                            this.clearEventTimeout(DeviceEvent.MotionDetected);
+                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                            }, eventDurationSeconds * 1000));
                             break;
                         case IndoorPushEvent.CRYING_DETECTION:
                             this.updateProperty(PropertyName.DeviceCryingDetected, true);
@@ -2276,6 +2341,12 @@ export class IndoorCamera extends Camera {
                             this.eventTimeouts.set(DeviceEvent.CryingDetected, setTimeout(async () => {
                                 this.updateProperty(PropertyName.DeviceCryingDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.CryingDetected);
+                            }, eventDurationSeconds * 1000));
+                            this.updateProperty(PropertyName.DeviceSoundDetected, true);
+                            this.clearEventTimeout(DeviceEvent.SoundDetected);
+                            this.eventTimeouts.set(DeviceEvent.SoundDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceSoundDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.SoundDetected);
                             }, eventDurationSeconds * 1000));
                             break;
                         case IndoorPushEvent.SOUND_DETECTION:
@@ -2292,6 +2363,12 @@ export class IndoorCamera extends Camera {
                             this.eventTimeouts.set(DeviceEvent.PetDetected, setTimeout(async () => {
                                 this.updateProperty(PropertyName.DevicePetDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PetDetected);
+                            }, eventDurationSeconds * 1000));
+                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                            this.clearEventTimeout(DeviceEvent.MotionDetected);
+                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
                             }, eventDurationSeconds * 1000));
                             break;
                         default:
@@ -2403,6 +2480,12 @@ export class DoorbellCamera extends Camera {
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                             }, eventDurationSeconds * 1000));
+                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                            this.clearEventTimeout(DeviceEvent.MotionDetected);
+                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                            }, eventDurationSeconds * 1000));
                             break;
                         case DoorbellPushEvent.PRESS_DOORBELL:
                             this.updateProperty(PropertyName.DeviceRinging, true);
@@ -2443,6 +2526,17 @@ export class DoorbellCamera extends Camera {
                                 this.updateProperty(PropertyName.DeviceSomeoneLoitering, false);
                                 this.eventTimeouts.delete(DeviceEvent.SomeoneLoitering);
                             }, eventDurationSeconds * 1000));
+                            this.clearEventTimeout(DeviceEvent.PersonDetected);
+                            this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                            }, eventDurationSeconds * 1000));
+                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                            this.clearEventTimeout(DeviceEvent.MotionDetected);
+                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                            }, eventDurationSeconds * 1000));
                             break;
                         case DoorbellPushEvent.RADAR_MOTION_DETECTION:
                             this.updateProperty(PropertyName.DeviceRadarMotionDetected, true);
@@ -2451,6 +2545,12 @@ export class DoorbellCamera extends Camera {
                                 this.updateProperty(PropertyName.DeviceRadarMotionDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.RadarMotionDetected);
                             }, eventDurationSeconds * 1000));
+                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                            this.clearEventTimeout(DeviceEvent.MotionDetected);
+                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                            }, eventDurationSeconds * 1000));
                             break;
                         case DoorbellPushEvent.AWAY_FROM_HOME:
                             this.updateProperty(PropertyName.DeviceSomeoneGoing, true);
@@ -2458,6 +2558,17 @@ export class DoorbellCamera extends Camera {
                             this.eventTimeouts.set(DeviceEvent.SomeoneGoing, setTimeout(async () => {
                                 this.updateProperty(PropertyName.DeviceSomeoneGoing, false);
                                 this.eventTimeouts.delete(DeviceEvent.SomeoneGoing);
+                            }, eventDurationSeconds * 1000));
+                            this.clearEventTimeout(DeviceEvent.PersonDetected);
+                            this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                            }, eventDurationSeconds * 1000));
+                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                            this.clearEventTimeout(DeviceEvent.MotionDetected);
+                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
                             }, eventDurationSeconds * 1000));
                             break;
                         default:
@@ -2586,6 +2697,12 @@ export class FloodlightCamera extends Camera {
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                             }, eventDurationSeconds * 1000));
+                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                            this.clearEventTimeout(DeviceEvent.MotionDetected);
+                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                            }, eventDurationSeconds * 1000));
                             break;
                         default:
                             rootHTTPLogger.debug("FloodlightCamera process push notification - Unhandled floodlight push event", message);
@@ -2699,6 +2816,12 @@ export class WallLightCam extends Camera {
                                 this.updateProperty(PropertyName.DevicePersonName, "");
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                            }, eventDurationSeconds * 1000));
+                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                            this.clearEventTimeout(DeviceEvent.MotionDetected);
+                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
                             }, eventDurationSeconds * 1000));
                             break;
                         default:
