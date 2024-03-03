@@ -80,7 +80,7 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 3.0.0 (2024-02-xx)
+### 3.0.0 (2024-03-03)
 
 * (bropat) **Breaking Change** New modular logging implementation
 * (bropat) Added support for Video Smart Lock S330 (T8530; #220)
@@ -112,6 +112,14 @@ Please use GitHub issues for this.
 * (bropat) Added name of the person who locked/unlocked the lock
 * (bropat) Added origin who locked/unlocked the lock
 * (bropat) Changed to simultaneous triggering of different detection types by receiving of a single type of push notification
+* (PhilippEngler) Updated device types (#478)
+* (PhilippEngler) Add DeviceNotificationIntervalTimeProperty to indoor cams (#471)
+* (PhilippEngler) Added storage info fpr S100 (#412)
+* (martijnpoppen) FIX: vehicle detection S340 (#475)
+* (PhilippEngler) Make StationStorageInfoProperties readonly (#474)
+* (PhilippEngler) Solve TypeError in handleMsg (#469)
+* (PhilippEngler) Fixed description of state of DualCamWatchViewMode (#402)
+* (martijnpoppen) FIX: Eufy e330 remove battery (#445)
 * (bropat) Fixed issue #380
 * (bropat) Fixed issue #323
 * (bropat) Fixed issue #452
