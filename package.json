@@ -48,7 +48,7 @@
     "i18n-iso-countries": "^7.10.0",
     "image-type": "^5.2.0",
     "long": "^5.2.3",
-    "mqtt": "^5.3.5",
+    "mqtt": "^5.3.6",
     "node-rsa": "^1.1.1",
     "node-schedule": "^2.1.1",
     "p-throttle": "^6.1.0",
@@ -62,13 +62,13 @@
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^18.19.17",
+    "@types/node": "^18.19.21",
     "@types/node-rsa": "^1.1.4",
     "@types/node-schedule": "^2.1.6",
-    "@types/qs": "^6.9.11",
-    "@typescript-eslint/eslint-plugin": "^7.0.1",
-    "@typescript-eslint/parser": "^7.0.1",
-    "eslint": "^8.56.0",
+    "@types/qs": "^6.9.12",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "eslint": "^8.57.0",
     "typescript": "^5.3.3"
   },
   "bugs": {
