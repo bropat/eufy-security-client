@@ -50,7 +50,7 @@
 | ![T8414 image](_media/indoorcammini_small.jpg) | Indoor Cam Mini (T8414) | :heavy_check_mark: | Firmware: 3.1.1.7 (20220427) |
 | ![T8416 image](_media/indoorcams350_small.jpg) | Indoor Cam S350 (T8416) | :heavy_check_mark: | Firmware: 1.4.5.0 (20231214) |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8150) | :heavy_check_mark: |  |
-| ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G Camera S230 (T8151; 4G LTE Starlight) | :heavy_exclamation_mark: |  |
+| ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G Camera S230 (T8151; 4G LTE Starlight) | :heavy_check_mark: | Firmware: 1.1.3.7 (20230730) |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8152) | :heavy_exclamation_mark: |  |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8153) | :heavy_exclamation_mark: |  |
 | ![T8500 image](_media/smartlock_t8500_small.jpg) | Smart Lock (T8500) | :x: |  |
