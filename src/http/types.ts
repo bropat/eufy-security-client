@@ -9394,11 +9394,6 @@ export const StationCommands: Commands = {
     [DeviceType.CAMERA_FG]: [
         CommandName.StationReboot,
         CommandName.StationTriggerAlarmSound,
-        CommandName.StationDownloadImage,
-        CommandName.StationDatabaseQueryLatestInfo,
-        CommandName.StationDatabaseQueryLocal,
-        CommandName.StationDatabaseCountByDate,
-        CommandName.StationDatabaseDelete,
     ],
     [DeviceType.WALL_LIGHT_CAM]: [
         CommandName.StationReboot,
