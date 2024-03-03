@@ -1,8 +1,9 @@
-import { LogLevel as Level } from "typescript-logging";
+import { LogLevel } from "typescript-logging";
 import { CategoryProvider } from "typescript-logging-category-style";
 
 export type LoggingCategories = "all" | "main" | "http" | "p2p" | "push" | "mqtt";
-export const LogLevel = Level;
+
+export { LogLevel };
 
 export interface Logger {
     trace(message: unknown, ...args: unknown[]): void;
@@ -85,7 +86,7 @@ export const rootMQTTLogger = provider.getCategory("mqtt");
 export const rootPushLogger = provider.getCategory("push");
 export const rootP2PLogger = provider.getCategory("p2p");
 
-export const setLoggingLevel = function(category: LoggingCategories = "all", level: Level = LogLevel.Off): void {
+export const setLoggingLevel = function(category: LoggingCategories = "all", level: LogLevel = LogLevel.Off): void {
     switch(category) {
         case "all":
             provider.updateRuntimeSettings({
@@ -117,5 +118,14 @@ export const setLoggingLevel = function(category: LoggingCategories = "all", lev
                 level: level
             });
             break;
+    }
+}
+
+export const getLoggingLevel = function(category: LoggingCategories = "all"): number {
+    switch(category) {
+        case "all":
+            return provider.runtimeConfig.level;
+        default:
+            return provider.getCategory(category).logLevel;
     }
 }
