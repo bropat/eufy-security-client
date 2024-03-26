@@ -6,7 +6,7 @@ import EventEmitter from "events";
 
 import { EufySecurityEvents, EufySecurityConfig, EufySecurityPersistentData } from "./interfaces";
 import { HTTPApi } from "./http/api";
-import { Devices, FullDevices, Hubs, PropertyValue, RawValues, Stations, Houses, LoginOptions, Schedule, Picture } from "./http/interfaces";
+import { Devices, FullDevices, Hubs, PropertyValue, RawValues, Stations, Houses, LoginOptions, Schedule, Picture, DeviceConfig } from "./http/interfaces";
 import { Station } from "./http/station";
 import { ConfirmInvite, DeviceListResponse, HouseInviteListResponse, Invite, StationListResponse } from "./http/models";
 import { CommandName, DeviceType, FloodlightT8425NotificationTypes, HB3DetectionTypes, IndoorS350NotificationTypes, NotificationSwitchMode, NotificationType, PropertyName, SoloCameraDetectionTypes, T8170DetectionTypes, UserPasswordType } from "./http/types";
@@ -107,6 +107,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
             }
         }
+
         if (this.config.country === undefined) {
             this.config.country = "US";
         } else {
@@ -128,6 +129,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
         if (this.config.acceptInvitations === undefined) {
             this.config.acceptInvitations = false;
+        }
+        if(this.config.deviceConfig === undefined) {
+            this.config.deviceConfig = {
+                simultaneousDetections: true
+            };
         }
         if (this.config.persistentDir === undefined) {
             this.config.persistentDir = path.resolve(__dirname, "../../..");
@@ -624,6 +630,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         const deviceSNs: string[] = Object.keys(this.devices);
         const newDeviceSNs = Object.keys(devices);
         const promises: Array<Promise<Device>> = [];
+        const deviceConfig = this.config.deviceConfig as DeviceConfig;
+
         for (const device of Object.values(devices)) {
 
             if (deviceSNs.includes(device.device_sn)) {
@@ -634,41 +642,41 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 let new_device: Promise<Device>;
 
                 if (Device.isIndoorCamera(device.device_type)) {
-                    new_device = IndoorCamera.getInstance(this.api, device);
+                    new_device = IndoorCamera.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isSoloCameras(device.device_type)) {
-                    new_device = SoloCamera.getInstance(this.api, device);
+                    new_device = SoloCamera.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isLockWifiVideo(device.device_type)) {
-                    new_device = DoorbellLock.getInstance(this.api, device);
+                    new_device = DoorbellLock.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isBatteryDoorbell(device.device_type)) {
-                    new_device = BatteryDoorbellCamera.getInstance(this.api, device);
+                    new_device = BatteryDoorbellCamera.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isWiredDoorbell(device.device_type) || Device.isWiredDoorbellDual(device.device_type)) {
-                    new_device = WiredDoorbellCamera.getInstance(this.api, device);
+                    new_device = WiredDoorbellCamera.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isFloodLight(device.device_type)) {
-                    new_device = FloodlightCamera.getInstance(this.api, device);
+                    new_device = FloodlightCamera.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isWallLightCam(device.device_type)) {
-                    new_device = WallLightCam.getInstance(this.api, device);
+                    new_device = WallLightCam.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isGarageCamera(device.device_type)) {
-                    new_device = GarageCamera.getInstance(this.api, device);
+                    new_device = GarageCamera.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isSmartDrop(device.device_type)) {
-                    new_device = SmartDrop.getInstance(this.api, device);
+                    new_device = SmartDrop.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isCamera(device.device_type)) {
-                    new_device = Camera.getInstance(this.api, device);
+                    new_device = Camera.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isLock(device.device_type)) {
-                    new_device = Lock.getInstance(this.api, device);
+                    new_device = Lock.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isMotionSensor(device.device_type)) {
-                    new_device = MotionSensor.getInstance(this.api, device);
+                    new_device = MotionSensor.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isEntrySensor(device.device_type)) {
-                    new_device = EntrySensor.getInstance(this.api, device);
+                    new_device = EntrySensor.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isKeyPad(device.device_type)) {
-                    new_device = Keypad.getInstance(this.api, device);
+                    new_device = Keypad.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isSmartSafe(device.device_type)) {
-                    new_device = SmartSafe.getInstance(this.api, device);
+                    new_device = SmartSafe.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isSmartTrack(device.device_type)) {
-                    new_device = Tracker.getInstance(this.api, device);
+                    new_device = Tracker.getInstance(this.api, device, deviceConfig);
                 } else if (Device.isLockKeypad(device.device_type)) {
-                    new_device = LockKeypad.getInstance(this.api, device);
+                    new_device = LockKeypad.getInstance(this.api, device, deviceConfig);
                 } else {
-                    new_device = UnknownDevice.getInstance(this.api, device);
+                    new_device = UnknownDevice.getInstance(this.api, device, deviceConfig);
                 }
 
                 promises.push(new_device.then((device: Device) => {
