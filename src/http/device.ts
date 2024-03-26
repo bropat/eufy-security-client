@@ -2138,14 +2138,14 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DeviceIdentityPersonDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.IdentityPersonDetected);
                                 }, eventDurationSeconds * 1000));
-                                this.updateProperty(PropertyName.DevicePersonDetected, true);
-                                this.clearEventTimeout(DeviceEvent.PersonDetected);
-                                this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DevicePersonDetected, false);
-                                    this.eventTimeouts.delete(DeviceEvent.PersonDetected);
-                                }, eventDurationSeconds * 1000));
 
                                 if (this.config.simultaneousDetections) {
+                                    this.updateProperty(PropertyName.DevicePersonDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.PersonDetected);
+                                    this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                                    }, eventDurationSeconds * 1000));
                                     this.updateProperty(PropertyName.DeviceMotionDetected, true);
                                     this.clearEventTimeout(DeviceEvent.MotionDetected);
                                     this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
@@ -2163,14 +2163,14 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DeviceStrangerPersonDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.StrangerPersonDetected);
                                 }, eventDurationSeconds * 1000));
-                                this.updateProperty(PropertyName.DevicePersonDetected, true);
-                                this.clearEventTimeout(DeviceEvent.PersonDetected);
-                                this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DevicePersonDetected, false);
-                                    this.eventTimeouts.delete(DeviceEvent.PersonDetected);
-                                }, eventDurationSeconds * 1000));
-
+                               
                                 if (this.config.simultaneousDetections) {
+                                    this.updateProperty(PropertyName.DevicePersonDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.PersonDetected);
+                                    this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                                    }, eventDurationSeconds * 1000));
                                     this.updateProperty(PropertyName.DeviceMotionDetected, true);
                                     this.clearEventTimeout(DeviceEvent.MotionDetected);
                                     this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
