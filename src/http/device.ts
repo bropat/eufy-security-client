@@ -769,7 +769,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             } else if (property.type === "boolean") {
                 const booleanProperty = property as PropertyMetadataBoolean;
                 try {
-                    return value !== undefined ? (value === "1" || value.toLowerCase() === "true" ? true : false) : (booleanProperty.default !== undefined ? booleanProperty.default : false);
+                    return value !== undefined ? (typeof value === "number" ? !!value : (value === "1" || value.toLowerCase() === "true" ? true : false)) : (booleanProperty.default !== undefined ? booleanProperty.default : false);
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.warn("Device convert raw property - PropertyMetadataBoolean Convert Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
