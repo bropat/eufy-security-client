@@ -214,6 +214,7 @@ export interface DoorbellPushData {
     event_time: number;
     event_type: number;
     file_path: string;
+    person_name?: string;
     outer_body: string;
     outer_title: string;
     pic_url: string;
