@@ -4,7 +4,7 @@ import { HTTPApi } from "./api";
 import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOtherMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType, T8170DetectionTypes, IndoorS350NotificationTypes, SoloCameraDetectionTypes, FloodlightT8425NotificationTypes, DeviceAudioRecordingProperty, DeviceMotionDetectionSensitivityCamera2Property, DeviceVideoRecordingQualitySoloCamerasHB3Property, DeviceNotificationTypeProperty, DeviceMotionDetectionProperty, SmartLockNotification, LockT8510PDeviceProperties, LockT8520PDeviceProperties } from "./types";
 import { DeviceListResponse, Voice, GarageDoorSensorsProperty, FloodlightDetectionRangeT8425Property, FloodlightLightSettingsMotionT8425Property, FloodlightLightSettingsBrightnessScheduleT8425Property } from "./models"
 import { ParameterHelper } from "./parameter";
-import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject } from "./interfaces";
+import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject, DeviceConfig } from "./interfaces";
 import { CommandType, ESLAnkerBleConstant, TrackerCommandType } from "../p2p/types";
 import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImagePath, getLockEventType, hexDate, hexTime, hexWeek, isFloodlightT8425NotitficationEnabled, isHB3DetectionModeEnabled, isIndoorNotitficationEnabled, isPrioritySourceType, isSmartLockNotification, isT8170DetectionModeEnabled, loadEventImage, WritePayload } from "./utils";
 import { DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds, isCharging } from "../p2p/utils";
@@ -26,13 +26,15 @@ export class Device extends TypedEmitter<DeviceEvents> {
     protected pictureEventTimeouts = new Map<string, NodeJS.Timeout>();
 
     protected properties: PropertyValues = {};
+    protected config: DeviceConfig = {};
     private rawProperties: RawValues = {};
     private ready = false;
 
-    protected constructor(api: HTTPApi, device: DeviceListResponse) {
+    protected constructor(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig) {
         super();
         this.api = api;
         this.rawDevice = device;
+        this.config = deviceConfig;
     }
 
     protected initializeState(): void {
@@ -301,7 +303,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 }
             } else if (property.key === CommandType.CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE) {
                 switch (property.name) {
-                    case PropertyName.DeviceLoiteringCustomResponseTimeFrom:{
+                    case PropertyName.DeviceLoiteringCustomResponseTimeFrom: {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].start_hour !== undefined && (value as any).setting[0].start_min !== undefined) ? `${(value as any).setting[0].start_hour.padStart(2, "0")}:${(value as any).setting[0].start_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
@@ -311,7 +313,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             return stringProperty.default !== undefined ? stringProperty.default : "";
                         }
                     }
-                    case PropertyName.DeviceLoiteringCustomResponseTimeTo:{
+                    case PropertyName.DeviceLoiteringCustomResponseTimeTo: {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].end_hour !== undefined && (value as any).setting[0].end_min !== undefined) ? `${(value as any).setting[0].end_hour.padStart(2, "0")}:${(value as any).setting[0].end_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
@@ -351,7 +353,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             return booleanProperty.default !== undefined ? booleanProperty.default : false;
                         }
                     }
-                    case PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponseVoice:{
+                    case PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponseVoice: {
                         const numericProperty = property as PropertyMetadataNumeric;
                         try {
                             return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].auto_voice_id !== undefined) ? (value as any).setting[0].auto_voice_id : numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
@@ -402,7 +404,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             return booleanProperty.default !== undefined ? booleanProperty.default : false;
                         }
                     }
-                    case PropertyName.DeviceRingAutoResponseTimeFrom:{
+                    case PropertyName.DeviceRingAutoResponseTimeFrom: {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].start_hour !== undefined && (value as any).setting[0].start_min !== undefined) ? `${(value as any).setting[0].start_hour.padStart(2, "0")}:${(value as any).setting[0].start_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
@@ -412,7 +414,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             return stringProperty.default !== undefined ? stringProperty.default : "";
                         }
                     }
-                    case PropertyName.DeviceRingAutoResponseTimeTo:{
+                    case PropertyName.DeviceRingAutoResponseTimeTo: {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].end_hour !== undefined && (value as any).setting[0].end_min !== undefined) ? `${(value as any).setting[0].end_hour.padStart(2, "0")}:${(value as any).setting[0].end_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
@@ -422,7 +424,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             return stringProperty.default !== undefined ? stringProperty.default : "";
                         }
                     }
-                    case PropertyName.DeviceRingAutoResponseVoiceResponseVoice:{
+                    case PropertyName.DeviceRingAutoResponseVoiceResponseVoice: {
                         const numericProperty = property as PropertyMetadataNumeric;
                         try {
                             return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].auto_voice_id !== undefined) ? (value as any).setting[0].auto_voice_id : numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
@@ -435,7 +437,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 }
             } else if (property.key === CommandType.CMD_DOORBELL_DUAL_PACKAGE_GUARD_TIME) {
                 switch (property.name) {
-                    case PropertyName.DeviceDeliveryGuardPackageGuardingActivatedTimeFrom:{
+                    case PropertyName.DeviceDeliveryGuardPackageGuardingActivatedTimeFrom: {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return ((value as any).start_h !== undefined && (value as any).start_m !== undefined) ? `${(value as any).start_h.toString().padStart(2, "0")}:${(value as any).start_m.toString().padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
@@ -445,7 +447,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             return stringProperty.default !== undefined ? stringProperty.default : "";
                         }
                     }
-                    case PropertyName.DeviceDeliveryGuardPackageGuardingActivatedTimeTo:{
+                    case PropertyName.DeviceDeliveryGuardPackageGuardingActivatedTimeTo: {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return ((value as any).end_h !== undefined && (value as any).end_m !== undefined) ? `${(value as any).end_h.toString().padStart(2, "0")}:${(value as any).end_m.toString().padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
@@ -485,7 +487,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 }
             } else if (property.key === CommandType.CMD_MOTION_SET_LEAVING_REACTIONS) {
                 switch (property.name) {
-                    case PropertyName.DeviceLeavingReactionStartTime:{
+                    case PropertyName.DeviceLeavingReactionStartTime: {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return (value !== undefined && (value as any).start_hour !== undefined && (value as any).start_min !== undefined) ? `${(value as any).start_hour.padStart(2, "0")}:${(value as any).start_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
@@ -495,7 +497,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             return stringProperty.default !== undefined ? stringProperty.default : "";
                         }
                     }
-                    case PropertyName.DeviceLeavingReactionEndTime:{
+                    case PropertyName.DeviceLeavingReactionEndTime: {
                         const stringProperty = property as PropertyMetadataString;
                         try {
                             return (value !== undefined && (value as any).end_hour !== undefined && (value as any).end_min !== undefined) ? `${(value as any).end_hour.padStart(2, "0")}:${(value as any).end_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
@@ -738,7 +740,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     }
                     case PropertyName.DeviceLightSettingsMotionTriggeredTimer: {
                         const numericProperty = property as PropertyMetadataNumeric;
-                        return currentValue !== undefined && currentValue.time !== undefined  ? currentValue.time : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                        return currentValue !== undefined && currentValue.time !== undefined ? currentValue.time : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                     }
                     case PropertyName.DeviceLightSettingsMotionTriggered: {
                         const booleanProperty = property as PropertyMetadataBoolean;
@@ -1031,7 +1033,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.LOCK_8530 ||
             type == DeviceType.LOCK_8592 ||
             type == DeviceType.LOCK_85A3 ||
-	        type == DeviceType.LOCK_8506 ||
+            type == DeviceType.LOCK_8506 ||
             type == DeviceType.LOCK_8502 ||
             type == DeviceType.SMART_SAFE_7400 ||
             type == DeviceType.SMART_SAFE_7401 ||
@@ -1161,22 +1163,22 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return false;
     }
 
-    static isWallLightCam(type: number): boolean{
-        if(type == DeviceType.WALL_LIGHT_CAM || type == DeviceType.WALL_LIGHT_CAM_81A0)
+    static isWallLightCam(type: number): boolean {
+        if (type == DeviceType.WALL_LIGHT_CAM || type == DeviceType.WALL_LIGHT_CAM_81A0)
             return true;
         return false;
     }
 
     static isLock(type: number): boolean {
         return Device.isLockBle(type) ||
-        Device.isLockWifi(type, "") ||
-        Device.isLockBleNoFinger(type) ||
-        Device.isLockWifiNoFinger(type) ||
-        Device.isLockWifiR10(type) ||
-        Device.isLockWifiR20(type) ||
-        Device.isLockWifiVideo(type) ||
-        Device.isLockWifiT8506(type) ||
-        Device.isLockWifiT8502(type);
+            Device.isLockWifi(type, "") ||
+            Device.isLockBleNoFinger(type) ||
+            Device.isLockWifiNoFinger(type) ||
+            Device.isLockWifiR10(type) ||
+            Device.isLockWifiR20(type) ||
+            Device.isLockWifiVideo(type) ||
+            Device.isLockWifiT8506(type) ||
+            Device.isLockWifiT8502(type);
     }
 
     static isLockKeypad(type: number): boolean {
@@ -1436,51 +1438,51 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     static isLockBySn(sn: string): boolean {
         return sn.startsWith("T8510") ||
-        sn.startsWith("T8520") ||
-        sn.startsWith("T8500") ||
-        sn.startsWith("T8501") ||
-        sn.startsWith("T8503") ||
-        sn.startsWith("T8502") ||
-        sn.startsWith("T8504") ||
-        sn.startsWith("T8506") ||
-        sn.startsWith("T8530");
+            sn.startsWith("T8520") ||
+            sn.startsWith("T8500") ||
+            sn.startsWith("T8501") ||
+            sn.startsWith("T8503") ||
+            sn.startsWith("T8502") ||
+            sn.startsWith("T8504") ||
+            sn.startsWith("T8506") ||
+            sn.startsWith("T8530");
     }
 
     static isGarageCameraBySn(sn: string): boolean {
         return sn.startsWith("T8453") ||
-        sn.startsWith("T8452");
+            sn.startsWith("T8452");
     }
 
     static isFloodlightBySn(sn: string): boolean {
         return sn.startsWith("T8420") ||
-        sn.startsWith("T8422") ||
-        sn.startsWith("T8423") ||
-        sn.startsWith("T8424");
+            sn.startsWith("T8422") ||
+            sn.startsWith("T8423") ||
+            sn.startsWith("T8424");
         //(sn.startsWith("T8420") && sn.length > 7 && sn[6] == "6");
     }
 
     static isIndoorCameraBySn(sn: string): boolean {
         return sn.startsWith("T8410") ||
-        sn.startsWith("T8400") ||
-        sn.startsWith("T8401") ||
-        sn.startsWith("T8411") ||
-        sn.startsWith("T8440") ||
-        sn.startsWith("T8441") ||
-        sn.startsWith("T8442") ||
-        sn.startsWith("T8414");
+            sn.startsWith("T8400") ||
+            sn.startsWith("T8401") ||
+            sn.startsWith("T8411") ||
+            sn.startsWith("T8440") ||
+            sn.startsWith("T8441") ||
+            sn.startsWith("T8442") ||
+            sn.startsWith("T8414");
     }
 
     static is4GCameraBySn(sn: string): boolean {
         return sn.startsWith("T8150") ||
-        sn.startsWith("T8151") ||
-        sn.startsWith("T8152") ||
-        sn.startsWith("T8153");
+            sn.startsWith("T8151") ||
+            sn.startsWith("T8152") ||
+            sn.startsWith("T8153");
     }
 
     static isSmartSafeBySn(sn: string): boolean {
         return sn.startsWith("T7400") ||
-        sn.startsWith("T7401") ||
-        sn.startsWith("T7402");
+            sn.startsWith("T7401") ||
+            sn.startsWith("T7402");
     }
 
     static isSmartTrackCard(type: number): boolean {
@@ -1754,7 +1756,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (this.isLock() || this.isSmartDrop()) {
             return this.rawDevice.device_sn === this.rawDevice.station_sn;
         }
-        return this.isWiredDoorbellDual() || this.isFloodLight() ||this.isWiredDoorbell() || this.isIndoorCamera() || this.isSoloCameras() || this.isWallLightCam();
+        return this.isWiredDoorbellDual() || this.isFloodLight() || this.isWiredDoorbell() || this.isIndoorCamera() || this.isSoloCameras() || this.isWallLightCam();
     }
 
     public isSmartTrack(): boolean {
@@ -1847,16 +1849,16 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
 export class Camera extends Device {
 
-    protected constructor(api: HTTPApi, device: DeviceListResponse) {
-        super(api, device);
+    protected constructor(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig) {
+        super(api, device, deviceConfig);
 
-        this.properties[PropertyName.DeviceMotionDetected] = false ;
-        this.properties[PropertyName.DevicePersonDetected] = false ;
+        this.properties[PropertyName.DeviceMotionDetected] = false;
+        this.properties[PropertyName.DevicePersonDetected] = false;
         this.properties[PropertyName.DevicePersonName] = "";
     }
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<Camera> {
-        return new Camera(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<Camera> {
+        return new Camera(api, device, deviceConfig);
     }
 
     public getStateChannel(): string {
@@ -2051,12 +2053,15 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DevicePersonDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                                 }, eventDurationSeconds * 1000));
-                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                                this.clearEventTimeout(DeviceEvent.MotionDetected);
-                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                                }, eventDurationSeconds * 1000));
+
+                                if (this.config.simultaneousDetections) {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                    this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
                                 break;
                             case HB3PairedDevicePushEvent.CRYING_DETECTION:
                                 this.updateProperty(PropertyName.DeviceCryingDetected, true);
@@ -2065,12 +2070,6 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DeviceCryingDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.CryingDetected);
                                 }, eventDurationSeconds * 1000));
-                                this.updateProperty(PropertyName.DeviceSoundDetected, true);
-                                this.clearEventTimeout(DeviceEvent.SoundDetected);
-                                this.eventTimeouts.set(DeviceEvent.SoundDetected, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DeviceSoundDetected, false);
-                                    this.eventTimeouts.delete(DeviceEvent.SoundDetected);
-                                }, eventDurationSeconds * 1000));
                                 break;
                             case HB3PairedDevicePushEvent.DOG_DETECTION:
                                 this.updateProperty(PropertyName.DeviceDogDetected, true);
@@ -2078,12 +2077,6 @@ export class Camera extends Device {
                                 this.eventTimeouts.set(DeviceEvent.DogDetected, setTimeout(async () => {
                                     this.updateProperty(PropertyName.DeviceDogDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.DogDetected);
-                                }, eventDurationSeconds * 1000));
-                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                                this.clearEventTimeout(DeviceEvent.MotionDetected);
-                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
                                 }, eventDurationSeconds * 1000));
                                 break;
                             case HB3PairedDevicePushEvent.DOG_LICK_DETECTION:
@@ -2109,12 +2102,15 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DevicePetDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.PetDetected);
                                 }, eventDurationSeconds * 1000));
-                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                                this.clearEventTimeout(DeviceEvent.MotionDetected);
-                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                                }, eventDurationSeconds * 1000));
+
+                                if (this.config.simultaneousDetections) {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                    this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
                                 break;
                             case HB3PairedDevicePushEvent.SOUND_DETECTION:
                                 this.updateProperty(PropertyName.DeviceSoundDetected, true);
@@ -2131,12 +2127,15 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DeviceVehicleDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.VehicleDetected);
                                 }, eventDurationSeconds * 1000));
-                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                                this.clearEventTimeout(DeviceEvent.MotionDetected);
-                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                                }, eventDurationSeconds * 1000));
+
+                                if (this.config.simultaneousDetections) {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                    this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
                                 break;
                             case HB3PairedDevicePushEvent.IDENTITY_PERSON_DETECTION:
                                 this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
@@ -2147,18 +2146,21 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DeviceIdentityPersonDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.IdentityPersonDetected);
                                 }, eventDurationSeconds * 1000));
-                                this.updateProperty(PropertyName.DevicePersonDetected, true);
-                                this.clearEventTimeout(DeviceEvent.PersonDetected);
-                                this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DevicePersonDetected, false);
-                                    this.eventTimeouts.delete(DeviceEvent.PersonDetected);
-                                }, eventDurationSeconds * 1000));
-                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                                this.clearEventTimeout(DeviceEvent.MotionDetected);
-                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                                }, eventDurationSeconds * 1000));
+
+                                if (this.config.simultaneousDetections) {
+                                    this.updateProperty(PropertyName.DevicePersonDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.PersonDetected);
+                                    this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                                    }, eventDurationSeconds * 1000));
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                    this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
                                 break;
                             case HB3PairedDevicePushEvent.STRANGER_PERSON_DETECTION:
                                 this.updateProperty(PropertyName.DevicePersonName, !isEmpty(message.person_name) ? message.person_name! : "Unknown");
@@ -2169,18 +2171,21 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DeviceStrangerPersonDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.StrangerPersonDetected);
                                 }, eventDurationSeconds * 1000));
-                                this.updateProperty(PropertyName.DevicePersonDetected, true);
-                                this.clearEventTimeout(DeviceEvent.PersonDetected);
-                                this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DevicePersonDetected, false);
-                                    this.eventTimeouts.delete(DeviceEvent.PersonDetected);
-                                }, eventDurationSeconds * 1000));
-                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                                this.clearEventTimeout(DeviceEvent.MotionDetected);
-                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                                }, eventDurationSeconds * 1000));
+                               
+                                if (this.config.simultaneousDetections) {
+                                    this.updateProperty(PropertyName.DevicePersonDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.PersonDetected);
+                                    this.eventTimeouts.set(DeviceEvent.PersonDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DevicePersonDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.PersonDetected);
+                                    }, eventDurationSeconds * 1000));
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                    this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                    this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                        this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                    }, eventDurationSeconds * 1000));
+                                }
                                 break;
                             default:
                                 rootHTTPLogger.debug("Camera process push notification - Unhandled homebase3 camera push event", message);
@@ -2200,8 +2205,8 @@ export class Camera extends Device {
 
 export class SoloCamera extends Camera {
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<SoloCamera> {
-        return new SoloCamera(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<SoloCamera> {
+        return new SoloCamera(api, device, deviceConfig);
     }
 
     public isLedEnabled(): PropertyValue {
@@ -2249,12 +2254,15 @@ export class SoloCamera extends Camera {
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                             }, eventDurationSeconds * 1000));
-                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                            this.clearEventTimeout(DeviceEvent.MotionDetected);
-                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                            }, eventDurationSeconds * 1000));
+
+                            if (this.config.simultaneousDetections) {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         default:
                             rootHTTPLogger.debug("SoloCamera process push notification - Unhandled solo camera push event", message);
@@ -2272,16 +2280,16 @@ export class SoloCamera extends Camera {
 
 export class IndoorCamera extends Camera {
 
-    protected constructor(api: HTTPApi, device: DeviceListResponse) {
-        super(api, device);
+    protected constructor(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig) {
+        super(api, device, deviceConfig);
 
         this.properties[PropertyName.DevicePetDetected] = false;
         this.properties[PropertyName.DeviceSoundDetected] = false;
         this.properties[PropertyName.DeviceCryingDetected] = false;
     }
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<IndoorCamera> {
-        return new IndoorCamera(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<IndoorCamera> {
+        return new IndoorCamera(api, device, deviceConfig);
     }
 
     public isLedEnabled(): PropertyValue {
@@ -2336,12 +2344,16 @@ export class IndoorCamera extends Camera {
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                             }, eventDurationSeconds * 1000));
-                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                            this.clearEventTimeout(DeviceEvent.MotionDetected);
-                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                            }, eventDurationSeconds * 1000));
+
+                            if (this.config.simultaneousDetections) {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
+
                             break;
                         case IndoorPushEvent.CRYING_DETECTION:
                             this.updateProperty(PropertyName.DeviceCryingDetected, true);
@@ -2372,12 +2384,15 @@ export class IndoorCamera extends Camera {
                                 this.updateProperty(PropertyName.DevicePetDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PetDetected);
                             }, eventDurationSeconds * 1000));
-                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                            this.clearEventTimeout(DeviceEvent.MotionDetected);
-                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                            }, eventDurationSeconds * 1000));
+
+                            if (this.config.simultaneousDetections) {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         default:
                             rootHTTPLogger.debug("IndoorCamera process push notification - Unhandled indoor camera push event", message);
@@ -2401,22 +2416,22 @@ export class DoorbellCamera extends Camera {
 
     protected voices: Voices;
 
-    protected constructor(api: HTTPApi, device: DeviceListResponse, voices: Voices) {
-        super(api, device);
+    protected constructor(api: HTTPApi, device: DeviceListResponse, voices: Voices, deviceConfig: DeviceConfig) {
+        super(api, device, deviceConfig);
 
         this.voices = voices;
         this.properties[PropertyName.DeviceRinging] = false;
     }
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<DoorbellCamera> {
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<DoorbellCamera> {
         const voices = await api.getVoices(device.device_sn);
-        return new DoorbellCamera(api, device, voices);
+        return new DoorbellCamera(api, device, voices, deviceConfig);
     }
 
     private loadMetadataVoiceStates(propertyName: string, metadata: IndexedProperty): IndexedProperty {
         if (metadata[propertyName] !== undefined) {
-            const states:Record<number, string> = {};
-            for(const voice of Object.values(this.voices) as Voice[]) {
+            const states: Record<number, string> = {};
+            for (const voice of Object.values(this.voices) as Voice[]) {
                 states[voice.voice_id] = voice.desc;
             }
             (metadata[propertyName] as PropertyMetadataNumeric).states = states;
@@ -2488,12 +2503,15 @@ export class DoorbellCamera extends Camera {
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                             }, eventDurationSeconds * 1000));
-                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                            this.clearEventTimeout(DeviceEvent.MotionDetected);
-                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                            }, eventDurationSeconds * 1000));
+
+                            if (this.config.simultaneousDetections) {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case DoorbellPushEvent.PRESS_DOORBELL:
                             this.updateProperty(PropertyName.DeviceRinging, true);
@@ -2539,12 +2557,15 @@ export class DoorbellCamera extends Camera {
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                             }, eventDurationSeconds * 1000));
-                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                            this.clearEventTimeout(DeviceEvent.MotionDetected);
-                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                            }, eventDurationSeconds * 1000));
+
+                            if (this.config.simultaneousDetections) {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         case DoorbellPushEvent.RADAR_MOTION_DETECTION:
                             this.updateProperty(PropertyName.DeviceRadarMotionDetected, true);
@@ -2552,12 +2573,6 @@ export class DoorbellCamera extends Camera {
                             this.eventTimeouts.set(DeviceEvent.RadarMotionDetected, setTimeout(async () => {
                                 this.updateProperty(PropertyName.DeviceRadarMotionDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.RadarMotionDetected);
-                            }, eventDurationSeconds * 1000));
-                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                            this.clearEventTimeout(DeviceEvent.MotionDetected);
-                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
                             }, eventDurationSeconds * 1000));
                             break;
                         case DoorbellPushEvent.AWAY_FROM_HOME:
@@ -2572,12 +2587,15 @@ export class DoorbellCamera extends Camera {
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                             }, eventDurationSeconds * 1000));
-                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                            this.clearEventTimeout(DeviceEvent.MotionDetected);
-                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                            }, eventDurationSeconds * 1000));
+
+                            if (this.config.simultaneousDetections) {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         default:
                             rootHTTPLogger.debug("DoorbellCamera process push notification - Unhandled doorbell push event", message);
@@ -2595,9 +2613,9 @@ export class DoorbellCamera extends Camera {
 
 export class WiredDoorbellCamera extends DoorbellCamera {
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<WiredDoorbellCamera> {
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<WiredDoorbellCamera> {
         const voices = await api.getVoices(device.device_sn);
-        return new WiredDoorbellCamera(api, device, voices);
+        return new WiredDoorbellCamera(api, device, voices, deviceConfig);
     }
 
     public isLedEnabled(): PropertyValue {
@@ -2616,9 +2634,9 @@ export class WiredDoorbellCamera extends DoorbellCamera {
 
 export class BatteryDoorbellCamera extends DoorbellCamera {
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<BatteryDoorbellCamera> {
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<BatteryDoorbellCamera> {
         const voices = await api.getVoices(device.device_sn);
-        return new BatteryDoorbellCamera(api, device, voices);
+        return new BatteryDoorbellCamera(api, device, voices, deviceConfig);
     }
 
     public isLedEnabled(): PropertyValue {
@@ -2629,8 +2647,8 @@ export class BatteryDoorbellCamera extends DoorbellCamera {
 
 export class FloodlightCamera extends Camera {
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<FloodlightCamera> {
-        return new FloodlightCamera(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<FloodlightCamera> {
+        return new FloodlightCamera(api, device, deviceConfig);
     }
 
     public isLedEnabled(): PropertyValue {
@@ -2705,12 +2723,15 @@ export class FloodlightCamera extends Camera {
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                             }, eventDurationSeconds * 1000));
-                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                            this.clearEventTimeout(DeviceEvent.MotionDetected);
-                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                            }, eventDurationSeconds * 1000));
+
+                            if (this.config.simultaneousDetections) {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         default:
                             rootHTTPLogger.debug("FloodlightCamera process push notification - Unhandled floodlight push event", message);
@@ -2728,8 +2749,8 @@ export class FloodlightCamera extends Camera {
 
 export class WallLightCam extends Camera {
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<WallLightCam> {
-        return new WallLightCam(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<WallLightCam> {
+        return new WallLightCam(api, device, deviceConfig);
     }
 
     public isLedEnabled(): PropertyValue {
@@ -2750,25 +2771,25 @@ export class WallLightCam extends Camera {
                 case CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_COLORED_LIGHTING:
                 case CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_COLORED_LIGHTING:
                 case CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_COLORED_LIGHTING:
-                {
-                    const defaultColor: RGBColor = {
-                        red: 0,
-                        green: 0,
-                        blue: 0
-                    };
-                    const internal = value as unknown as {rgb_color: number;};
-                    return internal !== undefined ? (internal.rgb_color !== undefined ? DecimalToRGBColor(internal.rgb_color) : defaultColor) : defaultColor;
-                }
+                    {
+                        const defaultColor: RGBColor = {
+                            red: 0,
+                            green: 0,
+                            blue: 0
+                        };
+                        const internal = value as unknown as { rgb_color: number; };
+                        return internal !== undefined ? (internal.rgb_color !== undefined ? DecimalToRGBColor(internal.rgb_color) : defaultColor) : defaultColor;
+                    }
                 case CommandType.CMD_WALL_LIGHT_SETTINGS_COLORED_LIGHTING_COLORS: {
                     const result: Array<RGBColor> = [];
-                    for(const color of value as unknown as Array<InternalColoredLighting>) {
+                    for (const color of value as unknown as Array<InternalColoredLighting>) {
                         result.push(DecimalToRGBColor(color.color));
                     }
                     return result;
                 }
-                case CommandType.CMD_WALL_LIGHT_SETTINGS_DYNAMIC_LIGHTING_THEMES:{
+                case CommandType.CMD_WALL_LIGHT_SETTINGS_DYNAMIC_LIGHTING_THEMES: {
                     const result: Array<DynamicLighting> = [];
-                    for(const theme of value as unknown as Array<InternalDynamicLighting>) {
+                    for (const theme of value as unknown as Array<InternalDynamicLighting>) {
                         result.push({
                             colors: theme.colors.map((color) => DecimalToRGBColor(color)),
                             mode: theme.mode,
@@ -2825,12 +2846,15 @@ export class WallLightCam extends Camera {
                                 this.updateProperty(PropertyName.DevicePersonDetected, false);
                                 this.eventTimeouts.delete(DeviceEvent.PersonDetected);
                             }, eventDurationSeconds * 1000));
-                            this.updateProperty(PropertyName.DeviceMotionDetected, true);
-                            this.clearEventTimeout(DeviceEvent.MotionDetected);
-                            this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DeviceMotionDetected, false);
-                                this.eventTimeouts.delete(DeviceEvent.MotionDetected);
-                            }, eventDurationSeconds * 1000));
+
+                            if (this.config.simultaneousDetections) {
+                                this.updateProperty(PropertyName.DeviceMotionDetected, true);
+                                this.clearEventTimeout(DeviceEvent.MotionDetected);
+                                this.eventTimeouts.set(DeviceEvent.MotionDetected, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceMotionDetected, false);
+                                    this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+                                }, eventDurationSeconds * 1000));
+                            }
                             break;
                         default:
                             rootHTTPLogger.debug("WallLightCam process push notification - Unhandled WallLightCam push event", message);
@@ -2847,8 +2871,8 @@ export class WallLightCam extends Camera {
 
 export class GarageCamera extends Camera {
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<GarageCamera> {
-        return new GarageCamera(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<GarageCamera> {
+        return new GarageCamera(api, device, deviceConfig);
     }
 
     public isLedEnabled(): PropertyValue {
@@ -2971,8 +2995,8 @@ export class GarageCamera extends Camera {
 
 export class Sensor extends Device {
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<Sensor> {
-        return new Sensor(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<Sensor> {
+        return new Sensor(api, device, deviceConfig);
     }
 
     public getStateChannel(): string {
@@ -2987,8 +3011,8 @@ export class Sensor extends Device {
 
 export class EntrySensor extends Sensor {
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<EntrySensor> {
-        return new EntrySensor(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<EntrySensor> {
+        return new EntrySensor(api, device, deviceConfig);
     }
 
     public isSensorOpen(): PropertyValue {
@@ -3052,14 +3076,14 @@ export class MotionSensor extends Sensor {
         return MotionSensor.isMotionDetected(this.getMotionSensorPIREvent());
     }*/
 
-    protected constructor(api: HTTPApi, device: DeviceListResponse) {
-        super(api, device);
+    protected constructor(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig) {
+        super(api, device, deviceConfig);
 
         this.properties[PropertyName.DeviceMotionDetected] = false;
     }
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<MotionSensor> {
-        return new MotionSensor(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<MotionSensor> {
+        return new MotionSensor(api, device, deviceConfig);
     }
 
     public isMotionDetected(): boolean {
@@ -3108,8 +3132,8 @@ export class Lock extends Device {
     public static readonly VERSION_CODE_SMART_LOCK = 3;
     public static readonly VERSION_CODE_LOCKV12 = 18;
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<Lock> {
-        return new Lock(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<Lock> {
+        return new Lock(api, device, deviceConfig);
     }
 
     public getStateChannel(): string {
@@ -3201,53 +3225,53 @@ export class Lock extends Device {
                     case LockPushEvent.MANUAL_LOCK:
                     case LockPushEvent.PW_LOCK:
                     case LockPushEvent.TEMPORARY_PW_LOCK:
-                    {
-                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                        this.updateRawProperty(cmdType, "4", source);
+                        {
+                            const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                            this.updateRawProperty(cmdType, "4", source);
 
-                        if (!isEmpty(personName)) {
-                            this.updateProperty(PropertyName.DevicePersonName, personName);
-                            this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(eventType));
-                            this.clearEventTimeout(DeviceEvent.Lock);
-                            this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DevicePersonName, "");
-                                this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
-                                this.eventTimeouts.delete(DeviceEvent.Lock);
-                            }, eventDurationSeconds * 1000));
+                            if (!isEmpty(personName)) {
+                                this.updateProperty(PropertyName.DevicePersonName, personName);
+                                this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(eventType));
+                                this.clearEventTimeout(DeviceEvent.Lock);
+                                this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePersonName, "");
+                                    this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
+                                    this.eventTimeouts.delete(DeviceEvent.Lock);
+                                }, eventDurationSeconds * 1000));
+                            }
+                            break;
                         }
-                        break;
-                    }
                     case LockPushEvent.APP_UNLOCK:
                     case LockPushEvent.AUTO_UNLOCK:
                     case LockPushEvent.FINGERPRINT_UNLOCK:
                     case LockPushEvent.MANUAL_UNLOCK:
                     case LockPushEvent.PW_UNLOCK:
                     case LockPushEvent.TEMPORARY_PW_UNLOCK:
-                    {
-                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                        this.updateRawProperty(cmdType, "3", source);
+                        {
+                            const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                            this.updateRawProperty(cmdType, "3", source);
 
-                        if (!isEmpty(personName)) {
-                            this.updateProperty(PropertyName.DevicePersonName, personName);
-                            this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(eventType));
-                            this.clearEventTimeout(DeviceEvent.Lock);
-                            this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DevicePersonName, "");
-                                this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
-                                this.eventTimeouts.delete(DeviceEvent.Lock);
-                            }, eventDurationSeconds * 1000));
+                            if (!isEmpty(personName)) {
+                                this.updateProperty(PropertyName.DevicePersonName, personName);
+                                this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(eventType));
+                                this.clearEventTimeout(DeviceEvent.Lock);
+                                this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePersonName, "");
+                                    this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
+                                    this.eventTimeouts.delete(DeviceEvent.Lock);
+                                }, eventDurationSeconds * 1000));
+                            }
+                            break;
                         }
-                        break;
-                    }
                     case LockPushEvent.LOCK_MECHANICAL_ANOMALY:
                     case LockPushEvent.MECHANICAL_ANOMALY:
                     case LockPushEvent.VIOLENT_DESTRUCTION:
                     case LockPushEvent.MULTIPLE_ERRORS:
-                    {
-                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                        this.updateRawProperty(cmdType, "5", source);
-                        break;
-                    }
+                        {
+                            const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                            this.updateRawProperty(cmdType, "5", source);
+                            break;
+                        }
                     case LockPushEvent.LOW_POWER:
                     case LockPushEvent.VERY_LOW_POWER:
                         this.updateProperty(PropertyName.DeviceLowBatteryAlert, true);
@@ -3437,7 +3461,7 @@ export class Lock extends Device {
         return payload.getData();
     }
 
-    private static hexTime = function(time: string): string {
+    private static hexTime = function (time: string): string {
         const buf = Buffer.allocUnsafe(2);
         buf.writeUint8(Number.parseInt(time.split(":")[0]));
         buf.writeUint8(Number.parseInt(time.split(":")[1]), 1);
@@ -3536,7 +3560,7 @@ export class Lock extends Device {
         return payload.getData();
     }
 
-    private static hexTimeSmartLock = function(time: string): Buffer {
+    private static hexTimeSmartLock = function (time: string): Buffer {
         const buf = Buffer.allocUnsafe(2);
         buf.writeUint8(Number.parseInt(time.split(":")[0]));
         buf.writeUint8(Number.parseInt(time.split(":")[1]), 1);
@@ -3656,8 +3680,8 @@ export class Lock extends Device {
 
 export class LockKeypad extends Device {
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<LockKeypad> {
-        return new LockKeypad(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<LockKeypad> {
+        return new LockKeypad(api, device, deviceConfig);
     }
 
     public getStateChannel(): string {
@@ -3676,8 +3700,8 @@ export class Keypad extends Device {
     //TODO: CMD_KEYPAD_SET_CUSTOM_MAP = 1660
     //TODO: CMD_KEYPAD_SET_PASSWORD = 1650
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<Keypad> {
-        return new Keypad(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<Keypad> {
+        return new Keypad(api, device, deviceConfig);
     }
 
     public getStateChannel(): string {
@@ -3698,9 +3722,9 @@ export class Keypad extends Device {
 
     protected convertRawPropertyValue(property: PropertyMetadataAny, value: string): PropertyValue {
         try {
-            switch(property.key) {
+            switch (property.key) {
                 case CommandType.CMD_KEYPAD_BATTERY_CHARGER_STATE:
-                    return value !== undefined ? (value === "0" || value === "2"? false : true) : false;
+                    return value !== undefined ? (value === "0" || value === "2" ? false : true) : false;
             }
         } catch (err) {
             const error = ensureError(err);
@@ -3719,18 +3743,18 @@ export class SmartSafe extends Device {
     public static readonly PUSH_NOTIFICATION_POSITION: {
         [index: string]: number;
     } = {
-            [PropertyName.DeviceNotificationUnlockByKey] : 0,
-            [PropertyName.DeviceNotificationUnlockByPIN] : 1,
-            [PropertyName.DeviceNotificationUnlockByFingerprint] : 2,
-            [PropertyName.DeviceNotificationUnlockByApp] : 3,
-            [PropertyName.DeviceNotificationDualUnlock] : 4,
-            [PropertyName.DeviceNotificationDualLock] : 5,
-            [PropertyName.DeviceNotificationWrongTryProtect] : 6,
-            [PropertyName.DeviceNotificationJammed] : 7,
+            [PropertyName.DeviceNotificationUnlockByKey]: 0,
+            [PropertyName.DeviceNotificationUnlockByPIN]: 1,
+            [PropertyName.DeviceNotificationUnlockByFingerprint]: 2,
+            [PropertyName.DeviceNotificationUnlockByApp]: 3,
+            [PropertyName.DeviceNotificationDualUnlock]: 4,
+            [PropertyName.DeviceNotificationDualLock]: 5,
+            [PropertyName.DeviceNotificationWrongTryProtect]: 6,
+            [PropertyName.DeviceNotificationJammed]: 7,
         };
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<SmartSafe> {
-        return new SmartSafe(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<SmartSafe> {
+        return new SmartSafe(api, device, deviceConfig);
     }
 
     public getStateChannel(): string {
@@ -3861,15 +3885,15 @@ export class SmartSafe extends Device {
             if (property.key === CommandType.CMD_SMARTSAFE_REMOTE_OPEN_TYPE) {
                 switch (property.name) {
                     case PropertyName.DeviceRemoteUnlock:
-                    {
-                        const booleanProperty = property as PropertyMetadataBoolean;
-                        return value !== undefined ? (value === "0" || value === "1" ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
-                    }
+                        {
+                            const booleanProperty = property as PropertyMetadataBoolean;
+                            return value !== undefined ? (value === "0" || value === "1" ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                        }
                     case PropertyName.DeviceRemoteUnlockMasterPIN:
-                    {
-                        const booleanProperty = property as PropertyMetadataBoolean;
-                        return value !== undefined ? (value === "0" ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
-                    }
+                        {
+                            const booleanProperty = property as PropertyMetadataBoolean;
+                            return value !== undefined ? (value === "0" ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                        }
                 }
             } else if (property.key === CommandType.CMD_SMARTSAFE_NOTIF) {
                 const booleanProperty = property as PropertyMetadataBoolean;
@@ -3937,63 +3961,63 @@ export class SmartSafe extends Device {
                     switch (message.event_type) {
                         //TODO: Finish smart safe push notification handling implementation
                         case SmartSafeEvent.LOCK_STATUS:
-                        {
-                            const eventValues = message.event_value as SmartSafeEventValueDetail;
+                            {
+                                const eventValues = message.event_value as SmartSafeEventValueDetail;
 
-                            if (eventValues.action === 0) {
-                                this.updateRawProperty(CommandType.CMD_SMARTSAFE_LOCK_STATUS, "0", "push");
-                                /*
-                                    type values:
-                                        1: Unlocked by PIN
-                                        2: Unlocked by User
-                                        3: Unlocked by key
-                                        4: Unlocked by App
-                                        5: Unlocked by Dual Unlock
-                                */
-                            } else if (eventValues.action === 1) {
-                                this.updateRawProperty(CommandType.CMD_SMARTSAFE_LOCK_STATUS, "1", "push");
-                            } else if (eventValues.action === 2) {
-                                this.jammedEvent(eventDurationSeconds);
-                            } else if (eventValues.action === 3) {
-                                this.lowBatteryEvent(eventDurationSeconds);
+                                if (eventValues.action === 0) {
+                                    this.updateRawProperty(CommandType.CMD_SMARTSAFE_LOCK_STATUS, "0", "push");
+                                    /*
+                                        type values:
+                                            1: Unlocked by PIN
+                                            2: Unlocked by User
+                                            3: Unlocked by key
+                                            4: Unlocked by App
+                                            5: Unlocked by Dual Unlock
+                                    */
+                                } else if (eventValues.action === 1) {
+                                    this.updateRawProperty(CommandType.CMD_SMARTSAFE_LOCK_STATUS, "1", "push");
+                                } else if (eventValues.action === 2) {
+                                    this.jammedEvent(eventDurationSeconds);
+                                } else if (eventValues.action === 3) {
+                                    this.lowBatteryEvent(eventDurationSeconds);
+                                }
+                                break;
                             }
-                            break;
-                        }
                         case SmartSafeEvent.ALARM_911:
-                        {
-                            const eventValue = message.event_value as number;
-                            this.alarm911Event(eventValue, eventDurationSeconds);
-                            break;
-                        }
-                        case SmartSafeEvent.SHAKE_ALARM:
-                        {
-                            const eventValue = message.event_value as number;
-                            this.shakeEvent(eventValue, eventDurationSeconds);
-                            break;
-                        }
-                        case SmartSafeEvent.LONG_TIME_NOT_CLOSE:
-                        {
-                            const eventValue = message.event_value as number;
-                            if (eventValue === 1) {
-                                this.updateProperty(PropertyName.DeviceLongTimeNotCloseAlert, true);
-                                this.clearEventTimeout(DeviceEvent.LongTimeNotClose);
-                                this.eventTimeouts.set(DeviceEvent.LongTimeNotClose, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DeviceLongTimeNotCloseAlert, false);
-                                    this.eventTimeouts.delete(DeviceEvent.LongTimeNotClose);
-                                }, eventDurationSeconds * 1000));
+                            {
+                                const eventValue = message.event_value as number;
+                                this.alarm911Event(eventValue, eventDurationSeconds);
+                                break;
                             }
-                            break;
-                        }
+                        case SmartSafeEvent.SHAKE_ALARM:
+                            {
+                                const eventValue = message.event_value as number;
+                                this.shakeEvent(eventValue, eventDurationSeconds);
+                                break;
+                            }
+                        case SmartSafeEvent.LONG_TIME_NOT_CLOSE:
+                            {
+                                const eventValue = message.event_value as number;
+                                if (eventValue === 1) {
+                                    this.updateProperty(PropertyName.DeviceLongTimeNotCloseAlert, true);
+                                    this.clearEventTimeout(DeviceEvent.LongTimeNotClose);
+                                    this.eventTimeouts.set(DeviceEvent.LongTimeNotClose, setTimeout(async () => {
+                                        this.updateProperty(PropertyName.DeviceLongTimeNotCloseAlert, false);
+                                        this.eventTimeouts.delete(DeviceEvent.LongTimeNotClose);
+                                    }, eventDurationSeconds * 1000));
+                                }
+                                break;
+                            }
                         case SmartSafeEvent.LOW_POWER:
-                        {
-                            this.lowBatteryEvent(eventDurationSeconds);
-                            break;
-                        }
+                            {
+                                this.lowBatteryEvent(eventDurationSeconds);
+                                break;
+                            }
                         case SmartSafeEvent.INPUT_ERR_MAX:
-                        {
-                            this.wrongTryProtectAlarmEvent(eventDurationSeconds);
-                            break;
-                        }
+                            {
+                                this.wrongTryProtectAlarmEvent(eventDurationSeconds);
+                                break;
+                            }
                         default:
                             rootHTTPLogger.debug("SmartSafe process push notification - Unhandled smart safe notification event", message.event_type, message.event_time, message.device_sn);
                             break;
@@ -4045,8 +4069,8 @@ export class SmartSafe extends Device {
 
 export class Tracker extends Device {
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<Tracker> {
-        return new Tracker(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<Tracker> {
+        return new Tracker(api, device, deviceConfig);
     }
 
     public getStateChannel(): string {
@@ -4055,23 +4079,23 @@ export class Tracker extends Device {
 
     protected convertRawPropertyValue(property: PropertyMetadataAny, value: string): PropertyValue {
         try {
-            switch(property.key) {
+            switch (property.key) {
                 case TrackerCommandType.COMMAND_NEW_LOCATION:
-                {
-                    if (value !== undefined && typeof value === "string") {
-                        const items = value.split(",");
-                        if (items.length === 3) {
-                            switch(property.name) {
-                                case PropertyName.DeviceLocationCoordinates:
-                                    return `${items[1]},${items[0]}`;
-                                case PropertyName.DeviceLocationLastUpdate:
-                                    return Number.parseInt(items[2]);
-                                default: break;
+                    {
+                        if (value !== undefined && typeof value === "string") {
+                            const items = value.split(",");
+                            if (items.length === 3) {
+                                switch (property.name) {
+                                    case PropertyName.DeviceLocationCoordinates:
+                                        return `${items[1]},${items[0]}`;
+                                    case PropertyName.DeviceLocationLastUpdate:
+                                        return Number.parseInt(items[2]);
+                                    default: break;
+                                }
                             }
                         }
+                        break;
                     }
-                    break;
-                }
             }
         } catch (err) {
             const error = ensureError(err);
@@ -4129,9 +4153,9 @@ export class Tracker extends Device {
 
 export class DoorbellLock extends DoorbellCamera {
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<DoorbellLock> {
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<DoorbellLock> {
         const voices = await api.getVoices(device.device_sn);
-        return new DoorbellLock(api, device, voices);
+        return new DoorbellLock(api, device, voices, deviceConfig);
     }
 
     public getStateChannel(): string {
@@ -4195,53 +4219,53 @@ export class DoorbellLock extends DoorbellCamera {
                     case LockPushEvent.MANUAL_LOCK:
                     case LockPushEvent.PW_LOCK:
                     case LockPushEvent.TEMPORARY_PW_LOCK:
-                    {
-                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                        this.updateRawProperty(cmdType, "4", "push");
+                        {
+                            const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                            this.updateRawProperty(cmdType, "4", "push");
 
-                        if (!isEmpty(message.person_name)) {
-                            this.updateProperty(PropertyName.DevicePersonName, message.person_name!);
-                            this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(message.event_type));
-                            this.clearEventTimeout(DeviceEvent.Lock);
-                            this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DevicePersonName, "");
-                                this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
-                                this.eventTimeouts.delete(DeviceEvent.Lock);
-                            }, eventDurationSeconds * 1000));
+                            if (!isEmpty(message.person_name)) {
+                                this.updateProperty(PropertyName.DevicePersonName, message.person_name!);
+                                this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(message.event_type));
+                                this.clearEventTimeout(DeviceEvent.Lock);
+                                this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePersonName, "");
+                                    this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
+                                    this.eventTimeouts.delete(DeviceEvent.Lock);
+                                }, eventDurationSeconds * 1000));
+                            }
+                            break;
                         }
-                        break;
-                    }
                     case LockPushEvent.APP_UNLOCK:
                     case LockPushEvent.AUTO_UNLOCK:
                     case LockPushEvent.FINGERPRINT_UNLOCK:
                     case LockPushEvent.MANUAL_UNLOCK:
                     case LockPushEvent.PW_UNLOCK:
                     case LockPushEvent.TEMPORARY_PW_UNLOCK:
-                    {
-                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                        this.updateRawProperty(cmdType, "3", "push");
+                        {
+                            const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                            this.updateRawProperty(cmdType, "3", "push");
 
-                        if (!isEmpty(message.person_name)) {
-                            this.updateProperty(PropertyName.DevicePersonName, message.person_name!);
-                            this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(message.event_type));
-                            this.clearEventTimeout(DeviceEvent.Lock);
-                            this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
-                                this.updateProperty(PropertyName.DevicePersonName, "");
-                                this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
-                                this.eventTimeouts.delete(DeviceEvent.Lock);
-                            }, eventDurationSeconds * 1000));
+                            if (!isEmpty(message.person_name)) {
+                                this.updateProperty(PropertyName.DevicePersonName, message.person_name!);
+                                this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(message.event_type));
+                                this.clearEventTimeout(DeviceEvent.Lock);
+                                this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DevicePersonName, "");
+                                    this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
+                                    this.eventTimeouts.delete(DeviceEvent.Lock);
+                                }, eventDurationSeconds * 1000));
+                            }
+                            break;
                         }
-                        break;
-                    }
                     case LockPushEvent.LOCK_MECHANICAL_ANOMALY:
                     case LockPushEvent.MECHANICAL_ANOMALY:
                     case LockPushEvent.VIOLENT_DESTRUCTION:
                     case LockPushEvent.MULTIPLE_ERRORS:
-                    {
-                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                        this.updateRawProperty(cmdType, "5", "push");
-                        break;
-                    }
+                        {
+                            const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                            this.updateRawProperty(cmdType, "5", "push");
+                            break;
+                        }
                     case LockPushEvent.LOW_POWER:
                     case LockPushEvent.VERY_LOW_POWER:
                         this.updateProperty(PropertyName.DeviceLowBatteryAlert, true);
@@ -4271,8 +4295,8 @@ export class DoorbellLock extends DoorbellCamera {
 }
 export class SmartDrop extends Camera {
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<SmartDrop> {
-        return new SmartDrop(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<SmartDrop> {
+        return new SmartDrop(api, device, deviceConfig);
     }
 
     public getStateChannel(): string {
@@ -4369,7 +4393,7 @@ export class SmartDrop extends Camera {
                                 break;
                         }
                     } else if (message.event_type !== 0) {
-                        switch(message.event_type) {
+                        switch (message.event_type) {
                             case SmartDropPushEvent.LOW_BATTERY:
                                 // Low battery warning
                                 this.updateProperty(PropertyName.DeviceLowBatteryAlert, true);
@@ -4468,8 +4492,8 @@ export class SmartDrop extends Camera {
 
 export class UnknownDevice extends Device {
 
-    static async getInstance(api: HTTPApi, device: DeviceListResponse): Promise<UnknownDevice> {
-        return new UnknownDevice(api, device);
+    static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<UnknownDevice> {
+        return new UnknownDevice(api, device, deviceConfig);
     }
 
     public getStateChannel(): string {
