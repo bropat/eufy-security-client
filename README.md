@@ -80,6 +80,15 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 3.1.0 (2024-08-xx)
+
+* (bropat) **Breaking Change** Requires node version >= 20.0.0
+* (martijnpoppen) NEW: add deviceConfig with simultaneousDetections option (#494)
+* (PhilippEngler) added StationTimeZoneProperty (#472)
+* (martijnpoppen) FIX: HB3 Doorbell Known Face detection not coming trough and Doorbell Ringing (#495)
+* (bropat) Added vehicleDetected property to Floodlight Cam E340 (T8425)
+* (bropat) Updated versions of the package dependencies
+
 ### 3.0.0 (2024-03-03)
 
 * (bropat) **Breaking Change** New modular logging implementation

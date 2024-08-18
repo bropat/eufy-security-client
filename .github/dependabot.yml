@@ -8,6 +8,6 @@ updates:
       - "npm dependencies"
     allow:
       - dependency-type: "production"
-    ignore:
-      - dependency-name: "got"
-        versions: [">=14.x"]
+#    ignore:
+#      - dependency-name: "got"
+#        versions: [">=14.x"]

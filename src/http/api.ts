@@ -1,4 +1,4 @@
-import type { Got, OptionsOfUnknownResponseBody } from "got" with {
+import type { Got, OptionsOfBufferResponseBody, OptionsOfJSONResponseBody, OptionsOfTextResponseBody, OptionsOfUnknownResponseBody } from "got" with {
     "resolution-mode": "import"
 };
 import type { AnyFunction, ThrottledFunction } from "p-throttle" with {
@@ -642,11 +642,31 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     public async request(request: HTTPApiRequest, withoutUrlPrefix = false): Promise<ApiResponse> {
         rootHTTPLogger.debug("Api request", { method: request.method, endpoint: request.endpoint, responseType: request.responseType, token: this.token, data: request.data });
         try {
-            const options: OptionsOfUnknownResponseBody = {
-                method: request.method,
-                json: request.data,
-                responseType: request.responseType !== undefined ? request.responseType : "json",
-            };
+            let options: OptionsOfTextResponseBody | OptionsOfBufferResponseBody | OptionsOfJSONResponseBody;
+            switch(request.responseType) {
+                case undefined:
+                case "json":
+                    options = {
+                        method: request.method,
+                        json: request.data,
+                        responseType: "json",
+                    } as OptionsOfJSONResponseBody;
+                    break;
+                case "text":
+                    options = {
+                        method: request.method,
+                        json: request.data,
+                        responseType: request.responseType,
+                    } as OptionsOfTextResponseBody;
+                    break;
+                case "buffer":
+                    options = {
+                        method: request.method,
+                        json: request.data,
+                        responseType: request.responseType,
+                    } as OptionsOfBufferResponseBody;
+                    break;
+            }
             if (withoutUrlPrefix)
                 options.prefixUrl = "";
             const internalResponse = await this.requestEufyCloud(request.endpoint, options);
