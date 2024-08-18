@@ -757,6 +757,21 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     return_code: ErrorCode.ERROR_COMMAND_TIMEOUT,
                     customData: message.customData
                 } as CommandResult);
+
+                if (message.commandType === CommandType.CMD_START_REALTIME_MEDIA ||
+                    (message.nestedCommandType === CommandType.CMD_START_REALTIME_MEDIA && message.commandType === CommandType.CMD_SET_PAYLOAD) ||
+                    message.commandType === CommandType.CMD_RECORD_VIEW ||
+                    (message.nestedCommandType === ParamType.COMMAND_START_LIVESTREAM && message.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD)
+                ) {
+                    if (this.currentMessageState[P2PDataType.VIDEO].p2pStreaming && message.channel === this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel) {
+                        this.endStream(P2PDataType.VIDEO);
+                    }
+                } else if (message.commandType === CommandType.CMD_DOWNLOAD_VIDEO) {
+                    if (this.currentMessageState[P2PDataType.BINARY].p2pStreaming && message.channel === this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel) {
+                        this.endStream(P2PDataType.BINARY);
+                    }
+                }
+
                 this.messageStates.delete(message.sequence);
                 this.sendQueuedMessage();
                 return;
@@ -795,12 +810,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 }
                 this.currentMessageState[P2PDataType.VIDEO].p2pStreaming = true;
                 this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel = messageState.channel;
+                this.waitForStreamData(P2PDataType.VIDEO);
             } else if (messageState.commandType === CommandType.CMD_DOWNLOAD_VIDEO) {
                 if (this.currentMessageState[P2PDataType.BINARY].p2pStreaming && messageState.channel !== this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel) {
                     this.endStream(P2PDataType.BINARY);
                 }
                 this.currentMessageState[P2PDataType.BINARY].p2pStreaming = true;
                 this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel = message.channel;
+                this.waitForStreamData(P2PDataType.BINARY);
             } else if (messageState.commandType === CommandType.CMD_STOP_REALTIME_MEDIA) { //TODO: CommandType.CMD_RECORD_PLAY_CTRL only if stop
                 this.endStream(P2PDataType.VIDEO);
             } else if (messageState.commandType === CommandType.CMD_DOWNLOAD_CANCEL) {
@@ -1336,9 +1353,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 msg_state.commandType === CommandType.CMD_RECORD_VIEW ||
                                 (msg_state.nestedCommandType === ParamType.COMMAND_START_LIVESTREAM && msg_state.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD)
                             ) {
-                                this.waitForStreamData(P2PDataType.VIDEO);
+                                this.waitForStreamData(P2PDataType.VIDEO, true);
                             } else if (msg_state.commandType === CommandType.CMD_DOWNLOAD_VIDEO) {
-                                this.waitForStreamData(P2PDataType.BINARY);
+                                this.waitForStreamData(P2PDataType.BINARY, true);
                             } else if (msg_state.commandType === CommandType.CMD_START_TALKBACK || (msg_state.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD && msg_state.nestedCommandType === IndoorSoloSmartdropCommandType.CMD_START_SPEAK)) {
                                 if (return_code === ErrorCode.ERROR_PPCS_SUCCESSFUL) {
                                     this.startTalkback(msg_state.channel);
@@ -1393,13 +1410,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         return iframe;
     }
 
-    private waitForStreamData(dataType: P2PDataType): void {
+    private waitForStreamData(dataType: P2PDataType, sendStopCommand = false): void {
         if (this.currentMessageState[dataType].p2pStreamingTimeout) {
             clearTimeout(this.currentMessageState[dataType].p2pStreamingTimeout!);
         }
         this.currentMessageState[dataType].p2pStreamingTimeout = setTimeout(() => {
             rootP2PLogger.info(`Stopping the station stream for the device ${this.deviceSNs[this.currentMessageState[dataType].p2pStreamChannel]?.sn}, because we haven't received any data for ${this.MAX_STREAM_DATA_WAIT / 1000} seconds`);
-            this.endStream(dataType, true);
+            this.endStream(dataType, sendStopCommand);
         }, this.MAX_STREAM_DATA_WAIT);
     }
 
@@ -1407,7 +1424,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (!this.currentMessageState[message.dataType].invalidStream) {
             switch(message.commandId) {
                 case CommandType.CMD_VIDEO_FRAME:
-                    this.waitForStreamData(message.dataType);
+                    this.waitForStreamData(message.dataType, true);
 
                     const videoMetaData: P2PDataMessageVideo = {
                         streamType: 0,
@@ -1538,7 +1555,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     }
                     break;
                 case CommandType.CMD_AUDIO_FRAME:
-                    this.waitForStreamData(message.dataType);
+                    this.waitForStreamData(message.dataType, true);
 
                     const audioMetaData: P2PDataMessageAudio = {
                         audioType: AudioCodec.NONE,
@@ -2434,9 +2451,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         }
     }
 
-    private endStream(datatype: P2PDataType, force = false): void {
+    private endStream(datatype: P2PDataType, sendStopCommand = false): void {
         if (this.currentMessageState[datatype].p2pStreaming) {
-            if (force) {
+            if (sendStopCommand) {
                 switch (datatype) {
                     case P2PDataType.VIDEO:
                         this.sendCommandWithInt({
