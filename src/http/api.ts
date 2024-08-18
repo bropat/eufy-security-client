@@ -372,10 +372,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
                             rootHTTPLogger.debug("Token data", { token: this.token, tokenExpiration: this.tokenExpiration });
                             await this.sendVerifyCode(VerfyCodeTypes.TYPE_EMAIL);
+                            rootHTTPLogger.info("Please send required verification code to proceed with authentication");
                             this.emit("tfa request");
                         } else if (result.code == ResponseErrorCode.LOGIN_NEED_CAPTCHA || result.code == ResponseErrorCode.LOGIN_CAPTCHA_ERROR) {
                             const dataresult: CaptchaResponse = result.data;
                             rootHTTPLogger.debug("Login - Captcha verification received", { captchaId: dataresult.captcha_id, item: dataresult.item });
+                            rootHTTPLogger.info("Please send requested captcha to proceed with authentication");
                             this.emit("captcha request", dataresult.captcha_id, dataresult.item);
                         } else {
                             rootHTTPLogger.error("Login - Response code not ok", {code: result.code, msg: result.msg, data: response.data });
