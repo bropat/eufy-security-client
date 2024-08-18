@@ -1398,7 +1398,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             clearTimeout(this.currentMessageState[dataType].p2pStreamingTimeout!);
         }
         this.currentMessageState[dataType].p2pStreamingTimeout = setTimeout(() => {
-            rootP2PLogger.info(`Stopping the station stream for the device ${this.deviceSNs[this.currentMessageState[dataType].p2pStreamChannel]?.sn}, because we haven't received any data for ${this.MAX_STREAM_DATA_WAIT} seconds`);
+            rootP2PLogger.info(`Stopping the station stream for the device ${this.deviceSNs[this.currentMessageState[dataType].p2pStreamChannel]?.sn}, because we haven't received any data for ${this.MAX_STREAM_DATA_WAIT / 1000} seconds`);
             this.endStream(dataType, true);
         }, this.MAX_STREAM_DATA_WAIT);
     }
