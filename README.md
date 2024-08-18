@@ -88,6 +88,7 @@ Please use GitHub issues for this.
 * (martijnpoppen) FIX: HB3 Doorbell Known Face detection not coming trough and Doorbell Ringing (#495)
 * (bropat) Added vehicleDetected property to Floodlight Cam E340 (T8425)
 * (bassrock) fix(bool): convert numeric to boolean (#523)
+* (bropat) Fixed issue #482
 * (bropat) Updated versions of the package dependencies
 
 ### 3.0.0 (2024-03-03)
