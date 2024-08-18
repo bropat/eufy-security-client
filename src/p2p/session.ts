@@ -2538,15 +2538,22 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
 
     public getLockSequenceNumber(): number {
-        if (this.lockSeqNumber === -1)
-            this.lockSeqNumber = generateLockSequence(this.rawStation.devices[0].device_type, this.rawStation.devices[0].device_sn);
+        if (this.lockSeqNumber === -1) {
+            let deviceType = undefined;
+            let deviceSN = undefined;
+            if (this.rawStation?.devices !== undefined && this.rawStation?.devices.length > 0) {
+                deviceType = this.rawStation?.devices[0]?.device_type;
+                deviceSN = this.rawStation?.devices[0]?.device_sn;
+            }
+            this.lockSeqNumber = generateLockSequence(deviceType, deviceSN);
+        }
         return this.lockSeqNumber;
     }
 
     public incLockSequenceNumber(): number {
-        if (this.lockSeqNumber === -1)
-            this.lockSeqNumber = generateLockSequence(this.rawStation.devices[0].device_type, this.rawStation.devices[0].device_sn);
-        else
+        if (this.lockSeqNumber === -1) {
+            this.getLockSequenceNumber();
+        } else
             this.lockSeqNumber++;
         return this.lockSeqNumber;
     }
