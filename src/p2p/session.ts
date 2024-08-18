@@ -19,7 +19,7 @@ import { LivestreamError, TalkbackError, ensureError } from "../error";
 import { SmartSafeEvent } from "../push/types";
 import { SmartSafeEventValueDetail } from "../push/models";
 import { BleCommandFactory, BleParameterIndex } from "./ble";
-import { CommandName, Station } from "../http";
+import { CommandName, ParamType, Station } from "../http";
 import { getError, parseJSON } from "../utils";
 import { rootP2PLogger } from "../logging";
 
@@ -786,9 +786,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
         if (messageState.retries === 0) {
             if (messageState.commandType === CommandType.CMD_START_REALTIME_MEDIA ||
-                (messageState.nestedCommandType !== undefined && messageState.nestedCommandType === CommandType.CMD_START_REALTIME_MEDIA && messageState.commandType === CommandType.CMD_SET_PAYLOAD) ||
+                (messageState.nestedCommandType === CommandType.CMD_START_REALTIME_MEDIA && messageState.commandType === CommandType.CMD_SET_PAYLOAD) ||
                 messageState.commandType === CommandType.CMD_RECORD_VIEW ||
-                (messageState.nestedCommandType !== undefined && messageState.nestedCommandType === 1000 && messageState.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD)
+                (messageState.nestedCommandType === ParamType.COMMAND_START_LIVESTREAM && messageState.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD)
             ) {
                 if (this.currentMessageState[P2PDataType.VIDEO].p2pStreaming && messageState.channel !== this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel) {
                     this.endStream(P2PDataType.VIDEO);
@@ -1332,9 +1332,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             }
 
                             if (msg_state.commandType === CommandType.CMD_START_REALTIME_MEDIA ||
-                                (msg_state.nestedCommandType !== undefined && msg_state.nestedCommandType === CommandType.CMD_START_REALTIME_MEDIA && msg_state.commandType === CommandType.CMD_SET_PAYLOAD) ||
+                                (msg_state.nestedCommandType === CommandType.CMD_START_REALTIME_MEDIA && msg_state.commandType === CommandType.CMD_SET_PAYLOAD) ||
                                 msg_state.commandType === CommandType.CMD_RECORD_VIEW ||
-                                (msg_state.nestedCommandType !== undefined && msg_state.nestedCommandType === 1000 && msg_state.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD)
+                                (msg_state.nestedCommandType === ParamType.COMMAND_START_LIVESTREAM && msg_state.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD)
                             ) {
                                 this.waitForStreamData(P2PDataType.VIDEO);
                             } else if (msg_state.commandType === CommandType.CMD_DOWNLOAD_VIDEO) {
