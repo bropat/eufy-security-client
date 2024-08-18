@@ -387,7 +387,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceRingAutoResponse: {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
-                            return (value as any).setting[0].active === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                            return (value as any)?.setting[0]?.active === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponse Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -397,7 +397,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceRingAutoResponseVoiceResponse: {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
-                            return (value as any).setting[0].active === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                            return (value as any)?.setting[0]?.active === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseVoiceResponse Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -407,7 +407,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceRingAutoResponseTimeFrom: {
                         const stringProperty = property as PropertyMetadataString;
                         try {
-                            return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].start_hour !== undefined && (value as any).setting[0].start_min !== undefined) ? `${(value as any).setting[0].start_hour.padStart(2, "0")}:${(value as any).setting[0].start_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
+                            return ((value as any)?.setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].start_hour !== undefined && (value as any).setting[0].start_min !== undefined) ? `${(value as any).setting[0].start_hour.padStart(2, "0")}:${(value as any).setting[0].start_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseTimeFrom Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -417,7 +417,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceRingAutoResponseTimeTo: {
                         const stringProperty = property as PropertyMetadataString;
                         try {
-                            return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].end_hour !== undefined && (value as any).setting[0].end_min !== undefined) ? `${(value as any).setting[0].end_hour.padStart(2, "0")}:${(value as any).setting[0].end_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
+                            return ((value as any)?.setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].end_hour !== undefined && (value as any).setting[0].end_min !== undefined) ? `${(value as any).setting[0].end_hour.padStart(2, "0")}:${(value as any).setting[0].end_min.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseTimeTo Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -427,7 +427,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceRingAutoResponseVoiceResponseVoice: {
                         const numericProperty = property as PropertyMetadataNumeric;
                         try {
-                            return ((value as any).setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].auto_voice_id !== undefined) ? (value as any).setting[0].auto_voice_id : numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
+                            return ((value as any)?.setting !== undefined && (value as any).setting.length !== undefined && (value as any).setting.length > 0 && (value as any).setting[0].auto_voice_id !== undefined) ? (value as any).setting[0].auto_voice_id : numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseVoiceResponseVoice Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
