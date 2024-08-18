@@ -130,6 +130,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (this.config.acceptInvitations === undefined) {
             this.config.acceptInvitations = false;
         }
+        if (this.config.enableEmbeddedPKCS1Support === undefined) {
+            this.config.enableEmbeddedPKCS1Support = false;
+        }
         if(this.config.deviceConfig === undefined) {
             this.config.deviceConfig = {
                 simultaneousDetections: true

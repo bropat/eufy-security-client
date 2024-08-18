@@ -130,12 +130,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private channel = Station.CHANNEL;
     private encryption: EncryptionType = EncryptionType.NONE;
     private p2pKey?: Buffer;
+    private enableEmbeddedPKCS1Support = false;
 
-    constructor(rawStation: StationListResponse, api: HTTPApi, ipAddress?:string, publicKey = "") {
+    constructor(rawStation: StationListResponse, api: HTTPApi, ipAddress?:string, publicKey = "", enableEmbeddedPKCS1Support = false) {
         super();
         this.api = api;
         this.lockPublicKey = publicKey;
         this.preferredIPAddress = ipAddress;
+        this.enableEmbeddedPKCS1Support = enableEmbeddedPKCS1Support;
         this.cloudAddresses = decodeP2PCloudIPs(rawStation.app_conn);
         rootP2PLogger.debug("Loaded P2P cloud ip addresses", { stationSN: rawStation.station_sn, ipAddress: ipAddress, cloudAddresses: this.cloudAddresses });
         this.updateRawStation(rawStation);
@@ -201,7 +203,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             this.expectedSeqNo[datatype] = 0;
 
             if (datatype === P2PDataType.VIDEO)
-                rsaKey = getNewRSAPrivateKey();
+                rsaKey = getNewRSAPrivateKey(this.enableEmbeddedPKCS1Support);
             else
                 rsaKey = null;
 
@@ -2245,7 +2247,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_GATEWAYINFO - get cipher with cipherID`, { stationSN: this.rawStation.station_sn, channel: message.channel, data: data.toString("hex"), cipherID: cipherID, cipher: JSON.stringify(cipher) });
                         if (cipher !== undefined) {
                             this.encryption  = EncryptionType.LEVEL_2;
-                            const rsa = getRSAPrivateKey(cipher.private_key);
+                            const rsa = getRSAPrivateKey(cipher.private_key, this.enableEmbeddedPKCS1Support);
                             this.p2pKey = rsa.decrypt(encryptedKey);
                             rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_GATEWAYINFO - set encryption level 2`, { stationSN: this.rawStation.station_sn, key: this.p2pKey.toString("hex") });
                         } else {
@@ -2376,13 +2378,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     public getDownloadRSAPrivateKey(): NodeRSA {
         if (this.currentMessageState[P2PDataType.BINARY].rsaKey === null) {
-            this.currentMessageState[P2PDataType.BINARY].rsaKey = getNewRSAPrivateKey();
+            this.currentMessageState[P2PDataType.BINARY].rsaKey = getNewRSAPrivateKey(this.enableEmbeddedPKCS1Support);
         }
         return this.currentMessageState[P2PDataType.BINARY].rsaKey!;
     }
 
     public setDownloadRSAPrivateKeyPem(pem: string): void {
-        this.currentMessageState[P2PDataType.BINARY].rsaKey = getRSAPrivateKey(pem);
+        this.currentMessageState[P2PDataType.BINARY].rsaKey = getRSAPrivateKey(pem, this.enableEmbeddedPKCS1Support);
     }
 
     public getRSAPrivateKey(): NodeRSA | null {

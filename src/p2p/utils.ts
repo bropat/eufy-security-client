@@ -1,5 +1,5 @@
 import { Socket } from "dgram";
-import NodeRSA from "node-rsa";
+import NodeRSA, { Options as NodeRSAOptions } from "node-rsa";
 import * as CryptoJS from "crypto-js"
 import { randomBytes, createCipheriv, createECDH, ECDH, createHmac, createDecipheriv } from "crypto";
 import * as os from "os";
@@ -310,7 +310,7 @@ export const sortP2PMessageParts = (messages: P2PMessageParts): Buffer => {
     return completeMessage;
 }
 
-export const getRSAPrivateKey = (pem: string): NodeRSA => {
+export const getRSAPrivateKey = (pem: string, enableEmbeddedPKCS1Support = false): NodeRSA => {
     const key = new NodeRSA();
     if (pem.indexOf("\n") !== -1) {
         pem = pem.replaceAll("\n", "");
@@ -319,17 +319,25 @@ export const getRSAPrivateKey = (pem: string): NodeRSA => {
         pem = pem.replace("-----BEGIN RSA PRIVATE KEY-----", "").replace("-----END RSA PRIVATE KEY-----", "");
     }
     key.importKey(pem, "pkcs8");
-    key.setOptions({
+    const options: NodeRSAOptions = {
         encryptionScheme: "pkcs1"
-    });
+    }
+    if (enableEmbeddedPKCS1Support) {
+        options.environment = "browser"
+    }
+    key.setOptions(options);
     return key;
 }
 
-export const getNewRSAPrivateKey = (): NodeRSA => {
+export const getNewRSAPrivateKey = (enableEmbeddedPKCS1Support = false): NodeRSA => {
     const key = new NodeRSA({ b: 1024 });
-    key.setOptions({
+    const options: NodeRSAOptions = {
         encryptionScheme: "pkcs1"
-    });
+    }
+    if (enableEmbeddedPKCS1Support) {
+        options.environment = "browser"
+    }
+    key.setOptions(options);
     return key;
 }
 
