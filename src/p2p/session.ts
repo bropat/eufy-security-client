@@ -344,10 +344,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this._clearMessageStateTimeouts();
         this._clearMessageVideoStateTimeouts();
         if (this.currentMessageState[P2PDataType.VIDEO].p2pStreaming) {
-            this.endStream(P2PDataType.VIDEO)
+            this.endStream(P2PDataType.VIDEO);
         }
         if (this.currentMessageState[P2PDataType.BINARY].p2pStreaming) {
-            this.endStream(P2PDataType.BINARY)
+            this.endStream(P2PDataType.BINARY);
         }
         for (const channel in this.currentMessageState[P2PDataType.DATA].rtspStreaming) {
             this.endRTSPStream(Number.parseInt(channel));
@@ -791,13 +791,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 (messageState.nestedCommandType !== undefined && messageState.nestedCommandType === 1000 && messageState.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD)
             ) {
                 if (this.currentMessageState[P2PDataType.VIDEO].p2pStreaming && messageState.channel !== this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel) {
-                    this.endStream(P2PDataType.VIDEO)
+                    this.endStream(P2PDataType.VIDEO);
                 }
                 this.currentMessageState[P2PDataType.VIDEO].p2pStreaming = true;
                 this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel = messageState.channel;
             } else if (messageState.commandType === CommandType.CMD_DOWNLOAD_VIDEO) {
                 if (this.currentMessageState[P2PDataType.BINARY].p2pStreaming && messageState.channel !== this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel) {
-                    this.endStream(P2PDataType.BINARY)
+                    this.endStream(P2PDataType.BINARY);
                 }
                 this.currentMessageState[P2PDataType.BINARY].p2pStreaming = true;
                 this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel = message.channel;
