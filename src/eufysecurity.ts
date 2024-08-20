@@ -353,6 +353,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             this.stations[hub.station_sn].update(hub);
             if (!this.stations[hub.station_sn].isConnected() && !this.stations[hub.station_sn].isEnergySavingDevice() && this.stations[hub.station_sn].isP2PConnectableDevice()) {
                 this.stations[hub.station_sn].setConnectionType(this.config.p2pConnectionSetup);
+                rootMainLogger.debug(`Updating station cloud data - initiate station connection to get local data over p2p`, { stationSN: hub.station_sn });
                 this.stations[hub.station_sn].connect();
             }
             this.getStorageInfo(hub.station_sn);
@@ -472,6 +473,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         const station = await this.getStation(stationSN);
         if (station.isP2PConnectableDevice()) {
             station.setConnectionType(p2pConnectionType);
+            rootMainLogger.debug(`Explicit request for p2p connection to the station`, { stationSN: station.getSerial() });
             await station.connect();
         }
     }
@@ -732,6 +734,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 this.getStation(device.getStationSerial()).then((station: Station) => {
                     if (!station.isConnected() && station.isP2PConnectableDevice()) {
                         station.setConnectionType(this.config.p2pConnectionSetup);
+                        rootMainLogger.debug(`Initiate first station connection to get data over p2p`, { stationSN: station.getSerial() });
                         station.connect();
                     }
                 }).catch((err) => {
