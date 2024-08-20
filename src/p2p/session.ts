@@ -647,7 +647,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         break;
                     }
                 }
-            } else if (!this.connected) {
+            } else if (!this.connected && this.sendQueue.filter((queue) => queue.p2pCommand.commandType !== CommandType.CMD_PING && queue.p2pCommand.commandType !== CommandType.CMD_GET_DEVICE_PING).length > 0) {
                 this.connect();
             }
         }
