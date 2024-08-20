@@ -52,6 +52,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private readonly P2P_DATA_HEADER_BYTES = 16;
 
     private readonly MAX_SEQUENCE_NUMBER = 65535;
+
+    private readonly LOOP_RUNAWAY_LIMIT = 100000;
     /*
     * SEQUENCE_PROCESSING_BOUNDARY is used to determine if an incoming sequence number
     * that is lower than the expected one was already processed.
@@ -1183,6 +1185,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             }
 
             let data = message.data;
+            let runaway_limit = 0;
             do {
                 // is this the first message?
                 const firstPartMessage = data.subarray(0, 4).toString() === MAGIC_WORD;
@@ -1262,7 +1265,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         this.offsetDataSeqNumber++;
                     }
                 }
-            } while (data.length > 0)
+                runaway_limit++;
+            } while ((data.length > 0) || (runaway_limit < this.LOOP_RUNAWAY_LIMIT))
+            if (runaway_limit != this.LOOP_RUNAWAY_LIMIT) {
+                rootP2PLogger.warn(`Infinite loop detected (limit >= ${this.LOOP_RUNAWAY_LIMIT}) during parsing of p2p message - DATA ${P2PDataType[message.type]}`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, header: this.currentMessageBuilder[message.type].header, bytesRead: this.currentMessageBuilder[message.type].bytesRead, bytesToRead: this.currentMessageBuilder[message.type].header.bytesToRead, message: message.data.toString("hex"), messageSize: message.data.length });
+            }
         }
     }
 
