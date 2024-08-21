@@ -774,7 +774,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         });
         if (this.refreshEufySecurityCloudTimeout !== undefined)
             clearTimeout(this.refreshEufySecurityCloudTimeout);
-        this.refreshEufySecurityCloudTimeout = setTimeout(() => { this.refreshCloudData() }, this.config.pollingIntervalMinutes * 60 * 1000);
+        if (this.config.pollingIntervalMinutes !== 0)
+            this.refreshEufySecurityCloudTimeout = setTimeout(() => { this.refreshCloudData() }, this.config.pollingIntervalMinutes * 60 * 1000);
     }
 
     public close(): void {
