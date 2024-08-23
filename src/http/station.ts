@@ -45,12 +45,12 @@ export class Station extends TypedEmitter<StationEvents> {
 
     private pinVerified = false;
 
-    protected constructor(api: HTTPApi, station: StationListResponse, ipAddress?: string, publicKey = "", enableEmbeddedPKCS1Support = false) {
+    protected constructor(api: HTTPApi, station: StationListResponse, ipAddress?: string, listeningPort = 0, publicKey = "", enableEmbeddedPKCS1Support = false) {
         super();
         this.api = api;
         this.rawStation = station;
         this.lockPublicKey = publicKey;
-        this.p2pSession = new P2PClientProtocol(this.rawStation, this.api, ipAddress, publicKey, enableEmbeddedPKCS1Support);
+        this.p2pSession = new P2PClientProtocol(this.rawStation, this.api, ipAddress, listeningPort, publicKey, enableEmbeddedPKCS1Support);
         this.p2pSession.on("connect", (address: Address) => this.onConnect(address));
         this.p2pSession.on("close", () => this.onDisconnect());
         this.p2pSession.on("timeout", () => this.onTimeout());
@@ -107,12 +107,12 @@ export class Station extends TypedEmitter<StationEvents> {
         this.initializeState();
     }
 
-    static async getInstance(api: HTTPApi, stationData: StationListResponse, ipAddress?: string, enableEmbeddedPKCS1Support?: boolean): Promise<Station> {
+    static async getInstance(api: HTTPApi, stationData: StationListResponse, ipAddress?: string, listeningPort?: number, enableEmbeddedPKCS1Support?: boolean): Promise<Station> {
         let publicKey: string | undefined;
         if (Device.isLock(stationData.device_type) && !Device.isLockWifiT8506(stationData.device_type) && !Device.isLockWifiT8502(stationData.device_type) && !Device.isLockWifiT8510P(stationData.device_type, stationData.station_sn) && !Device.isLockWifiT8520P(stationData.device_type, stationData.station_sn)) {
             publicKey = await api.getPublicKey(stationData.station_sn, PublicKeyType.LOCK);
         }
-        return new Station(api, stationData, ipAddress, publicKey, enableEmbeddedPKCS1Support);
+        return new Station(api, stationData, ipAddress, listeningPort, publicKey, enableEmbeddedPKCS1Support);
     }
 
     //TODO: To remove

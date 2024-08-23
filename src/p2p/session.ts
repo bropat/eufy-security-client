@@ -121,6 +121,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private connectAddress: Address | undefined = undefined;
     private localIPAddress: string | undefined = undefined;
     private preferredIPAddress: string | undefined = undefined;
+    private listeningPort: number = 0;
     private dskKey = "";
     private dskExpiration: Date | null = null;
     private deviceSNs: DeviceSerial = {};
@@ -134,11 +135,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private p2pKey?: Buffer;
     private enableEmbeddedPKCS1Support = false;
 
-    constructor(rawStation: StationListResponse, api: HTTPApi, ipAddress?:string, publicKey = "", enableEmbeddedPKCS1Support = false) {
+    constructor(rawStation: StationListResponse, api: HTTPApi, ipAddress?:string, listeningPort = 0, publicKey = "", enableEmbeddedPKCS1Support = false) {
         super();
         this.api = api;
         this.lockPublicKey = publicKey;
         this.preferredIPAddress = ipAddress;
+        if (listeningPort >= 0)
+            this.listeningPort = listeningPort;
         this.enableEmbeddedPKCS1Support = enableEmbeddedPKCS1Support;
         this.cloudAddresses = decodeP2PCloudIPs(rawStation.app_conn);
         rootP2PLogger.debug("Loaded P2P cloud ip addresses", { stationSN: rawStation.station_sn, ipAddress: ipAddress, cloudAddresses: this.cloudAddresses });
@@ -504,7 +507,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             this.terminating = false;
             await this.renewDSKKey();
             if (!this.binded)
-                this.socket.bind(0, () => {
+                this.socket.bind(this.listeningPort, () => {
                     this.binded = true;
                     try {
                         this.socket.setRecvBufferSize(this.UDP_RECVBUFFERSIZE_BYTES);
