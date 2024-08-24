@@ -6607,7 +6607,6 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
         [PropertyName.DeviceLightSettingsEnable]: DeviceFloodlightLightSettingsEnableProperty,
         [PropertyName.DevicePicture]: DevicePictureProperty,
-        [PropertyName.DevicePictureTime]: DevicePictureTimeProperty,
         [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
         [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivitySoloProperty,
         [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
