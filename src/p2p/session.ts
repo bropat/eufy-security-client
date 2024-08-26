@@ -53,7 +53,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private readonly MAX_SEQUENCE_NUMBER = 65535;
 
-    private readonly LOOP_RUNAWAY_LIMIT = 100000;
+    private readonly LOOP_RUNAWAY_LIMIT = 1000;
     /*
     * SEQUENCE_PROCESSING_BOUNDARY is used to determine if an incoming sequence number
     * that is lower than the expected one was already processed.
@@ -1180,7 +1180,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private parseDataMessage(message: P2PMessage): void {
         if ((message.type === P2PDataType.BINARY || message.type === P2PDataType.VIDEO) && !this.currentMessageState[message.type].p2pStreaming) {
-            rootP2PLogger.trace(`Parsing message - DATA ${P2PDataType[message.type]} - Stream not started ignore this data`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, header: this.currentMessageBuilder[message.type].header, bytesRead: this.currentMessageBuilder[message.type].bytesRead, bytesToRead: this.currentMessageBuilder[message.type].header.bytesToRead, messageSize: message.data.length });
+            rootP2PLogger.trace(`Parsing message - DATA ${P2PDataType[message.type]} - Stream not started ignore this data`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, header: this.currentMessageBuilder[message.type].header, bytesRead: this.currentMessageBuilder[message.type].bytesRead, bytesToRead: message.bytesToRead, messageSize: message.data.length });
         } else {
             if (this.currentMessageState[message.type].leftoverData.length > 0) {
                 message.data = Buffer.concat([this.currentMessageState[message.type].leftoverData, message.data]);
@@ -1252,7 +1252,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         data = Buffer.from([]);
                     }
                 }
-                rootP2PLogger.trace(`Parsing message - DATA ${P2PDataType[message.type]} - Received data`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, header: this.currentMessageBuilder[message.type].header, bytesRead: this.currentMessageBuilder[message.type].bytesRead, bytesToRead: this.currentMessageBuilder[message.type].header.bytesToRead, firstPartMessage: firstPartMessage, messageSize: message.data.length });
+                rootP2PLogger.trace(`Parsing message - DATA ${P2PDataType[message.type]} - Received data`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, header: this.currentMessageBuilder[message.type].header, bytesRead: this.currentMessageBuilder[message.type].bytesRead, bytesToRead: this.currentMessageBuilder[message.type].header.bytesToRead, firstPartMessage: firstPartMessage, messageSize: message.data.length, runaway_limit: runaway_limit });
                 if (this.currentMessageBuilder[message.type].bytesRead === this.currentMessageBuilder[message.type].header.bytesToRead && 
                     this.currentMessageBuilder[message.type].bytesRead > 0 && this.currentMessageBuilder[message.type].header.bytesToRead > 0) {
                     const completeMessage = sortP2PMessageParts(this.currentMessageBuilder[message.type].messages);
@@ -1269,13 +1269,15 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         this.offsetDataSeqNumber++;
                     }
                 } else if (this.currentMessageBuilder[message.type].bytesRead === 0 && this.currentMessageBuilder[message.type].header.bytesToRead === 0) {
-                    rootP2PLogger.warn(`Unparsable message detected and discarded`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, dataType: P2PDataType[message.type], header: this.currentMessageBuilder[message.type].header, bytesRead: this.currentMessageBuilder[message.type].bytesRead, bytesToRead: this.currentMessageBuilder[message.type].header.bytesToRead, message: message.data.toString("hex"), messageSize: message.data.length });
+                    rootP2PLogger.warn(`Unparsable message detected and discarded`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, dataType: P2PDataType[message.type], header: this.currentMessageBuilder[message.type].header, bytesRead: this.currentMessageBuilder[message.type].bytesRead, bytesToRead: this.currentMessageBuilder[message.type].header.bytesToRead, message: message.data.toString("hex"), messageSize: message.data.length, runaway_limit: runaway_limit });
+                    this.initializeMessageBuilder(message.type);
                     break;
                 }
                 runaway_limit++;
-            } while ((data.length > 0) || (runaway_limit < this.LOOP_RUNAWAY_LIMIT))
+            } while ((data.length > 0) && (runaway_limit < this.LOOP_RUNAWAY_LIMIT))
             if (runaway_limit >= this.LOOP_RUNAWAY_LIMIT) {
                 rootP2PLogger.warn(`Infinite loop detected (limit >= ${this.LOOP_RUNAWAY_LIMIT}) during parsing of p2p message`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, dataType: P2PDataType[message.type], header: this.currentMessageBuilder[message.type].header, bytesRead: this.currentMessageBuilder[message.type].bytesRead, bytesToRead: this.currentMessageBuilder[message.type].header.bytesToRead, message: message.data.toString("hex"), messageSize: message.data.length });
+                this.initializeMessageBuilder(message.type);
             }
         }
     }
