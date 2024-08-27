@@ -857,6 +857,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
             newMetadata[PropertyName.DeviceMotionDetection] = DeviceMotionDetectionProperty;
 
             metadata = newMetadata;
+        } else if (this.isIndoorPanAndTiltCameraS350() && Station.isStationHomeBase3BySn(this.getStationSerial())) {
+            const newMetadata = {
+                ...metadata
+            };
+
+            newMetadata[PropertyName.DeviceMotionDetection] = DeviceMotionDetectionProperty;
+
+            metadata = newMetadata;
         }
         if (Station.isStationHomeBase3BySn(this.getStationSerial()) && (metadata[PropertyName.DeviceMotionDetectionType] !== undefined || metadata[PropertyName.DeviceMotionDetectionTypeAllOtherMotions] !== undefined) && this.isCamera()) {
             const newMetadata = {
