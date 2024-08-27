@@ -1716,7 +1716,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
-        } else if (device.isStarlight4GLTE() || device.isOutdoorPanAndTiltCamera()) {
+        } else if (device.isStarlight4GLTE()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -10664,7 +10664,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
 
         rootHTTPLogger.debug(`Station preset position - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), preset: PresetPositionType[position] });
-        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350()) {
+        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -10696,7 +10696,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
 
         rootHTTPLogger.debug(`Station save preset position - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), preset: PresetPositionType[position] });
-        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350()) {
+        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -10728,7 +10728,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
 
         rootHTTPLogger.debug(`Station delete preset position - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), preset: PresetPositionType[position] });
-        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350()) {
+        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({

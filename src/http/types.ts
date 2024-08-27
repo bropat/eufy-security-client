@@ -2290,6 +2290,13 @@ export const DeviceRecordingClipLengthWalllightS120Property: PropertyMetadataNum
     default: 30,
 }
 
+export const DeviceRecordingClipLengthOutdoorPTProperty: PropertyMetadataNumeric = {
+    ...DeviceRecordingClipLengthProperty,
+    min: 10,
+    max: 120,
+    default: 60,
+}
+
 export const DeviceRecordingRetriggerIntervalProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_DEV_RECORD_INTERVAL,
     name: PropertyName.DeviceRecordingRetriggerInterval,
@@ -6578,12 +6585,20 @@ export const DeviceProperties: Properties = {
     },
     [DeviceType.OUTDOOR_PT_CAMERA]: {
         ...GenericDeviceProperties,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
         [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
         [PropertyName.DeviceBattery]: DeviceBatteryProperty,
         [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
         [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
+        [PropertyName.DeviceState]: DeviceStateProperty,
+        [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
+        [PropertyName.DeviceLastChargingFalseEvents]: DeviceLastChargingFalseEventsProperty,
+        [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
+        [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
+        [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
         [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
         [PropertyName.DeviceVehicleDetected]: DeviceVehicleDetectedProperty,
@@ -6612,6 +6627,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
         [PropertyName.DevicePersonName]: DevicePersonNameProperty,
         [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
+        [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthOutdoorPTProperty,
+        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
+        [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceDualCamWatchViewMode]: DeviceDualCamWatchViewModeS340Property,
     },
     [DeviceType.INDOOR_PT_CAMERA_S350]: {
