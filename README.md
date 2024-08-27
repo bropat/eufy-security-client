@@ -80,7 +80,7 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 3.1.0 (2024-08-xx)
+### 3.1.0 (2024-08-27)
 
 * (bropat) **Breaking Change** Requires node version >= 20.0.0
 * (martijnpoppen) NEW: add deviceConfig with simultaneousDetections option (#494)
@@ -94,6 +94,8 @@ Please use GitHub issues for this.
 * (bropat) Added more logging about the initiation of P2P connections
 * (bropat) Added more authentication log for info level
 * (bropat) Improved livestream handling
+* (PhilippEngler) update T8416 support (#535)
+* (PhilippEngler) update T8170 support (#536)
 * (bassrock) fix(bool): convert numeric to boolean (#523)
 * (bropat) Fixed issue #482
 * (bropat) Fixed an unhandled case that led to a infinite loop when parsing p2p messages
