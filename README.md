@@ -80,6 +80,30 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 3.1.0 (2024-08-27)
+
+* (bropat) **Breaking Change** Requires node version >= 20.0.0
+* (martijnpoppen) NEW: add deviceConfig with simultaneousDetections option (#494)
+* (PhilippEngler) added StationTimeZoneProperty (#472)
+* (martijnpoppen) FIX: HB3 Doorbell Known Face detection not coming trough and Doorbell Ringing (#495)
+* (bropat/lenoxys) Added ability to disable automatic cloud polling (#533)
+* (bropat/PhilippEngler) Added ability to choose listening port of p2p station communication (#473)
+* (bropat) Added vehicleDetected property to Floodlight Cam E340 (T8425)
+* (bropat) Implemented runaway limit during parsing of p2p message data (infinite loop detection)
+* (bropat) Added new EufySecurity options enableEmbeddedPKCS1Support (possible workaround for issue #487)
+* (bropat) Added more logging about the initiation of P2P connections
+* (bropat) Added more authentication log for info level
+* (bropat) Improved livestream handling
+* (PhilippEngler) update T8416 support (#535)
+* (PhilippEngler) update T8170 support (#536)
+* (bassrock) fix(bool): convert numeric to boolean (#523)
+* (bropat) Fixed issue #482
+* (bropat) Fixed an unhandled case that led to a infinite loop when parsing p2p messages
+* (bropat) Fixed possible incorrect initiation of a P2P reconnection
+* (bropat) Fixed some more property parsing
+* (bropat) Possible fix for some locks missing some metadata
+* (bropat) Updated versions of the package dependencies
+
 ### 3.0.0 (2024-03-03)
 
 * (bropat) **Breaking Change** New modular logging implementation

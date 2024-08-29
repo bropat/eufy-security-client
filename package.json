@@ -1,6 +1,6 @@
 {
   "name": "eufy-security-client",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Client to comunicate with Eufy-Security devices",
   "author": {
     "name": "bropat",
@@ -37,39 +37,39 @@
     "url": "https://github.com/bropat/eufy-security-client"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "@cospired/i18n-iso-languages": "^4.2.0",
     "crypto-js": "^4.2.0",
-    "date-and-time": "^3.1.1",
+    "date-and-time": "^3.5.0",
     "fs-extra": "^11.2.0",
-    "got": "^13.0.0",
-    "i18n-iso-countries": "^7.10.0",
+    "got": "^14.4.2",
+    "i18n-iso-countries": "^7.11.3",
     "image-type": "^5.2.0",
     "long": "^5.2.3",
-    "mqtt": "^5.3.6",
+    "mqtt": "^5.10.0",
     "node-rsa": "^1.1.1",
     "node-schedule": "^2.1.1",
-    "p-throttle": "^6.1.0",
-    "protobufjs": "^7.2.6",
-    "qs": "^6.11.2",
+    "p-throttle": "^6.2.0",
+    "protobufjs": "^7.4.0",
+    "qs": "^6.13.0",
     "sweet-collections": "^1.1.0",
     "tiny-typed-emitter": "^2.1.0",
-    "typescript-logging": "^2.1.0",
-    "typescript-logging-category-style": "^2.1.0"
+    "typescript-logging": "^2.2.0",
+    "typescript-logging-category-style": "^2.2.0"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^18.19.21",
+    "@types/node": "^20.16.1",
     "@types/node-rsa": "^1.1.4",
-    "@types/node-schedule": "^2.1.6",
-    "@types/qs": "^6.9.12",
-    "@typescript-eslint/eslint-plugin": "^7.1.0",
-    "@typescript-eslint/parser": "^7.1.0",
-    "eslint": "^8.57.0",
-    "typescript": "^5.3.3"
+    "@types/node-schedule": "^2.1.7",
+    "@types/qs": "^6.9.15",
+    "@typescript-eslint/eslint-plugin": "^8.3.0",
+    "@typescript-eslint/parser": "^8.3.0",
+    "eslint": "^9.9.1",
+    "typescript": "^5.5.4"
   },
   "bugs": {
     "url": "https://github.com/bropat/eufy-security-client/issues"

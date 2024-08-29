@@ -29,6 +29,10 @@ export interface EufySecurityConfig {
     eventDurationSeconds: number;
     acceptInvitations?: boolean;
     stationIPAddresses?: StationIPAddresses;
+    enableEmbeddedPKCS1Support?: boolean;
+    deviceConfig?: {
+        simultaneousDetections?: boolean;
+    },
     logging?: {
         level?: LogLevel;
         categories?: Array<{

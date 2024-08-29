@@ -2,7 +2,7 @@ import * as NodeRSA from "node-rsa";
 import { Readable } from "stream";
 import { SortedMap } from "sweet-collections";
 
-import { AlarmMode, DeviceType, MicStatus, TriggerType, VideoType } from "../http/types";
+import { AlarmMode, DeviceType, MicStatus, ParamType, TriggerType, VideoType } from "../http/types";
 import { Address, CmdCameraInfoResponse, CommandResult, CustomData, StorageInfoBodyHB3 } from "./models";
 import { TalkbackStream } from "./talkback";
 import { AlarmEvent, AudioCodec, CommandType, DatabaseReturnCode, IndoorSoloSmartdropCommandType, P2PDataType, SmartSafeAlarm911Event, SmartSafeShakeAlarmEvent, P2PStorageType, TFCardStatus, VideoCodec, InternalP2PCommandType } from "./types";
@@ -64,7 +64,7 @@ export interface P2PQueueMessage {
 export interface P2PMessageState {
     sequence: number;
     commandType: CommandType;
-    nestedCommandType?: CommandType | IndoorSoloSmartdropCommandType;
+    nestedCommandType?: CommandType | IndoorSoloSmartdropCommandType | ParamType;
     nestedCommandType2?: number;
     channel: number;
     data: Buffer;

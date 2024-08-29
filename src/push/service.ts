@@ -456,16 +456,9 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.device_sn = normalizedMessage.station_sn;
                 }
 
-                if (Station.isStationHomeBase3(normalizedMessage.type) ||
-                    (normalizedMessage.station_sn.startsWith("T8030") && (
-                        Device.isCamera1Product(normalizedMessage.type) ||
-                        Device.isCamera2Product(normalizedMessage.type) ||
-                        Device.isCamera3(normalizedMessage.type) ||
-                        Device.isCamera3C(normalizedMessage.type) ||
-                        normalizedMessage.type === DeviceType.CAMERA_SNAIL ||
-                        normalizedMessage.type === DeviceType.CAMERA_GUN)
-                    )
-                ) {
+                if (Station.isStationHomeBase3(normalizedMessage.type) || (normalizedMessage.station_sn.startsWith("T8030") && (
+                    Device.isCamera(normalizedMessage.type))
+                )) {
                     const platformPushData = payload.payload as PlatformPushMode;
                     normalizedMessage.name = platformPushData.name ? platformPushData.name : "";
                     normalizedMessage.channel = platformPushData.channel !== undefined ? platformPushData.channel : 0;
@@ -495,6 +488,11 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     if (batteryDoorbellPushData.objects !== undefined) {
                         normalizedMessage.person_name = batteryDoorbellPushData.objects.names !== undefined ? batteryDoorbellPushData.objects.names.join(",") : "";
                     }
+
+                    if (normalizedMessage.person_name === "") {
+                        normalizedMessage.person_name = batteryDoorbellPushData.nick_name;
+                    }
+
 
                     normalizedMessage.channel = batteryDoorbellPushData.channel !== undefined ? batteryDoorbellPushData.channel : 0;
                     normalizedMessage.cipher = batteryDoorbellPushData.cipher !== undefined ? batteryDoorbellPushData.cipher : 0;

@@ -36,7 +36,7 @@
 
         // Consider targetting es2017 or higher if you require the new NodeJS 8+ features
         "target": "ES2022",
-        "lib": ["ES2022", "DOM"],
+        "lib": ["ES2023", "DOM"],
 
         "sourceMap": true,
         "inlineSourceMap": false,
