@@ -66,6 +66,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private refreshEufySecurityP2PTimeout: {
         [dataType: string]: NodeJS.Timeout;
     } = {};
+    private refreshEufySecurityP2PEnergySavingOmitsCounter: {
+        [dataType: string]: number;
+    } = {};
     private deviceSnoozeTimeout: {
         [dataType: string]: NodeJS.Timeout;
     } = {};
@@ -132,6 +135,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
         if (this.config.enableEmbeddedPKCS1Support === undefined) {
             this.config.enableEmbeddedPKCS1Support = false;
+        }
+        if (this.config.refreshP2PEnergySavingOmits === undefined) {
+            this.config.refreshP2PEnergySavingOmits = 2;
         }
         if(this.config.deviceConfig === undefined) {
             this.config.deviceConfig = {
@@ -327,6 +333,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (serial && !Object.keys(this.stations).includes(serial)) {
             this.stations[serial] = station;
             this.getStorageInfo(serial);
+            if (station.isEnergySavingDevice()) {
+                this.refreshEufySecurityP2PEnergySavingOmitsCounter[serial] = 0;
+            }
             this.emit("station added", station);
         } else {
             rootMainLogger.debug(`Station with this serial ${station.getSerial()} exists already and couldn't be added again!`);
@@ -351,12 +360,34 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             await this.stationsLoaded;
         if (Object.keys(this.stations).includes(hub.station_sn)) {
             this.stations[hub.station_sn].update(hub);
-            if (!this.stations[hub.station_sn].isConnected() && !this.stations[hub.station_sn].isEnergySavingDevice() && this.stations[hub.station_sn].isP2PConnectableDevice()) {
-                this.stations[hub.station_sn].setConnectionType(this.config.p2pConnectionSetup);
-                rootMainLogger.debug(`Updating station cloud data - initiate station connection to get local data over p2p`, { stationSN: hub.station_sn });
-                this.stations[hub.station_sn].connect();
+            if (this.stations[hub.station_sn].isP2PConnectableDevice()) {
+                if (!this.stations[hub.station_sn].isEnergySavingDevice() && !this.stations[hub.station_sn].isConnected()) {
+                    rootMainLogger.debug(`Updating station cloud data - initiate station connection to get local data over p2p`, { stationSN: hub.station_sn });
+                    this.stations[hub.station_sn].connect();
+                    this.getStorageInfo(hub.station_sn);
+                } else if (this.stations[hub.station_sn].isEnergySavingDevice() && !this.stations[hub.station_sn].isConnected()) {
+                    if (this.refreshEufySecurityP2PEnergySavingOmitsCounter[hub.station_sn] === 0) {
+                        this.stations[hub.station_sn].setConnectionType(P2PConnectionType.QUICKEST);
+                        rootMainLogger.debug(`Updating station cloud data - initiate station connection to get local data over p2p`, { stationSN: hub.station_sn });
+                        this.stations[hub.station_sn].connect();
+                        this.getStorageInfo(hub.station_sn);
+                        if (this.config.refreshP2PEnergySavingOmits !== 0) {
+                            this.refreshEufySecurityP2PEnergySavingOmitsCounter[hub.station_sn]++;
+                        }
+                    } else if (this.refreshEufySecurityP2PEnergySavingOmitsCounter[hub.station_sn] === this.config.refreshP2PEnergySavingOmits) {
+                        this.refreshEufySecurityP2PEnergySavingOmitsCounter[hub.station_sn] = 0;
+                    } else if (this.refreshEufySecurityP2PEnergySavingOmitsCounter[hub.station_sn] > 0 && this.refreshEufySecurityP2PEnergySavingOmitsCounter[hub.station_sn] < 2) {
+                        this.refreshEufySecurityP2PEnergySavingOmitsCounter[hub.station_sn]++;
+                    } else {
+                        this.refreshEufySecurityP2PEnergySavingOmitsCounter[hub.station_sn] = 0;
+                    }
+                } else if (this.stations[hub.station_sn].isConnected()) {
+                    this.getStorageInfo(hub.station_sn);
+                    if (this.stations[hub.station_sn].isEnergySavingDevice() && this.config.refreshP2PEnergySavingOmits !== 0) {
+                        this.refreshEufySecurityP2PEnergySavingOmitsCounter[hub.station_sn] = 1;
+                    }
+                }
             }
-            this.getStorageInfo(hub.station_sn);
         } else {
             rootMainLogger.debug(`Station with this serial ${hub.station_sn} doesn't exists and couldn't be updated!`);
         }

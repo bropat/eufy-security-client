@@ -30,6 +30,7 @@ export interface EufySecurityConfig {
     acceptInvitations?: boolean;
     stationIPAddresses?: StationIPAddresses;
     enableEmbeddedPKCS1Support?: boolean;
+    refreshP2PEnergySavingOmits?: number;
     deviceConfig?: {
         simultaneousDetections?: boolean;
     },
