@@ -827,3 +827,17 @@ export const getSmartLockP2PCommand = function(deviceSN: string, user_id: string
         }
     };
 }
+
+export const readNullTerminatedBuffer = (input: Buffer): Buffer => {
+    const index = input.indexOf(new Uint8Array([0]));
+    
+    if (index === -1) {
+        const result = Buffer.alloc(input.length)
+        input.copy(result);
+        return result;
+    }
+
+    const result = Buffer.alloc(input.subarray(0, index).length)
+    input.subarray(0, index).copy(result);
+    return result;
+};
