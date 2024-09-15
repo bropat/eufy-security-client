@@ -951,7 +951,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     tmpSendQueue.forEach(element => {
                         this.sendQueue.push(element);
                     });
-                } else if (this.rawStation.devices !== undefined && this.rawStation.devices !== null && this.rawStation.devices.length !== undefined && this.rawStation.devices.length > 0 && Device.isLockWifiVideo(this.rawStation.devices[0].device_type)) {
+                } else if (this.rawStation.devices !== undefined && this.rawStation.devices !== null && this.rawStation.devices.length !== undefined && this.rawStation.devices.length > 0 && Device.isLockWifiVideo(this.rawStation.devices[0]?.device_type)) {
                     const tmpSendQueue: Array<P2PQueueMessage> = [ ...this.sendQueue ];
                     this.sendQueue = [];
                     const payload = buildVoidCommandPayload(Station.CHANNEL);
@@ -1755,7 +1755,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 this.emit("parameter", message.channel, CommandType.CMD_DOORLOCK_GET_STATE, payload.slState);
                                 this.emit("parameter", message.channel, CommandType.CMD_SMARTLOCK_NIGHT_VISION_SIDE, payload.slOpenDirection);
                             } else if (json.cmd === CommandType.CMD_DOORLOCK_P2P_SEQ) {
-                                if (Device.isLockWifi(this.rawStation.devices[0].device_type, this.rawStation.devices[0].device_sn) || Device.isLockWifiNoFinger(this.rawStation.devices[0].device_type)) {
+                                if (Device.isLockWifi(this.rawStation.devices[0]?.device_type, this.rawStation.devices[0]?.device_sn) || Device.isLockWifiNoFinger(this.rawStation.devices[0]?.device_type)) {
                                     const payload: ESLStationP2PThroughData = json.payload as ESLStationP2PThroughData;
                                     if (payload.seq_num !== undefined) {
                                         this.lockSeqNumber = payload.seq_num;
@@ -1771,9 +1771,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                         this.lockSeqNumber = payload.seq_num + 1;
                                     }
                                     if (payload.lock_cmd > 0) {
-                                        if (Device.isLockWifiR10(this.rawStation.devices[0].device_type) || Device.isLockWifiR20(this.rawStation.devices[0].device_type)) {
+                                        if (Device.isLockWifiR10(this.rawStation.devices[0]?.device_type) || Device.isLockWifiR20(this.rawStation.devices[0]?.device_type)) {
                                             this.emit("sequence error", message.channel, ESLCommand[ESLBleCommand[payload.lock_cmd] as unknown as number] as unknown as number, payload.seq_num, payload.dev_sn);
-                                        } else if (Device.isLockWifiT8506(this.rawStation.devices[0].device_type) || Device.isLockWifiT8502(this.rawStation.devices[0].device_type) || Device.isLockWifiT8510P(this.rawStation.devices[0].device_type, this.rawStation.devices[0].device_sn) || Device.isLockWifiT8520P(this.rawStation.devices[0].device_type, this.rawStation.devices[0].device_sn)) {
+                                        } else if (Device.isLockWifiT8506(this.rawStation.devices[0]?.device_type) || Device.isLockWifiT8502(this.rawStation.devices[0]?.device_type) || Device.isLockWifiT8510P(this.rawStation.devices[0]?.device_type, this.rawStation.devices[0]?.device_sn) || Device.isLockWifiT8520P(this.rawStation.devices[0]?.device_type, this.rawStation.devices[0]?.device_sn)) {
                                             this.emit("sequence error", message.channel, SmartLockCommand[payload.bus_type! == SmartLockFunctionType.TYPE_2 ? SmartLockBleCommandFunctionType2[payload.lock_cmd] as unknown as number : SmartLockBleCommandFunctionType1[payload.lock_cmd] as unknown as number] as unknown as number, payload.seq_num, payload.dev_sn);
                                         } else {
                                             rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Lock sequence number - Unknwon device`, { stationSN: this.rawStation.station_sn, oldSequenceNumber: this.lockSeqNumber, newSequenceNumber: this.lockSeqNumber + 1, payload: payload });
