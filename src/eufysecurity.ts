@@ -580,7 +580,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             station.getLockParameters();
             station.getLockStatus();
         }
-        if (station.isStation() || (station.hasProperty(PropertyName.StationSdStatus) && station.getPropertyValue(PropertyName.StationSdStatus) !== undefined && station.getPropertyValue(PropertyName.StationSdStatus) !== TFCardStatus.REMOVE)) {
+        if (station.isStation() || (station.hasProperty(PropertyName.StationSdStatus) && station.getPropertyValue(PropertyName.StationSdStatus) !== TFCardStatus.REMOVE)) {
             station.getStorageInfoEx();
         }
     }
