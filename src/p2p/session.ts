@@ -1253,8 +1253,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     }
                 }
                 rootP2PLogger.trace(`Parsing message - DATA ${P2PDataType[message.type]} - Received data`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, header: this.currentMessageBuilder[message.type].header, bytesRead: this.currentMessageBuilder[message.type].bytesRead, bytesToRead: this.currentMessageBuilder[message.type].header.bytesToRead, firstPartMessage: firstPartMessage, messageSize: message.data.length, runaway_limit: runaway_limit });
-                if (this.currentMessageBuilder[message.type].bytesRead === this.currentMessageBuilder[message.type].header.bytesToRead && 
-                    this.currentMessageBuilder[message.type].bytesRead > 0 && this.currentMessageBuilder[message.type].header.bytesToRead > 0) {
+                if (this.currentMessageBuilder[message.type].bytesRead === this.currentMessageBuilder[message.type].header.bytesToRead) {
                     const completeMessage = sortP2PMessageParts(this.currentMessageBuilder[message.type].messages);
                     const data_message: P2PDataMessage = {
                         ...this.currentMessageBuilder[message.type].header,
@@ -1268,10 +1267,6 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         rootP2PLogger.debug(`Parsing message - DATA ${P2PDataType[message.type]} - Parsed data`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, data_message: data_message,  datalen: data.length, data: data.toString("hex"), offsetDataSeqNumber: this.offsetDataSeqNumber, seqNumber: this.seqNumber, p2pDataSeqNumber: this.p2pDataSeqNumber });
                         this.offsetDataSeqNumber++;
                     }
-                } else if (this.currentMessageBuilder[message.type].bytesRead === 0 && this.currentMessageBuilder[message.type].header.bytesToRead === 0) {
-                    rootP2PLogger.warn(`Unparsable message detected and discarded`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, dataType: P2PDataType[message.type], header: this.currentMessageBuilder[message.type].header, bytesRead: this.currentMessageBuilder[message.type].bytesRead, bytesToRead: this.currentMessageBuilder[message.type].header.bytesToRead, message: message.data.toString("hex"), messageSize: message.data.length, runaway_limit: runaway_limit });
-                    this.initializeMessageBuilder(message.type);
-                    break;
                 }
                 runaway_limit++;
             } while ((data.length > 0) && (runaway_limit < this.LOOP_RUNAWAY_LIMIT))
