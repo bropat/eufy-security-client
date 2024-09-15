@@ -326,7 +326,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         const serial = station.getSerial();
         if (serial && !Object.keys(this.stations).includes(serial)) {
             this.stations[serial] = station;
-            this.getStorageInfo(serial);
             this.emit("station added", station);
         } else {
             rootMainLogger.debug(`Station with this serial ${station.getSerial()} exists already and couldn't be added again!`);
@@ -356,21 +355,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 rootMainLogger.debug(`Updating station cloud data - initiate station connection to get local data over p2p`, { stationSN: hub.station_sn });
                 this.stations[hub.station_sn].connect();
             }
-            this.getStorageInfo(hub.station_sn);
         } else {
             rootMainLogger.debug(`Station with this serial ${hub.station_sn} doesn't exists and couldn't be updated!`);
-        }
-    }
-
-    private async getStorageInfo(stationSerial : string) : Promise<void> {
-        try {
-            const station = await this.getStation(stationSerial);
-            if (station.isStation() || (station.hasProperty(PropertyName.StationSdStatus) && station.getPropertyValue(PropertyName.StationSdStatus) !== undefined && station.getPropertyValue(PropertyName.StationSdStatus) !== TFCardStatus.REMOVE)) {
-                station.getStorageInfoEx();
-            }
-        } catch (err) {
-            const error = ensureError(err);
-            rootMainLogger.error("getStorageInfo Error", { error: getError(error), stationSN: stationSerial });
         }
     }
 
@@ -586,29 +572,29 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
     }
 
-    private onStationConnect(station: Station): void {
-        this.emit("station connect", station);
-        if (Station.isStation(station.getDeviceType()) || (Device.isCamera(station.getDeviceType()) && !Device.isWiredDoorbell(station.getDeviceType()) || Device.isSmartSafe(station.getDeviceType()))) {
+    private refreshP2PData(station: Station): void {
+        if (station.isStation() || (Device.isCamera(station.getDeviceType()) && !Device.isWiredDoorbell(station.getDeviceType()) || Device.isSmartSafe(station.getDeviceType()))) {
             station.getCameraInfo();
-            if (this.refreshEufySecurityP2PTimeout[station.getSerial()] !== undefined) {
-                clearTimeout(this.refreshEufySecurityP2PTimeout[station.getSerial()]);
-                delete this.refreshEufySecurityP2PTimeout[station.getSerial()];
-            }
-            this.refreshEufySecurityP2PTimeout[station.getSerial()] = setTimeout(() => {
-                station.getCameraInfo();
-            }, this.P2P_REFRESH_INTERVAL_MIN * 60 * 1000);
-        } else if (Device.isLock(station.getDeviceType())) {
+        }
+        if (Device.isLock(station.getDeviceType())) {
             station.getLockParameters();
             station.getLockStatus();
-            if (this.refreshEufySecurityP2PTimeout[station.getSerial()] !== undefined) {
-                clearTimeout(this.refreshEufySecurityP2PTimeout[station.getSerial()]);
-                delete this.refreshEufySecurityP2PTimeout[station.getSerial()];
-            }
-            this.refreshEufySecurityP2PTimeout[station.getSerial()] = setTimeout(() => {
-                station.getLockParameters();
-                station.getLockStatus();
-            }, this.P2P_REFRESH_INTERVAL_MIN * 60 * 1000);
         }
+        if (station.isStation() || (station.hasProperty(PropertyName.StationSdStatus) && station.getPropertyValue(PropertyName.StationSdStatus) !== undefined && station.getPropertyValue(PropertyName.StationSdStatus) !== TFCardStatus.REMOVE)) {
+            station.getStorageInfoEx();
+        }
+    }
+
+    private onStationConnect(station: Station): void {
+        this.emit("station connect", station);
+        this.refreshP2PData(station);
+        if (this.refreshEufySecurityP2PTimeout[station.getSerial()] !== undefined) {
+            clearTimeout(this.refreshEufySecurityP2PTimeout[station.getSerial()]);
+            delete this.refreshEufySecurityP2PTimeout[station.getSerial()];
+        }
+        this.refreshEufySecurityP2PTimeout[station.getSerial()] = setTimeout(() => {
+            this.refreshP2PData(station);
+        }, this.P2P_REFRESH_INTERVAL_MIN * 60 * 1000);
     }
 
     private onStationConnectionError(station: Station, error: Error): void {
