@@ -80,6 +80,12 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 3.1.1 (2024-09-xx)
+
+* (bropat) Fixed draining issues for some battery powered devices (instead of #544)
+* (bropat) Fixed issue #502 (untested)
+* (bropat) Fixed issue #539
+
 ### 3.1.0 (2024-08-27)
 
 * (bropat) **Breaking Change** Requires node version >= 20.0.0
