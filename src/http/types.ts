@@ -74,7 +74,7 @@ export enum DeviceType {
     SMART_TRACK_CARD = 159, //T87B2
     LOCK_8502 = 180,
     LOCK_8506 = 184,
-    LOCK_85L0 = 185,
+    LOCK_85L0 = 201,
     WALL_LIGHT_CAM_81A0 = 10005,
 }
 
@@ -1001,7 +1001,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
         159: "SmartTrack Card (T87B2)",
         180: "Smart Lock C210 (T8502)",
         184: "Smart Lock C220 (T8506)",
-        185: "Smart Lock C33 (T85L0)",
+        201: "Smart Lock C33 (T85L0)",
         10005: "Solar Wall Light Cam S120 (T81A0)",
     },
 }
