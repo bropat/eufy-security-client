@@ -1043,6 +1043,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.LOCK_85A3 ||
             type == DeviceType.LOCK_8506 ||
             type == DeviceType.LOCK_8502 ||
+            type == DeviceType.LOCK_85L0 ||
             type == DeviceType.SMART_SAFE_7400 ||
             type == DeviceType.SMART_SAFE_7401 ||
             type == DeviceType.SMART_SAFE_7402 ||
@@ -1186,7 +1187,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             Device.isLockWifiR20(type) ||
             Device.isLockWifiVideo(type) ||
             Device.isLockWifiT8506(type) ||
-            Device.isLockWifiT8502(type);
+            Device.isLockWifiT8502(type) ||
+            Device.isLockWifiT85L0(type);
     }
 
     static isLockKeypad(type: number): boolean {
@@ -1247,6 +1249,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (type == DeviceType.LOCK_WIFI && serialnumber.startsWith("T8520") && serialnumber.length > 6 && serialnumber.charAt(6) === "9")
             return true;
         return false;
+    }
+
+    static isLockWifiT85L0(type: number): boolean {
+        return DeviceType.LOCK_85L0 == type;
     }
 
     static isBatteryDoorbell1(type: number): boolean {
@@ -1453,7 +1459,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             sn.startsWith("T8502") ||
             sn.startsWith("T8504") ||
             sn.startsWith("T8506") ||
-            sn.startsWith("T8530");
+            sn.startsWith("T8530") ||
+            sn.startsWith("T85L0");
     }
 
     static isGarageCameraBySn(sn: string): boolean {
@@ -1606,6 +1613,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isLockWifiT8520P(): boolean {
         return Device.isLockWifiT8520P(this.rawDevice.device_type, this.rawDevice.device_sn);
+    }
+
+    public isLockWifiT85L0(): boolean {
+        return Device.isLockWifiT85L0(this.rawDevice.device_type);
     }
 
     public isBatteryDoorbell1(): boolean {
