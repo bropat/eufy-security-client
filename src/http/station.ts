@@ -10739,7 +10739,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError("Device is not managed by this station", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
-        if (!device.hasCommand(CommandName.DevicePanAndTilt)) {
+        if (!device.hasCommand(CommandName.DevicePresetPosition)) {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
         if (!(position in PresetPositionType)) {
@@ -10771,7 +10771,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError("Device is not managed by this station", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
-        if (!device.hasCommand(CommandName.DevicePanAndTilt)) {
+        if (!device.hasCommand(CommandName.DeviceSavePresetPosition)) {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
         if (!(position in PresetPositionType)) {
@@ -10803,7 +10803,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError("Device is not managed by this station", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
-        if (!device.hasCommand(CommandName.DevicePanAndTilt)) {
+        if (!device.hasCommand(CommandName.DeviceDeletePresetPosition)) {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
         if (!(position in PresetPositionType)) {
