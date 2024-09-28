@@ -89,6 +89,8 @@ Please use GitHub issues for this.
 * (bropat) Fixed issue #502 (untested)
 * (bropat) Fixed issue #539
 * (bropat) Fixed issue #547
+* (PhilippEngler) FIX: hasCommand for DevicePresetPosition, DeviceSavePresetPosition and DeviceDeletePresetPosition (#551)
+* (PhilippEngler) added preset commands T8170 (#552)
 
 ### 3.1.0 (2024-08-27)
 
