@@ -6701,6 +6701,9 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationIntervalTime]: DeviceNotificationIntervalTimeProperty,
         [PropertyName.DeviceContinuousRecording]: DeviceContinuousRecordingProperty,
         [PropertyName.DeviceContinuousRecordingType]: DeviceContinuousRecordingTypeProperty,
+        [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
+        [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
     },
     [DeviceType.CAMERA_FG]: {
         ...GenericDeviceProperties,
