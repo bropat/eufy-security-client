@@ -80,7 +80,7 @@ Please use GitHub issues for this.
 
 ## Changelog
 
-### 3.1.1 (2024-09-xx)
+### 3.1.1 (2024-09-28)
 
 * (bropat) Added RTSP support for Indoor Cam S350 (T8416)
 * (bropat) Fixed draining issues for some battery powered devices (instead of #544)
