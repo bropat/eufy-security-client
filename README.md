@@ -88,6 +88,7 @@ Please use GitHub issues for this.
 * (bropat) Fixed issue with encryption type level 2
 * (bropat) Fixed issue #502 (untested)
 * (bropat) Fixed issue #539
+* (bropat) Fixed issue #547
 
 ### 3.1.0 (2024-08-27)
 
