@@ -6,7 +6,7 @@ import sha256 from "crypto-js/sha256";
 
 import { Device } from "./device";
 import { Picture, Schedule } from "./interfaces";
-import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes, FloodlightT8425NotificationTypes, SmartLockNotification, PropertyName, CommandName, NotificationType } from "./types";
+import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes, FloodlightT8425NotificationTypes, SmartLockNotification, PropertyName, CommandName, NotificationType, IndoorS350DetectionTypes } from "./types";
 import { HTTPApi } from "./api";
 import { ensureError } from "../error";
 import { ImageBaseCodeError } from "./error";
@@ -657,6 +657,24 @@ export const isT8170DetectionModeEnabled = function(value: number, type: T8170De
 
 export const getT8170DetectionMode = function(value: number, type: T8170DetectionTypes, enable: boolean): number {
     let result = 0;
+    if ((Object.values(T8170DetectionTypes).includes(type) && Object.values(T8170DetectionTypes).includes(value)) && !enable)
+        return value;
+    if (!enable) {
+        result = type ^ value;
+    } else {
+        result = type | value;
+    }
+    return result;
+}
+
+export const isIndoorS350DetectionModeEnabled = function(value: number, type: IndoorS350DetectionTypes): boolean {
+    return (type & value) == type;
+}
+
+export const getIndoorS350DetectionMode = function(value: number, type: IndoorS350DetectionTypes, enable: boolean): number {
+    let result = 0;
+    if ((Object.values(IndoorS350DetectionTypes).includes(type) && Object.values(IndoorS350DetectionTypes).includes(value)) && !enable)
+        return value;
     if (!enable) {
         result = type ^ value;
     } else {

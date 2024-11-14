@@ -1,12 +1,12 @@
 import { TypedEmitter } from "tiny-typed-emitter";
 
 import { HTTPApi } from "./api";
-import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOtherMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType, T8170DetectionTypes, IndoorS350NotificationTypes, SoloCameraDetectionTypes, FloodlightT8425NotificationTypes, DeviceAudioRecordingProperty, DeviceMotionDetectionSensitivityCamera2Property, DeviceVideoRecordingQualitySoloCamerasHB3Property, DeviceNotificationTypeProperty, DeviceMotionDetectionProperty, SmartLockNotification, LockT8510PDeviceProperties, LockT8520PDeviceProperties } from "./types";
+import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOtherMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType, T8170DetectionTypes, IndoorS350NotificationTypes, SoloCameraDetectionTypes, FloodlightT8425NotificationTypes, DeviceAudioRecordingProperty, DeviceMotionDetectionSensitivityCamera2Property, DeviceVideoRecordingQualitySoloCamerasHB3Property, DeviceNotificationTypeProperty, DeviceMotionDetectionProperty, SmartLockNotification, LockT8510PDeviceProperties, LockT8520PDeviceProperties, DeviceMotionDetectionSensitivityBatteryDoorbellProperty, DeviceStatusLedIndoorS350Property, IndoorS350DetectionTypes } from "./types";
 import { DeviceListResponse, Voice, GarageDoorSensorsProperty, FloodlightDetectionRangeT8425Property, FloodlightLightSettingsMotionT8425Property, FloodlightLightSettingsBrightnessScheduleT8425Property } from "./models"
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject, DeviceConfig } from "./interfaces";
 import { CommandType, ESLAnkerBleConstant, TrackerCommandType } from "../p2p/types";
-import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImagePath, getLockEventType, hexDate, hexTime, hexWeek, isFloodlightT8425NotitficationEnabled, isHB3DetectionModeEnabled, isIndoorNotitficationEnabled, isPrioritySourceType, isSmartLockNotification, isT8170DetectionModeEnabled, loadEventImage, WritePayload } from "./utils";
+import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImagePath, getLockEventType, hexDate, hexTime, hexWeek, isFloodlightT8425NotitficationEnabled, isHB3DetectionModeEnabled, isIndoorNotitficationEnabled, isIndoorS350DetectionModeEnabled, isPrioritySourceType, isSmartLockNotification, isT8170DetectionModeEnabled, loadEventImage, WritePayload } from "./utils";
 import { DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds, isCharging } from "../p2p/utils";
 import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent, HB3PairedDevicePushEvent, GarageDoorPushEvent, SmartDropOpen, SmartDropOpenedBy, SmartDropPushEvent } from "../push/types";
 import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
@@ -611,6 +611,19 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 }
             } else if ((
                 property.name === PropertyName.DeviceMotionDetectionTypeHuman ||
+                property.name === PropertyName.DeviceMotionDetectionTypePet ||
+                property.name === PropertyName.DeviceMotionDetectionTypeAllOtherMotions
+            ) && this.isIndoorPanAndTiltCameraS350()) {
+                const booleanProperty = property as PropertyMetadataBoolean;
+                try {
+                    return isIndoorS350DetectionModeEnabled(Number.parseInt(value), property.name === PropertyName.DeviceMotionDetectionTypeHuman ? IndoorS350DetectionTypes.HUMAN_DETECTION : property.name === PropertyName.DeviceMotionDetectionTypePet ? IndoorS350DetectionTypes.PET_DETECTION : IndoorS350DetectionTypes.ALL_OTHER_MOTION);
+                } catch (err) {
+                    const error = ensureError(err);
+                    rootHTTPLogger.error("Device convert raw property - T8416 motion detection type Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
+                    return booleanProperty.default !== undefined ? booleanProperty.default : false;
+                }
+            } else if ((
+                property.name === PropertyName.DeviceMotionDetectionTypeHuman ||
                 property.name === PropertyName.DeviceMotionDetectionTypeAllOtherMotions
             ) && this.isSoloCameras()) {
                 const booleanProperty = property as PropertyMetadataBoolean;
@@ -863,6 +876,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
             };
 
             newMetadata[PropertyName.DeviceMotionDetection] = DeviceMotionDetectionProperty;
+            newMetadata[PropertyName.DeviceAudioRecording] = DeviceAudioRecordingProperty;
+            newMetadata[PropertyName.DeviceMotionDetectionSensitivity] = DeviceMotionDetectionSensitivityBatteryDoorbellProperty;
+            newMetadata[PropertyName.DeviceStatusLed] = DeviceStatusLedIndoorS350Property;
 
             metadata = newMetadata;
         }

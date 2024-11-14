@@ -80,6 +80,18 @@ Please use GitHub issues for this.
 
 ## Changelog
 
+### 3.1.1 (2024-09-28)
+
+* (bropat) Added RTSP support for Indoor Cam S350 (T8416)
+* (bropat) Fixed draining issues for some battery powered devices (instead of #544)
+* (bropat) Fixed standalone support for Indoor Cam S350 (T8416; #550)
+* (bropat) Fixed issue with encryption type level 2
+* (bropat) Fixed issue #502 (untested)
+* (bropat) Fixed issue #539
+* (bropat) Fixed issue #547
+* (PhilippEngler) FIX: hasCommand for DevicePresetPosition, DeviceSavePresetPosition and DeviceDeletePresetPosition (#551)
+* (PhilippEngler) added preset commands T8170 (#552)
+
 ### 3.1.0 (2024-08-27)
 
 * (bropat) **Breaking Change** Requires node version >= 20.0.0
