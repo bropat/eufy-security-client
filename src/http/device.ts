@@ -6,7 +6,7 @@ import { DeviceListResponse, Voice, GarageDoorSensorsProperty, FloodlightDetecti
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject, DeviceConfig } from "./interfaces";
 import { CommandType, ESLAnkerBleConstant, TrackerCommandType } from "../p2p/types";
-import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImagePath, getLockEventType, hexDate, hexTime, hexWeek, isFloodlightT8425NotitficationEnabled, isHB3DetectionModeEnabled, isIndoorNotitficationEnabled, isIndoorS350DetectionModeEnabled, isPrioritySourceType, isSmartLockNotification, isT8170DetectionModeEnabled, loadEventImage, WritePayload } from "./utils";
+import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImagePath, getLockEventType, hexDate, hexTime, hexWeek, isFloodlightT8425NotificationEnabled, isHB3DetectionModeEnabled, isIndoorNotificationEnabled, isIndoorS350DetectionModeEnabled, isPrioritySourceType, isSmartLockNotification, isT8170DetectionModeEnabled, loadEventImage, WritePayload } from "./utils";
 import { DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds, isCharging } from "../p2p/utils";
 import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent, HB3PairedDevicePushEvent, GarageDoorPushEvent, SmartDropOpen, SmartDropOpenedBy, SmartDropPushEvent } from "../push/types";
 import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
