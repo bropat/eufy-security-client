@@ -16,6 +16,7 @@
 | ![T8141 image](_media/eufycam2cpro_small.jpg) | eufyCam S220 (T8141; eufyCam 2C Pro) | :heavy_check_mark: |  |
 | ![T8160 image](_media/eufycam3_small.jpg) | eufyCam S330 (T8160; eufyCam 3) | :heavy_check_mark: | Firmware: 3.1.8.6 (20221101) |
 | ![T8161 image](_media/eufycam3c_small.jpg) | eufyCam S300 (T8161; eufyCam 3C) | :heavy_check_mark: | Firmware: 3.1.8.6 (20221101) |
+| ![T8160 image](_media/eufycam3pro_small.png) | eufyCam S3 Pro (T8162; eufyCam S3 Pro) | :heavy_check_mark: |  |
 | ![T8600 image](_media/eufycame330_small.jpg) | eufyCam E330 (Professional; T8600) | :heavy_check_mark: | Firmware: 0.5.9.5 (20231218) |
 | ![T8130 image](_media/solocame20_small.jpg) | SoloCam E20 (T8130) | :heavy_check_mark: |  |
 | ![T8131 image](_media/solocame40_small.jpg) | SoloCam C120 (T8131; SoloCam E40) | :heavy_check_mark: |  |

@@ -999,6 +999,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.CAMERA3 ||
             type == DeviceType.CAMERA3C ||
+            type == DeviceType.CAMERA3_PRO ||
             type == DeviceType.PROFESSIONAL_247 ||
             type == DeviceType.INDOOR_CAMERA_1080 ||
             type == DeviceType.INDOOR_PT_CAMERA_1080 ||
@@ -1043,6 +1044,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.CAMERA3 ||
             type == DeviceType.CAMERA3C ||
+            type == DeviceType.CAMERA3_PRO ||
             type == DeviceType.SOLO_CAMERA ||
             type == DeviceType.SOLO_CAMERA_PRO ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
@@ -1389,13 +1391,17 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.CAMERA3C == type;
     }
 
+    static isCamera3Pro(type: number): boolean {
+        return DeviceType.CAMERA3_PRO == type;
+    }
+
     static isCameraProfessional247(type: number): boolean {
         // T8600 - E330
         return DeviceType.PROFESSIONAL_247 == type;
     }
 
     static isCamera3Product(type: number): boolean {
-        return Device.isCamera3(type) || Device.isCamera3C(type) || Device.isCameraProfessional247(type);
+        return Device.isCamera3(type) || Device.isCamera3C(type) || Device.isCameraProfessional247(type) || Device.isCamera3Pro(type);
     }
 
     static isEntrySensor(type: number): boolean {
@@ -1731,6 +1737,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
     public isCameraProfessional247(): boolean {
         return Device.isCameraProfessional247(this.rawDevice.device_type);
     }
+
+    public isCamera3Pro(): boolean {
+        return Device.isCamera3Pro(this.rawDevice.device_type);
+    }
+
 
     public isCamera3Product(): boolean {
         return Device.isCamera3Product(this.rawDevice.device_type);
