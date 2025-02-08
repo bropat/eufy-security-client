@@ -49,6 +49,8 @@
 | ![T8401 image](_media/soloindoorcamc24_small.jpg) | Indoor Cam 1080p (T8401) | :heavy_check_mark: |  |
 | ![T8414 image](_media/indoorcammini_small.jpg) | Indoor Cam Mini (T8414) | :heavy_check_mark: | Firmware: 3.1.1.7 (20220427) |
 | ![T8416 image](_media/indoorcams350_small.jpg) | Indoor Cam S350 (T8416) | :heavy_check_mark: | Firmware: 1.5.1.0 (20240715) |
+| ![T8416 image](_media/indoorcamC210_small.jpg) | Indoor Cam C210 (T8416) | :heavy_check_mark: |  |
+| ![T8416 image](_media/indoorcamC220_small.jpg) | Indoor Cam C220 (T8W11C) | :heavy_check_mark: |  |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8150) | :heavy_check_mark: |  |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G Camera S230 (T8151; 4G LTE Starlight) | :heavy_check_mark: | Firmware: 1.1.3.7 (20230730) |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8152) | :heavy_exclamation_mark: |  |
