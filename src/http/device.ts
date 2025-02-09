@@ -1166,7 +1166,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isIndoorPanAndTiltCameraS350(type: number): boolean {
-        if (type == DeviceType.INDOOR_PT_CAMERA_S350)
+        if (type == DeviceType.INDOOR_PT_CAMERA_S350 ||  
+            type == DeviceType.INDOOR_PT_CAMERA_C210 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C220)
             return true;
         return false;
     }
