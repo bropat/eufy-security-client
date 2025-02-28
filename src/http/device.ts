@@ -994,6 +994,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
             type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
+            type == DeviceType.BATTERY_DOORBELL_C30 ||
             type == DeviceType.DOORBELL_SOLO ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
@@ -1039,6 +1040,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
             type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
+            type == DeviceType.BATTERY_DOORBELL_C30 ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.CAMERA3 ||
@@ -1104,6 +1106,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
             type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
+            type == DeviceType.BATTERY_DOORBELL_C30 ||
             type == DeviceType.DOORBELL_SOLO)
             return true;
         return false;
@@ -1281,6 +1284,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.BATTERY_DOORBELL_PLUS_E340 == type;
     }
 
+    static isBatteryDoorbellC30(type: number): boolean {
+        return DeviceType.BATTERY_DOORBELL_C30 == type;
+    }
+
     static isDoorbellDual(type: number): boolean {
         return DeviceType.DOORBELL_SOLO == type;
     }
@@ -1289,7 +1296,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
-            type == DeviceType.BATTERY_DOORBELL_PLUS_E340)
+            type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
+            type == DeviceType.BATTERY_DOORBELL_C30)
             return true;
         return false;
     }
@@ -1638,6 +1646,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isBatteryDoorbellDualE340(): boolean {
         return Device.isBatteryDoorbellDualE340(this.rawDevice.device_type);
+    }
+
+    public isBatteryDoorbellC30(): boolean {
+        return Device.isBatteryDoorbellC30(this.rawDevice.device_type);
     }
 
     public isDoorbellDual(): boolean {
@@ -2195,7 +2207,7 @@ export class Camera extends Device {
                                     this.updateProperty(PropertyName.DeviceStrangerPersonDetected, false);
                                     this.eventTimeouts.delete(DeviceEvent.StrangerPersonDetected);
                                 }, eventDurationSeconds * 1000));
-                               
+
                                 if (this.config.simultaneousDetections) {
                                     this.updateProperty(PropertyName.DevicePersonDetected, true);
                                     this.clearEventTimeout(DeviceEvent.PersonDetected);
