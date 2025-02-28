@@ -41,7 +41,7 @@
 | ![T8213 image](_media/batterydoorbell2kdual_small.jpg) | Video Doorbell S330 (T8213; Battery Doorbell 2K Dual) | :heavy_check_mark: | Firmware: 0.1.2.5 (20220331) |
 | ![T8214 image](_media/batterydoorbell_e340_small.jpg) | Video Doorbell E340 (T8214; Battery Powered) | :heavy_check_mark: | Firmware:  |
 | ![T8222 image](_media/batterydoorbell1080p_small.jpg) | Video Doorbell C210 (T8222; Battery Doorbell 1080p) | :heavy_check_mark: |  |
-| ![T8224 image](_media/batterydoorbell_c30_small.jpg) | Video Doorbell C30 (T8224; Battery Powered) | :heavy_check_mark: | Firmware:  |
+| ![T8224 image](_media/batterydoorbell_c30_small.png) | Video Doorbell C30 (T8224; Battery Powered) | :heavy_check_mark: | Firmware:  |
 | ![T8900 image](_media/sensor_small.jpg) | Entry Sensor (T8900) | :heavy_check_mark: |  |
 | ![T8910 image](_media/motionsensor_small.jpg) | Motion sensor (T8910) | :heavy_check_mark: |  |
 | ![T8410 image](_media/indoorcamp24_small.jpg) | Indoor Cam E220 (T8410; Indoor Cam Pan&Tilt 2K) | :heavy_check_mark: | Firmware: 2.1.0.6 |
