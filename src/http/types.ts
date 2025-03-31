@@ -959,7 +959,6 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
         23: "eufyCam S300 (eufyCam 3C)",
         24: "eufyCam E330 (Professional)",
         25: "MiniBase Chime",
-        26: ""
         30: "Indoor Camera",
         31: "Indoor Camera PT",
         32: "Solo Camera",
