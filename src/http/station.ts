@@ -2822,25 +2822,25 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: propertyData
             });
         } else if (device.isIndoorPanAndTiltCameraS350() && !this.isStationHomeBase3()) {
-                if (!Object.values(NotificationType).includes(value as NotificationType)) {
-                    rootHTTPLogger.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(NotificationType).filter((value) => typeof value === "number"));
-                    return;
-                }
-                this.p2pSession.sendCommandWithStringPayload({
-                    commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
-                    value: JSON.stringify({
-                        "commandType": CommandType.CMD_INDOOR_PUSH_NOTIFY_TYPE,
-                        "data": {
-                            "enable": 0,
-                            "quality": 0,
-                            "status": 0,
-                            "value": value,
-                        }
-                    }),
-                    channel: device.getChannel()
-                }, {
-                    property: propertyData
-                });
+            if (!Object.values(NotificationType).includes(value as NotificationType)) {
+                rootHTTPLogger.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(NotificationType).filter((value) => typeof value === "number"));
+                return;
+            }
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_INDOOR_PUSH_NOTIFY_TYPE,
+                    "data": {
+                        "enable": 0,
+                        "quality": 0,
+                        "status": 0,
+                        "value": value,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
         } else if (device.isWiredDoorbellT8200X()) {
             if (!Object.values(NotificationType).includes(value as NotificationType)) {
                 rootHTTPLogger.error(`The device ${device.getSerial()} accepts only this type of values:`, Object.values(NotificationType).filter((value) => typeof value === "number"));
