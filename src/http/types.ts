@@ -8816,6 +8816,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.BATTERY_DOORBELL_2]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceQuickResponse,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
@@ -8826,6 +8827,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.BATTERY_DOORBELL_PLUS]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceQuickResponse,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
@@ -8836,6 +8838,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.BATTERY_DOORBELL_PLUS_E340]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceQuickResponse,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
@@ -8846,6 +8849,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.DOORBELL_SOLO]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceQuickResponse,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
@@ -8856,6 +8860,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.INDOOR_CAMERA]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -8865,6 +8870,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.INDOOR_CAMERA_1080]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -8874,6 +8880,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -8883,6 +8890,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -8892,6 +8900,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.INDOOR_OUTDOOR_CAMERA_2K]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -8901,6 +8910,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.INDOOR_PT_CAMERA]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DevicePanAndTilt,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
@@ -8912,6 +8922,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.INDOOR_PT_CAMERA_1080]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DevicePanAndTilt,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
@@ -8923,6 +8934,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.INDOOR_COST_DOWN_CAMERA]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DevicePanAndTilt,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
@@ -8936,6 +8948,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.INDOOR_PT_CAMERA_S350]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DevicePanAndTilt,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
@@ -8950,6 +8963,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.OUTDOOR_PT_CAMERA]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DevicePanAndTilt,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
@@ -8964,6 +8978,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.CAMERA_FG]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -8973,6 +8988,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.SOLO_CAMERA]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -8982,6 +8998,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.SOLO_CAMERA_PRO]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -8991,6 +9008,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_1080]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -9000,6 +9018,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_2K]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -9009,6 +9028,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -9018,6 +9038,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.SOLO_CAMERA_SOLAR]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -9027,6 +9048,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.SOLO_CAMERA_C210]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -9088,6 +9110,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.WALL_LIGHT_CAM]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
@@ -9097,6 +9120,7 @@ export const DeviceCommands: Commands = {
     [DeviceType.WALL_LIGHT_CAM_81A0]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
         CommandName.DeviceStartTalkback,
