@@ -68,6 +68,23 @@ Look [here](https://bropat.github.io/eufy-security-client/).
 
 *As an example, you can look at the following projects: [ioBroker.eufy-security](https://github.com/bropat/ioBroker.eufy-security), [eufy-security-ws](https://github.com/bropat/eufy-security-ws), [eufy_security](https://github.com/fuatakgun/eufy_security)*
 
+## Quick Start
+
+Install via npm:
+
+```bash
+npm install eufy-security-client
+```
+
+Then import and use in TypeScript:
+
+```typescript
+import { EufySecurity } from "eufy-security-client";
+// ...existing code...
+const eufyClient = new EufySecurity();
+// ...existing code...
+```
+
 ## Known working devices
 
 For a list of supported devices, please see [here](https://bropat.github.io/eufy-security-client/#/supported_devices).
