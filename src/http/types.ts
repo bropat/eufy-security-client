@@ -7836,6 +7836,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotification]: DeviceNotificationWalllightProperty,
         [PropertyName.DeviceNotificationType]: DeviceNotificationTypeWalllightProperty,
         [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
     },
     [DeviceType.CAMERA_GARAGE_T8453]: {
         ...GenericDeviceProperties,
