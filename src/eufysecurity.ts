@@ -495,7 +495,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 if (this.config.stationIPAddresses !== undefined) {
                     ipAddress = this.config.stationIPAddresses[hub.station_sn];
                 }
-                const station = Station.getInstance(this.api, hub, ipAddress);
+                const station = Station.getInstance(this.api, hub, ipAddress, 0, this.config.enableEmbeddedPKCS1Support);
                 promises.push(station.then((station: Station) => {
                     try {
                         station.on("connect", (station: Station) => this.onStationConnect(station));
