@@ -68,6 +68,23 @@ Look [here](https://bropat.github.io/eufy-security-client/).
 
 *As an example, you can look at the following projects: [ioBroker.eufy-security](https://github.com/bropat/ioBroker.eufy-security), [eufy-security-ws](https://github.com/bropat/eufy-security-ws), [eufy_security](https://github.com/fuatakgun/eufy_security)*
 
+## Quick Start
+
+Install via npm:
+
+```bash
+npm install eufy-security-client
+```
+
+Then import and use in TypeScript:
+
+```typescript
+import { EufySecurity } from "eufy-security-client";
+// ...existing code...
+const eufyClient = new EufySecurity();
+// ...existing code...
+```
+
 ## Known working devices
 
 For a list of supported devices, please see [here](https://bropat.github.io/eufy-security-client/#/supported_devices).
@@ -79,6 +96,18 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 Please use GitHub issues for this.
 
 ## Changelog
+
+### 3.2.0 (2025-04-02)
+
+* (martijnpoppen) FIX: Indoor Cam P&T sw update 2.3.1.2 on/off #604
+* (SmolSoftBoi) Add error handling for MQTT proto file loading and improve logging #584
+* (ChayoteJarocho) Add missing entry for Wall Cam 81A0 battery #570
+* (jarodwilson) NEW: add  SoloCam E30 (T8171) & FloodLight E30 (T8426) #583
+* (martijnpoppen) FIX: enableEmbeddedPKCS1Support #595
+* (NicolaiVdS & martijnpoppen) NEW: Battery doorbell C30 & C31 #600
+* (martijnpoppen) NEW: add support for Indoor Cam C210 (T8419) & C220 (T8W11C) #596
+* (martijnpoppen) NEW: add support for Eufycam S3 Pro - T8162 #594
+* (martijnpoppen) NEW: Add Device Alarm to multiple camera #602
 
 ### 3.1.1 (2024-09-28)
 
