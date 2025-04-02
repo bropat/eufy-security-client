@@ -7,7 +7,8 @@ import { load, Root } from "protobufjs";
 import { MQTTServiceEvents } from "./interface";
 import { DeviceSmartLockMessage } from "./model";
 import { getError } from "../utils";
-import { rootMQTTLogger } from "../logging";
+import { rootMainLogger, rootMQTTLogger } from "../logging";
+import { ensureError } from "../error";
 
 export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
 
@@ -39,7 +40,11 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
     }
 
     public static async init(): Promise<MQTTService> {
-        this.proto = await load(path.join(__dirname, "./proto/lock.proto"));
+        try {
+            this.proto = await load(path.join(__dirname, "./proto/lock.proto"));
+        } catch (error) {
+            rootMainLogger.error("Error loading MQTT proto lock file", { error: ensureError(error) });
+        }
         return new MQTTService();
     }
 
