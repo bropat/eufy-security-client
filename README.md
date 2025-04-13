@@ -99,6 +99,10 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 
 Please use GitHub issues for this.
 
+## Deployment
+
+Instructions aimed at maintainers for deploying a new version: [Deployment](docs/deployment.md)
+
 ## Changelog
 
 ### 3.2.0 (2025-04-02)
