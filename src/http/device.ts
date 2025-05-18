@@ -994,11 +994,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
             type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
+            type == DeviceType.BATTERY_DOORBELL_C30 ||
+            type == DeviceType.BATTERY_DOORBELL_C31 ||
             type == DeviceType.DOORBELL_SOLO ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.CAMERA3 ||
             type == DeviceType.CAMERA3C ||
+            type == DeviceType.CAMERA3_PRO ||
             type == DeviceType.PROFESSIONAL_247 ||
             type == DeviceType.INDOOR_CAMERA_1080 ||
             type == DeviceType.INDOOR_PT_CAMERA_1080 ||
@@ -1010,6 +1013,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
             type == DeviceType.SOLO_CAMERA_SOLAR ||
             type == DeviceType.SOLO_CAMERA_C210 ||
+            type == DeviceType.SOLO_CAMERA_E30 ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_2K ||
@@ -1025,6 +1029,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA_GARAGE_T8452 ||
             type == DeviceType.CAMERA_FG ||
             type == DeviceType.INDOOR_PT_CAMERA_S350 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C210 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C220 ||
             type == DeviceType.SMART_DROP)
             return true;
         return false;
@@ -1039,10 +1045,13 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
             type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
+            type == DeviceType.BATTERY_DOORBELL_C30 ||
+            type == DeviceType.BATTERY_DOORBELL_C31 ||
             type == DeviceType.CAMERA2C_PRO ||
             type == DeviceType.CAMERA2_PRO ||
             type == DeviceType.CAMERA3 ||
             type == DeviceType.CAMERA3C ||
+            type == DeviceType.CAMERA3_PRO ||
             type == DeviceType.SOLO_CAMERA ||
             type == DeviceType.SOLO_CAMERA_PRO ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
@@ -1050,6 +1059,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
             type == DeviceType.SOLO_CAMERA_SOLAR ||
             type == DeviceType.SOLO_CAMERA_C210 ||
+            type == DeviceType.SOLO_CAMERA_E30 ||
             type == DeviceType.LOCK_WIFI ||
             type == DeviceType.LOCK_WIFI_NO_FINGER ||
             type == DeviceType.LOCK_8503 ||
@@ -1105,6 +1115,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
             type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
+            type == DeviceType.BATTERY_DOORBELL_C30 ||
+            type == DeviceType.BATTERY_DOORBELL_C31 ||
             type == DeviceType.DOORBELL_SOLO)
             return true;
         return false;
@@ -1137,7 +1149,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_2K ||
             type == DeviceType.INDOOR_COST_DOWN_CAMERA ||
-            type == DeviceType.INDOOR_PT_CAMERA_S350)
+            type == DeviceType.INDOOR_PT_CAMERA_S350 || 
+            type == DeviceType.INDOOR_PT_CAMERA_C210 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C220)
             return true;
         return false;
     }
@@ -1149,19 +1163,24 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.FLOODLIGHT_CAMERA_8425 ||
             type == DeviceType.INDOOR_COST_DOWN_CAMERA ||
             type == DeviceType.OUTDOOR_PT_CAMERA ||
-            type == DeviceType.INDOOR_PT_CAMERA_S350)
+            type == DeviceType.INDOOR_PT_CAMERA_S350 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C210 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C220)
             return true;
         return false;
     }
 
     static isOutdoorPanAndTiltCamera(type: number): boolean {
-        if (type == DeviceType.OUTDOOR_PT_CAMERA)
+        if (type == DeviceType.OUTDOOR_PT_CAMERA ||
+	    type == DeviceType.SOLO_CAMERA_E30)
             return true;
         return false;
     }
 
     static isIndoorPanAndTiltCameraS350(type: number): boolean {
-        if (type == DeviceType.INDOOR_PT_CAMERA_S350)
+        if (type == DeviceType.INDOOR_PT_CAMERA_S350 ||  
+            type == DeviceType.INDOOR_PT_CAMERA_C210 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C220)
             return true;
         return false;
     }
@@ -1287,6 +1306,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.BATTERY_DOORBELL_PLUS_E340 == type;
     }
 
+    static isBatteryDoorbellC30(type: number): boolean {
+        return DeviceType.BATTERY_DOORBELL_C30 == type;
+    }
+
+    static isBatteryDoorbellC31(type: number): boolean {
+        return DeviceType.BATTERY_DOORBELL_C31 == type;
+    }
+
     static isDoorbellDual(type: number): boolean {
         return DeviceType.DOORBELL_SOLO == type;
     }
@@ -1295,7 +1322,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (type == DeviceType.BATTERY_DOORBELL ||
             type == DeviceType.BATTERY_DOORBELL_2 ||
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
-            type == DeviceType.BATTERY_DOORBELL_PLUS_E340)
+            type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
+            type == DeviceType.BATTERY_DOORBELL_C30 ||
+            type == DeviceType.BATTERY_DOORBELL_C31)
             return true;
         return false;
     }
@@ -1328,6 +1357,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.SOLO_CAMERA_C210 == type;
     }
 
+    static isSoloCameraE30(type: number): boolean {
+        return DeviceType.SOLO_CAMERA_E30 == type;
+    }
+
     static isSoloCameras(type: number): boolean {
         return Device.isSoloCamera(type) ||
             Device.isSoloCameraPro(type) ||
@@ -1336,7 +1369,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             Device.isSoloCameraSpotlightSolar(type) ||
             Device.isOutdoorPanAndTiltCamera(type) ||
             Device.isSoloCameraSolar(type) ||
-            Device.isSoloCameraC210(type);
+            Device.isSoloCameraC210(type) ||
+            Device.isSoloCameraE30(type);
     }
 
     static isStarlight4GLTE(type: number): boolean {
@@ -1395,13 +1429,17 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.CAMERA3C == type;
     }
 
+    static isCamera3Pro(type: number): boolean {
+        return DeviceType.CAMERA3_PRO == type;
+    }
+
     static isCameraProfessional247(type: number): boolean {
         // T8600 - E330
         return DeviceType.PROFESSIONAL_247 == type;
     }
 
     static isCamera3Product(type: number): boolean {
-        return Device.isCamera3(type) || Device.isCamera3C(type) || Device.isCameraProfessional247(type);
+        return Device.isCamera3(type) || Device.isCamera3C(type) || Device.isCameraProfessional247(type) || Device.isCamera3Pro(type);
     }
 
     static isEntrySensor(type: number): boolean {
@@ -1445,9 +1483,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
             sn.startsWith("T8414") ||
             sn.startsWith("T8130") ||
             sn.startsWith("T8131") ||
+            sn.startsWith("T8171") ||
             sn.startsWith("T8422") ||
             sn.startsWith("T8423") ||
             sn.startsWith("T8424") ||
+            sn.startsWith("T8426") ||
             sn.startsWith("T8440") ||
             sn.startsWith("T8441") ||
             sn.startsWith("T8442");
@@ -1459,6 +1499,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             sn.startsWith("T8122") ||
             sn.startsWith("T8123") ||
             sn.startsWith("T8124") ||
+            sn.startsWith("T8171") ||
             sn.startsWith("T8134");
     }
 
@@ -1488,7 +1529,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return sn.startsWith("T8420") ||
             sn.startsWith("T8422") ||
             sn.startsWith("T8423") ||
-            sn.startsWith("T8424");
+            sn.startsWith("T8424") ||
+            sn.startsWith("T8426");
         //(sn.startsWith("T8420") && sn.length > 7 && sn[6] == "6");
     }
 
@@ -1651,6 +1693,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return Device.isBatteryDoorbellDualE340(this.rawDevice.device_type);
     }
 
+    public isBatteryDoorbellC30(): boolean {
+        return Device.isBatteryDoorbellC30(this.rawDevice.device_type);
+    }
+
+    public isBatteryDoorbellC31(): boolean {
+        return Device.isBatteryDoorbellC31(this.rawDevice.device_type);
+    }
+
     public isDoorbellDual(): boolean {
         return Device.isDoorbellDual(this.rawDevice.device_type);
     }
@@ -1685,6 +1735,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isSoloCameraC210(): boolean {
         return Device.isSoloCameraC210(this.rawDevice.device_type);
+    }
+
+    public isSoloCameraE30(): boolean {
+        return Device.isSoloCameraE30(this.rawDevice.device_type);
     }
 
     public isStarlight4GLTE(): boolean {
@@ -1742,6 +1796,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
     public isCameraProfessional247(): boolean {
         return Device.isCameraProfessional247(this.rawDevice.device_type);
     }
+
+    public isCamera3Pro(): boolean {
+        return Device.isCamera3Pro(this.rawDevice.device_type);
+    }
+
 
     public isCamera3Product(): boolean {
         return Device.isCamera3Product(this.rawDevice.device_type);

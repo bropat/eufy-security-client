@@ -16,6 +16,7 @@
 | ![T8141 image](_media/eufycam2cpro_small.jpg) | eufyCam S220 (T8141; eufyCam 2C Pro) | :heavy_check_mark: |  |
 | ![T8160 image](_media/eufycam3_small.jpg) | eufyCam S330 (T8160; eufyCam 3) | :heavy_check_mark: | Firmware: 3.1.8.6 (20221101) |
 | ![T8161 image](_media/eufycam3c_small.jpg) | eufyCam S300 (T8161; eufyCam 3C) | :heavy_check_mark: | Firmware: 3.1.8.6 (20221101) |
+| ![T8160 image](_media/eufycam3pro_small.png) | eufyCam S3 Pro (T8162; eufyCam S3 Pro) | :heavy_check_mark: |  |
 | ![T8600 image](_media/eufycame330_small.jpg) | eufyCam E330 (Professional; T8600) | :heavy_check_mark: | Firmware: 0.5.9.5 (20231218) |
 | ![T8130 image](_media/solocame20_small.jpg) | SoloCam E20 (T8130) | :heavy_check_mark: |  |
 | ![T8131 image](_media/solocame40_small.jpg) | SoloCam C120 (T8131; SoloCam E40) | :heavy_check_mark: |  |
@@ -25,6 +26,7 @@
 | ![T8124 image](_media/solocams40_small.jpg) | SoloCam S230 (T8124; SoloCam S40) | :heavy_check_mark: |  |
 | ![T8134 image](_media/solocams220_small.jpg) | SoloCam S220 (T8134) | :heavy_check_mark: |  |
 | ![T8170 image](_media/solocams340_small.jpg) | SoloCam S340 (T8170) | :heavy_check_mark: | Firmware: 3.0.9.6 (20231125) |
+| ![T8171 image](_media/solocame30_small.jpg) | SoloCam E30 (T8171) | :wrench: | |
 | ![T8420 image](_media/floodlight_small.jpg) | Floodlight Camera (T8420) | :heavy_check_mark: | Firmware: 1.0.0.35 Hardware: 2.2 (20211219) |
 | ![T8420X image](_media/floodlight_small.jpg) | Floodlight Camera (T8420X) | :heavy_check_mark: | Firmware: 2.0.6.1 (20220824) |
 | ![T8422 image](_media/floodlight_small.jpg) | Floodlight Cam (T8422) | :heavy_check_mark: |  |
@@ -41,6 +43,8 @@
 | ![T8213 image](_media/batterydoorbell2kdual_small.jpg) | Video Doorbell S330 (T8213; Battery Doorbell 2K Dual) | :heavy_check_mark: | Firmware: 0.1.2.5 (20220331) |
 | ![T8214 image](_media/batterydoorbell_e340_small.jpg) | Video Doorbell E340 (T8214; Battery Powered) | :heavy_check_mark: | Firmware:  |
 | ![T8222 image](_media/batterydoorbell1080p_small.jpg) | Video Doorbell C210 (T8222; Battery Doorbell 1080p) | :heavy_check_mark: |  |
+| ![T8224 image](_media/batterydoorbell_c30_small.png) | Video Doorbell C30 (T8224; Battery Powered) | :heavy_check_mark: | Firmware:  |
+| ![T8223 image](_media/batterydoorbell_c31_small.png) | Video Doorbell C31 (T8223; Battery Powered) | :heavy_check_mark: | Firmware:  |
 | ![T8900 image](_media/sensor_small.jpg) | Entry Sensor (T8900) | :heavy_check_mark: |  |
 | ![T8910 image](_media/motionsensor_small.jpg) | Motion sensor (T8910) | :heavy_check_mark: |  |
 | ![T8410 image](_media/indoorcamp24_small.jpg) | Indoor Cam E220 (T8410; Indoor Cam Pan&Tilt 2K) | :heavy_check_mark: | Firmware: 2.1.0.6 |
@@ -49,6 +53,8 @@
 | ![T8401 image](_media/soloindoorcamc24_small.jpg) | Indoor Cam 1080p (T8401) | :heavy_check_mark: |  |
 | ![T8414 image](_media/indoorcammini_small.jpg) | Indoor Cam Mini (T8414) | :heavy_check_mark: | Firmware: 3.1.1.7 (20220427) |
 | ![T8416 image](_media/indoorcams350_small.jpg) | Indoor Cam S350 (T8416) | :heavy_check_mark: | Firmware: 1.5.1.0 (20240715) |
+| ![T8416 image](_media/indoorcamC210_small.png) | Indoor Cam C210 (T8416) | :heavy_check_mark: |  |
+| ![T8416 image](_media/indoorcamC220_small.png) | Indoor Cam C220 (T8W11C) | :heavy_check_mark: |  |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8150) | :heavy_check_mark: |  |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G Camera S230 (T8151; 4G LTE Starlight) | :heavy_check_mark: | Firmware: 1.1.3.7 (20230730) |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8152) | :heavy_exclamation_mark: |  |
