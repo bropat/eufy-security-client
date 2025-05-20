@@ -46,7 +46,7 @@
     "fs-extra": "^11.2.0",
     "got": "^14.4.2",
     "i18n-iso-countries": "^7.12.0",
-    "image-type": "^5.2.0",
+    "image-type": "^6.0.0",
     "long": "^5.2.3",
     "mqtt": "^5.10.1",
     "node-rsa": "^1.1.1",
