@@ -11,6 +11,10 @@
 
 [![NPM](https://nodei.co/npm/eufy-security-client.png?downloads=true)](https://nodei.co/npm/eufy-security-client/)
 
+Join us on Discord:
+
+<a target="_blank" href="https://discord.gg/5wjQ2asb64"><img src="https://dcbadge.limes.pink/api/server/5wjQ2asb64" alt="" /></a>
+
 The development of this shared library was inspired by the work of the following people:
 
 * FuzzyMistborn (<https://github.com/FuzzyMistborn/python-eufy-security>)
@@ -94,6 +98,10 @@ If more devices work (or also not) please report them by opening a GitHub issue.
 ## How to report issues and feature requests
 
 Please use GitHub issues for this.
+
+## Deployment
+
+Instructions aimed at maintainers for deploying a new version: [Deployment](docs/deployment.md)
 
 ## Changelog
 
