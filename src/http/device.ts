@@ -1204,6 +1204,12 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return false;
     }
 
+    static isFloodLightT8423(type: number): boolean {
+        if (type == DeviceType.FLOODLIGHT_CAMERA_8423)
+            return true;
+        return false;
+    }
+
     static isFloodLightT8425(type: number): boolean {
         if (type == DeviceType.FLOODLIGHT_CAMERA_8425)
             return true;
@@ -1584,6 +1590,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isFloodLightT8420X(): boolean {
         return Device.isFloodLightT8420X(this.rawDevice.device_type, this.rawDevice.device_sn);
+    }
+
+    public isFloodLightT8423(): boolean {
+        return Device.isFloodLightT8423(this.rawDevice.device_type);
     }
 
     public isFloodLightT8425(): boolean {
