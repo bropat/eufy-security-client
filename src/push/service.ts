@@ -303,37 +303,21 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
         try {
             for (let retry_count = 1; retry_count <= retry; retry_count++) {
+                rootPushLogger.debug(`Register GCM - Attempt ${retry_count} of ${retry}`, { androidId: androidId, fid: fid, securityToken: securityToken });
+            
                 const response = await this.got(url, {
                     method: "post",
                     body: qs.stringify({
-                        "X-subtype": `${this.APP_SENDER_ID}`,
                         sender: `${this.APP_SENDER_ID}`,
-                        "X-app_ver": "741",
-                        "X-osv": "25",
-                        "X-cliv": "fiid-20.2.0",
-                        "X-gmsv": "201216023",
-                        "X-appid": `${fid}`,
-                        "X-scope": "*",
-                        "X-Goog-Firebase-Installations-Auth": `${fidInstallationResponse.authToken.token}`,
                         "X-gmp_app_id": `${this.APP_ID}`,
-                        "X-Firebase-Client": "fire-abt/17.1.1+fire-installations/16.3.1+fire-android/+fire-analytics/17.4.2+fire-iid/20.2.0+fire-rc/17.0.0+fire-fcm/20.2.0+fire-cls/17.0.0+fire-cls-ndk/17.0.0+fire-core/19.3.0",
-                        "X-firebase-app-name-hash": "R1dAH9Ui7M-ynoznwBdw01tLxhI",
-                        "X-Firebase-Client-Log-Type": "1",
-                        "X-app_ver_name": "v2.2.2_741",
+                        "X-scope": "*",
                         app: `${this.APP_PACKAGE}`,
                         device: `${androidId}`,
-                        app_ver: "741",
-                        info: "g3EMJXXElLwaQEb1aBJ6XhxiHjPTUxc",
-                        gcm_ver: "201216023",
-                        plat: "0",
-                        cert: `${this.APP_CERT_SHA1}`,
-                        target_ver: "28",
                     }),
                     headers: {
                         Authorization: `AidLogin ${androidId}:${securityToken}`,
                         app: `${this.APP_PACKAGE}`,
-                        gcm_ver: "201216023",
-                        "User-Agent": "Android-GCM/1.5 (OnePlus5 NMF26X)",
+                        "User-Agent": "Android-GCM/1.5",
                         "content-type": "application/x-www-form-urlencoded",
                     },
                     http2: false,
@@ -728,7 +712,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
         if (this.credentials) {
             this.emit("credential", this.credentials);
-
+            rootPushLogger.debug("Push notification token received", { token: this.credentials.gcmResponse.token, credentials: this.credentials });
             this.clearCredentialsTimeout();
 
             this.credentialsTimeout = setTimeout(async () => {
@@ -739,6 +723,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             if (this.pushClient) {
                 this.pushClient.removeAllListeners();
             }
+            rootPushLogger.debug('Init PushClient with credentials', { credentials: this.credentials });
 
             this.pushClient = await PushClient.init({
                 androidId: this.credentials.checkinResponse.androidId,
