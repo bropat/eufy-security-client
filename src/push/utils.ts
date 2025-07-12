@@ -4,6 +4,7 @@ import { load } from "protobufjs";
 
 import { CheckinResponse } from "./models";
 import { FidGenerationError } from "./error";
+import { rootPushLogger } from "../logging";
 
 export const VALID_FID_PATTERN = /^[cdef][\w-]{21}$/;
 
@@ -17,7 +18,10 @@ export function generateFid(): string {
     const b64 = Buffer.from(fidByteArray).toString("base64");
     const b64_safe = b64.replace(/\+/g, "-").replace(/\//g, "_");
     const fid = b64_safe.substr(0, 22);
+
+           
     if (VALID_FID_PATTERN.test(fid)) {
+        rootPushLogger.info('generateFid', fid)
         return fid;
     }
     throw new FidGenerationError("Generated invalid FID", { context: { fid: fid } });
