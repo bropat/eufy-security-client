@@ -189,6 +189,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
     private async createPushCredentials(): Promise<Credentials> {
         const generatedFid = generateFid();
+ 
         return await this.registerFid(generatedFid)
             .then(async (registerFidResponse) => {
                 const checkinResponse = await this.executeCheckin();
@@ -229,6 +230,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
     }
 
     private async loginPushCredentials(credentials: Credentials): Promise<Credentials> {
+        rootPushLogger.info('fidresponse', credentials.fidResponse)
         return await this.executeCheckin()
             .then(async (response) => {
                 const registerGcmResponse = await this.registerGcm(credentials.fidResponse, response);
@@ -704,8 +706,8 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
         return this.persistentIds;
     }
 
-    private async _open(renew = false): Promise<void> {
-        if (!this.credentials || Object.keys(this.credentials).length === 0 || (this.credentials && this.credentials.fidResponse && new Date().getTime() >= this.credentials.fidResponse.authToken.expiresAt)) {
+    private async _open(renew = false, forceNew = false): Promise<void> {
+        if (forceNew || !this.credentials || Object.keys(this.credentials).length === 0 || (this.credentials && this.credentials.fidResponse && new Date().getTime() >= this.credentials.fidResponse.authToken.expiresAt)) {
             rootPushLogger.debug(`Create new push credentials...`, { credentials: this.credentials, renew: renew });
             this.credentials = await this.createPushCredentials().catch(err => {
                 const error = ensureError(err);
@@ -775,7 +777,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
     public async open(): Promise<Credentials | undefined> {
         if (!this.connecting && !this.connected) {
             this.connecting = true;
-            await this._open().catch((err) => {
+            await this._open(false, true).catch((err) => {
                 const error = ensureError(err);
                 rootPushLogger.error(`Got exception trying to initialize push notifications`, { error: getError(error), credentials: this.credentials });
             });
