@@ -2572,7 +2572,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (this.lockSeqNumber === -1) {
             let deviceType = undefined;
             let deviceSN = undefined;
-            if (this.rawStation?.devices !== undefined && this.rawStation?.devices.length > 0) {
+            if (this.rawStation?.devices?.length > 0) {
                 deviceType = this.rawStation?.devices[0]?.device_type;
                 deviceSN = this.rawStation?.devices[0]?.device_sn;
             }
