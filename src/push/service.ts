@@ -189,6 +189,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
     private async createPushCredentials(): Promise<Credentials> {
         const generatedFid = generateFid();
+ 
         return await this.registerFid(generatedFid)
             .then(async (registerFidResponse) => {
                 const checkinResponse = await this.executeCheckin();
@@ -229,6 +230,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
     }
 
     private async loginPushCredentials(credentials: Credentials): Promise<Credentials> {
+        rootPushLogger.info('fidresponse', credentials.fidResponse)
         return await this.executeCheckin()
             .then(async (response) => {
                 const registerGcmResponse = await this.registerGcm(credentials.fidResponse, response);
@@ -303,6 +305,8 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
         try {
             for (let retry_count = 1; retry_count <= retry; retry_count++) {
+                rootPushLogger.debug(`Register GCM - Attempt ${retry_count} of ${retry}`, { androidId: androidId, fid: fid, securityToken: securityToken });
+            
                 const response = await this.got(url, {
                     method: "post",
                     body: qs.stringify({
@@ -333,7 +337,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         Authorization: `AidLogin ${androidId}:${securityToken}`,
                         app: `${this.APP_PACKAGE}`,
                         gcm_ver: "201216023",
-                        "User-Agent": "Android-GCM/1.5 (OnePlus5 NMF26X)",
+                        "User-Agent": "Android-GCM/1.5",
                         "content-type": "application/x-www-form-urlencoded",
                     },
                     http2: false,
@@ -702,8 +706,8 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
         return this.persistentIds;
     }
 
-    private async _open(renew = false): Promise<void> {
-        if (!this.credentials || Object.keys(this.credentials).length === 0 || (this.credentials && this.credentials.fidResponse && new Date().getTime() >= this.credentials.fidResponse.authToken.expiresAt)) {
+    private async _open(renew = false, forceNew = false): Promise<void> {
+        if (forceNew || !this.credentials || Object.keys(this.credentials).length === 0 || (this.credentials && this.credentials.fidResponse && new Date().getTime() >= this.credentials.fidResponse.authToken.expiresAt)) {
             rootPushLogger.debug(`Create new push credentials...`, { credentials: this.credentials, renew: renew });
             this.credentials = await this.createPushCredentials().catch(err => {
                 const error = ensureError(err);
@@ -728,7 +732,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
         if (this.credentials) {
             this.emit("credential", this.credentials);
-
+            rootPushLogger.debug("Push notification token received", { token: this.credentials.gcmResponse.token, credentials: this.credentials });
             this.clearCredentialsTimeout();
 
             this.credentialsTimeout = setTimeout(async () => {
@@ -739,6 +743,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             if (this.pushClient) {
                 this.pushClient.removeAllListeners();
             }
+            rootPushLogger.debug('Init PushClient with credentials', { credentials: this.credentials });
 
             this.pushClient = await PushClient.init({
                 androidId: this.credentials.checkinResponse.androidId,
@@ -772,7 +777,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
     public async open(): Promise<Credentials | undefined> {
         if (!this.connecting && !this.connected) {
             this.connecting = true;
-            await this._open().catch((err) => {
+            await this._open(false, true).catch((err) => {
                 const error = ensureError(err);
                 rootPushLogger.error(`Got exception trying to initialize push notifications`, { error: getError(error), credentials: this.credentials });
             });
