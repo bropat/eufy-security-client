@@ -1004,6 +1004,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         } else if (hasHeader(msg, ResponseMessageType.END)) {
             // Connection is closed by device
             rootP2PLogger.debug(`Received message - END`, { stationSN: this.rawStation.station_sn, remoteAddress: rinfo.address, remotePort: rinfo.port });
+            if (this.energySavingDevice && this.connected) {
+                this.closeEnergySavingDevice();
+            }
             this.onClose();
             return;
         } else if (hasHeader(msg, ResponseMessageType.ACK)) {
@@ -2653,16 +2656,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
         this.channel = Station.getChannel(value.device_type);
 
-        if (this.rawStation.devices?.length > 0) {
+        if (Device.hasBattery(this.rawStation.device_type)) {
             if (!this.energySavingDevice) {
-                for (const device of this.rawStation.devices) {
-                    if (device.device_sn === this.rawStation.station_sn && Device.hasBattery(device.device_type)) {
-                        this.energySavingDevice = true;
-                        break;
-                    }
-                }
-                if (this.energySavingDevice)
-                    rootP2PLogger.debug(`Identified standalone battery device ${this.rawStation.station_sn} => activate p2p keepalive command`);
+                this.energySavingDevice = true;
+            }
+            if (this.energySavingDevice) {
+                rootP2PLogger.debug(`Identified standalone battery device ${this.rawStation.station_sn} => activate p2p keepalive command`);
             }
         } else {
             this.energySavingDevice = false;
