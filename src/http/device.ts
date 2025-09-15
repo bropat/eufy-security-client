@@ -1022,6 +1022,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.FLOODLIGHT_CAMERA_8423 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8424 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8425 ||
+            type == DeviceType.FLOODLIGHT_CAMERA_8426 ||
             type == DeviceType.WALL_LIGHT_CAM ||
             type == DeviceType.WALL_LIGHT_CAM_81A0 ||
             type == DeviceType.CAMERA_GARAGE_T8453_COMMON ||
@@ -1162,6 +1163,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_PT_CAMERA_1080 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8423 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8425 ||
+            type == DeviceType.FLOODLIGHT_CAMERA_8426 ||
             type == DeviceType.INDOOR_COST_DOWN_CAMERA ||
             type == DeviceType.OUTDOOR_PT_CAMERA ||
             type == DeviceType.INDOOR_PT_CAMERA_S350 ||
@@ -1193,7 +1195,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.FLOODLIGHT_CAMERA_8422 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8423 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8424 ||
-            type == DeviceType.FLOODLIGHT_CAMERA_8425)
+            type == DeviceType.FLOODLIGHT_CAMERA_8425 ||
+            type == DeviceType.FLOODLIGHT_CAMERA_8426)
             return true;
         return false;
     }
@@ -1208,6 +1211,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (type == DeviceType.FLOODLIGHT_CAMERA_8425)
             return true;
         return false;
+    }
+
+    static isFloodLightT8426(type: number): boolean {
+      return (type == DeviceType.FLOODLIGHT_CAMERA_8426);
     }
 
     static isWallLightCam(type: number): boolean {
