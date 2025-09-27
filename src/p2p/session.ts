@@ -3,7 +3,7 @@ import { TypedEmitter } from "tiny-typed-emitter";
 import * as NodeRSA from "node-rsa";
 import { Readable } from "stream";
 import { SortedMap } from "sweet-collections";
-import date from "date-and-time";
+const { parse } = require('date-and-time');
 
 import { Address, CmdCameraInfoResponse, CmdNotifyPayload, CommandResult, ESLAdvancedLockStatusNotification, ESLStationP2PThroughData, SmartSafeSettingsNotification, SmartSafeStatusNotification, CustomData, ESLBleV12P2PThroughData, CmdDatabaseImageResponse, EntrySensorStatus, GarageDoorStatus, StorageInfoHB3, ESLAdvancedLockStatusNotificationT8530, SmartLockP2PThroughData, SmartLockP2PSequenceData } from "./models";
 import { sendMessage, hasHeader, buildCheckCamPayload, buildIntCommandPayload, buildIntStringCommandPayload, buildCommandHeader, MAGIC_WORD, buildCommandWithStringTypePayload, isPrivateIp, buildLookupWithKeyPayload, sortP2PMessageParts, buildStringTypeCommandPayload, getRSAPrivateKey, decryptAESData, getNewRSAPrivateKey, findStartCode, isIFrame, generateLockSequence, decodeLockPayload, generateBasicLockAESKey, getLockVectorBytes, decryptLockAESData, buildLookupWithKeyPayload2, buildCheckCamPayload2, buildLookupWithKeyPayload3, decodeBase64, getVideoCodec, checkT8420, buildVoidCommandPayload, isP2PQueueMessage, buildTalkbackAudioFrameHeader, getLocalIpAddress, decodeP2PCloudIPs, decodeSmartSafeData, decryptPayloadData, decryptP2PData, getP2PCommandEncryptionKey, getNullTerminatedString, generateSmartLockAESKey, readNullTerminatedBuffer } from "./utils";
@@ -2169,7 +2169,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 const result: Array<DatabaseCountByDate> = [];
                                 for (const record of data) {
                                     result.push({
-                                        day: date.parse(record.days, "YYYYMMDD"),
+                                        day: parse(record.days, "YYYYMMDD"),
                                         count: record.count
                                     });
                                 }
@@ -2195,8 +2195,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                             tmpRecord.history = {
                                                 device_type: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).device_type,
                                                 account: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).account,
-                                                start_time: date.parse((tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).start_time, "YYYY-MM-DD HH:mm:ss"),
-                                                end_time: date.parse((tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).end_time, "YYYY-MM-DD HH:mm:ss"),
+                                                start_time: parse((tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).start_time, "YYYY-MM-DD HH:mm:ss"),
+                                                end_time: parse((tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).end_time, "YYYY-MM-DD HH:mm:ss"),
                                                 frame_num: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).frame_num,
                                                 storage_type: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).storage_type,
                                                 storage_cloud: (tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo).storage_cloud,
@@ -2233,13 +2233,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                 detection_type: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).detection_type,
                                                 person_id: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).person_id,
                                                 crop_path: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).crop_path,
-                                                event_time: date.parse((tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).event_time, "YYYY-MM-DD HH:mm:ss"),
+                                                event_time: parse((tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).event_time, "YYYY-MM-DD HH:mm:ss"),
                                                 person_recog_flag: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).person_recog_flag,
                                                 crop_pic_quality: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).crop_pic_quality,
                                                 pic_marking_flag: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).pic_marking_flag,
                                                 group_id: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).group_id,
                                                 crop_id: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).crop_id,
-                                                start_time: date.parse((tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).start_time, "YYYY-MM-DD HH:mm:ss"),
+                                                start_time: parse((tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).start_time, "YYYY-MM-DD HH:mm:ss"),
                                                 storage_type: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).storage_type,
                                                 storage_status: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).storage_status,
                                                 storage_label: (tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo).storage_label,

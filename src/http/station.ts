@@ -1,6 +1,6 @@
 import { TypedEmitter } from "tiny-typed-emitter";
 import { Readable } from "stream";
-import date from "date-and-time";
+const { format } = require('date-and-time');
 
 import { HTTPApi } from "./api";
 import { AlarmMode, AlarmTone, NotificationSwitchMode, DeviceType, FloodlightMotionTriggeredDistance, GuardMode, NotificationType, ParamType, PowerSource, PropertyName, StationProperties, TimeFormat, CommandName, StationCommands, StationGuardModeKeyPadProperty, StationCurrentModeKeyPadProperty, StationAutoEndAlarmProperty, StationSwitchModeWithAccessCodeProperty, StationTurnOffAlarmWithButtonProperty, PublicKeyType, MotionDetectionMode, VideoTypeStoreToNAS, HB3DetectionTypes, WalllightNotificationType, DailyLightingType, MotionActivationMode, BaseStationProperties, LightingActiveMode, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes, SoloCameraDetectionTypes, MotionDetectionRangeType, ViewModeType, FloodlightT8425NotificationTypes, PresetPositionType, SmartLockNotification, IndoorS350DetectionTypes } from "./types";
@@ -9648,12 +9648,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         "count": 20,
                         "detection_type": detectionType,
                         "device_info": devices,
-                        "end_date": date.format(endDate, "YYYYMMDD"),
+                        "end_date": format(endDate, "YYYYMMDD"),
                         "event_type": eventType,
                         "flag": 0,
                         "res_unzip": 1,
-                        "start_date": date.format(startDate, "YYYYMMDD"),
-                        "start_time": `${date.format(endDate, "YYYYMMDD")}000000`,
+                        "start_date": format(startDate, "YYYYMMDD"),
+                        "start_time": `${format(endDate, "YYYYMMDD")}000000`,
                         "storage_cloud": storageType === FilterStorageType.NONE || (storageType !== FilterStorageType.LOCAL && storageType !== FilterStorageType.CLOUD) ? -1 : storageType,
                         "ai_type": 0
                     },
@@ -9724,8 +9724,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 "payload": {
                     "cmd": CommandType.CMD_DATABASE_COUNT_BY_DATE,
                     "payload": {
-                        "end_date": date.format(endDate, "YYYYMMDD"),
-                        "start_date": date.format(startDate, "YYYYMMDD"),
+                        "end_date": format(endDate, "YYYYMMDD"),
+                        "start_date": format(startDate, "YYYYMMDD"),
                     },
                     "table": "history_record_info",
                     "transaction": `${new Date().getTime()}`
