@@ -82,7 +82,8 @@ export enum DeviceType {
     LOCK_8506 = 184,
     WALL_LIGHT_CAM_81A0 = 10005,
     INDOOR_PT_CAMERA_C220 = 10008, // T8W11C
-    INDOOR_PT_CAMERA_C210 = 10009 // T8419 / T8W11P?
+    INDOOR_PT_CAMERA_C210 = 10009, // T8419 / T8W11P?
+    INDOOR_PT_CAMERA_C220_V2 = 10010 // T8W11C (Type 10010)
 }
 
 export enum ParamType {
@@ -1019,6 +1020,9 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
         180: "Smart Lock C210 (T8502)",
         184: "Smart Lock C220 (T8506)",
         10005: "Solar Wall Light Cam S120 (T81A0)",
+        10008: "Indoor Cam C220 (T8W11C)",
+        10009: "Indoor Cam C210 (T8419)",
+        10010: "Indoor Cam C220 (T8W11C)",
     },
 }
 
@@ -8076,6 +8080,8 @@ export const DeviceProperties: Properties = {
     },
 }
 
+DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
+
 export const StationNameProperty: PropertyMetadataString = {
     key: "station_name",
     name: PropertyName.Name,
@@ -9140,6 +9146,8 @@ export const StationProperties: Properties = {
     },
 }
 
+StationProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = StationProperties[DeviceType.INDOOR_PT_CAMERA_C220];
+
 export enum CommandName {
     DeviceStartLivestream = "deviceStartLivestream",
     DeviceStopLivestream = "deviceStopLivestream",
@@ -9806,6 +9814,8 @@ export const DeviceCommands: Commands = {
     ],
 }
 
+DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220];
+
 export const StationCommands: Commands = {
     [DeviceType.STATION]: [
         CommandName.StationReboot,
@@ -10165,3 +10175,5 @@ export const StationCommands: Commands = {
     [DeviceType.SMART_DROP]: [
     ],
 }
+
+StationCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = StationCommands[DeviceType.INDOOR_PT_CAMERA_C220];
