@@ -55,7 +55,7 @@
 | ![T8416 image](_media/indoorcams350_small.jpg) | Indoor Cam S350 (T8416) | :heavy_check_mark: | Firmware: 1.5.1.0 (20240715) |
 | ![T8416 image](_media/indoorcamE30_small.jpeg) | Indoor Cam E30 (T8417) | :heavy_check_mark: |  |
 | ![T8416 image](_media/indoorcamC210_small.png) | Indoor Cam C210 (T8419) | :heavy_check_mark: |  |
-| ![T8416 image](_media/indoorcamC220_small.png) | Indoor Cam C220 (T8W11C) | :heavy_check_mark: |  |
+| ![T8416 image](_media/indoorcamC220_small.png) | Indoor Cam C220 (T8W11C; type 10008/10010) | :heavy_check_mark: |  |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8150) | :heavy_check_mark: |  |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G Camera S230 (T8151; 4G LTE Starlight) | :heavy_check_mark: | Firmware: 1.1.3.7 (20230730) |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8152) | :heavy_exclamation_mark: |  |

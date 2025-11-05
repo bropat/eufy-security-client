@@ -1032,6 +1032,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_PT_CAMERA_E30 || 
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C220_V2 ||
             type == DeviceType.SMART_DROP)
             return true;
         return false;
@@ -1152,7 +1153,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_PT_CAMERA_S350 || 
             type == DeviceType.INDOOR_PT_CAMERA_E30 || 
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
-            type == DeviceType.INDOOR_PT_CAMERA_C220)
+            type == DeviceType.INDOOR_PT_CAMERA_C220 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C220_V2)
             return true;
         return false;
     }
@@ -1167,7 +1169,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_PT_CAMERA_S350 ||
             type == DeviceType.INDOOR_PT_CAMERA_E30 || 
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
-            type == DeviceType.INDOOR_PT_CAMERA_C220)
+            type == DeviceType.INDOOR_PT_CAMERA_C220 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C220_V2)
             return true;
         return false;
     }
@@ -1183,7 +1186,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (type == DeviceType.INDOOR_PT_CAMERA_S350 ||
             type == DeviceType.INDOOR_PT_CAMERA_E30 ||   
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
-            type == DeviceType.INDOOR_PT_CAMERA_C220)
+            type == DeviceType.INDOOR_PT_CAMERA_C220 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C220_V2)
             return true;
         return false;
     }
