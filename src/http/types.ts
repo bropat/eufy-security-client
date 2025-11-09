@@ -9651,6 +9651,7 @@ export const DeviceCommands: Commands = {
         CommandName.DevicePresetPosition,
         CommandName.DeviceSavePresetPosition,
         CommandName.DeviceDeletePresetPosition,
+        CommandName.DeviceTriggerAlarmSound,
     ],
     [DeviceType.FLOODLIGHT_CAMERA_8426]: [
         CommandName.DeviceStartLivestream,
