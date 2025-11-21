@@ -83,7 +83,8 @@ export enum DeviceType {
     WALL_LIGHT_CAM_81A0 = 10005,
     INDOOR_PT_CAMERA_C220 = 10008, // T8W11C
     INDOOR_PT_CAMERA_C210 = 10009, // T8419 / T8W11P?
-    INDOOR_PT_CAMERA_C220_V2 = 10010 // T8W11C (Type 10010)
+    INDOOR_PT_CAMERA_C220_V2 = 10010, // T8W11C (Type 10010)
+    SOLO_CAMERA_C35 = 10035 //TB110T
 }
 
 export enum ParamType {
@@ -1023,6 +1024,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
         10008: "Indoor Cam C220 (T8W11C)",
         10009: "Indoor Cam C210 (T8419)",
         10010: "Indoor Cam C220 (T8W11C)",
+        10035: "Solo Camera C35 (TB110T)",
     },
 }
 
