@@ -1015,6 +1015,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
             type == DeviceType.SOLO_CAMERA_SOLAR ||
             type == DeviceType.SOLO_CAMERA_C210 ||
+            type == DeviceType.SOLO_CAMERA_C35 ||
             type == DeviceType.SOLO_CAMERA_E30 ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT ||
@@ -1065,6 +1066,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SOLAR ||
             type == DeviceType.SOLO_CAMERA_C210 ||
             type == DeviceType.SOLO_CAMERA_E30 ||
+            type == DeviceType.SOLO_CAMERA_C35 ||
             type == DeviceType.LOCK_WIFI ||
             type == DeviceType.LOCK_WIFI_NO_FINGER ||
             type == DeviceType.LOCK_8503 ||
@@ -1374,6 +1376,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.SOLO_CAMERA_C210 == type;
     }
 
+    static isSoloCameraC35(type: number): boolean {
+        return DeviceType.SOLO_CAMERA_C35 == type;
+    }
+
     static isSoloCameraE30(type: number): boolean {
         return DeviceType.SOLO_CAMERA_E30 == type;
     }
@@ -1517,7 +1523,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             sn.startsWith("T8123") ||
             sn.startsWith("T8124") ||
             sn.startsWith("T8171") ||
-            sn.startsWith("T8134");
+            sn.startsWith("T8134") ||
+            sn.startsWith("T8110");
     }
 
     static isSmartDropBySn(sn: string): boolean {
