@@ -1683,6 +1683,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return Device.isLockWifiT8502(this.rawDevice.device_type);
     }
 
+    public isLockWifiT85D0(): boolean {
+        return Device.isLockWifiT85D0(this.rawDevice.device_type);
+    }
+
     public isLockWifiT8510P(): boolean {
         return Device.isLockWifiT8510P(this.rawDevice.device_type, this.rawDevice.device_sn);
     }
