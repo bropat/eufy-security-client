@@ -109,7 +109,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
     static async getInstance(api: HTTPApi, stationData: StationListResponse, ipAddress?: string, listeningPort?: number, enableEmbeddedPKCS1Support?: boolean): Promise<Station> {
         let publicKey: string | undefined;
-        if (Device.isLock(stationData.device_type) && !Device.isLockWifiT8506(stationData.device_type) && !Device.isLockWifiT8502(stationData.device_type) && !Device.isLockWifiT8510P(stationData.device_type, stationData.station_sn) && !Device.isLockWifiT8520P(stationData.device_type, stationData.station_sn) && !Device.isLockWifiVideo(stationData.device_type) && !Device.isLockWifiT85D0(stationData.device_type)) {
+        if (Device.isLock(stationData.device_type) && !Device.isLockWifiT8506(stationData.device_type) && !Device.isLockWifiT8502(stationData.device_type) && !Device.isLockWifiT8510P(stationData.device_type, stationData.station_sn) && !Device.isLockWifiT8520P(stationData.device_type, stationData.station_sn) && !Device.isLockWifiT8531(stationData.device_type, stationData.station_sn) && !Device.isLockWifiVideo(stationData.device_type) && !Device.isLockWifiT85D0(stationData.device_type)) {
             publicKey = await api.getPublicKey(stationData.station_sn, PublicKeyType.LOCK);
         }
         return new Station(api, stationData, ipAddress, listeningPort, publicKey, enableEmbeddedPKCS1Support);
@@ -5334,7 +5334,7 @@ export class Station extends TypedEmitter<StationEvents> {
             this._sendLockV12P2PCommand(command, {
                 property: propertyData
             });
-        } else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
+        } else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT8531() || device.isLockWifiT85D0()) {
             const command = getSmartLockP2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,

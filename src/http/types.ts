@@ -7561,6 +7561,7 @@ export const DeviceProperties: Properties = {
     [DeviceType.LOCK_85D0]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceBattery]: DeviceBatteryLockProperty,
+        [PropertyName.DeviceLocked]: DeviceLockedProperty,
         [PropertyName.DeviceLockStatus]: DeviceAdvancedLockStatusProperty,
         [PropertyName.DeviceAutoLock]: DeviceAutoLockProperty,
         [PropertyName.DeviceAutoLockTimer]: DeviceAutoLockTimerProperty,
