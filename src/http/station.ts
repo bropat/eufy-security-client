@@ -5335,20 +5335,21 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: propertyData
             });
         } else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT8531() || device.isLockWifiT85D0()) {
+            // T8531 can be connected to HomeBase - use device SN for encryption IV and explicit channel
+            // Other locks (T8506, T8502, T8510P, T8520P, T85D0) are standalone - use station SN
+            const deviceSN = device.isLockWifiT8531() ? device.getSerial() : this.rawStation.station_sn;
             const command = getSmartLockP2PCommand(
-                this.rawStation.station_sn,
+                deviceSN,
                 this.rawStation.member.admin_user_id,
                 SmartLockCommand.ON_OFF_LOCK,
                 device.getChannel(),
                 this.p2pSession.incLockSequenceNumber(),
                 Lock.encodeCmdSmartLockUnlock(this.rawStation.member.admin_user_id, value, this.rawStation.member.nick_name, this.rawStation.member.short_user_id)
             );
-            rootHTTPLogger.debug("Station lock device - Locking/unlocking device...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, channel: device.getChannel(), payload: command.payload });
+            rootHTTPLogger.debug("Station lock device - Locking/unlocking device...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, channel: device.getChannel(), deviceSN: deviceSN, payload: command.payload });
 
-            // If lock is connected to a separate HomeBase (not integrated), we need explicit channel
-            // Integrated locks (T8506, T8502, T8510P, T8520P, T85D0) are standalone and use channel 0
-            // T8531 can be connected to HomeBase and needs the device's actual channel
-            if (!this.isIntegratedDevice() && device.getChannel() !== 0) {
+            // T8531 connected to HomeBase needs explicit channel in P2P command
+            if (device.isLockWifiT8531()) {
                 this.p2pSession.sendCommandWithStringPayload({
                     ...command.payload,
                     channel: device.getChannel()
