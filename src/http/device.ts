@@ -1070,6 +1070,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.LOCK_8592 ||
             type == DeviceType.LOCK_85A3 ||
             type == DeviceType.LOCK_8506 ||
+            type == DeviceType.LOCK_8531 ||
             type == DeviceType.LOCK_8502 ||
             type == DeviceType.LOCK_85D0 ||
             type == DeviceType.SMART_SAFE_7400 ||
@@ -1236,6 +1237,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             Device.isLockWifiR20(type) ||
             Device.isLockWifiVideo(type) ||
             Device.isLockWifiT8506(type) ||
+            Device.isLockWifiT8531(type) ||
             Device.isLockWifiT8502(type) ||
             Device.isLockWifiT85D0(type);
     }
@@ -1253,7 +1255,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isLockWifi(type: number, serialnumber: string): boolean {
-        return DeviceType.LOCK_WIFI == type && !Device.isLockWifiT8510P(type, serialnumber) && !Device.isLockWifiT8520P(type, serialnumber) && !Device.isLockWifiT8531(type, serialnumber);
+        return DeviceType.LOCK_WIFI == type && !Device.isLockWifiT8510P(type, serialnumber) && !Device.isLockWifiT8520P(type, serialnumber) && !Device.isLockWifiT8531(type);
     }
 
     static isLockWifiNoFinger(type: number): boolean {
@@ -1288,10 +1290,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.LOCK_8502 == type;
     }
 
-    static isLockWifiT8531(type: number, serialnumber: string): boolean {
-        if (type == DeviceType.LOCK_WIFI && serialnumber.startsWith("T8531"))
-            return true;
-        return false;
+    static isLockWifiT8531(type: number): boolean {
+        return DeviceType.LOCK_8531 == type;
     }
 
     static isLockWifiT85D0(type: number): boolean {
@@ -1690,7 +1690,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     public isLockWifiT8531(): boolean {
-        return Device.isLockWifiT8531(this.rawDevice.device_type, this.rawDevice.device_sn);
+        return Device.isLockWifiT8531(this.rawDevice.device_type);
     }
 
     public isLockWifiT85D0(): boolean {
