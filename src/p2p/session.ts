@@ -1934,6 +1934,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                     this.api.updateUserPassword(customData.customData.command.value?.deviceSN, customData.customData.command.value?.shortUserId, parsePayload.readStringHex(BleParameterIndex.ONE), customData.customData.command.value?.schedule);
                                                                 }
                                                                 break;
+                                                            case SmartLockBleCommandFunctionType2.ON_OFF_LOCK:
+                                                                // Lock/unlock command response received
+                                                                // The actual lock state will be updated via push notification or next status query
+                                                                rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD Smart Lock - ON_OFF_LOCK response`, { stationSN: this.rawStation.station_sn, returnCode: returnCode, channel: message.channel });
+                                                                break;
                                                             default:
                                                                 rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD Smart Lock - Not implemented`, { stationSN: this.rawStation.station_sn, fac: fac.toString(), returnCode: returnCode, channel: customData?.channel, customData: customData?.customData });
                                                                 break;
