@@ -5343,11 +5343,23 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.p2pSession.incLockSequenceNumber(),
                 Lock.encodeCmdSmartLockUnlock(this.rawStation.member.admin_user_id, value, this.rawStation.member.nick_name, this.rawStation.member.short_user_id)
             );
-            rootHTTPLogger.debug("Station lock device - Locking/unlocking device...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command.payload });
+            rootHTTPLogger.debug("Station lock device - Locking/unlocking device...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, channel: device.getChannel(), payload: command.payload });
 
-            this.p2pSession.sendCommandWithStringPayload(command.payload, {
-                property: propertyData
-            });
+            // If lock is connected to a separate HomeBase (not integrated), we need explicit channel
+            // Integrated locks (T8506, T8502, T8510P, T8520P, T85D0) are standalone and use channel 0
+            // T8531 can be connected to HomeBase and needs the device's actual channel
+            if (!this.isIntegratedDevice() && device.getChannel() !== 0) {
+                this.p2pSession.sendCommandWithStringPayload({
+                    ...command.payload,
+                    channel: device.getChannel()
+                }, {
+                    property: propertyData
+                });
+            } else {
+                this.p2pSession.sendCommandWithStringPayload(command.payload, {
+                    property: propertyData
+                });
+            }
         } else {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
         }
