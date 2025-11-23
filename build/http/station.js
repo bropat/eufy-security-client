@@ -95,7 +95,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
     }
     static async getInstance(api, stationData, ipAddress, listeningPort, enableEmbeddedPKCS1Support) {
         let publicKey;
-        if (device_1.Device.isLock(stationData.device_type) && !device_1.Device.isLockWifiT8506(stationData.device_type) && !device_1.Device.isLockWifiT8502(stationData.device_type) && !device_1.Device.isLockWifiT8510P(stationData.device_type, stationData.station_sn) && !device_1.Device.isLockWifiT8520P(stationData.device_type, stationData.station_sn)) {
+        if (device_1.Device.isLock(stationData.device_type) && !device_1.Device.isLockWifiT8506(stationData.device_type) && !device_1.Device.isLockWifiT8502(stationData.device_type) && !device_1.Device.isLockWifiT8510P(stationData.device_type, stationData.station_sn) && !device_1.Device.isLockWifiT8520P(stationData.device_type, stationData.station_sn) && !device_1.Device.isLockWifiVideo(stationData.device_type) && !device_1.Device.isLockWifiT85D0(stationData.device_type)) {
             publicKey = await api.getPublicKey(stationData.station_sn, types_1.PublicKeyType.LOCK);
         }
         return new Station(api, stationData, ipAddress, listeningPort, publicKey, enableEmbeddedPKCS1Support);
@@ -4758,7 +4758,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
             command: commandData
         });
     }
-    startLivestream(device, videoCodec = types_2.VideoCodec.H264, skipLiveStreamingCheck = true) {
+    startLivestream(device, videoCodec = types_2.VideoCodec.H264) {
         const commandData = {
             name: types_1.CommandName.DeviceStartLivestream,
             value: videoCodec
@@ -4769,7 +4769,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         if (!device.hasCommand(types_1.CommandName.DeviceStartLivestream)) {
             throw new error_1.NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
-        if (!skipLiveStreamingCheck && this.isLiveStreaming(device)) {
+        if (this.isLiveStreaming(device)) {
             throw new error_2.LivestreamAlreadyRunningError("Livestream for device is already running", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
         logging_1.rootHTTPLogger.debug(`Station start livestream - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), videoCodec: videoCodec });
@@ -5265,7 +5265,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
                 property: propertyData
             });
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
             const command = (0, utils_2.getSmartLockP2PCommand)(this.rawStation.station_sn, this.rawStation.member.admin_user_id, types_2.SmartLockCommand.ON_OFF_LOCK, device.getChannel(), this.p2pSession.incLockSequenceNumber(), device_1.Lock.encodeCmdSmartLockUnlock(this.rawStation.member.admin_user_id, value, this.rawStation.member.nick_name, this.rawStation.member.short_user_id));
             logging_1.rootHTTPLogger.debug("Station lock device - Locking/unlocking device...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command.payload });
             this.p2pSession.sendCommandWithStringPayload(command.payload, {
@@ -6268,7 +6268,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
             });
             logging_1.rootHTTPLogger.debug("Station calibrate lock - Calibrate lock...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id });
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
             const command = (0, utils_2.getSmartLockP2PCommand)(this.rawStation.station_sn, this.rawStation.member.admin_user_id, types_2.SmartLockCommand.ON_OFF_LOCK, device.getChannel(), this.p2pSession.incLockSequenceNumber(), device_1.Lock.encodeCmdSmartLockCalibrate(this.rawStation.member.admin_user_id));
             logging_1.rootHTTPLogger.debug("Station calibrate lock - Calibrate lock...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command.payload });
             this.p2pSession.sendCommandWithStringPayload(command.payload, {
@@ -7713,7 +7713,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(device, types_1.PropertyName.DeviceScramblePasscode, value);
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
             this.setSmartLockParams(device, types_1.PropertyName.DeviceScramblePasscode, value);
         }
         else if (device.isSmartSafe()) {
@@ -7741,7 +7741,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(device, types_1.PropertyName.DeviceWrongTryProtection, value);
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
             this.setSmartLockParams(device, types_1.PropertyName.DeviceWrongTryProtection, value);
         }
         else if (device.isSmartSafe()) {
@@ -7769,7 +7769,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(device, types_1.PropertyName.DeviceWrongTryAttempts, value);
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
             this.setSmartLockParams(device, types_1.PropertyName.DeviceWrongTryAttempts, value);
         }
         else if (device.isSmartSafe()) {
@@ -7797,7 +7797,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(device, types_1.PropertyName.DeviceWrongTryLockdownTime, value);
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
             this.setSmartLockParams(device, types_1.PropertyName.DeviceWrongTryLockdownTime, value);
         }
         else if (device.isSmartSafe()) {
@@ -8512,7 +8512,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(device, types_1.PropertyName.DeviceAutoLock, value);
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
             this.setSmartLockParams(device, types_1.PropertyName.DeviceAutoLock, value);
         }
         else {
@@ -8537,7 +8537,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(device, types_1.PropertyName.DeviceAutoLockSchedule, value);
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
             this.setSmartLockParams(device, types_1.PropertyName.DeviceAutoLockSchedule, value);
         }
         else {
@@ -8562,7 +8562,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(device, types_1.PropertyName.DeviceAutoLockScheduleStartTime, value);
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
             this.setSmartLockParams(device, types_1.PropertyName.DeviceAutoLockScheduleStartTime, value);
         }
         else {
@@ -8587,7 +8587,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(device, types_1.PropertyName.DeviceAutoLockScheduleEndTime, value);
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
             this.setSmartLockParams(device, types_1.PropertyName.DeviceAutoLockScheduleEndTime, value);
         }
         else {
@@ -8612,7 +8612,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(device, types_1.PropertyName.DeviceAutoLockTimer, value);
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
             this.setSmartLockParams(device, types_1.PropertyName.DeviceAutoLockTimer, value);
         }
         else {
@@ -8637,7 +8637,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(device, types_1.PropertyName.DeviceOneTouchLocking, value);
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
             this.setSmartLockParams(device, types_1.PropertyName.DeviceOneTouchLocking, value);
         }
         else {
@@ -8662,7 +8662,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(device, types_1.PropertyName.DeviceSound, value);
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0()) {
             this.setSmartLockParams(device, types_1.PropertyName.DeviceSound, value);
         }
         else {
@@ -8696,7 +8696,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
                 property: propertyData
             });
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiR10() || device.isLockWifiR20()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0() || device.isLockWifiR10() || device.isLockWifiR20()) {
             let oldvalue = 0;
             const rawproperty = device.getRawProperty(types_2.CommandType.CMD_DOORLOCK_SET_PUSH_MODE);
             if (rawproperty !== undefined) {
@@ -8745,7 +8745,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         if (device.isLockWifi() || device.isLockWifiNoFinger() || device.isLockWifiVideo()) {
             this.setAdvancedLockParams(device, types_1.PropertyName.DeviceNotificationLocked, value);
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiR10() || device.isLockWifiR20()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0() || device.isLockWifiR10() || device.isLockWifiR20()) {
             let oldvalue = 0;
             const rawproperty = device.getRawProperty(types_2.CommandType.CMD_DOORLOCK_SET_PUSH_MODE);
             if (rawproperty !== undefined) {
@@ -8794,7 +8794,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         if (device.isLockWifi() || device.isLockWifiNoFinger() || device.isLockWifiVideo()) {
             this.setAdvancedLockParams(device, types_1.PropertyName.DeviceNotificationUnlocked, value);
         }
-        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiR10() || device.isLockWifiR20()) {
+        else if (device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT85D0() || device.isLockWifiR10() || device.isLockWifiR20()) {
             let oldvalue = 0;
             const rawproperty = device.getRawProperty(types_2.CommandType.CMD_DOORLOCK_SET_PUSH_MODE);
             if (rawproperty !== undefined) {
@@ -10165,7 +10165,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
             throw new error_1.InvalidCommandValueError("Invalid value for this command", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
         logging_1.rootHTTPLogger.debug(`Station preset position - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), preset: types_1.PresetPositionType[position] });
-        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera()) {
+        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera() || device.isFloodLightT8423()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: types_2.CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -10195,7 +10195,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
             throw new error_1.InvalidCommandValueError("Invalid value for this command", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
         logging_1.rootHTTPLogger.debug(`Station save preset position - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), preset: types_1.PresetPositionType[position] });
-        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera()) {
+        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera() || device.isFloodLightT8423()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: types_2.CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -10225,7 +10225,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
             throw new error_1.InvalidCommandValueError("Invalid value for this command", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
         logging_1.rootHTTPLogger.debug(`Station delete preset position - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), preset: types_1.PresetPositionType[position] });
-        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera()) {
+        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera() || device.isFloodLightT8423()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: types_2.CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -10390,7 +10390,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
     }
     getLockParameters() {
         //TODO: Implement support for other Locks
-        if (device_1.Device.isLockWifiT8506(this.getDeviceType()) || device_1.Device.isLockWifiT8502(this.getDeviceType()) || device_1.Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial()) || device_1.Device.isLockWifiT8520P(this.getDeviceType(), this.getSerial())) {
+        if (device_1.Device.isLockWifiT8506(this.getDeviceType()) || device_1.Device.isLockWifiT8502(this.getDeviceType()) || device_1.Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial()) || device_1.Device.isLockWifiT8520P(this.getDeviceType(), this.getSerial()) || device_1.Device.isLockWifiT85D0(this.getDeviceType())) {
             logging_1.rootHTTPLogger.debug(`Station smart lock send get lock parameters command`, { stationSN: this.getSerial() });
             const command = (0, utils_2.getSmartLockP2PCommand)(this.rawStation.station_sn, this.rawStation.member.admin_user_id, types_2.SmartLockCommand.GET_LOCK_PARAM, 0, this.p2pSession.incLockSequenceNumber(), device_1.Lock.encodeCmdSmartLockGetParams(this.rawStation.member.admin_user_id));
             this.p2pSession.sendCommandWithStringPayload(command.payload);
@@ -10403,7 +10403,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
     }
     getLockStatus() {
         //TODO: Implement support for other Locks
-        if (device_1.Device.isLockWifiT8506(this.getDeviceType()) || device_1.Device.isLockWifiT8502(this.getDeviceType()) || device_1.Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial()) || device_1.Device.isLockWifiT8520P(this.getDeviceType(), this.getSerial())) {
+        if (device_1.Device.isLockWifiT8506(this.getDeviceType()) || device_1.Device.isLockWifiT8502(this.getDeviceType()) || device_1.Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial()) || device_1.Device.isLockWifiT8520P(this.getDeviceType(), this.getSerial()) || device_1.Device.isLockWifiT85D0(this.getDeviceType())) {
             logging_1.rootHTTPLogger.debug(`Station smart lock send get lock status command`, { stationSN: this.getSerial() });
             const command = (0, utils_2.getSmartLockP2PCommand)(this.rawStation.station_sn, this.rawStation.member.admin_user_id, types_2.SmartLockCommand.QUERY_STATUS_IN_LOCK, 0, this.p2pSession.incLockSequenceNumber(), device_1.Lock.encodeCmdSmartLockStatus(this.rawStation.member.admin_user_id));
             this.p2pSession.sendCommandWithStringPayload(command.payload);
