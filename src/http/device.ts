@@ -1229,8 +1229,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     static isLock(type: number): boolean {
         return Device.isLockBle(type) ||
-            Device.isLockWifi(type, "") ||
             Device.isLockBleNoFinger(type) ||
+            type == DeviceType.LOCK_WIFI ||
             Device.isLockWifiNoFinger(type) ||
             Device.isLockWifiR10(type) ||
             Device.isLockWifiR20(type) ||
@@ -1253,7 +1253,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isLockWifi(type: number, serialnumber: string): boolean {
-        return DeviceType.LOCK_WIFI == type && !Device.isLockWifiT8510P(type, serialnumber) && !Device.isLockWifiT8520P(type, serialnumber);
+        return DeviceType.LOCK_WIFI == type && !Device.isLockWifiT8510P(type, serialnumber) && !Device.isLockWifiT8520P(type, serialnumber) && !Device.isLockWifiT8531(type, serialnumber);
     }
 
     static isLockWifiNoFinger(type: number): boolean {
