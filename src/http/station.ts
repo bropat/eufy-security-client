@@ -11018,7 +11018,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
     public getLockParameters(): void {
         //TODO: Implement support for other Locks
-        if (Device.isLockWifiT8506(this.getDeviceType()) || Device.isLockWifiT8502(this.getDeviceType()) || Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial()) || Device.isLockWifiT8520P(this.getDeviceType(), this.getSerial()) || Device.isLockWifiT85D0(this.getDeviceType())) {
+        if (Device.isLockWifiT8506(this.getDeviceType()) || Device.isLockWifiT8502(this.getDeviceType()) || Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial()) || Device.isLockWifiT8520P(this.getDeviceType(), this.getSerial()) || Device.isLockWifiT8531(this.getDeviceType(), this.getSerial()) || Device.isLockWifiT85D0(this.getDeviceType())) {
             rootHTTPLogger.debug(`Station smart lock send get lock parameters command`, { stationSN: this.getSerial() });
             const command = getSmartLockP2PCommand(
                 this.rawStation.station_sn,
@@ -11046,7 +11046,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
     public getLockStatus(): void {
         //TODO: Implement support for other Locks
-        if (Device.isLockWifiT8506(this.getDeviceType()) || Device.isLockWifiT8502(this.getDeviceType()) || Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial()) || Device.isLockWifiT8520P(this.getDeviceType(), this.getSerial()) || Device.isLockWifiT85D0(this.getDeviceType())) {
+        if (Device.isLockWifiT8506(this.getDeviceType()) || Device.isLockWifiT8502(this.getDeviceType()) || Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial()) || Device.isLockWifiT8520P(this.getDeviceType(), this.getSerial()) || Device.isLockWifiT8531(this.getDeviceType(), this.getSerial()) || Device.isLockWifiT85D0(this.getDeviceType())) {
             rootHTTPLogger.debug(`Station smart lock send get lock status command`, { stationSN: this.getSerial() });
             const command = getSmartLockP2PCommand(
                 this.rawStation.station_sn,
