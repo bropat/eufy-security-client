@@ -1717,6 +1717,7 @@ export class Station extends TypedEmitter<StationEvents> {
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError("Device is not managed by this station", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
         }
+        console.log(device);
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
         }
