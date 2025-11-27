@@ -55,6 +55,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public update(device: DeviceListResponse): void {
         this.rawDevice = device;
+
+        rootHTTPLogger.info("* AAAA");
+        rootHTTPLogger.info(JSON.stringify(this.rawDevice));
         const metadata = this.getPropertiesMetadata(true);
         for (const property of Object.values(metadata)) {
             if (this.rawDevice[property.key] !== undefined && typeof property.key === "string") {
@@ -1015,8 +1018,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
             type == DeviceType.SOLO_CAMERA_SOLAR ||
             type == DeviceType.SOLO_CAMERA_C210 ||
-            type == DeviceType.SOLO_CAMERA_C35 ||
             type == DeviceType.SOLO_CAMERA_E30 ||
+            type == DeviceType.CAMERA_C35 ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_2K ||
@@ -1066,7 +1069,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SOLAR ||
             type == DeviceType.SOLO_CAMERA_C210 ||
             type == DeviceType.SOLO_CAMERA_E30 ||
-            type == DeviceType.SOLO_CAMERA_C35 ||
+            type == DeviceType.CAMERA_C35 ||
             type == DeviceType.LOCK_WIFI ||
             type == DeviceType.LOCK_WIFI_NO_FINGER ||
             type == DeviceType.LOCK_8503 ||
@@ -1376,8 +1379,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return DeviceType.SOLO_CAMERA_C210 == type;
     }
 
-    static isSoloCameraC35(type: number): boolean {
-        return DeviceType.SOLO_CAMERA_C35 == type;
+    static isCameraC35(type: number): boolean {
+        return DeviceType.CAMERA_C35 == type;
     }
 
     static isSoloCameraE30(type: number): boolean {
