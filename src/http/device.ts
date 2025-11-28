@@ -55,9 +55,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public update(device: DeviceListResponse): void {
         this.rawDevice = device;
-
-        rootHTTPLogger.info("* AAAA");
-        rootHTTPLogger.info(JSON.stringify(this.rawDevice));
+        
         const metadata = this.getPropertiesMetadata(true);
         for (const property of Object.values(metadata)) {
             if (this.rawDevice[property.key] !== undefined && typeof property.key === "string") {
