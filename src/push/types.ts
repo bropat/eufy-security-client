@@ -105,11 +105,12 @@ export enum LockPushEvent {
     DOOR_TAMPER = 521,
     DOOR_STATE_ERROR = 522,
 
-
     STATUS_CHANGE = 769,
     OTA_STATUS = 770,
     LOCK_ONLINE = 771,
 
+    UNLOCKED = 261,
+    LOCKED = 264,
 }
 
 export enum IndoorPushEvent {

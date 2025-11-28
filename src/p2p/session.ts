@@ -1770,7 +1770,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     if (payload.lock_cmd > 0) {
                                         if (Device.isLockWifiR10(this.rawStation.devices[0]?.device_type) || Device.isLockWifiR20(this.rawStation.devices[0]?.device_type)) {
                                             this.emit("sequence error", message.channel, ESLCommand[ESLBleCommand[payload.lock_cmd] as unknown as number] as unknown as number, payload.seq_num, payload.dev_sn);
-                                        } else if (Device.isLockWifiT8506(this.rawStation.devices[0]?.device_type) || Device.isLockWifiT8502(this.rawStation.devices[0]?.device_type) || Device.isLockWifiT8510P(this.rawStation.devices[0]?.device_type, this.rawStation.devices[0]?.device_sn) || Device.isLockWifiT8520P(this.rawStation.devices[0]?.device_type, this.rawStation.devices[0]?.device_sn)) {
+                                        } else if (Device.isLockWifiT8506(this.rawStation.devices[0]?.device_type) || Device.isLockWifiT8502(this.rawStation.devices[0]?.device_type) || Device.isLockWifiT8510P(this.rawStation.devices[0]?.device_type, this.rawStation.devices[0]?.device_sn) || Device.isLockWifiT8520P(this.rawStation.devices[0]?.device_type, this.rawStation.devices[0]?.device_sn) || Device.isLockWifiT8531(this.rawStation.devices[0]?.device_type)) {
                                             this.emit("sequence error", message.channel, SmartLockCommand[payload.bus_type! == SmartLockFunctionType.TYPE_2 ? SmartLockBleCommandFunctionType2[payload.lock_cmd] as unknown as number : SmartLockBleCommandFunctionType1[payload.lock_cmd] as unknown as number] as unknown as number, payload.seq_num, payload.dev_sn);
                                         } else {
                                             rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Lock sequence number - Unknwon device`, { stationSN: this.rawStation.station_sn, oldSequenceNumber: this.lockSeqNumber, newSequenceNumber: this.lockSeqNumber + 1, payload: payload });
@@ -1933,6 +1933,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                 if (customData && customData.customData && customData.customData.command && customData.customData.command.name === CommandName.DeviceAddUser) {
                                                                     this.api.updateUserPassword(customData.customData.command.value?.deviceSN, customData.customData.command.value?.shortUserId, parsePayload.readStringHex(BleParameterIndex.ONE), customData.customData.command.value?.schedule);
                                                                 }
+                                                                break;
+                                                            case SmartLockBleCommandFunctionType2.ON_OFF_LOCK:
+                                                                // Lock/unlock command response received
+                                                                // The actual lock state will be updated via push notification or next status query
+                                                                rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD Smart Lock - ON_OFF_LOCK response`, { stationSN: this.rawStation.station_sn, returnCode: returnCode, channel: message.channel });
                                                                 break;
                                                             default:
                                                                 rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD Smart Lock - Not implemented`, { stationSN: this.rawStation.station_sn, fac: fac.toString(), returnCode: returnCode, channel: customData?.channel, customData: customData?.customData });

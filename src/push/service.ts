@@ -551,6 +551,13 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.user_id = lockPushData.user_id !== undefined ? lockPushData.user_id : "";
                     normalizedMessage.name = lockPushData.device_name !== undefined ? lockPushData.device_name : "";
                     normalizedMessage.person_name = lockPushData.nick_name !== undefined ? lockPushData.nick_name : "";
+                } else if (Device.isLockWifiVideo(normalizedMessage.type)) {
+                    const lockPushData = payload.payload as LockPushData;
+                    normalizedMessage.event_type = lockPushData.event_type;
+                    normalizedMessage.short_user_id = lockPushData.short_user_id !== undefined ? lockPushData.short_user_id : "";
+                    normalizedMessage.user_id = lockPushData.user_id !== undefined ? lockPushData.user_id : "";
+                    normalizedMessage.name = lockPushData.device_name !== undefined ? lockPushData.device_name : "";
+                    normalizedMessage.person_name = lockPushData.nick_name !== undefined ? lockPushData.nick_name : "";
                 } else if (Device.isGarageCamera(normalizedMessage.type)) {
                     const garageDoorPushData = payload.payload as GarageDoorPushData;
                     normalizedMessage.event_type = garageDoorPushData.event_type;

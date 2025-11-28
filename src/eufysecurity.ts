@@ -2484,7 +2484,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 let found = false;
                 for (const user of users) {
                     if (user.user_name === username) {
-                        if ((device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P()) && user.password_list.length > 0) {
+                        if ((device.isLockWifiT8506() || device.isLockWifiT8502() || device.isLockWifiT8510P() || device.isLockWifiT8520P() || device.isLockWifiT8531()) && user.password_list.length > 0) {
                             for (const entry of user.password_list) {
                                 if (entry.password_type === UserPasswordType.PIN) {
                                     let schedule = entry.schedule;
