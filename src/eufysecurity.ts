@@ -2288,7 +2288,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             if (device.hasProperty(PropertyName.DeviceLight)) {
                 const metadataLight = device.getPropertyMetadata(PropertyName.DeviceLight);
-                device.updateRawProperty(metadataLight.key as number, enabled === true ? "1" : "0", "p2p");
+                device.updateRawProperty(metadataLight.key as number, enabled ? "1" : "0", "p2p");
             }
         }).catch((err) => {
             const error = ensureError(err);
@@ -2654,6 +2654,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (returnCode === DatabaseReturnCode.SUCCESSFUL) {
             for(const element of data) {
                 if ((element.device_sn !== "" && !station.isStation()) || (station.isStation() && element.device_sn !== station.getSerial())) {
+
+
                     this.getDevice(element.device_sn).then((device) => {
                         const raw = device.getRawDevice();
                         if ("crop_local_path" in element) {

@@ -58,6 +58,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
         const metadata = this.getPropertiesMetadata(true);
         for (const property of Object.values(metadata)) {
+
             if (this.rawDevice[property.key] !== undefined && typeof property.key === "string") {
                 if (property.key === "cover_path" && !this.getPropertyValue(property.name) && this.rawDevice[property.key] !== "") {
                     // First image initialisation if no image has been set yet and a cloud value is available
@@ -82,6 +83,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             || this.properties[name] === undefined || force) {
             const oldValue = this.properties[name];
             this.properties[name] = value;
+
             this.emit("property changed", this, name, value, this.ready);
             try {
                 this.handlePropertyChange(this.getPropertyMetadata(name, true), oldValue, this.properties[name]);
@@ -153,7 +155,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 this.emit("raw property changed", this, type, this.rawProperties[type].value);
 
             const metadata = this.getPropertiesMetadata(true);
-
             for (const property of Object.values(metadata)) {
                 if (property.key === type) {
                     try {
@@ -981,11 +982,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isSupported(type: number): boolean {
-        return DeviceProperties[type] !== undefined ? true : false;
+        return DeviceProperties[type] !== undefined;
     }
 
     static isCamera(type: number): boolean {
-        if (type == DeviceType.CAMERA ||
+        return type == DeviceType.CAMERA ||
             type == DeviceType.CAMERA2 ||
             type == DeviceType.CAMERA_E ||
             type == DeviceType.CAMERA2C ||
@@ -1034,17 +1035,15 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA_GARAGE_T8452 ||
             type == DeviceType.CAMERA_FG ||
             type == DeviceType.INDOOR_PT_CAMERA_S350 ||
-            type == DeviceType.INDOOR_PT_CAMERA_E30 || 
+            type == DeviceType.INDOOR_PT_CAMERA_E30 ||
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220_V2 ||
-            type == DeviceType.SMART_DROP)
-            return true;
-        return false;
+            type == DeviceType.SMART_DROP;
     }
 
     static hasBattery(type: number): boolean {
-        if (type == DeviceType.CAMERA ||
+        return type == DeviceType.CAMERA ||
             type == DeviceType.CAMERA2 ||
             type == DeviceType.CAMERA_E ||
             type == DeviceType.CAMERA2C ||
@@ -1084,10 +1083,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA_FG ||
             type == DeviceType.WALL_LIGHT_CAM_81A0 ||
             type == DeviceType.SMART_DROP ||
-            type == DeviceType.OUTDOOR_PT_CAMERA)
-            //TODO: Add other battery devices
-            return true;
-        return false;
+            type == DeviceType.OUTDOOR_PT_CAMERA;
+
     }
 
     static isStation(type: number): boolean {
