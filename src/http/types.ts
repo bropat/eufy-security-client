@@ -2,7 +2,25 @@ import { CrossTrackingGroupEntry, DynamicLighting, MotionZone, RGBColor } from "
 import { CommandType, TrackerCommandType, IndoorSoloSmartdropCommandType } from "../p2p/types";
 import { Commands, IndexedProperty, Properties, PropertyMetadataBoolean, PropertyMetadataNumeric, PropertyMetadataObject, PropertyMetadataString } from "./interfaces";
 
+
 export type SourceType = "p2p" | "http" | "push" | "mqtt";
+
+// The structure of a specific Camera
+export interface CameraDevice {
+    modelName: string;
+    deviceType: number;
+    firmwareVersion: string;
+    prefixSerialNumber: string;
+    deviceProperties: Partial<IndexedProperty>; // The array of properties you mentioned
+    stationProperties: Partial<IndexedProperty>;
+    deviceCommands: CommandName[];
+    stationCommands: CommandName[];
+    isSoloCamera: boolean;
+    hasLight: boolean;
+    hasStatusLight: boolean;
+    hasMicrophone: boolean;
+    hasSpeaker: boolean;
+}
 
 export enum DeviceType {
     //List retrieved from com.oceanwing.battery.cam.binder.model.QueryDeviceData
@@ -349,13 +367,13 @@ export enum UserPasswordType {
     FINGERPRINT = 2,
 }
 
-export enum HB3DetectionTypes {
-    HUMAN_DETECTION = 2,
-    VEHICLE_DETECTION = 4,
-    PET_DETECTION = 8,
-    ALL_OTHER_MOTION = 32768,
-    HUMAN_RECOGNITION = 131072,
-}
+// export enum HB3DetectionTypes {
+//     HUMAN_DETECTION = 2,
+//     VEHICLE_DETECTION = 4,
+//     PET_DETECTION = 8,
+//     ALL_OTHER_MOTION = 32768,
+//     HUMAN_RECOGNITION = 131072,
+// }
 
 export enum T8170DetectionTypes {
     HUMAN_DETECTION = 3,
@@ -1688,55 +1706,55 @@ export const DevicePictureUrlProperty: PropertyMetadataString = {
     type: "string",
 }
 
-export const DeviceMotionHB3DetectionTypeHumanProperty: PropertyMetadataBoolean = {
-    key: CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
-    name: PropertyName.DeviceMotionDetectionTypeHuman,
-    label: "Motion Detection Type Human",
-    readable: true,
-    writeable: true,
-    type: "boolean",
-}
+// export const DeviceMotionHB3DetectionTypeHumanProperty: PropertyMetadataBoolean = {
+//     key: CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
+//     name: PropertyName.DeviceMotionDetectionTypeHuman,
+//     label: "Motion Detection Type Human",
+//     readable: true,
+//     writeable: true,
+//     type: "boolean",
+// }
 
 export const DeviceMotionDetectionTypeHumanWallLightProperty: PropertyMetadataBoolean = {
     ...DeviceMotionHB3DetectionTypeHumanProperty,
     key: CommandType.CMD_WALL_LIGHT_MOTION_DETECTION_TYPE_HUMAN,
 }
 
-export const DeviceMotionHB3DetectionTypeHumanRecognitionProperty: PropertyMetadataBoolean = {
-    key: CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
-    name: PropertyName.DeviceMotionDetectionTypeHumanRecognition,
-    label: "Motion Detection Type Human Recognition",
-    readable: true,
-    writeable: true,
-    type: "boolean",
-}
-
-export const DeviceMotionHB3DetectionTypePetProperty: PropertyMetadataBoolean = {
-    key: CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
-    name: PropertyName.DeviceMotionDetectionTypePet,
-    label: "Motion Detection Type Pet",
-    readable: true,
-    writeable: true,
-    type: "boolean",
-}
-
-export const DeviceMotionHB3DetectionTypeVehicleProperty: PropertyMetadataBoolean = {
-    key: CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
-    name: PropertyName.DeviceMotionDetectionTypeVehicle,
-    label: "Motion Detection Type Vehicle",
-    readable: true,
-    writeable: true,
-    type: "boolean",
-}
-
-export const DeviceMotionHB3DetectionTypeAllOtherMotionsProperty: PropertyMetadataBoolean = {
-    key: CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
-    name: PropertyName.DeviceMotionDetectionTypeAllOtherMotions,
-    label: "Motion Detection Type All Other Motions",
-    readable: true,
-    writeable: true,
-    type: "boolean",
-}
+// export const DeviceMotionHB3DetectionTypeHumanRecognitionProperty: PropertyMetadataBoolean = {
+//     key: CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
+//     name: PropertyName.DeviceMotionDetectionTypeHumanRecognition,
+//     label: "Motion Detection Type Human Recognition",
+//     readable: true,
+//     writeable: true,
+//     type: "boolean",
+// }
+//
+// export const DeviceMotionHB3DetectionTypePetProperty: PropertyMetadataBoolean = {
+//     key: CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
+//     name: PropertyName.DeviceMotionDetectionTypePet,
+//     label: "Motion Detection Type Pet",
+//     readable: true,
+//     writeable: true,
+//     type: "boolean",
+// }
+//
+// export const DeviceMotionHB3DetectionTypeVehicleProperty: PropertyMetadataBoolean = {
+//     key: CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
+//     name: PropertyName.DeviceMotionDetectionTypeVehicle,
+//     label: "Motion Detection Type Vehicle",
+//     readable: true,
+//     writeable: true,
+//     type: "boolean",
+// }
+//
+// export const DeviceMotionHB3DetectionTypeAllOtherMotionsProperty: PropertyMetadataBoolean = {
+//     key: CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
+//     name: PropertyName.DeviceMotionDetectionTypeAllOtherMotions,
+//     label: "Motion Detection Type All Other Motions",
+//     readable: true,
+//     writeable: true,
+//     type: "boolean",
+// }
 
 export const DeviceMotionDetectionTypeAllOtherMotionsWalllightProperty: PropertyMetadataBoolean = {
     ...DeviceMotionHB3DetectionTypeAllOtherMotionsProperty,
@@ -2604,13 +2622,13 @@ export const DeviceVideoRecordingQualitySoloProperty: PropertyMetadataNumeric = 
     commandId: CommandType.CMD_SET_RECORD_QUALITY,
 }
 
-export const DeviceVideoRecordingQualitySoloCamerasHB3Property: PropertyMetadataNumeric = {
-    ...DeviceVideoRecordingQualityWalllightProperty,
-    states: {
-        1: "2K HD",
-        2: "Full HD (1080P)",
-    },
-}
+// export const DeviceVideoRecordingQualitySoloCamerasHB3Property: PropertyMetadataNumeric = {
+//     ...DeviceVideoRecordingQualityWalllightProperty,
+//     states: {
+//         1: "2K HD",
+//         2: "Full HD (1080P)",
+//     },
+// }
 
 export const DeviceVideoRecordingQualityT8530Property: PropertyMetadataNumeric = {
     ...DeviceVideoRecordingQualityIndoorProperty,
