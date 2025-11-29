@@ -1524,8 +1524,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             sn.startsWith("T8123") ||
             sn.startsWith("T8124") ||
             sn.startsWith("T8171") ||
-            sn.startsWith("T8134") ||
-            sn.startsWith("T8110");
+            sn.startsWith("T8134")
+
     }
 
     static isSmartDropBySn(sn: string): boolean {
