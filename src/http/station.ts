@@ -274,7 +274,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     switch(property.name) {
                         case PropertyName.StationNotificationSwitchModeSchedule:
                             if (!isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
-                                return value !== undefined ? (value === "1" ? true : false) : false;
+                                return value !== undefined ? (value === "1") : false;
                             }
                             return value !== undefined ? isNotificationSwitchMode(Number.parseInt(value), NotificationSwitchMode.SCHEDULE) : false;
                         case PropertyName.StationNotificationSwitchModeGeofence:
@@ -293,9 +293,10 @@ export class Station extends TypedEmitter<StationEvents> {
                             }
                             return value !== undefined ? isNotificationSwitchMode(Number.parseInt(value), NotificationSwitchMode.KEYPAD) : false;
                     }
+                    return false;
                 }
                 case CommandType.CMD_HUB_NOTIFY_ALARM:
-                    return value !== undefined ? (value === "1" ? true : false) : false;
+                    return value !== undefined ? (value === "1") : false;
                 case CommandType.CMD_HUB_ALARM_TONE:
                     try {
                         return value !== undefined ? Number.parseInt(value) : 1;
@@ -329,9 +330,9 @@ export class Station extends TypedEmitter<StationEvents> {
                         return 0;
                     }
                 case CommandType.CMD_SET_HUB_ALARM_AUTO_END:
-                    return value !== undefined ? value !== "0" ? false : true : false;
+                    return value !== undefined ? value === "0" : false;
                 case CommandType.CMD_SET_HUB_ALARM_CLOSE:
-                    return value !== undefined ? value === "1" ? false : true : false;
+                    return value !== undefined ? value !== "1" : false;
             }
             if (property.name === PropertyName.Model && Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial())) {
                 return "T8510P";
