@@ -2405,6 +2405,16 @@ export const DeviceVideoStreamingQualityBatteryDoorbellProperty: PropertyMetadat
     },
 }
 
+export const DeviceVideoStreamingQualityCameraC35Property: PropertyMetadataNumeric = {
+    ...DeviceVideoStreamingQualityProperty,
+    key: CommandType.CMD_SET_RESOLUTION,
+    states: {
+        0: "Auto",
+        1: "High",
+        2: "Medium"
+    }
+}
+
 export const DeviceVideoStreamingQualityCameraProperty: PropertyMetadataNumeric = {
     ...DeviceVideoStreamingQualityProperty,
     key: CommandType.CMD_BAT_DOORBELL_VIDEO_QUALITY,
@@ -8116,7 +8126,11 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionS350Property,
         [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
         [PropertyName.DeviceContinuousRecording]: DeviceContinuousRecordingProperty,
-        //[PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualitySoloProperty,
+
+
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityCameraC35Property,
+
+
         [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeBatteryDoorbellProperty,
         //[PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
