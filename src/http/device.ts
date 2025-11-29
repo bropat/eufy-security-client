@@ -55,7 +55,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public update(device: DeviceListResponse): void {
         this.rawDevice = device;
-        
+
         const metadata = this.getPropertiesMetadata(true);
         for (const property of Object.values(metadata)) {
             if (this.rawDevice[property.key] !== undefined && typeof property.key === "string") {
@@ -1759,6 +1759,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isSoloCameraC210(): boolean {
         return Device.isSoloCameraC210(this.rawDevice.device_type);
+    }
+
+    public isCameraC35(): boolean {
+        return Device.isCameraC35(this.rawDevice.device_type);
     }
 
     public isSoloCameraE30(): boolean {
