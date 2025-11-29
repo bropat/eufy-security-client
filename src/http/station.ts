@@ -3570,7 +3570,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
-        } else if (device.isIndoorCamera() || (device.isSoloCameras() && !this.isStationHomeBase3()) || device.isFloodLight() || device.isWiredDoorbell() || device.isStarlight4GLTE() || device.isGarageCamera())  {
+        } else if (device.isIndoorCamera() || (device.isSoloCameras() && !this.isStationHomeBase3()) || device.isFloodLight() || device.isWiredDoorbell() || device.isStarlight4GLTE() || device.isGarageCamera()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -3661,7 +3661,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 property: propertyData
             });
-        } else if (device.isIndoorCamera() || device.isWiredDoorbell() || device.isFloodLight() || (device.isSoloCameras() && !this.isStationHomeBase3()) || device.isStarlight4GLTE()) {
+        } else if (device.isIndoorCamera() || device.isWiredDoorbell() || device.isFloodLight() || (device.isSoloCameras() && !this.isStationHomeBase3()) || device.isStarlight4GLTE() || device.isGarageCamera()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
