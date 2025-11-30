@@ -1033,7 +1033,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_PT_CAMERA_E30 || 
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220 ||
-            type == DeviceType.SMART_DROP)
+            type == DeviceType.SMART_DROP ||
+            type == DeviceType.CAMERA_C220)
             return true;
         return false;
     }
