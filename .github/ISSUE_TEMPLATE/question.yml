@@ -1,5 +1,5 @@
 name: Question
-description: Here you can ask questions 
+description: Here you can ask questions
 title: "[Question]: "
 labels: ["question"]
 body:
