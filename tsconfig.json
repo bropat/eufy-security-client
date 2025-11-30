@@ -1,50 +1,50 @@
 // Root tsconfig to set the settings and power editor support for all TS files
 {
-    "compileOnSave": true,
-    "compilerOptions": {
-        // do not compile anything, this file is just to configure type checking
-        // the compilation is configured in tsconfig.build.json
-        "noEmit": true,
+  "compileOnSave": true,
+  "compilerOptions": {
+    // do not compile anything, this file is just to configure type checking
+    // the compilation is configured in tsconfig.build.json
+    "noEmit": true,
 
-        // check JS files, but do not compile them => tsconfig.build.json
-        "allowJs": true,
-        "checkJs": true,
+    // check JS files, but do not compile them => tsconfig.build.json
+    "allowJs": true,
+    "checkJs": true,
 
-        "skipLibCheck": true, // Don't report errors in 3rd party definitions
-        "noEmitOnError": true,
-        "outDir": "./build/",
-        "removeComments": false,
-        "module": "Node16",
-        "moduleResolution": "Node16",
-        // this is necessary for the automatic typing of the adapter config
-        "resolveJsonModule": true,
-        "esModuleInterop": true,
-        "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true, // Don't report errors in 3rd party definitions
+    "noEmitOnError": true,
+    "outDir": "./build/",
+    "removeComments": false,
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    // this is necessary for the automatic typing of the adapter config
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
 
-        // Support React
-        "jsx": "react",
+    // Support React
+    "jsx": "react",
 
-        // Set this to false if you want to disable the very strict rules (not recommended)
-        "strict": true,
-        // Or enable some of those features for more fine-grained control
-        // "strictNullChecks": true,
-        // "strictPropertyInitialization": true,
-        // "strictBindCallApply": true,
-        // "noImplicitAny": true,
-        // "noUnusedLocals": true,
-        // "noUnusedParameters": true,
+    // Set this to false if you want to disable the very strict rules (not recommended)
+    "strict": true,
+    // Or enable some of those features for more fine-grained control
+    // "strictNullChecks": true,
+    // "strictPropertyInitialization": true,
+    // "strictBindCallApply": true,
+    // "noImplicitAny": true,
+    // "noUnusedLocals": true,
+    // "noUnusedParameters": true,
 
-        // Consider targeting es2017 or higher if you require the new NodeJS 8+ features
-        "target": "ES2022",
-        "lib": ["ES2023", "DOM"],
+    // Consider targeting es2017 or higher if you require the new NodeJS 8+ features
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM"],
 
-        "sourceMap": true,
-        "inlineSourceMap": false,
+    "sourceMap": true,
+    "inlineSourceMap": false,
 
-        "paths": {
-            "got": ["./node_modules/got/dist/source"]
-        }
-    },
-    "include": ["src/**/*.ts"],
-    "exclude": ["build/**", "node_modules/**"]
+    "paths": {
+      "got": ["./node_modules/got/dist/source"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["build/**", "node_modules/**"]
 }

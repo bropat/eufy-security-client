@@ -4,7 +4,7 @@ import { defineConfig } from "eslint/config";
 export default defineConfig([
     tseslint.configs.recommended,
     {
-        files: ["**/*.{mjs,cjs,ts,mts,cts}"],
+    files: ["**/*.{mjs,cjs,ts,mts,cts}"],
         rules: {
             "@typescript-eslint/no-explicit-any": "off",
             "@typescript-eslint/no-unused-vars": "off",
@@ -55,7 +55,7 @@ export default defineConfig([
         languageOptions : {
             ecmaVersion: 5,
         }
-    },
+        },
     {
         files: ["*.test.ts"],
         rules: {
@@ -64,5 +64,5 @@ export default defineConfig([
     },
     {
         ignores: ["./build/**"],
-    }
+    },
 ]);
