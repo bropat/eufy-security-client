@@ -8126,21 +8126,15 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionS350Property,
         [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
         [PropertyName.DeviceContinuousRecording]: DeviceContinuousRecordingProperty,
-
-
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityCameraC35Property,
-
-
         [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeBatteryDoorbellProperty,
-        //[PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityIndoorProperty,
         [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
         [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
         [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
         [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
         [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
         [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
-        //[PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
-        //[PropertyName.DeviceVideoRecordingQuality]: DeviceVideoStreamingQualityCameraProperty,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoStreamingQualityCameraProperty,
         [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty,
         [PropertyName.DeviceDualCamWatchViewMode]: DeviceDualCamWatchViewModeProperty,
         [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,

@@ -2654,8 +2654,6 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (returnCode === DatabaseReturnCode.SUCCESSFUL) {
             for(const element of data) {
                 if ((element.device_sn !== "" && !station.isStation()) || (station.isStation() && element.device_sn !== station.getSerial())) {
-
-
                     this.getDevice(element.device_sn).then((device) => {
                         const raw = device.getRawDevice();
                         if ("crop_local_path" in element) {
