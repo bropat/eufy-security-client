@@ -87,7 +87,7 @@ export interface PropertyMetadataAny {
     key: number | string;
     name: PropertyName;
     type: PropertyMetadataType;
-    default?: any;
+    default?: number| string | boolean ;
     readable: boolean;
     writeable: boolean;
     description?: string;

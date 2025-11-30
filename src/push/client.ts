@@ -91,8 +91,8 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
 
         this.client.on("connect", () => this.onSocketConnect());
         this.client.on("close", () => this.onSocketClose());
-        this.client.on("error", (error: any) => this.onSocketError(error));
-        this.client.on("data", (newData: any) => this.onSocketData(newData));
+        this.client.on("error", (error: Error | string) => this.onSocketError(error));
+        this.client.on("data", (newData: Buffer) => this.onSocketData(newData));
 
         this.client.write(this.buildLoginRequest());
     }
@@ -188,7 +188,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
         this.scheduleReconnect();
     }
 
-    private onSocketError(err: any): void {
+    private onSocketError(err: Error | string): void {
         const error = ensureError(err);
         rootPushLogger.error(`Push client - Socket Error`, { error: getError(error) });
     }

@@ -15,16 +15,17 @@ export class BaseError extends Error {
     }
 }
 
-export function ensureError(value: unknown): BaseError {
+export function ensureError(value: Error | string | unknown): BaseError {
     if (value instanceof Error)
         return value
     let stringified = "[Unable to stringify the thrown value]";
     try {
         stringified = JSON.stringify(value);
-    } catch {}
+    } catch ( error) {
+        console.log("Error ensure error ", error);
+    }
 
-    const error = new Error(`This value was thrown as is, not through an Error: ${stringified}`);
-    return error;
+    return new Error(`This value was thrown as is, not through an Error: ${stringified}`);
 }
 
 export class InvalidCountryCodeError extends BaseError {

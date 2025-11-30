@@ -1,22 +1,130 @@
-import { TypedEmitter } from "tiny-typed-emitter";
+import {TypedEmitter} from "tiny-typed-emitter";
 
-import { HTTPApi } from "./api";
-import { CommandName, DeviceCommands, DeviceEvent, DeviceProperties, DeviceType, FloodlightMotionTriggeredDistance, GenericDeviceProperties, ParamType, PropertyName, DeviceDogDetectedProperty, DeviceDogLickDetectedProperty, DeviceDogPoopDetectedProperty, DeviceIdentityPersonDetectedProperty, DeviceMotionHB3DetectionTypeAllOtherMotionsProperty, DeviceMotionHB3DetectionTypeHumanProperty, DeviceMotionHB3DetectionTypeHumanRecognitionProperty, DeviceMotionHB3DetectionTypePetProperty, DeviceMotionHB3DetectionTypeVehicleProperty, DeviceStrangerPersonDetectedProperty, DeviceVehicleDetectedProperty, HB3DetectionTypes, DevicePersonDetectedProperty, DeviceMotionDetectedProperty, DevicePetDetectedProperty, DeviceSoundDetectedProperty, DeviceCryingDetectedProperty, DeviceDetectionStatisticsWorkingDaysProperty, DeviceDetectionStatisticsDetectedEventsProperty, DeviceDetectionStatisticsRecordedEventsProperty, DeviceEnabledSoloProperty, FloodlightT8420XDeviceProperties, WiredDoorbellT8200XDeviceProperties, GarageDoorState, SourceType, TrackerType, T8170DetectionTypes, IndoorS350NotificationTypes, SoloCameraDetectionTypes, FloodlightT8425NotificationTypes, DeviceAudioRecordingProperty, DeviceMotionDetectionSensitivityCamera2Property, DeviceVideoRecordingQualitySoloCamerasHB3Property, DeviceNotificationTypeProperty, DeviceMotionDetectionProperty, SmartLockNotification, LockT8510PDeviceProperties, LockT8520PDeviceProperties, DeviceMotionDetectionSensitivityBatteryDoorbellProperty, DeviceStatusLedIndoorS350Property, IndoorS350DetectionTypes } from "./types";
-import { DeviceListResponse, Voice, GarageDoorSensorsProperty, FloodlightDetectionRangeT8425Property, FloodlightLightSettingsMotionT8425Property, FloodlightLightSettingsBrightnessScheduleT8425Property } from "./models"
-import { ParameterHelper } from "./parameter";
-import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject, DeviceConfig } from "./interfaces";
-import { CommandType, ESLAnkerBleConstant, TrackerCommandType } from "../p2p/types";
-import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImagePath, getLockEventType, hexDate, hexTime, hexWeek, isFloodlightT8425NotitficationEnabled, isHB3DetectionModeEnabled, isIndoorNotitficationEnabled, isIndoorS350DetectionModeEnabled, isPrioritySourceType, isSmartLockNotification, isT8170DetectionModeEnabled, loadEventImage, WritePayload } from "./utils";
-import { DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds, isCharging } from "../p2p/utils";
-import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent, HB3PairedDevicePushEvent, GarageDoorPushEvent, SmartDropOpen, SmartDropOpenedBy, SmartDropPushEvent } from "../push/types";
-import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
-import { getError, isEmpty, validValue } from "../utils";
-import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
-import { DeviceSmartLockNotifyData } from "../mqtt/model";
-import { DynamicLighting, InternalColoredLighting, InternalDynamicLighting, RGBColor, VideoStreamingRecordingQuality } from "../p2p";
-import { ensureError } from "../error";
-import { rootHTTPLogger } from "../logging"
-import { Station } from "./station";
+import {HTTPApi} from "./api";
+import {
+    CommandName,
+    DeviceAudioRecordingProperty,
+    DeviceCommands,
+    DeviceCryingDetectedProperty,
+    DeviceDetectionStatisticsDetectedEventsProperty,
+    DeviceDetectionStatisticsRecordedEventsProperty,
+    DeviceDetectionStatisticsWorkingDaysProperty,
+    DeviceDogDetectedProperty,
+    DeviceDogLickDetectedProperty,
+    DeviceDogPoopDetectedProperty,
+    DeviceEnabledSoloProperty,
+    DeviceEvent,
+    DeviceIdentityPersonDetectedProperty,
+    DeviceMotionDetectedProperty,
+    DeviceMotionDetectionProperty,
+    DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
+    DeviceMotionDetectionSensitivityCamera2Property,
+    DeviceMotionHB3DetectionTypeAllOtherMotionsProperty,
+    DeviceMotionHB3DetectionTypeHumanProperty,
+    DeviceMotionHB3DetectionTypeHumanRecognitionProperty,
+    DeviceMotionHB3DetectionTypePetProperty,
+    DeviceMotionHB3DetectionTypeVehicleProperty,
+    DeviceNotificationTypeProperty,
+    DevicePersonDetectedProperty,
+    DevicePetDetectedProperty,
+    DeviceProperties,
+    DeviceSoundDetectedProperty,
+    DeviceStatusLedIndoorS350Property,
+    DeviceStrangerPersonDetectedProperty,
+    DeviceType,
+    DeviceVehicleDetectedProperty,
+    DeviceVideoRecordingQualitySoloCamerasHB3Property,
+    FloodlightMotionTriggeredDistance,
+    FloodlightT8420XDeviceProperties,
+    FloodlightT8425NotificationTypes,
+    GarageDoorState,
+    GenericDeviceProperties,
+    HB3DetectionTypes,
+    IndoorS350DetectionTypes,
+    IndoorS350NotificationTypes,
+    LockT8510PDeviceProperties,
+    LockT8520PDeviceProperties,
+    ParamType,
+    PropertyName,
+    SmartLockNotification,
+    SoloCameraDetectionTypes,
+    SourceType,
+    T8170DetectionTypes,
+    TrackerType,
+    WiredDoorbellT8200XDeviceProperties
+} from "./types";
+import {
+    DeviceListResponse,
+    FloodlightDetectionRangeT8425Property,
+    FloodlightLightSettingsBrightnessScheduleT8425Property,
+    FloodlightLightSettingsMotionT8425Property,
+    GarageDoorSensorsProperty,
+    Voice
+} from "./models"
+import {ParameterHelper} from "./parameter";
+import {
+    DeviceConfig,
+    DeviceEvents,
+    IndexedProperty,
+    PropertyMetadataAny,
+    PropertyMetadataBoolean,
+    PropertyMetadataNumeric,
+    PropertyMetadataObject,
+    PropertyMetadataString,
+    PropertyValue,
+    PropertyValues,
+    RawValues,
+    Schedule,
+    Voices
+} from "./interfaces";
+import {CommandType, ESLAnkerBleConstant, TrackerCommandType} from "../p2p/types";
+import {
+    calculateCellularSignalLevel,
+    calculateWifiSignalLevel,
+    getAbsoluteFilePath,
+    getDistances,
+    getImagePath,
+    getLockEventType,
+    hexDate,
+    hexTime,
+    hexWeek,
+    isFloodlightT8425NotitficationEnabled,
+    isHB3DetectionModeEnabled,
+    isIndoorNotitficationEnabled,
+    isIndoorS350DetectionModeEnabled,
+    isPrioritySourceType,
+    isSmartLockNotification,
+    isT8170DetectionModeEnabled,
+    loadEventImage,
+    WritePayload
+} from "./utils";
+import {DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds, isCharging} from "../p2p/utils";
+import {
+    CusPushEvent,
+    DoorbellPushEvent,
+    GarageDoorPushEvent,
+    HB3PairedDevicePushEvent,
+    IndoorPushEvent,
+    LockPushEvent,
+    SmartDropOpen,
+    SmartDropOpenedBy,
+    SmartDropPushEvent,
+    SmartSafeEvent
+} from "../push/types";
+import {PushMessage, SmartSafeEventValueDetail} from "../push/models";
+import {getError, isEmpty, validValue} from "../utils";
+import {InvalidPropertyError, PropertyNotSupportedError} from "./error";
+import {DeviceSmartLockNotifyData} from "../mqtt/model";
+import {
+    DynamicLighting,
+    InternalColoredLighting,
+    InternalDynamicLighting,
+    RGBColor,
+    VideoStreamingRecordingQuality
+} from "../p2p";
+import {ensureError} from "../error";
+import {rootHTTPLogger} from "../logging"
+import {Station} from "./station";
 
 export class Device extends TypedEmitter<DeviceEvents> {
 
@@ -177,16 +285,16 @@ export class Device extends TypedEmitter<DeviceEvents> {
             const val = value as any;
             if (property.key === ParamType.PRIVATE_MODE || property.key === ParamType.OPEN_DEVICE || property.key === CommandType.CMD_DEVS_SWITCH) {
                 if ((this.isIndoorCamera() && !this.isIndoorPanAndTiltCameraS350()) || (this.isWiredDoorbell() && !this.isWiredDoorbellT8200X()) || this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8422 || this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424) {
-                    return value !== undefined ? (value === "true" ? true : false) : false;
+                    return value !== undefined ? (value === "true") : false;
                 }
-                return value !== undefined ? (value === "0" ? true : false) : false;
+                return value !== undefined ? (value === "0") : false;
             } else if (property.key === CommandType.CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE) {
                 const val = value as any;
                 switch (property.name) {
                     case PropertyName.DeviceNotificationRing: {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
-                            return (val && val.notification_ring_onoff !== undefined) ? (Number.parseInt(val.notification_ring_onoff) === 1) : (booleanProperty.default ?? false);
+                            return value !== undefined ? (Number.parseInt((value as any).notification_ring_onoff) === 1 ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationRing Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -196,7 +304,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceNotificationMotion: {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
-                            return (val && val.notification_motion_onoff !== undefined) ? (Number.parseInt(val.notification_motion_onoff) === 1) : (booleanProperty.default ?? false);
+                            return value !== undefined ? (Number.parseInt((value as any).notification_motion_onoff) === 1 ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationMotion Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -218,9 +326,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 try {
                     switch (property.name) {
                         case PropertyName.DeviceNotificationRing:
-                            return value !== undefined ? (Number.parseInt(val) === 3 || Number.parseInt(val) === 1 ? true : false) : false;
+                            return value !== undefined ? (Number.parseInt(val) === 3 || Number.parseInt(val) === 1) : false;
                         case PropertyName.DeviceNotificationMotion:
-                            return value !== undefined ? (Number.parseInt(val) === 3 || Number.parseInt(val) === 2 ? true : false) : false;
+                            return value !== undefined ? (Number.parseInt(val) === 3 || Number.parseInt(val) === 2) : false;
                     }
                 } catch (err) {
                     const error = ensureError(err);
@@ -231,8 +339,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
                     if (this.getDeviceType() === DeviceType.CAMERA || this.getDeviceType() === DeviceType.CAMERA_E) {
-                        const convertedValue = ((200 - Number.parseInt(value)) / 2) + 1;
-                        return convertedValue;
+                        return ((200 - Number.parseInt(value)) / 2) + 1;
                     } else if (this.isCamera2Product()) {
                         let convertedValue;
                         switch (Number.parseInt(value)) {

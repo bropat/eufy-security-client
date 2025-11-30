@@ -1,5 +1,5 @@
 import * as path from "path";
-import { BufferReader, load, Root } from "protobufjs";
+import {BufferReader, load, Root, Type} from "protobufjs";
 import { TypedEmitter } from "tiny-typed-emitter";
 
 import { MessageTag, ProcessingState } from "./models";
@@ -188,7 +188,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
         }
     }
 
-    private buildProtobufFromTag(messageTag: number): any {
+    private buildProtobufFromTag(messageTag: number): Type {
         switch (messageTag) {
             case MessageTag.HeartbeatPing:
                 return PushClientParser.proto!.lookupType("mcs_proto.HeartbeatPing");

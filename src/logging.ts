@@ -23,7 +23,7 @@ export class InternalLogger {
 }
 
 const getMethodName = function(): string | undefined {
-    const matches = new Error("").stack?.split("\n")[6].match(/ at( new){0,1} ([a-zA-Z0-9_\.]+) /);
+    const matches = new Error("").stack?.split("\n")[6].match(/ at( new){0,1} ([a-zA-Z0-9_.]+) /);
     if (matches !== null && matches !== undefined && matches[2] !== undefined && matches[2] !== "eval") {
         return matches[2];
     }
@@ -34,7 +34,7 @@ const provider = CategoryProvider.createProvider("EufySecurityClientProvider", {
     level: LogLevel.Off,
     channel: {
         type: "RawLogChannel",
-        write: (msg, _formatArg) => {
+        write: (msg) => {
             const methodName = getMethodName();
             const method = methodName ? `[${methodName}] ` : "";
             switch(msg.level) {
