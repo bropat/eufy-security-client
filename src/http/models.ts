@@ -1,5 +1,11 @@
 import { UserPasswordType, UserType } from "./types";
 
+
+export interface Parameter {
+    param_type: number;
+    param_value: string;
+}
+
 export interface ApiResponse {
     status: number;
     statusText: string;

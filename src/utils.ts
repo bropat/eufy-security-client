@@ -121,7 +121,7 @@ export const parseValue = function(metadata: PropertyMetadataAny, value: unknown
     return value;
 };
 
-export const parseJSON = function(data: string, log: Category): any {
+export const parseJSON = function(data: string, log: Category): T | undefined {
     try {
         return JSON.parse(data.replace(/[\0]+$/g, ""));
     } catch(err) {
@@ -183,7 +183,6 @@ export function waitForEvent<T>(emitter: EventEmitter, event: string): Promise<T
     return new Promise((resolve, reject) => {
 
         const success = (val: T): void => {
-            // eslint-disable-next-line @typescript-eslint/no-use-before-define
             emitter.off("error", fail);
             resolve(val);
         };
@@ -217,7 +216,7 @@ export function isValidUrl(value: string, protocols: Array<string> = ["http", "h
                 ? protocols.map(protocol => `${protocol.toLowerCase()}:`).includes(url.protocol)
                 : false
             : true;
-    } catch (err) {
+    } catch (_) {
         return false;
     }
 };

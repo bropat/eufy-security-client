@@ -416,7 +416,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
                 switch (normalizedMessage.type) {
                     case ServerPushEvent.ALARM_NOTIFY:
-                    case ServerPushEvent.ALARM_GUEST_NOTIFY:
+                    case ServerPushEvent.ALARM_GUEST_NOTIFY: {
                         const alarmPushData = payload.payload as AlarmPushData;
                         normalizedMessage.device_sn = alarmPushData.device_sn;
                         normalizedMessage.station_sn = alarmPushData.station_sn;
@@ -426,15 +426,22 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                             normalizedMessage.alarm_type = Number.parseInt(alarmPushData.alarm_id);
                         } catch (err) {
                             const error = ensureError(err);
-                            rootPushLogger.error(`Normalize push message - alarm_type - Error`, { error: getError(error), message: message });
+                            rootPushLogger.error(`Normalize push message - alarm_type - Error`, {
+                                error: getError(error),
+                                message: message
+                            });
                         }
                         try {
                             normalizedMessage.event_time = alarmPushData.alert_time !== undefined ? convertTimestampMs(alarmPushData.alert_time) : Number.parseInt(alarmPushData.alert_time);
                         } catch (err) {
                             const error = ensureError(err);
-                            rootPushLogger.error(`Normalize push message - event_time - Error`, { error: getError(error), message: message });
+                            rootPushLogger.error(`Normalize push message - event_time - Error`, {
+                                error: getError(error),
+                                message: message
+                            });
                         }
                         break;
+                    }
                 }
             } else {
                 try {

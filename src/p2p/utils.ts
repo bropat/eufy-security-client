@@ -1,3 +1,4 @@
+import { Buffer} from "node:buffer"
 import { Socket } from "dgram";
 import NodeRSA, { Options as NodeRSAOptions } from "node-rsa";
 import * as CryptoJS from "crypto-js"

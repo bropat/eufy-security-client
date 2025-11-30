@@ -9,14 +9,14 @@ export class Cache extends Map {
             this.ttl = ttl;
     }
 
-    public delete(key: any): boolean {
+    public delete(key: K): boolean {
         const result = super.delete(key);
         clearTimeout(this.schedules.get(key));
         this.schedules.delete(key);
         return result;
     }
 
-    public set(key: any, value: any, ttl = this.ttl): this {
+    public set(key: K, value: V | undefined, ttl = this.ttl): this {
         super.set(key, value);
         if (this.schedules.has(key)) {
             clearTimeout(this.schedules.get(key));
@@ -29,7 +29,7 @@ export class Cache extends Map {
         return this;
     }
 
-    public get(key: any): any {
+    public get(key: K): V | undefined {
         return super.get(key);
     }
 }

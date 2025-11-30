@@ -2,13 +2,14 @@ import * as mqtt from "mqtt"
 import { TypedEmitter } from "tiny-typed-emitter";
 import { readFileSync } from "fs";
 import * as path from "path";
-import { load, Root } from "protobufjs";
+import {load, Root, Type} from "protobufjs";
 
 import { MQTTServiceEvents } from "./interface";
 import { DeviceSmartLockMessage } from "./model";
 import { getError } from "../utils";
 import { rootMainLogger, rootMQTTLogger } from "../logging";
 import { ensureError } from "../error";
+import type {ErrorWithReasonCode} from "mqtt/lib/shared";
 
 export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
 
@@ -31,7 +32,7 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
 
     private subscribeLocks: Array<string> = [];
 
-    private deviceSmartLockMessageModel: any;
+    private deviceSmartLockMessageModel: Type;
 
     private constructor() {
         super();
@@ -95,7 +96,7 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
                 clientId: this.CLIENT_ID_FORMAT.replace("<user_id>", clientID).replace("<android_id>", androidID),
                 rejectUnauthorized: false  // Some eufy mqtt servers have an expired certificate :(
             });
-            this.client.on("connect", (_connack) => {
+            this.client.on("connect", () => {
                 this.connected = true;
                 this.connecting = false;
                 this.emit("connect");
@@ -112,13 +113,14 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
                 this.connected = false;
                 this.emit("close");
             });
-            this.client.on("error", (error) => {
+            this.client.on("error", (error: Error | ErrorWithReasonCode) => {
                 this.connecting = false;
                 rootMQTTLogger.error("MQTT Error", { error: getError(error) });
-                if ((error as any).code === 1 || (error as any).code === 2 || (error as any).code === 4 || (error as any).code === 5)
+                const errorCode: number = (error as ErrorWithReasonCode).code
+                if (errorCode === 1 || errorCode === 2 || errorCode === 4 || errorCode === 5)
                     this.client?.end();
             });
-            this.client.on("message", (topic, message, _packet) => {
+            this.client.on("message", (topic, message) => {
                 if (topic.includes("smart_lock")) {
                     const parsedMessage = this.parseSmartLockMessage(message);
                     rootMQTTLogger.debug("Received a smart lock message over MQTT", { message: parsedMessage });
