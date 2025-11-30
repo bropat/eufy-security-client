@@ -16,7 +16,8 @@
     "watch:ts": "tsc -p tsconfig.build.json --watch",
     "watch": "npm run watch:ts",
     "lint": "eslint --ext .ts src",
-    "prepublishOnly": "tsc -p tsconfig.build.json && npm run copy-proto-build"
+    "prepublishOnly": "tsc -p tsconfig.build.json && npm run copy-proto-build",
+    "prettier": "prettier --write --ignore-unknown ."
   },
   "license": "MIT",
   "keywords": [
