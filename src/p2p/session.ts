@@ -1235,7 +1235,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     }
                 } else {
                     // finish message and print
-                    if (this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead <= data.length) {
+                    if (this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead === 0 && data.length > this.P2P_DATA_HEADER_BYTES) {
+                        rootP2PLogger.debug(`Parsing message - DATA ${P2PDataType[message.type]} - Discarding unexpected data (infinite loop prevention)`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, dataSize: data.length, data: data.toString("hex") });
+                        data = Buffer.from([]);
+                    } else if (this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead <= data.length) {
                         const payload = data.subarray(0, this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead);
                         this.currentMessageBuilder[message.type].messages[message.seqNo] = payload;
                         this.currentMessageBuilder[message.type].bytesRead += payload.byteLength;
