@@ -1,6 +1,6 @@
 {
   "name": "eufy-security-client",
-  "version": "3.2.0",
+  "version": "3.4.0",
   "description": "Client to comunicate with Eufy-Security devices",
   "author": {
     "name": "bropat",
@@ -61,7 +61,6 @@
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
-    "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.16.10",
     "@types/node-rsa": "^1.1.4",
     "@types/node-schedule": "^2.1.7",

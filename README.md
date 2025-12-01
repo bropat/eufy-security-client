@@ -105,6 +105,27 @@ Instructions aimed at maintainers for deploying a new version: [Deployment](docs
 
 ## Changelog
 
+### 3.4.0 (2025-08-01)
+
+* Bugfix/google gcm by @martijnpoppen in https://github.com/bropat/eufy-security-client/pull/660
+* OPT: revert GCM fix by @martijnpoppen in https://github.com/bropat/eufy-security-client/pull/662
+* FIX: GCM error by @martijnpoppen in https://github.com/bropat/eufy-security-client/pull/665
+* Master > Develop sync by @martijnpoppen in https://github.com/bropat/eufy-security-client/pull/667
+* Develop by @martijnpoppen in https://github.com/bropat/eufy-security-client/pull/666
+* Add preset support for T8423 by @martin-genzel in https://github.com/bropat/eufy-security-client/pull/638
+
+### 3.3.0 (not released)
+
+* Develop > Master in https://github.com/bropat/eufy-security-client/pull/606
+* Develop > Master in https://github.com/bropat/eufy-security-client/pull/608
+* Develop > Master in https://github.com/bropat/eufy-security-client/pull/616
+* Develop > Master in https://github.com/bropat/eufy-security-client/pull/620
+* Bump 3.2.0 by @martijnpoppen in https://github.com/bropat/eufy-security-client/pull/621
+* Deployment instructions by @ChayoteJarocho in https://github.com/bropat/eufy-security-client/pull/625
+* NEW: IndoorCam P&T E30 - (T8417) by @martijnpoppen in https://github.com/bropat/eufy-security-client/pull/627
+* Develop > Master by @martijnpoppen in https://github.com/bropat/eufy-security-client/pull/646
+* fix: Prevent crash in getLockSequenceNumber when devices is null by @markgrovs in https://github.com/bropat/eufy-security-client/pull/664
+
 ### 3.2.0 (2025-04-02)
 
 * (martijnpoppen) FIX: Indoor Cam P&T sw update 2.3.1.2 on/off #604
