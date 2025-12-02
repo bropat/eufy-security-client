@@ -1,0 +1,6 @@
+node_modules/
+.env
+persistent.json
+captcha.png
+images/
+

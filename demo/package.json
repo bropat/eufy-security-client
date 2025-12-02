@@ -1,0 +1,22 @@
+{
+  "name": "eufy-security-client-demo",
+  "version": "1.0.0",
+  "description": "Demo project for eufy-security-client library",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "start": "tsx index.ts",
+    "dev": "tsx watch index.ts"
+  },
+  "dependencies": {
+    "eufy-security-client": "file:..",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "@types/node": "^20.16.10"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
