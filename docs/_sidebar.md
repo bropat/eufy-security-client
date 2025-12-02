@@ -2,5 +2,6 @@
 
   - [Description](description.md)
   - [Features](features.md)
+  - [Usage Guide](usage.md)
   - [Supported devices](supported_devices.md)
   - [License](license.md)
