@@ -1,6 +1,6 @@
 import * as mqtt from "mqtt"
 import { TypedEmitter } from "tiny-typed-emitter";
-import * as fse from "fs-extra";
+import { readFileSync } from "fs";
 import * as path from "path";
 import { load, Root } from "protobufjs";
 
@@ -91,7 +91,7 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
                 port: 8789,
                 username: this.USERNAME_FORMAT.replace("<user_id>", clientID),
                 password: email,
-                ca: fse.readFileSync(path.join(__dirname, "./mqtt-eufy.crt")),
+                ca: readFileSync(path.join(__dirname, "./mqtt-eufy.crt")),
                 clientId: this.CLIENT_ID_FORMAT.replace("<user_id>", clientID).replace("<android_id>", androidID),
                 rejectUnauthorized: false  // Some eufy mqtt servers have an expired certificate :(
             });
