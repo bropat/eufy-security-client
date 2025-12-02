@@ -9619,7 +9619,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         "flag": 0,
                         "res_unzip": 1,
                         "start_date": date.format(startDate, "YYYYMMDD"),
-                        "start_time": `${date.format(endDate, "YYYYMMDD")}000000`,
+                        "start_time": `${date.format(startDate, "YYYYMMDD")}000000`,
                         "storage_cloud": storageType === FilterStorageType.NONE || (storageType !== FilterStorageType.LOCAL && storageType !== FilterStorageType.CLOUD) ? -1 : storageType,
                         "ai_type": 0
                     },
