@@ -4758,7 +4758,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
             command: commandData
         });
     }
-    startLivestream(device, videoCodec = types_2.VideoCodec.H264, skipLiveStreamingCheck = true) {
+    startLivestream(device, videoCodec = types_2.VideoCodec.H264) {
         const commandData = {
             name: types_1.CommandName.DeviceStartLivestream,
             value: videoCodec
@@ -4769,7 +4769,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
         if (!device.hasCommand(types_1.CommandName.DeviceStartLivestream)) {
             throw new error_1.NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
-        if (!skipLiveStreamingCheck && this.isLiveStreaming(device)) {
+        if (this.isLiveStreaming(device)) {
             throw new error_2.LivestreamAlreadyRunningError("Livestream for device is already running", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
         logging_1.rootHTTPLogger.debug(`Station start livestream - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), videoCodec: videoCodec });
@@ -10165,7 +10165,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
             throw new error_1.InvalidCommandValueError("Invalid value for this command", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
         logging_1.rootHTTPLogger.debug(`Station preset position - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), preset: types_1.PresetPositionType[position] });
-        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera()) {
+        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera() || device.isFloodLightT8423()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: types_2.CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -10195,7 +10195,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
             throw new error_1.InvalidCommandValueError("Invalid value for this command", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
         logging_1.rootHTTPLogger.debug(`Station save preset position - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), preset: types_1.PresetPositionType[position] });
-        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera()) {
+        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera() || device.isFloodLightT8423()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: types_2.CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -10225,7 +10225,7 @@ class Station extends tiny_typed_emitter_1.TypedEmitter {
             throw new error_1.InvalidCommandValueError("Invalid value for this command", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
         logging_1.rootHTTPLogger.debug(`Station delete preset position - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), preset: types_1.PresetPositionType[position] });
-        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera()) {
+        if (device.isFloodLightT8425() || device.isIndoorPanAndTiltCameraS350() || device.isOutdoorPanAndTiltCamera() || device.isFloodLightT8423()) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: types_2.CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
