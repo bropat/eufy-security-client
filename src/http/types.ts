@@ -56,6 +56,7 @@ export enum DeviceType {
     SOLO_CAMERA_C210 = 64,
     FLOODLIGHT_CAMERA_8426 = 87, //E30
     SOLO_CAMERA_E30 = 88,
+    EUFYCAM_S4 = 89, // T8172 - Outdoor PTZ Dual Camera (no floodlight)
     SMART_DROP = 90,
     BATTERY_DOORBELL_PLUS = 91,
     DOORBELL_SOLO = 93,
@@ -83,7 +84,8 @@ export enum DeviceType {
     WALL_LIGHT_CAM_81A0 = 10005,
     INDOOR_PT_CAMERA_C220 = 10008, // T8W11C
     INDOOR_PT_CAMERA_C210 = 10009, // T8419 / T8W11P?
-    INDOOR_PT_CAMERA_C220_V2 = 10010 // T8W11C (Type 10010)
+    INDOOR_PT_CAMERA_C220_V2 = 10010, // T8W11C (Type 10010)
+    INDOOR_PT_CAMERA_C220_V3 = 10011, // T8419N
 }
 
 export enum ParamType {
@@ -583,7 +585,7 @@ export enum PropertyName {
     DeviceWifiRSSI = "wifiRssi",
     DeviceWifiSignalLevel = "wifiSignalLevel",
     DeviceEnabled = "enabled",
-    DeviceAntitheftDetection= "antitheftDetection",
+    DeviceAntitheftDetection = "antitheftDetection",
     DeviceAutoNightvision = "autoNightvision",
     DeviceNightvision = "nightvision",
     DeviceStatusLed = "statusLed",
@@ -997,6 +999,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
         64: "Solo Camera C210",
         87: "Floodlight Camera E30",
         88: "Solo Camera E30",
+        89: "eufyCam S4 (T8172)",
         90: "Smart Drop S300 (T8790)",
         91: "Video Doorbell Dual",
         93: "Video Doorbell Dual (Wired)",
@@ -1023,6 +1026,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
         10008: "Indoor Cam C220 (T8W11C)",
         10009: "Indoor Cam C210 (T8419)",
         10010: "Indoor Cam C220 (T8W11C)",
+        10011: "Indoor Cam C220 (T8419N)",
     },
 }
 
@@ -1361,7 +1365,7 @@ export const DeviceStatusLedDoorbellProperty: PropertyMetadataBoolean = {
 
 export const DeviceStatusLedT8200XProperty: PropertyMetadataBoolean = {
     ...DeviceStatusLedProperty,
-    key:ParamType.COMMAND_LED_NIGHT_OPEN,
+    key: ParamType.COMMAND_LED_NIGHT_OPEN,
     commandId: ParamType.COMMAND_LED_NIGHT_OPEN,
 };
 
@@ -6137,7 +6141,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalBatteryDoorbellProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityBatteryDoorbellProperty, //OK
-        [PropertyName.DeviceVideoRecordingQuality]:DeviceVideoRecordingQualityT8530Property, //OK
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityT8530Property, //OK
         [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty, //OK
         [PropertyName.DeviceChimeHomebaseRingtoneVolume]: DeviceChimeHomebaseRingtoneVolumeBatteryDoorbellProperty, //OK
@@ -8081,6 +8085,58 @@ export const DeviceProperties: Properties = {
 }
 
 DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
+DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V3] = DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
+
+// EUFYCAM_S4 - Same as OUTDOOR_PT_CAMERA but without floodlight properties
+DeviceProperties[DeviceType.EUFYCAM_S4] = {
+    ...GenericDeviceProperties,
+    [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+    [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+    [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
+    [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+    [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
+    [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
+    [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
+    [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
+    [PropertyName.DeviceState]: DeviceStateProperty,
+    [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
+    [PropertyName.DeviceLastChargingFalseEvents]: DeviceLastChargingFalseEventsProperty,
+    [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
+    [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
+    [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
+    [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+    [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+    [PropertyName.DeviceVehicleDetected]: DeviceVehicleDetectedProperty,
+    [PropertyName.DeviceStatusLed]: DeviceStatusLedIndoorFloodProperty,
+    // NO DeviceLight properties - S4 has no floodlight
+    [PropertyName.DevicePicture]: DevicePictureProperty,
+    [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+    [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivitySoloProperty,
+    [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
+    [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
+    [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
+    [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingIndoorSoloFloodlightProperty,
+    [PropertyName.DeviceMotionDetectionTypeHuman]: DeviceMotionHB3DetectionTypeHumanProperty,
+    [PropertyName.DeviceMotionDetectionTypeVehicle]: DeviceMotionHB3DetectionTypeVehicleProperty,
+    [PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionHB3DetectionTypeAllOtherMotionsProperty,
+    [PropertyName.DeviceMotionTracking]: DeviceMotionTrackingProperty,
+    [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityS340Property,
+    [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityS340Property,
+    [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
+    [PropertyName.DeviceRotationSpeed]: DeviceRotationSpeedProperty,
+    [PropertyName.DeviceMotionZone]: DeviceMotionZoneProperty,
+    [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+    [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+    [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
+    [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+    [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
+    [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
+    [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+    [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthOutdoorPTProperty,
+    [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
+    [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+    [PropertyName.DeviceDualCamWatchViewMode]: DeviceDualCamWatchViewModeS340Property,
+};
 
 export const StationNameProperty: PropertyMetadataString = {
     key: "station_name",
@@ -8564,12 +8620,12 @@ export const StationCrossTrackingGroupListProperty: PropertyMetadataObject = {
             return obj.length > 0 &&
                 obj.every((element) => {
                     return typeof element === "object" &&
-                    "value" in element &&
-                    Array.isArray(element.value) &&
-                    element.value.length > 0 &&
-                    element.value.every((value) => {
-                        return typeof value === "string";
-                    })
+                        "value" in element &&
+                        Array.isArray(element.value) &&
+                        element.value.length > 0 &&
+                        element.value.every((value) => {
+                            return typeof value === "string";
+                        })
                 });
         }
         return false;
@@ -9147,6 +9203,7 @@ export const StationProperties: Properties = {
 }
 
 StationProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = StationProperties[DeviceType.INDOOR_PT_CAMERA_C220];
+StationProperties[DeviceType.INDOOR_PT_CAMERA_C220_V3] = StationProperties[DeviceType.INDOOR_PT_CAMERA_C220];
 
 export enum CommandName {
     DeviceStartLivestream = "deviceStartLivestream",
@@ -9815,6 +9872,8 @@ export const DeviceCommands: Commands = {
 }
 
 DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220];
+DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220_V3] = DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220];
+DeviceCommands[DeviceType.EUFYCAM_S4] = DeviceCommands[DeviceType.OUTDOOR_PT_CAMERA];
 
 export const StationCommands: Commands = {
     [DeviceType.STATION]: [
@@ -10177,3 +10236,4 @@ export const StationCommands: Commands = {
 }
 
 StationCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = StationCommands[DeviceType.INDOOR_PT_CAMERA_C220];
+StationCommands[DeviceType.INDOOR_PT_CAMERA_C220_V3] = StationCommands[DeviceType.INDOOR_PT_CAMERA_C220];

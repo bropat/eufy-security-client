@@ -17,6 +17,7 @@
 | ![T8160 image](_media/eufycam3_small.jpg) | eufyCam S330 (T8160; eufyCam 3) | :heavy_check_mark: | Firmware: 3.1.8.6 (20221101) |
 | ![T8161 image](_media/eufycam3c_small.jpg) | eufyCam S300 (T8161; eufyCam 3C) | :heavy_check_mark: | Firmware: 3.1.8.6 (20221101) |
 | ![T8160 image](_media/eufycam3pro_small.png) | eufyCam S3 Pro (T8162; eufyCam S3 Pro) | :heavy_check_mark: |  |
+| ![T8172 image](_media/eufycams4_t8172_small.png) | eufyCam S4 (T8172) | :heavy_check_mark: |  |
 | ![T8600 image](_media/eufycame330_small.jpg) | eufyCam E330 (Professional; T8600) | :heavy_check_mark: | Firmware: 0.5.9.5 (20231218) |
 | ![T8130 image](_media/solocame20_small.jpg) | SoloCam E20 (T8130) | :heavy_check_mark: |  |
 | ![T8131 image](_media/solocame40_small.jpg) | SoloCam C120 (T8131; SoloCam E40) | :heavy_check_mark: |  |
@@ -56,6 +57,7 @@
 | ![T8416 image](_media/indoorcamE30_small.jpeg) | Indoor Cam E30 (T8417) | :heavy_check_mark: |  |
 | ![T8416 image](_media/indoorcamC210_small.png) | Indoor Cam C210 (T8419) | :heavy_check_mark: |  |
 | ![T8416 image](_media/indoorcamC220_small.png) | Indoor Cam C220 (T8W11C; type 10008/10010) | :heavy_check_mark: |  |
+| ![T8416 image](_media/indoorcamC220_small.png) | Indoor Cam C220 (T8419N; type 10011) | :heavy_check_mark: |  |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8150) | :heavy_check_mark: |  |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G Camera S230 (T8151; 4G LTE Starlight) | :heavy_check_mark: | Firmware: 1.1.3.7 (20230730) |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg) | 4G LTE Starlight (T8152) | :heavy_exclamation_mark: |  |
