@@ -8087,56 +8087,9 @@ export const DeviceProperties: Properties = {
 DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
 DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V3] = DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
 
-// EUFYCAM_S4 - Same as OUTDOOR_PT_CAMERA but without floodlight properties
-DeviceProperties[DeviceType.EUFYCAM_S4] = {
-    ...GenericDeviceProperties,
-    [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
-    [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
-    [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
-    [PropertyName.DeviceBattery]: DeviceBatteryProperty,
-    [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
-    [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
-    [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
-    [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
-    [PropertyName.DeviceState]: DeviceStateProperty,
-    [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
-    [PropertyName.DeviceLastChargingFalseEvents]: DeviceLastChargingFalseEventsProperty,
-    [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
-    [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
-    [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
-    [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
-    [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
-    [PropertyName.DeviceVehicleDetected]: DeviceVehicleDetectedProperty,
-    [PropertyName.DeviceStatusLed]: DeviceStatusLedIndoorFloodProperty,
-    // NO DeviceLight properties - S4 has no floodlight
-    [PropertyName.DevicePicture]: DevicePictureProperty,
-    [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
-    [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivitySoloProperty,
-    [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
-    [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
-    [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
-    [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingIndoorSoloFloodlightProperty,
-    [PropertyName.DeviceMotionDetectionTypeHuman]: DeviceMotionHB3DetectionTypeHumanProperty,
-    [PropertyName.DeviceMotionDetectionTypeVehicle]: DeviceMotionHB3DetectionTypeVehicleProperty,
-    [PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionHB3DetectionTypeAllOtherMotionsProperty,
-    [PropertyName.DeviceMotionTracking]: DeviceMotionTrackingProperty,
-    [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityS340Property,
-    [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityS340Property,
-    [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
-    [PropertyName.DeviceRotationSpeed]: DeviceRotationSpeedProperty,
-    [PropertyName.DeviceMotionZone]: DeviceMotionZoneProperty,
-    [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
-    [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
-    [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
-    [PropertyName.DevicePersonName]: DevicePersonNameProperty,
-    [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
-    [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
-    [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
-    [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthOutdoorPTProperty,
-    [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
-    [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
-    [PropertyName.DeviceDualCamWatchViewMode]: DeviceDualCamWatchViewModeS340Property,
-};
+// EUFYCAM_S4 - Same as OUTDOOR_PT_CAMERA
+DeviceProperties[DeviceType.EUFYCAM_S4] = DeviceProperties[DeviceType.OUTDOOR_PT_CAMERA];
+
 
 export const StationNameProperty: PropertyMetadataString = {
     key: "station_name",
@@ -10238,17 +10191,6 @@ export const StationCommands: Commands = {
 StationCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = StationCommands[DeviceType.INDOOR_PT_CAMERA_C220];
 StationCommands[DeviceType.INDOOR_PT_CAMERA_C220_V3] = StationCommands[DeviceType.INDOOR_PT_CAMERA_C220];
 
-StationProperties[DeviceType.EUFYCAM_S4] = {
-    ...BaseStationProperties,
-    [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
-    [PropertyName.StationMacAddress]: StationMacAddressProperty,
-    [PropertyName.StationGuardMode]: StationGuardModeProperty,
-    [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
-    [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
-    [PropertyName.StationTimeZone]: StationTimeZoneProperty,
-    [PropertyName.StationAlarm]: StationAlarmProperty,
-    [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
-    [PropertyName.StationSdStatus]: StationSdStatusProperty,
-    [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
-    [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
-};
+
+StationProperties[DeviceType.EUFYCAM_S4] = StationProperties[DeviceType.OUTDOOR_PT_CAMERA];
+StationCommands[DeviceType.EUFYCAM_S4] = StationCommands[DeviceType.OUTDOOR_PT_CAMERA];

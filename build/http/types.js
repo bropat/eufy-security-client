@@ -7639,56 +7639,8 @@ exports.DeviceProperties = {
 };
 exports.DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = exports.DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
 exports.DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V3] = exports.DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
-// EUFYCAM_S4 - Same as OUTDOOR_PT_CAMERA but without floodlight properties
-exports.DeviceProperties[DeviceType.EUFYCAM_S4] = {
-    ...exports.GenericDeviceProperties,
-    [PropertyName.DeviceWifiRSSI]: exports.DeviceWifiRSSIProperty,
-    [PropertyName.DeviceWifiSignalLevel]: exports.DeviceWifiSignalLevelProperty,
-    [PropertyName.DeviceEnabled]: exports.DeviceEnabledSoloProperty,
-    [PropertyName.DeviceBattery]: exports.DeviceBatteryProperty,
-    [PropertyName.DeviceBatteryTemp]: exports.DeviceBatteryTempProperty,
-    [PropertyName.DeviceNightvision]: exports.DeviceNightvisionProperty,
-    [PropertyName.DeviceMotionDetection]: exports.DeviceMotionDetectionIndoorSoloFloodProperty,
-    [PropertyName.DeviceWatermark]: exports.DeviceWatermarkProperty,
-    [PropertyName.DeviceState]: exports.DeviceStateProperty,
-    [PropertyName.DeviceLastChargingDays]: exports.DeviceLastChargingDaysProperty,
-    [PropertyName.DeviceLastChargingFalseEvents]: exports.DeviceLastChargingFalseEventsProperty,
-    [PropertyName.DeviceLastChargingRecordedEvents]: exports.DeviceLastChargingRecordedEventsProperty,
-    [PropertyName.DeviceLastChargingTotalEvents]: exports.DeviceLastChargingTotalEventsProperty,
-    [PropertyName.DeviceBatteryUsageLastWeek]: exports.DeviceBatteryUsageLastWeekProperty,
-    [PropertyName.DeviceMotionDetected]: exports.DeviceMotionDetectedProperty,
-    [PropertyName.DevicePersonDetected]: exports.DevicePersonDetectedProperty,
-    [PropertyName.DeviceVehicleDetected]: exports.DeviceVehicleDetectedProperty,
-    [PropertyName.DeviceStatusLed]: exports.DeviceStatusLedIndoorFloodProperty,
-    // NO DeviceLight properties - S4 has no floodlight
-    [PropertyName.DevicePicture]: exports.DevicePictureProperty,
-    [PropertyName.DevicePictureUrl]: exports.DevicePictureUrlProperty,
-    [PropertyName.DeviceMotionDetectionSensitivity]: exports.DeviceMotionDetectionSensitivitySoloProperty,
-    [PropertyName.DeviceMicrophone]: exports.DeviceMicrophoneProperty,
-    [PropertyName.DeviceSpeaker]: exports.DeviceSpeakerProperty,
-    [PropertyName.DeviceSpeakerVolume]: exports.DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
-    [PropertyName.DeviceAudioRecording]: exports.DeviceAudioRecordingIndoorSoloFloodlightProperty,
-    [PropertyName.DeviceMotionDetectionTypeHuman]: exports.DeviceMotionHB3DetectionTypeHumanProperty,
-    [PropertyName.DeviceMotionDetectionTypeVehicle]: exports.DeviceMotionHB3DetectionTypeVehicleProperty,
-    [PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: exports.DeviceMotionHB3DetectionTypeAllOtherMotionsProperty,
-    [PropertyName.DeviceMotionTracking]: exports.DeviceMotionTrackingProperty,
-    [PropertyName.DeviceVideoStreamingQuality]: exports.DeviceVideoStreamingQualityS340Property,
-    [PropertyName.DeviceVideoRecordingQuality]: exports.DeviceVideoRecordingQualityS340Property,
-    [PropertyName.DeviceNotificationType]: exports.DeviceNotificationTypeIndoorFloodlightProperty,
-    [PropertyName.DeviceRotationSpeed]: exports.DeviceRotationSpeedProperty,
-    [PropertyName.DeviceMotionZone]: exports.DeviceMotionZoneProperty,
-    [PropertyName.DeviceSnooze]: exports.DeviceSnoozeProperty,
-    [PropertyName.DeviceSnoozeTime]: exports.DeviceSnoozeTimeProperty,
-    [PropertyName.DeviceSnoozeStartTime]: exports.DeviceSnoozeStartTimeProperty,
-    [PropertyName.DevicePersonName]: exports.DevicePersonNameProperty,
-    [PropertyName.DevicePowerSource]: exports.DevicePowerSourceProperty,
-    [PropertyName.DevicePowerWorkingMode]: exports.DevicePowerWorkingModeProperty,
-    [PropertyName.DeviceChargingStatus]: exports.DeviceChargingStatusProperty,
-    [PropertyName.DeviceRecordingClipLength]: exports.DeviceRecordingClipLengthOutdoorPTProperty,
-    [PropertyName.DeviceRecordingRetriggerInterval]: exports.DeviceRecordingRetriggerIntervalProperty,
-    [PropertyName.DeviceRecordingEndClipMotionStops]: exports.DeviceRecordingEndClipMotionStopsProperty,
-    [PropertyName.DeviceDualCamWatchViewMode]: exports.DeviceDualCamWatchViewModeS340Property,
-};
+// EUFYCAM_S4 - Same as OUTDOOR_PT_CAMERA
+exports.DeviceProperties[DeviceType.EUFYCAM_S4] = exports.DeviceProperties[DeviceType.OUTDOOR_PT_CAMERA];
 exports.StationNameProperty = {
     key: "station_name",
     name: PropertyName.Name,
@@ -9740,18 +9692,6 @@ exports.StationCommands = {
 };
 exports.StationCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = exports.StationCommands[DeviceType.INDOOR_PT_CAMERA_C220];
 exports.StationCommands[DeviceType.INDOOR_PT_CAMERA_C220_V3] = exports.StationCommands[DeviceType.INDOOR_PT_CAMERA_C220];
-exports.StationProperties[DeviceType.EUFYCAM_S4] = {
-    ...exports.BaseStationProperties,
-    [PropertyName.StationLANIpAddress]: exports.StationLanIpAddressStandaloneProperty,
-    [PropertyName.StationMacAddress]: exports.StationMacAddressProperty,
-    [PropertyName.StationGuardMode]: exports.StationGuardModeProperty,
-    [PropertyName.StationCurrentMode]: exports.StationCurrentModeProperty,
-    [PropertyName.StationTimeFormat]: exports.StationTimeFormatProperty,
-    [PropertyName.StationTimeZone]: exports.StationTimeZoneProperty,
-    [PropertyName.StationAlarm]: exports.StationAlarmProperty,
-    [PropertyName.StationAlarmType]: exports.StationAlarmTypeProperty,
-    [PropertyName.StationSdStatus]: exports.StationSdStatusProperty,
-    [PropertyName.StationSdCapacity]: exports.StationSdCapacityProperty,
-    [PropertyName.StationSdCapacityAvailable]: exports.StationSdAvailableCapacityProperty,
-};
+exports.StationProperties[DeviceType.EUFYCAM_S4] = exports.StationProperties[DeviceType.OUTDOOR_PT_CAMERA];
+exports.StationCommands[DeviceType.EUFYCAM_S4] = exports.StationCommands[DeviceType.OUTDOOR_PT_CAMERA];
 //# sourceMappingURL=types.js.map
