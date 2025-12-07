@@ -10237,3 +10237,18 @@ export const StationCommands: Commands = {
 
 StationCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = StationCommands[DeviceType.INDOOR_PT_CAMERA_C220];
 StationCommands[DeviceType.INDOOR_PT_CAMERA_C220_V3] = StationCommands[DeviceType.INDOOR_PT_CAMERA_C220];
+
+StationProperties[DeviceType.EUFYCAM_S4] = {
+    ...BaseStationProperties,
+    [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+    [PropertyName.StationMacAddress]: StationMacAddressProperty,
+    [PropertyName.StationGuardMode]: StationGuardModeProperty,
+    [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+    [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+    [PropertyName.StationTimeZone]: StationTimeZoneProperty,
+    [PropertyName.StationAlarm]: StationAlarmProperty,
+    [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+    [PropertyName.StationSdStatus]: StationSdStatusProperty,
+    [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
+    [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
+};

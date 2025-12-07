@@ -9740,4 +9740,18 @@ exports.StationCommands = {
 };
 exports.StationCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = exports.StationCommands[DeviceType.INDOOR_PT_CAMERA_C220];
 exports.StationCommands[DeviceType.INDOOR_PT_CAMERA_C220_V3] = exports.StationCommands[DeviceType.INDOOR_PT_CAMERA_C220];
+exports.StationProperties[DeviceType.EUFYCAM_S4] = {
+    ...exports.BaseStationProperties,
+    [PropertyName.StationLANIpAddress]: exports.StationLanIpAddressStandaloneProperty,
+    [PropertyName.StationMacAddress]: exports.StationMacAddressProperty,
+    [PropertyName.StationGuardMode]: exports.StationGuardModeProperty,
+    [PropertyName.StationCurrentMode]: exports.StationCurrentModeProperty,
+    [PropertyName.StationTimeFormat]: exports.StationTimeFormatProperty,
+    [PropertyName.StationTimeZone]: exports.StationTimeZoneProperty,
+    [PropertyName.StationAlarm]: exports.StationAlarmProperty,
+    [PropertyName.StationAlarmType]: exports.StationAlarmTypeProperty,
+    [PropertyName.StationSdStatus]: exports.StationSdStatusProperty,
+    [PropertyName.StationSdCapacity]: exports.StationSdCapacityProperty,
+    [PropertyName.StationSdCapacityAvailable]: exports.StationSdAvailableCapacityProperty,
+};
 //# sourceMappingURL=types.js.map
