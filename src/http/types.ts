@@ -9591,11 +9591,17 @@ export const DeviceCommands: Commands = {
     [DeviceType.SOLO_CAMERA_E30]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
+        CommandName.DevicePanAndTilt,
         CommandName.DeviceStartDownload,
         CommandName.DeviceCancelDownload,
+        CommandName.DeviceCalibrate,
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
         CommandName.DeviceSnooze,
+        CommandName.DevicePresetPosition,
+        CommandName.DeviceSavePresetPosition,
+        CommandName.DeviceDeletePresetPosition,
+        CommandName.DeviceTriggerAlarmSound,
     ],
     [DeviceType.FLOODLIGHT]: [
         CommandName.DeviceStartLivestream,
