@@ -980,11 +980,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isSupported(type: number): boolean {
-        return DeviceProperties[type] !== undefined ? true : false;
+        return DeviceProperties[type] !== undefined;
     }
 
     static isCamera(type: number): boolean {
-        if (type == DeviceType.CAMERA ||
+        return type == DeviceType.CAMERA ||
             type == DeviceType.CAMERA2 ||
             type == DeviceType.CAMERA_E ||
             type == DeviceType.CAMERA2C ||
@@ -1016,6 +1016,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SOLAR ||
             type == DeviceType.SOLO_CAMERA_C210 ||
             type == DeviceType.SOLO_CAMERA_E30 ||
+            type == DeviceType.CAMERA_C35 ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_2K ||
@@ -1032,17 +1033,15 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA_GARAGE_T8452 ||
             type == DeviceType.CAMERA_FG ||
             type == DeviceType.INDOOR_PT_CAMERA_S350 ||
-            type == DeviceType.INDOOR_PT_CAMERA_E30 || 
+            type == DeviceType.INDOOR_PT_CAMERA_E30 ||
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220_V2 ||
-            type == DeviceType.SMART_DROP)
-            return true;
-        return false;
+            type == DeviceType.SMART_DROP;
     }
 
     static hasBattery(type: number): boolean {
-        if (type == DeviceType.CAMERA ||
+        return type == DeviceType.CAMERA ||
             type == DeviceType.CAMERA2 ||
             type == DeviceType.CAMERA_E ||
             type == DeviceType.CAMERA2C ||
@@ -1065,6 +1064,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SOLAR ||
             type == DeviceType.SOLO_CAMERA_C210 ||
             type == DeviceType.SOLO_CAMERA_E30 ||
+            type == DeviceType.CAMERA_C35 ||
             type == DeviceType.LOCK_WIFI ||
             type == DeviceType.LOCK_WIFI_NO_FINGER ||
             type == DeviceType.LOCK_8503 ||
@@ -1081,10 +1081,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA_FG ||
             type == DeviceType.WALL_LIGHT_CAM_81A0 ||
             type == DeviceType.SMART_DROP ||
-            type == DeviceType.OUTDOOR_PT_CAMERA)
-            //TODO: Add other battery devices
-            return true;
-        return false;
+            type == DeviceType.OUTDOOR_PT_CAMERA;
     }
 
     static isStation(type: number): boolean {
@@ -1372,6 +1369,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     static isSoloCameraC210(type: number): boolean {
         return DeviceType.SOLO_CAMERA_C210 == type;
+    }
+
+    static isCameraC35(type: number): boolean {
+        return DeviceType.CAMERA_C35 == type;
     }
 
     static isSoloCameraE30(type: number): boolean {
@@ -1751,6 +1752,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isSoloCameraC210(): boolean {
         return Device.isSoloCameraC210(this.rawDevice.device_type);
+    }
+
+    public isCameraC35(): boolean {
+        return Device.isCameraC35(this.rawDevice.device_type);
     }
 
     public isSoloCameraE30(): boolean {
