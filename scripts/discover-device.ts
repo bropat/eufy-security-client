@@ -16,6 +16,9 @@ declare const process: NodeJS.Process;
 
 import { HTTPApi } from "../src/http/api";
 import { DeviceListResponse, StationListResponse } from "../src/http/models";
+import readline from "readline";
+import fs from "fs";
+import path from "path";
 
 async function main() {
     const args = process.argv.slice(2);
@@ -39,9 +42,58 @@ async function main() {
         // Initialize the API
         const api = await HTTPApi.initialize(country, username, password);
 
-        // Login to the API (required before querying data)
+        // Interactive handling for captcha and 2FA using API events (no external changes)
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        const question = (q: string) => new Promise<string>((res) => rl.question(q, (ans) => res(ans.trim())));
+
+        api.on("captcha request", async (captchaId: string, item: string) => {
+            console.log("\nAPI requires captcha verification.");
+            // item is typically a base64-encoded image or URL
+            if (item.startsWith("data:image")) {
+                // Base64 image data
+                const base64Data = item.split(",")[1];
+                const buffer = Buffer.from(base64Data, "base64");
+                const captchaPath = path.join(process.cwd(), `captcha_${captchaId}.png`);
+                fs.writeFileSync(captchaPath, buffer);
+                console.log(`Captcha image saved to: ${captchaPath}`);
+            } else if (item.startsWith("http")) {
+                // URL
+                console.log(`Captcha URL: ${item}`);
+            } else {
+                // Plain text or other format
+                console.log(`Captcha item: ${item}`);
+            }
+            const code = await question("Enter captcha code: ");
+            console.log("Submitting captcha and re-attempting login...");
+            await api.login({ captcha: { captchaId: captchaId, captchaCode: code }, force: false });
+        });
+
+        api.on("tfa request", async () => {
+            console.log("\nAPI requested 2FA verification (email/SMS).");
+            let verified = false;
+            while (!verified) {
+                const code = await question("Enter verification code: ");
+                console.log("Submitting 2FA code...");
+                try {
+                    await api.login({ verifyCode: code, force: false });
+                    console.log("2FA verification successful!");
+                    verified = true;
+                } catch (err) {
+                    console.error("2FA verification failed. Please check the code and try again.");
+                }
+            }
+        });
+
+        // Wait for the API to confirm connection (handles interactive flows)
+        const waitForConnect = new Promise<void>((resolve, reject) => {
+            api.once("connect", () => resolve());
+            api.once("connection error", (err: Error) => reject(err));
+        });
+
         console.log("Logging in...");
         await api.login();
+        await waitForConnect;
+        rl.close();
 
         console.log("✓ Connected successfully!\n");
 
@@ -125,6 +177,33 @@ async function main() {
             }
 
             console.log("");
+        }
+
+        console.log("\n=== DEVICE PROPERTY ANALYSIS ===\n");
+
+        // Check for S4 device (type 89) and verify it has timezone + guard mode properties
+        const s4Device = Object.values(devices).find(d => d.device_type === 89);
+        if (s4Device) {
+            console.log("✓ S4 Device Found (Type 89):");
+            console.log(`  Model: ${s4Device.device_model}`);
+            console.log(`  Serial: ${s4Device.device_sn}`);
+            console.log(`  Name: ${s4Device.device_name}`);
+            console.log(`  Station: ${s4Device.station_sn}`);
+            
+            // Check for timezone param (1249)
+            const tzParam = s4Device.params?.find(p => p.param_type === 1249);
+            console.log(`  Timezone Property (1249): ${tzParam ? '✓ PRESENT - ' + tzParam.param_value : '✗ MISSING'}`);
+            
+            // Check for guard mode param (1224)
+            const gmParam = s4Device.params?.find(p => p.param_type === 1224);
+            console.log(`  Guard Mode Property (1224): ${gmParam ? '✓ PRESENT - ' + gmParam.param_value : '✗ MISSING'}`);
+            
+            console.log(`\n  All params for S4 (${s4Device.params?.length || 0} total):`);
+            s4Device.params?.forEach(p => {
+                console.log(`    - Type ${p.param_type}: ${p.param_value}`);
+            });
+        } else {
+            console.log("✗ S4 Device (Type 89) NOT FOUND in your account");
         }
 
         console.log("\n=== SUMMARY ===\n");

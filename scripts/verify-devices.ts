@@ -14,6 +14,7 @@ declare const process: NodeJS.Process;
 import { HTTPApi } from "../src/http/api";
 import { Device, Camera } from "../src/http/device";
 import { DeviceType } from "../src/http/types";
+import readline from "readline";
 
 interface TestResult {
     device: string;
@@ -75,7 +76,46 @@ async function main() {
         // Initialize and login
         console.log("Connecting to Eufy API...");
         const api = await HTTPApi.initialize(country, username, password);
+
+        // Interactive handling for captcha and 2FA using API events (no external changes)
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        const question = (q: string) => new Promise<string>((res) => rl.question(q, (ans) => res(ans.trim())));
+
+        api.on("captcha request", async (captchaId: string, item: string) => {
+            console.log("\nAPI requires captcha verification.");
+            console.log("Captcha item:", item);
+            const code = await question("Enter captcha code: ");
+            console.log("Submitting captcha and re-attempting login...");
+            await api.login({ captcha: { captchaId: captchaId, captchaCode: code }, force: false });
+        });
+
+        api.on("tfa request", async () => {
+            console.log("\nAPI requested 2FA verification (email/SMS).");
+            let verified = false;
+            while (!verified) {
+                const code = await question("Enter verification code: ");
+                console.log("Submitting 2FA code...");
+                try {
+                    await api.login({ verifyCode: code, force: false });
+                    console.log("2FA verification successful!");
+                    verified = true;
+                } catch (err) {
+                    console.error("2FA verification failed. Please check the code and try again.");
+                }
+            }
+        });
+
+        // Wait for the API to confirm connection (handles interactive flows)
+        const waitForConnect = new Promise<void>((resolve, reject) => {
+            api.once("connect", () => resolve());
+            api.once("connection error", (err: Error) => reject(err));
+        });
+
+        console.log("Logging in...");
         await api.login();
+        await waitForConnect;
+        rl.close();
+
         console.log("✓ Connected successfully!\n");
 
         // Refresh data

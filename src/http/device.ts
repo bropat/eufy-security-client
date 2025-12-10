@@ -1039,13 +1039,12 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_PT_CAMERA_C220 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220_V2 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220_V3 ||
-            type == DeviceType.SMART_DROP)
-            return true;
-        return false;
+            type == DeviceType.SMART_DROP;
     }
 
     static hasBattery(type: number): boolean {
-        return type == DeviceType.CAMERA ||
+        return (
+            type == DeviceType.CAMERA ||
             type == DeviceType.CAMERA2 ||
             type == DeviceType.CAMERA_E ||
             type == DeviceType.CAMERA2C ||
@@ -1086,10 +1085,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.WALL_LIGHT_CAM_81A0 ||
             type == DeviceType.SMART_DROP ||
             type == DeviceType.OUTDOOR_PT_CAMERA ||
-            type == DeviceType.EUFYCAM_S4)
-            //TODO: Add other battery devices
-            return true;
-        return false;
+            type == DeviceType.EUFYCAM_S4 //TODO: Add other battery devices
+        );
     }
 
     static isStation(type: number): boolean {

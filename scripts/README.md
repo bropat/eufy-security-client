@@ -13,8 +13,19 @@ npx ts-node --transpile-only scripts/discover-device.ts <email> <password> [coun
 
 **Example:**
 ```bash
-npx ts-node --transpile-only scripts/discover-device.ts user@email.com password123 US
+npx ts-node --transpile-only scripts/discover-device.ts your.email@example.com yourpassword US
 ```
+
+**Authentication:**
+- The script will connect to your Eufy account using the provided credentials.
+- If a **Captcha** is required, the image will be saved to a file in your current directory (named `captcha_<id>.png`). You can open this file to view the captcha image and enter the code when prompted.
+- If **2FA (Two-Factor Authentication)** is enabled, you will be prompted to enter the verification code sent to your email or SMS. The script will retry if an incorrect code is entered.
+
+**Output:**
+- Lists all stations (hubs) and their configurations
+- Lists all devices with their types, models, serials, and parameters
+- Includes a device property analysis showing which properties are present/missing
+- Helpful for debugging device configuration and parameter issues
 
 ## Device Verification Script
 
@@ -27,8 +38,18 @@ npx ts-node --transpile-only scripts/verify-devices.ts <email> <password> [count
 
 **Example:**
 ```bash
-npx ts-node --transpile-only scripts/verify-devices.ts user@email.com password123 GB
+npx ts-node --transpile-only scripts/verify-devices.ts your.email@example.com yourpassword GB
 ```
+
+**Authentication:**
+- Same as Device Discovery Script: handles Captcha and 2FA prompts interactively
+- Saves captcha images to disk for manual viewing if needed
+- Retries 2FA code entry until successful
+
+**Output:**
+- Classifies each device and shows test results (isCamera, hasBattery, isPanAndTilt, etc.)
+- Highlights any misclassifications that need fixing
+- Useful for ensuring device type configuration is correct
 
 ## Universal Camera Properties Test
 
