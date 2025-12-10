@@ -1,5 +1,5 @@
 import { TypedEmitter } from "tiny-typed-emitter";
-import * as fse from "fs-extra";
+import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import * as path from "path";
 import { Readable } from "stream";
 import EventEmitter from "events";
@@ -140,7 +140,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
         if (this.config.persistentDir === undefined) {
             this.config.persistentDir = path.resolve(__dirname, "../../..");
-        } else if (!fse.existsSync(this.config.persistentDir)) {
+        } else if (!existsSync(this.config.persistentDir)) {
             this.config.persistentDir = path.resolve(__dirname, "../../..");
         }
 
@@ -151,8 +151,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
 
         try {
-            if (!this.config.persistentData && fse.statSync(this.persistentFile).isFile()) {
-                const fileContent = fse.readFileSync(this.persistentFile, "utf8");
+            if (!this.config.persistentData && statSync(this.persistentFile).isFile()) {
+                const fileContent = readFileSync(this.persistentFile, "utf8");
                 this.persistentData = JSON.parse(fileContent) as EufySecurityPersistentData;
             }
         } catch (err) {
@@ -944,7 +944,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             if(this.config.persistentData) {
                 this.emit("persistent data", JSON.stringify(this.persistentData));
             } else {
-                fse.writeFileSync(this.persistentFile, JSON.stringify(this.persistentData));
+                writeFileSync(this.persistentFile, JSON.stringify(this.persistentData));
             }
         } catch (err) {
             const error = ensureError(err);
@@ -2288,7 +2288,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             if (device.hasProperty(PropertyName.DeviceLight)) {
                 const metadataLight = device.getPropertyMetadata(PropertyName.DeviceLight);
-                device.updateRawProperty(metadataLight.key as number, enabled === true ? "1" : "0", "p2p");
+                device.updateRawProperty(metadataLight.key as number, enabled ? "1" : "0", "p2p");
             }
         }).catch((err) => {
             const error = ensureError(err);

@@ -129,7 +129,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         });
 
         const result: ResultResponse = response.body as ResultResponse;
-        if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+        if (result.code == ResponseErrorCode.CODE_OK) {
             return `https://${result.data.domain}`;
         }
         throw new ApiBaseLoadError("Error identifying API base from cloud", { context: { code: result.code, message: result.msg } });
@@ -341,7 +341,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
                     if (result.data !== undefined) {
-                        if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                        if (result.code == ResponseErrorCode.CODE_OK) {
                             const dataresult: LoginResultResponse = result.data;
 
                             if (dataresult.server_secret_info?.public_key)
@@ -431,7 +431,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             });
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
-                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                if (result.code == ResponseErrorCode.CODE_OK) {
                     rootHTTPLogger.info(`Requested verification code for 2FA`);
                     return true;
                 } else {
@@ -456,7 +456,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         if (result.data && result.data.list) {
                             return result.data.list;
                         }
@@ -489,7 +489,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         rootHTTPLogger.info(`2FA authentication successfully done. Device trusted.`);
                         const trusted_devices = await this.listTrustDevice();
                         trusted_devices.forEach((trusted_device: TrustDevice) => {
@@ -812,7 +812,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         if (result.data) {
                             const ciphers: Ciphers = {};
                             const decrypted = this.decryptAPIData(result.data);
@@ -847,7 +847,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         if (result.data) {
                             const voices: Voices = {};
                             result.data.forEach((voice: Voice) => {
@@ -1027,7 +1027,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         if (result.data) {
                             const invites: Invites = {};
                             const decrypted = this.decryptAPIData(result.data);
@@ -1070,7 +1070,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         return true;
                     } else {
                         rootHTTPLogger.error("Confirm invites - Response code not ok", { code: result.code, msg: result.msg, data: response.data, confirmInvites: confirmInvites });
@@ -1099,7 +1099,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     });
                     if (response.status == 200) {
                         const result: ResultResponse = response.data;
-                        if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                        if (result.code == ResponseErrorCode.CODE_OK) {
                             if (result.data) {
                                 if (type === PublicKeyType.LOCK)
                                     this.persistentData.device_public_keys[deviceSN] = result.data.public_key;
@@ -1161,7 +1161,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         if (result.data) {
                             const entries: Array<SensorHistoryEntry> = result.data;
                             return entries;
@@ -1193,7 +1193,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         if (result.data) {
                             const houseDetail = this.decryptAPIData(result.data) as HouseDetail;
                             rootHTTPLogger.debug("Get house detail - Decrypted house detail data", { details: houseDetail });
@@ -1225,7 +1225,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         if (result.data) {
                             rootHTTPLogger.debug("Get house list - houses", { houses: result.data });
                             return result.data as Array<HouseListResponse>;
@@ -1258,7 +1258,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         if (result.data) {
                             //const houseInviteList = this.decryptAPIData(result.data) as Array<HouseInviteListResponse>;   // No more encrypted!?
                             //rootHTTPLogger.debug("Get house invite list - Decrypted house invite list data", houseInviteList);
@@ -1296,7 +1296,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         return true;
                     } else {
                         rootHTTPLogger.error("Confirm house invite - Response code not ok", { code: result.code, msg: result.msg, data: response.data, houseID: houseID, inviteID: inviteID });
@@ -1324,7 +1324,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             });
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
-                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                if (result.code == ResponseErrorCode.CODE_OK) {
                     if (result.data) {
                         const profile = this.decryptAPIData(result.data) as PassportProfileResponse;
                         rootHTTPLogger.debug("Get passport profile - Decrypted passport profile data", { profile: profile });
@@ -1361,7 +1361,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         if (result.data)
                             return result.data as AddUserResponse;
                     } else {
@@ -1393,7 +1393,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         return true;
                     } else {
                         rootHTTPLogger.error("Delete user - Response code not ok", { code: result.code, msg: result.msg, data: response.data, deviceSN: deviceSN, shortUserId: shortUserId, stationSN: stationSN });
@@ -1417,7 +1417,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             });
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
-                if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                if (result.code == ResponseErrorCode.CODE_OK) {
                     if (result.data) {
                         const usersResponse = result.data as UsersResponse;
                         return usersResponse.user_list;
@@ -1472,7 +1472,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     });
                     if (response.status == 200) {
                         const result: ResultResponse = response.data;
-                        if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                        if (result.code == ResponseErrorCode.CODE_OK) {
                             return true;
                         } else {
                             rootHTTPLogger.error("Update user - Response code not ok", { code: result.code, msg: result.msg, data: response.data, deviceSN: deviceSN, stationSN: stationSN, shortUserId: shortUserId, nickname: nickname });
@@ -1542,7 +1542,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
-                    if (result.code == ResponseErrorCode.CODE_WHATEVER_ERROR) {
+                    if (result.code == ResponseErrorCode.CODE_OK) {
                         return true;
                     } else {
                         rootHTTPLogger.error("Add user - Response code not ok", { code: result.code, msg: result.msg, data: response.data, deviceSN: deviceSN, shortUserId: shortUserId, schedule: schedule, stationSN: stationSN });

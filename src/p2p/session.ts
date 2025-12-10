@@ -1004,6 +1004,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         } else if (hasHeader(msg, ResponseMessageType.END)) {
             // Connection is closed by device
             rootP2PLogger.debug(`Received message - END`, { stationSN: this.rawStation.station_sn, remoteAddress: rinfo.address, remotePort: rinfo.port });
+            if (this.energySavingDevice && this.connected) {
+                this.closeEnergySavingDevice();
+            }
             this.onClose();
             return;
         } else if (hasHeader(msg, ResponseMessageType.ACK)) {
@@ -1232,7 +1235,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     }
                 } else {
                     // finish message and print
-                    if (this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead <= data.length) {
+                    if (this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead === 0 && data.length > this.P2P_DATA_HEADER_BYTES) {
+                        rootP2PLogger.debug(`Parsing message - DATA ${P2PDataType[message.type]} - Discarding unexpected data (infinite loop prevention)`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, dataSize: data.length, data: data.toString("hex") });
+                        data = Buffer.from([]);
+                    } else if (this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead <= data.length) {
                         const payload = data.subarray(0, this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead);
                         this.currentMessageBuilder[message.type].messages[message.seqNo] = payload;
                         this.currentMessageBuilder[message.type].bytesRead += payload.byteLength;
@@ -1905,7 +1911,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                         this.emit("secondary command", result);
                                                         delete this.customDataStaging[commandType];
                                                     }
-                                                    rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD Smart Lock  return code: ${returnCode}`, { stationSN: this.rawStation.station_sn, commandIdName: CommandType[json.cmd], commandId: json.cmd, decoded: data.toString("hex"), bleCommandCode: functionTypeCommand[fac.getCommandCode()!], returnCode: returnCode });
+                                                    rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD Smart Lock  return code: ${returnCode}`, { stationSN: this.rawStation.station_sn, commandIdName: CommandType[json.cmd], commandId: json.cmd, decoded: data.toString("hex"), bleCommandCode: functionTypeCommand[fac.getCommandCode()!], returnCode: returnCode, channel: message.channel });
                                                     const parsePayload = new ParsePayload(data.subarray(1));
                                                     if (fac.getDataType() === SmartLockFunctionType.TYPE_2) {
                                                         switch (fac.getCommandCode()) {
@@ -2653,16 +2659,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
         this.channel = Station.getChannel(value.device_type);
 
-        if (this.rawStation.devices?.length > 0) {
+        if (Device.hasBattery(this.rawStation.device_type)) {
             if (!this.energySavingDevice) {
-                for (const device of this.rawStation.devices) {
-                    if (device.device_sn === this.rawStation.station_sn && Device.hasBattery(device.device_type)) {
-                        this.energySavingDevice = true;
-                        break;
-                    }
-                }
-                if (this.energySavingDevice)
-                    rootP2PLogger.debug(`Identified standalone battery device ${this.rawStation.station_sn} => activate p2p keepalive command`);
+                this.energySavingDevice = true;
+            }
+            if (this.energySavingDevice) {
+                rootP2PLogger.debug(`Identified standalone battery device ${this.rawStation.station_sn} => activate p2p keepalive command`);
             }
         } else {
             this.energySavingDevice = false;

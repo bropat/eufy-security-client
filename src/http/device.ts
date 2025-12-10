@@ -116,16 +116,16 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     const sensitivity = Number.parseInt(rawSensitivity);
                     const mode = Number.parseInt(rawMode);
 
-                    if (mode === 3 && sensitivity === 2) {
-                        this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 1);
-                    } else if (mode === 1 && sensitivity === 1) {
-                        this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 2);
-                    } else if (mode === 1 && sensitivity === 2) {
-                        this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 3);
-                    } else if (mode === 1 && sensitivity === 3) {
-                        this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 4);
-                    } else if (mode === 2 && sensitivity === 1) {
-                        this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, 5);
+                    const sensitivityMapping: Record<string, number> = {
+                        "3_2": 1,
+                        "1_1": 2,
+                        "1_2": 3,
+                        "1_3": 4,
+                        "2_1": 5
+                    };
+                    const key = `${mode}_${sensitivity}`;
+                    if (sensitivityMapping[key] !== undefined) {
+                        this.updateProperty(PropertyName.DeviceMotionDetectionSensitivity, sensitivityMapping[key]);
                     }
                 }
             } else if (metadata.name === PropertyName.DeviceWifiRSSI && this.hasProperty(PropertyName.DeviceWifiSignalLevel)) {
@@ -174,41 +174,43 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     protected convertRawPropertyValue(property: PropertyMetadataAny, value: string): PropertyValue {
         try {
+            const val = value as any;
             if (property.key === ParamType.PRIVATE_MODE || property.key === ParamType.OPEN_DEVICE || property.key === CommandType.CMD_DEVS_SWITCH) {
                 if ((this.isIndoorCamera() && !this.isIndoorPanAndTiltCameraS350()) || (this.isWiredDoorbell() && !this.isWiredDoorbellT8200X()) || this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8422 || this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424) {
                     return value !== undefined ? (value === "true" ? true : false) : false;
                 }
                 return value !== undefined ? (value === "0" ? true : false) : false;
             } else if (property.key === CommandType.CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE) {
+                const val = value as any;
                 switch (property.name) {
                     case PropertyName.DeviceNotificationRing: {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
-                            return value !== undefined ? (Number.parseInt((value as any).notification_ring_onoff) === 1 ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                            return (val && val.notification_ring_onoff !== undefined) ? (Number.parseInt(val.notification_ring_onoff) === 1) : (booleanProperty.default ?? false);
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationRing Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
-                            return booleanProperty.default !== undefined ? booleanProperty.default : false;
+                            return booleanProperty.default ?? false;
                         }
                     }
                     case PropertyName.DeviceNotificationMotion: {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
-                            return value !== undefined ? (Number.parseInt((value as any).notification_motion_onoff) === 1 ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                            return (val && val.notification_motion_onoff !== undefined) ? (Number.parseInt(val.notification_motion_onoff) === 1) : (booleanProperty.default ?? false);
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationMotion Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
-                            return booleanProperty.default !== undefined ? booleanProperty.default : false;
+                            return booleanProperty.default ?? false;
                         }
                     }
                     case PropertyName.DeviceNotificationType: {
                         const numericProperty = property as PropertyMetadataNumeric;
                         try {
-                            return value !== undefined ? Number.parseInt((value as any).notification_style) : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                            return (val && val.notification_style !== undefined) ? Number.parseInt(val.notification_style) : (numericProperty.default ?? (numericProperty.min ?? 0));
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationType Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
-                            return numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
+                            return numericProperty.default ?? (numericProperty.min ?? 0);
                         }
                     }
                 }
@@ -216,9 +218,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 try {
                     switch (property.name) {
                         case PropertyName.DeviceNotificationRing:
-                            return value !== undefined ? (Number.parseInt((value as any)) === 3 || Number.parseInt((value as any)) === 1 ? true : false) : false;
+                            return value !== undefined ? (Number.parseInt(val) === 3 || Number.parseInt(val) === 1 ? true : false) : false;
                         case PropertyName.DeviceNotificationMotion:
-                            return value !== undefined ? (Number.parseInt((value as any)) === 3 || Number.parseInt((value as any)) === 2 ? true : false) : false;
+                            return value !== undefined ? (Number.parseInt(val) === 3 || Number.parseInt(val) === 2 ? true : false) : false;
                     }
                 } catch (err) {
                     const error = ensureError(err);
@@ -276,25 +278,25 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 try {
                     switch (property.name) {
                         case PropertyName.DeviceMotionDetectionSensitivityMode:
-                            return value !== undefined && (value as any).model !== undefined ? (value as any).model as number : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                            return value !== undefined && val.model !== undefined ? val.model as number : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                         case PropertyName.DeviceMotionDetectionSensitivityStandard:
-                            return value !== undefined && (value as any).model === 0 ? getDistances((value as any).block_list)[0] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                            return value !== undefined && val.model === 0 ? getDistances(val.block_list)[0] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                         case PropertyName.DeviceMotionDetectionSensitivityAdvancedA:
-                            return value !== undefined && (value as any).model === 1 ? getDistances((value as any).block_list)[0] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                            return value !== undefined && val.model === 1 ? getDistances(val.block_list)[0] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                         case PropertyName.DeviceMotionDetectionSensitivityAdvancedB:
-                            return value !== undefined && (value as any).model === 1 ? getDistances((value as any).block_list)[1] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                            return value !== undefined && val.model === 1 ? getDistances(val.block_list)[1] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                         case PropertyName.DeviceMotionDetectionSensitivityAdvancedC:
-                            return value !== undefined && (value as any).model === 1 ? getDistances((value as any).block_list)[2] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                            return value !== undefined && val.model === 1 ? getDistances(val.block_list)[2] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                         case PropertyName.DeviceMotionDetectionSensitivityAdvancedD:
-                            return value !== undefined && (value as any).model === 1 ? getDistances((value as any).block_list)[3] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                            return value !== undefined && val.model === 1 ? getDistances(val.block_list)[3] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                         case PropertyName.DeviceMotionDetectionSensitivityAdvancedE:
-                            return value !== undefined && (value as any).model === 1 ? getDistances((value as any).block_list)[4] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                            return value !== undefined && val.model === 1 ? getDistances(val.block_list)[4] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                         case PropertyName.DeviceMotionDetectionSensitivityAdvancedF:
-                            return value !== undefined && (value as any).model === 1 ? getDistances((value as any).block_list)[5] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                            return value !== undefined && val.model === 1 ? getDistances(val.block_list)[5] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                         case PropertyName.DeviceMotionDetectionSensitivityAdvancedG:
-                            return value !== undefined && (value as any).model === 1 ? getDistances((value as any).block_list)[6] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                            return value !== undefined && val.model === 1 ? getDistances(val.block_list)[6] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                         case PropertyName.DeviceMotionDetectionSensitivityAdvancedH:
-                            return value !== undefined && (value as any).model === 1 ? getDistances((value as any).block_list)[7] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
+                            return value !== undefined && val.model === 1 ? getDistances(val.block_list)[7] : (numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0));
                     }
                 } catch (err) {
                     const error = ensureError(err);
@@ -306,7 +308,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceLoiteringCustomResponseTimeFrom: {
                         const stringProperty = property as PropertyMetadataString;
                         try {
-                            return ((value as any)?.setting?.length !== undefined && (value as any)?.setting?.length > 0 && (value as any)?.setting[0]?.start_hour !== undefined && (value as any)?.setting[0]?.start_min !== undefined) ? `${(value as any)?.setting[0]?.start_hour?.padStart(2, "0")}:${(value as any)?.setting[0]?.start_min?.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
+                            return (val?.setting?.length !== undefined && val?.setting?.length > 0 && val?.setting[0]?.start_hour !== undefined && val?.setting[0]?.start_min !== undefined) ? `${val?.setting[0]?.start_hour?.padStart(2, "0")}:${val?.setting[0]?.start_min?.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseTimeFrom Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -316,7 +318,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceLoiteringCustomResponseTimeTo: {
                         const stringProperty = property as PropertyMetadataString;
                         try {
-                            return ((value as any)?.setting?.length !== undefined && (value as any)?.setting?.length > 0 && (value as any)?.setting[0]?.end_hour !== undefined && (value as any)?.setting[0]?.end_min !== undefined) ? `${(value as any)?.setting[0]?.end_hour?.padStart(2, "0")}:${(value as any)?.setting[0]?.end_min?.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
+                            return (val?.setting?.length !== undefined && val?.setting?.length > 0 && val?.setting[0]?.end_hour !== undefined && val?.setting[0]?.end_min !== undefined) ? `${val?.setting[0]?.end_hour?.padStart(2, "0")}:${val?.setting[0]?.end_min?.padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseTimeTo Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -326,7 +328,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceLoiteringCustomResponsePhoneNotification: {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
-                            return (value as any)?.setting[0]?.push_notify === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                            return val?.setting[0]?.push_notify === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponsePhoneNotification Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -336,7 +338,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceLoiteringCustomResponseHomeBaseNotification: {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
-                            return (value as any)?.setting[0]?.homebase_alert === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                            return val?.setting[0]?.homebase_alert === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseHomeBaseNotification Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -346,7 +348,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponse: {
                         const booleanProperty = property as PropertyMetadataBoolean;
                         try {
-                            return (value as any)?.setting[0]?.auto_voice_resp === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                            return val?.setting[0]?.auto_voice_resp === 1 ? true : booleanProperty.default !== undefined ? booleanProperty.default : false;
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseAutoVoiceResponse Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -356,7 +358,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     case PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponseVoice: {
                         const numericProperty = property as PropertyMetadataNumeric;
                         try {
-                            return ((value as any)?.setting?.length !== undefined && (value as any)?.setting?.length > 0 && (value as any)?.setting[0]?.auto_voice_id !== undefined) ? (value as any)?.setting[0]?.auto_voice_id : numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
+                            return (val?.setting?.length !== undefined && val?.setting?.length > 0 && val?.setting[0]?.auto_voice_id !== undefined) ? val?.setting[0]?.auto_voice_id : numericProperty.default !== undefined ? numericProperty.default : (numericProperty.min !== undefined ? numericProperty.min : 0);
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseAutoVoiceResponseVoice Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -367,7 +369,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             } else if (property.key === CommandType.CMD_DOORBELL_DUAL_DELIVERY_GUARD_SWITCH) {
                 const booleanProperty = property as PropertyMetadataBoolean;
                 try {
-                    return value !== undefined && (value as any).ai_bottom_switch !== undefined ? (value as any).ai_bottom_switch === 1024 : (booleanProperty.default !== undefined ? booleanProperty.default : false);
+                    return value !== undefined && val.ai_bottom_switch !== undefined ? val.ai_bottom_switch === 1024 : (booleanProperty.default !== undefined ? booleanProperty.default : false);
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_DELIVERY_GUARD_SWITCH Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -376,7 +378,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             } else if (property.key === CommandType.CMD_DOORBELL_DUAL_PACKAGE_STRAND_TIME) {
                 const stringProperty = property as PropertyMetadataString;
                 try {
-                    return ((value as any)?.start_h !== undefined && (value as any)?.start_m !== undefined) ? `${(value as any)?.start_h?.toString().padStart(2, "0")}:${(value as any)?.start_m?.toString().padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
+                    return (val?.start_h !== undefined && val?.start_m !== undefined) ? `${val?.start_h?.toString().padStart(2, "0")}:${val?.start_m?.toString().padStart(2, "0")}` : stringProperty.default !== undefined ? stringProperty.default : "";
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error("Device convert raw property - CMD_DOORBELL_DUAL_PACKAGE_STRAND_TIME Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -978,11 +980,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isSupported(type: number): boolean {
-        return DeviceProperties[type] !== undefined ? true : false;
+        return DeviceProperties[type] !== undefined;
     }
 
     static isCamera(type: number): boolean {
-        if (type == DeviceType.CAMERA ||
+        return type == DeviceType.CAMERA ||
             type == DeviceType.CAMERA2 ||
             type == DeviceType.CAMERA_E ||
             type == DeviceType.CAMERA2C ||
@@ -1015,6 +1017,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SOLAR ||
             type == DeviceType.SOLO_CAMERA_C210 ||
             type == DeviceType.SOLO_CAMERA_E30 ||
+            type == DeviceType.CAMERA_C35 ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_2K ||
@@ -1023,6 +1026,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.FLOODLIGHT_CAMERA_8423 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8424 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8425 ||
+            type == DeviceType.FLOODLIGHT_CAMERA_8426 ||
             type == DeviceType.WALL_LIGHT_CAM ||
             type == DeviceType.WALL_LIGHT_CAM_81A0 ||
             type == DeviceType.CAMERA_GARAGE_T8453_COMMON ||
@@ -1041,7 +1045,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static hasBattery(type: number): boolean {
-        if (type == DeviceType.CAMERA ||
+        return type == DeviceType.CAMERA ||
             type == DeviceType.CAMERA2 ||
             type == DeviceType.CAMERA_E ||
             type == DeviceType.CAMERA2C ||
@@ -1064,6 +1068,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_SOLAR ||
             type == DeviceType.SOLO_CAMERA_C210 ||
             type == DeviceType.SOLO_CAMERA_E30 ||
+            type == DeviceType.CAMERA_C35 ||
             type == DeviceType.LOCK_WIFI ||
             type == DeviceType.LOCK_WIFI_NO_FINGER ||
             type == DeviceType.LOCK_8503 ||
@@ -1168,6 +1173,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_PT_CAMERA_1080 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8423 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8425 ||
+            type == DeviceType.FLOODLIGHT_CAMERA_8426 ||
             type == DeviceType.INDOOR_COST_DOWN_CAMERA ||
             type == DeviceType.OUTDOOR_PT_CAMERA ||
             type == DeviceType.EUFYCAM_S4 ||
@@ -1205,7 +1211,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.FLOODLIGHT_CAMERA_8422 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8423 ||
             type == DeviceType.FLOODLIGHT_CAMERA_8424 ||
-            type == DeviceType.FLOODLIGHT_CAMERA_8425)
+            type == DeviceType.FLOODLIGHT_CAMERA_8425 ||
+            type == DeviceType.FLOODLIGHT_CAMERA_8426)
             return true;
         return false;
     }
@@ -1226,6 +1233,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (type == DeviceType.FLOODLIGHT_CAMERA_8425)
             return true;
         return false;
+    }
+
+    static isFloodLightT8426(type: number): boolean {
+      return (type == DeviceType.FLOODLIGHT_CAMERA_8426);
     }
 
     static isWallLightCam(type: number): boolean {
@@ -1371,6 +1382,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     static isSoloCameraC210(type: number): boolean {
         return DeviceType.SOLO_CAMERA_C210 == type;
+    }
+
+    static isCameraC35(type: number): boolean {
+        return DeviceType.CAMERA_C35 == type;
     }
 
     static isSoloCameraE30(type: number): boolean {
@@ -1750,6 +1765,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isSoloCameraC210(): boolean {
         return Device.isSoloCameraC210(this.rawDevice.device_type);
+    }
+
+    public isCameraC35(): boolean {
+        return Device.isCameraC35(this.rawDevice.device_type);
     }
 
     public isSoloCameraE30(): boolean {
