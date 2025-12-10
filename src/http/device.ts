@@ -1033,6 +1033,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA_GARAGE_T8453 ||
             type == DeviceType.CAMERA_GARAGE_T8452 ||
             type == DeviceType.CAMERA_FG ||
+            type == DeviceType.EUFY_S330_4G_LTE ||
             type == DeviceType.INDOOR_PT_CAMERA_S350 ||
             type == DeviceType.INDOOR_PT_CAMERA_E30 ||
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
@@ -1082,6 +1083,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SMART_SAFE_7402 ||
             type == DeviceType.SMART_SAFE_7403 ||
             type == DeviceType.CAMERA_FG ||
+            type == DeviceType.EUFY_S330_4G_LTE ||
             type == DeviceType.WALL_LIGHT_CAM_81A0 ||
             type == DeviceType.SMART_DROP ||
             type == DeviceType.OUTDOOR_PT_CAMERA ||
@@ -1576,7 +1578,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return sn.startsWith("T8150") ||
             sn.startsWith("T8151") ||
             sn.startsWith("T8152") ||
-            sn.startsWith("T8153");
+            sn.startsWith("T8153") ||
+            sn.startsWith("T86P2");
     }
 
     static isSmartSafeBySn(sn: string): boolean {
