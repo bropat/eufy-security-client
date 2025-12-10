@@ -756,9 +756,9 @@ export class Station extends TypedEmitter<StationEvents> {
 
     public getStorageInfoEx(): void {
         rootHTTPLogger.debug(`Station send get storage info command`, { stationSN: this.getSerial() });
-        if (this.isStation() && this.rawStation.device_type !== DeviceType.HB3 && isGreaterEqualMinVersion("3.2.7.6", this.getSoftwareVersion())) {
+        if (this.isStation() && this.rawStation.device_type !== DeviceType.HB3 && this.rawStation.device_type !== DeviceType.HOMEBASE_MINI && isGreaterEqualMinVersion("3.2.7.6", this.getSoftwareVersion())) {
             this.p2pSession.sendCommandWithoutData(CommandType.CMD_SDINFO_EX, Station.CHANNEL);
-        } else if (this.rawStation.device_type === DeviceType.HB3) {
+        } else if (this.rawStation.device_type === DeviceType.HB3 || this.rawStation.device_type !== DeviceType.HOMEBASE_MINI) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({

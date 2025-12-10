@@ -8779,9 +8779,11 @@ export const StationProperties: Properties = {
         [PropertyName.StationOffSecuritySettings]: StationOffSecuritySettings,
         [PropertyName.StationAlarm]: StationAlarmProperty,
         [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
-        [PropertyName.StationSdStatus]: StationSdStatusProperty,
+        /*[PropertyName.StationSdStatus]: StationSdStatusProperty,
         [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
-        [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
+        [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,*/
+        [PropertyName.StationStorageInfoEmmc]: StationStorageInfoEmmcProperty,
+        [PropertyName.StationStorageInfoHdd]: StationStorageInfoHddProperty,
         [PropertyName.StationCrossCameraTracking]: StationCrossCameraTrackingProperty,
         [PropertyName.StationContinuousTrackingTime]: StationContinuousTrackingTimeProperty,
         [PropertyName.StationTrackingAssistance]: StationTrackingAssistanceProperty,
