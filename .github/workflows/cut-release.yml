@@ -58,9 +58,9 @@ jobs:
           committer: GitHub <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           signoff: false
-          branch: release/${{ input.version }}
+          branch: release/${{ inputs.version }}
           base: develop
           delete-branch: true
-          title: "[Release] Cut release ${{ input.version }}"
+          title: "[Release] Cut release ${{ inputs.version }}"
           body: |
-            This PR is for a cut release ${{ input.version }}
+            This PR is for a cut release ${{ inputs.version }}
