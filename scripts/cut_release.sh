@@ -28,4 +28,4 @@ git add package.json
 git commit -m "Add new version"
 
 # Push
-#git push
+git push --set-upstream origin "release/$VERSION"
