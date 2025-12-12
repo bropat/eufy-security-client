@@ -34,7 +34,7 @@
         // "noUnusedLocals": true,
         // "noUnusedParameters": true,
 
-        // Consider targetting es2017 or higher if you require the new NodeJS 8+ features
+        // Consider targeting es2017 or higher if you require the new NodeJS 8+ features
         "target": "ES2022",
         "lib": ["ES2023", "DOM"],
 
@@ -45,11 +45,6 @@
             "got": ["./node_modules/got/dist/source"]
         }
     },
-    "include": [
-        "src/**/*.ts",
-    ],
-    "exclude": [
-        "build/**",
-        "node_modules/**"
-    ]
+    "include": ["src/**/*.ts"],
+    "exclude": ["build/**", "node_modules/**"]
 }
