@@ -9650,6 +9650,9 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
         CommandName.DeviceSnooze,
+        CommandName.DevicePresetPosition,
+        CommandName.DeviceSavePresetPosition,
+        CommandName.DeviceDeletePresetPosition,
     ],
     [DeviceType.OUTDOOR_PT_CAMERA]: [
         CommandName.DeviceStartLivestream,
