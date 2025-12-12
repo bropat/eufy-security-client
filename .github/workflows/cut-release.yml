@@ -44,11 +44,6 @@ jobs:
           sed -i 's/version": .*/version": "${{ inputs.version }}",/' package.json
           echo "Updating package.json with version: ${{ inputs.version }}"
 
-      - name: Print the inputs
-        run: |
-          echo "Hello, ${{ inputs.username }}!"
-          echo "Reason for running: ${{ inputs.reason }}"
-
       # 3. Create the Pull Request
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
