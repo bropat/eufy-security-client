@@ -2125,7 +2125,7 @@ export class Camera extends Device {
 
     public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(station, message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
+        if (message.type !== undefined && message.event_type !== undefined) {
             if (message.event_type === CusPushEvent.SECURITY && message.device_sn === this.getSerial()) {
                 try {
                     loadEventImage(station, this.api, this, message, this.pictureEventTimeouts);
@@ -2952,7 +2952,7 @@ export class WallLightCam extends Camera {
 
     public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(station, message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
+        if (message.type !== undefined && message.event_type !== undefined) {
             if (message.device_sn === this.getSerial()) {
                 try {
                     loadEventImage(station, this.api, this, message, this.pictureEventTimeouts);
@@ -3076,7 +3076,7 @@ export class GarageCamera extends Camera {
 
     public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(station, message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
+        if (message.type !== undefined && message.event_type !== undefined) {
             if (message.device_sn === this.getSerial()) {
                 try {
                     loadEventImage(station, this.api, this, message, this.pictureEventTimeouts);
@@ -3157,7 +3157,7 @@ export class EntrySensor extends Sensor {
 
     public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(station, message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
+        if (message.type !== undefined && message.event_type !== undefined) {
             if (message.event_type === CusPushEvent.DOOR_SENSOR && message.device_sn === this.getSerial()) {
                 try {
                     if (message.sensor_open !== undefined) {
@@ -3236,7 +3236,7 @@ export class MotionSensor extends Sensor {
 
     public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(station, message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
+        if (message.type !== undefined && message.event_type !== undefined) {
             if (message.event_type === CusPushEvent.MOTION_SENSOR_PIR && message.device_sn === this.getSerial()) {
                 try {
                     this.updateProperty(PropertyName.DeviceMotionDetected, true);
@@ -4433,7 +4433,7 @@ export class SmartDrop extends Camera {
 
     public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(station, message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
+        if (message.type !== undefined && message.event_type !== undefined) {
             if (message.device_sn === this.getSerial()) {
                 try {
                     loadEventImage(station, this.api, this, message, this.pictureEventTimeouts);
