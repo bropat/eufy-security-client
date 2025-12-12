@@ -1,0 +1,66 @@
+# Dependency Review Action
+#
+# This Action will scan dependency manifest files that change as part of a Pull Request,
+# surfacing known-vulnerable versions of the packages declared or updated in the PR.
+# Once installed, if the workflow run is marked as required, PRs introducing known-vulnerable
+# packages will be blocked from merging.
+#
+# Source repository: https://github.com/actions/dependency-review-action
+# Public documentation: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review#dependency-review-enforcement
+name: 'Cut release'
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Enter the new version'
+        required: true
+        type: string
+
+# If using a dependency submission action in this workflow this permission will need to be set to:
+#
+# permissions:
+#   contents: write
+#
+# https://docs.github.com/en/enterprise-cloud@latest/code-security/supply-chain-security/understanding-your-software-supply-chain/using-the-dependency-submission-api
+permissions:
+  contents: read
+  # Write permissions for pull-requests are required for using the `comment-summary-in-pr` option, comment out if you aren't using this option
+  pull-requests: write
+
+
+jobs:
+  cut-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      # 2. Modify your file(s) here
+      - name: Make changes to file
+        run: |
+          # Modifying a version number 
+          sed -i 's/version": .*/version": "${{ inputs.version }}",/' package.json
+          echo "Updating package.json with version: ${{ inputs.version }}"
+
+      - name: Print the inputs
+        run: |
+          echo "Hello, ${{ inputs.username }}!"
+          echo "Reason for running: ${{ inputs.reason }}"
+
+      # 3. Create the Pull Request
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: automated file update"
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          signoff: false
+          branch: release/${{ input.version }}
+          base: develop
+          delete-branch: true
+          title: "[Release] Cut release ${{ input.version }}"
+          body: |
+            This PR is for a cut release ${{ input.version }}
