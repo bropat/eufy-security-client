@@ -21,7 +21,7 @@ git pull origin develop
 git checkout -b "release/$VERSION" || exit 1
 
 # Update file
-sed -i 's/version": .*/version": "$VERSION",/' package.json
+sed -i 's/version": .*/version": "'$VERSION'",/' package.json
 
 # Add file to the branch and commit
 git add package.json
