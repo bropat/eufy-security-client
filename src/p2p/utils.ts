@@ -830,7 +830,7 @@ export const getSmartLockP2PCommand = function(deviceSN: string, user_id: string
 
 export const readNullTerminatedBuffer = (input: Buffer): Buffer => {
     const index = input.indexOf(new Uint8Array([0]));
-    
+
     if (index === -1) {
         const result = Buffer.alloc(input.length)
         input.copy(result);

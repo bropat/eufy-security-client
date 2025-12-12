@@ -629,7 +629,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 value: parsedValue,
                 source: "p2p"
             };
-            let deviceSerial = this._getDeviceSerial(channel);
+            const deviceSerial = this._getDeviceSerial(channel);
             if (deviceSerial !== undefined) {
                 this.emit("raw device property changed", deviceSerial, params);
             }
@@ -2124,7 +2124,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     return;
                 }
                 const aiDetectionType = device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number) !== undefined ? device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)! : "0";
-                let newAiDetectionType = getT8170DetectionMode(Number.parseInt(aiDetectionType), type as T8170DetectionTypes, value);
+                const newAiDetectionType = getT8170DetectionMode(Number.parseInt(aiDetectionType), type as T8170DetectionTypes, value);
                 this.p2pSession.sendCommandWithStringPayload({
                     commandType: CommandType.CMD_SET_PAYLOAD,
                     value: JSON.stringify({
@@ -2188,7 +2188,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     return;
                 }
                 const aiDetectionType = device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number) !== undefined ? device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)! : "0";
-                let newAiDetectionType = getIndoorS350DetectionMode(Number.parseInt(aiDetectionType), type as IndoorS350DetectionTypes, value);
+                const newAiDetectionType = getIndoorS350DetectionMode(Number.parseInt(aiDetectionType), type as IndoorS350DetectionTypes, value);
                 this.p2pSession.sendCommandWithStringPayload({
                     commandType: CommandType.CMD_SET_PAYLOAD,
                     value: JSON.stringify({
