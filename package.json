@@ -52,6 +52,7 @@
     "node-rsa": "^1.1.1",
     "node-schedule": "^2.1.1",
     "p-throttle": "^8.1.0",
+    "prettier": "^3.7.4",
     "protobufjs": "^7.4.0",
     "qs": "^6.13.0",
     "sweet-collections": "^1.1.0",
