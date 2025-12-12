@@ -888,6 +888,7 @@ export enum PropertyName {
     StationSdCapacityAvailable = "sdCapacityAvailable",
     StationStorageInfoEmmc = "storageInfoEmmc",
     StationStorageInfoHdd = "storageInfoHdd",
+    StationStorageInfoSdCard = "storageInfoSdCard",
     StationCrossCameraTracking = "crossCameraTracking",
     StationContinuousTrackingTime = "continuousTrackingTime",
     StationTrackingAssistance = "trackingAssistance",
@@ -8497,6 +8498,15 @@ export const StationStorageInfoHddProperty: PropertyMetadataObject = {
     type: "object",
 }
 
+export const StationStorageInfoSdCardProperty: PropertyMetadataObject = {
+    key: "storage_info_sdcard",
+    name: PropertyName.StationStorageInfoSdCard,
+    label: "Storage Info Sd Card",
+    readable: true,
+    writeable: false,
+    type: "object",
+}
+
 export const StationContinuousTrackingTimeProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_SET_CONTINUOUS_TRACKING_TIME,
     name: PropertyName.StationContinuousTrackingTime,
@@ -8705,11 +8715,8 @@ export const StationProperties: Properties = {
         [PropertyName.StationOffSecuritySettings]: StationOffSecuritySettings,
         [PropertyName.StationAlarm]: StationAlarmProperty,
         [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
-        /*[PropertyName.StationSdStatus]: StationSdStatusProperty,
-        [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
-        [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,*/
         [PropertyName.StationStorageInfoEmmc]: StationStorageInfoEmmcProperty,
-        [PropertyName.StationStorageInfoHdd]: StationStorageInfoHddProperty,
+        [PropertyName.StationStorageInfoSdCard]: StationStorageInfoSdCardProperty,
         [PropertyName.StationCrossCameraTracking]: StationCrossCameraTrackingProperty,
         [PropertyName.StationContinuousTrackingTime]: StationContinuousTrackingTimeProperty,
         [PropertyName.StationTrackingAssistance]: StationTrackingAssistanceProperty,
