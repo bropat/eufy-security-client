@@ -1,6 +1,6 @@
 {
   "name": "eufy-security-client",
-  "version": "$$VERSION",
+  "version": "3.5.0",
   "description": "Client to comunicate with Eufy-Security devices",
   "author": {
     "name": "bropat",
