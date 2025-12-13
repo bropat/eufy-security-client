@@ -7,10 +7,10 @@ There are two integrations that depend on eufy-security-ckient, one for Home Ass
 The dependency tree between all the involved repos looks like this:
 
 - Base library (this repo): [bropat/eufy-security-client](https://github.com/bropat/eufy-security-client)
-  - WebSocket server wrapper: [bropat/eufy-security-ws](https://github.com/bropat/eufy-security-ws)
-    - Homey integration: [martinjpoppen/com.eufylife.security](https://github.com/martijnpoppen/com.eufylife.security)
-    - Home Assistant Add-on: [bropat/hassio-eufy-security-ws](https://github.com/bropat/hassio-eufy-security-ws)
-      - Home Assistant integration [fuatakgun/eufy_security](https://github.com/fuatakgun/eufy_security)
+    - WebSocket server wrapper: [bropat/eufy-security-ws](https://github.com/bropat/eufy-security-ws)
+        - Homey integration: [martinjpoppen/com.eufylife.security](https://github.com/martijnpoppen/com.eufylife.security)
+        - Home Assistant Add-on: [bropat/hassio-eufy-security-ws](https://github.com/bropat/hassio-eufy-security-ws)
+            - Home Assistant integration [fuatakgun/eufy_security](https://github.com/fuatakgun/eufy_security)
 
 The instructions below apply only to the bropat repos.
 

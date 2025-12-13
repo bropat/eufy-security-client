@@ -38,13 +38,13 @@ export enum CusPushAlarmType {
     HUB_STOP_BY_KEYPAD = 15,
     HUB_STOP_BY_APP = 16,
     HUB_STOP_BY_HUB = 17,
-    HUB_KEYPAD_CUSTOM_NOT_MAP = 18
+    HUB_KEYPAD_CUSTOM_NOT_MAP = 18,
 }
 
 export enum CusPushMode {
     SWITCH_FROM_KEYPAD = 1,
     SWITCH_FROM_APP = 2,
-    SWITCH = 9
+    SWITCH = 9,
 }
 
 export enum ServerPushEvent {
@@ -57,7 +57,7 @@ export enum ServerPushEvent {
     ALARM_GUEST_NOTIFY = 11000,
     HOUSE_ADDED = 11400,
     HOUSE_INVITE = 11300,
-    HOUSE_REMOVE = 11200
+    HOUSE_REMOVE = 11200,
 }
 
 export enum DoorbellPushEvent {
@@ -105,11 +105,9 @@ export enum LockPushEvent {
     DOOR_TAMPER = 521,
     DOOR_STATE_ERROR = 522,
 
-
     STATUS_CHANGE = 769,
     OTA_STATUS = 770,
     LOCK_ONLINE = 771,
-
 }
 
 export enum IndoorPushEvent {
@@ -118,7 +116,7 @@ export enum IndoorPushEvent {
     CRYING_DETECTION = 3104,
     SOUND_DETECTION = 3105,
     PET_DETECTION = 3106,
-    VEHICLE_DETECTION = 3107
+    VEHICLE_DETECTION = 3107,
 }
 
 export enum GarageDoorPushEvent {
@@ -129,7 +127,7 @@ export enum GarageDoorPushEvent {
     TIMEOUT_DOOR_OPEN_WARNING = 5,
     TIMEOUT_CLOSED_DOOR = 6,
     TIMEOUT_DOOR_OPEN_WARNING_MINUTES = 7,
-    LOW_BATTERY = 8
+    LOW_BATTERY = 8,
 }
 
 export enum SmartSafeEvent {
@@ -201,13 +199,13 @@ export enum HB3HDDType {
 
 export enum IndoorPushMessageType {
     INDOOR = 18,
-    TFCARD = 2
+    TFCARD = 2,
 }
 
 export enum NotificationStyle {
     TEXT = 1,
     THUMB = 2,
-    ALL = 3
+    ALL = 3,
 }
 
 export enum AlarmAction {
@@ -229,7 +227,7 @@ export enum SmartDropOpen {
     LID_STUCK = 3,
     PIN_INCORRECT = 4,
     LEFT_OPENED = 10,
-    LOW_TEMPERATURE_WARNING = 11
+    LOW_TEMPERATURE_WARNING = 11,
 }
 
 export enum SmartDropOpenedBy {

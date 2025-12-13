@@ -2,48 +2,48 @@ import { UserType } from "../http/types";
 import { AlarmAction } from "./types";
 
 export interface CusPushData {
-    a?: number;                          // Event type, see enum PushEvent
-    alarm?: number;                     // ?
-    alarm_delay?: number;               // alarm delay...
+    a?: number; // Event type, see enum PushEvent
+    alarm?: number; // ?
+    alarm_delay?: number; // alarm delay...
     alarm_type?: number;
-    arming?: number;                    // Station mode (for example 2=SCHEDULE)
+    arming?: number; // Station mode (for example 2=SCHEDULE)
     automation_id?: number;
     batt_powered?: number;
-    c?: number;                         // Channel (received on event security)
+    c?: number; // Channel (received on event security)
     channel?: number;
     click_action?: string;
     create_time?: number;
     device_name?: string;
-    e?: string;                         // Sensor Open (1=True, 0=False)
+    e?: string; // Sensor Open (1=True, 0=False)
     event_time?: number;
     event_type?: number;
-    f?: string;                         // Person?
-    i?: string;                         // (received on event security) FetchId / FaceId?
-    j?: number;                         // SenseID
-    k?: number;                         // Secret Key (received on event security) / Cipher
-    cipher?: number;                     // Secret Key (received on event security) / Cipher
-    m?: number;                         // Device status (0=offline, 1=online)
-    mode?: number;                      // Station mode (if arming=2=SCHEDULE, this parameter shows the changed mode by SCHEDULE; on manually changing mode, mode=arming)
-    n?: string;                         // Nickname / Device name
+    f?: string; // Person?
+    i?: string; // (received on event security) FetchId / FaceId?
+    j?: number; // SenseID
+    k?: number; // Secret Key (received on event security) / Cipher
+    cipher?: number; // Secret Key (received on event security) / Cipher
+    m?: number; // Device status (0=offline, 1=online)
+    mode?: number; // Station mode (if arming=2=SCHEDULE, this parameter shows the changed mode by SCHEDULE; on manually changing mode, mode=arming)
+    n?: string; // Nickname / Device name
     name?: string;
     news_id?: number;
     nick_name?: string;
     notification_style?: number;
-    p?: string;                         // Filename
+    p?: string; // Filename
     file_path?: string;
     pic_url?: string;
     push_count?: number;
-    s: string;                          // Station serial number
+    s: string; // Station serial number
     session_id?: string;
     short_user_id?: string;
     storage_type?: number;
-    t?: string;                         // Timestamp (received on change station mode)
+    t?: string; // Timestamp (received on change station mode)
     tfcard?: number;
     type?: number;
     unique_id?: string;
     user?: UserType;
     user_id?: string;
-    user_name?: string;                 // Username
+    user_name?: string; // Username
     bat_low?: string;
     msg_type: number;
     r?: string;
@@ -54,7 +54,15 @@ export interface EufyPushMessage {
     content: string;
     device_sn: string;
     event_time: string;
-    payload?: CusPushData | IndoorPushData | ServerPushData | BatteryDoorbellPushData | LockPushData | SmartSafePushData | GarageDoorPushData | AlarmPushData;
+    payload?:
+        | CusPushData
+        | IndoorPushData
+        | ServerPushData
+        | BatteryDoorbellPushData
+        | LockPushData
+        | SmartSafePushData
+        | GarageDoorPushData
+        | AlarmPushData;
     push_time: string;
     station_sn: string;
     title: string;
