@@ -66,7 +66,7 @@ import {
   StationNotificationSwitchModeAppProperty,
   StationSdStatusProperty,
   StationSdCapacityProperty,
-  StationSdAvailableCapacityProperty,
+  StationSdAvailableCapacityProperty, GenericDeviceCameraProperties,
 } from "../../types";
 import {
   DeviceMotionHB3DetectionTypeHumanProperty,
@@ -82,9 +82,8 @@ export const EufyCamC35: CameraDevice = {
   firmwareVersion: "1.5.0",
   deviceProperties: {
     ...GenericDeviceProperties,
+    ...GenericDeviceCameraProperties,
     [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
-    [PropertyName.DevicePicture]: DevicePictureProperty,
-    [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
     [PropertyName.DeviceState]: DeviceStateProperty,
     [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
     [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
@@ -104,7 +103,6 @@ export const EufyCamC35: CameraDevice = {
     [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
     [PropertyName.DeviceChimeHomebaseRingtoneVolume]:
       DeviceChimeHomebaseRingtoneVolumeBatteryDoorbellProperty,
-    [PropertyName.DeviceImageMirrored]: DeviceImageMirroredProperty,
     [PropertyName.DeviceLightSettingsMotionTriggered]:
       DeviceFloodlightLightSettingsMotionTriggeredProperty,
     [PropertyName.DeviceDetectionStatisticsRecordedEvents]:
@@ -138,8 +136,6 @@ export const EufyCamC35: CameraDevice = {
     [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
     [PropertyName.DeviceMotionDetection]:
       DeviceMotionDetectionIndoorSoloFloodProperty,
-    [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
-    [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
     [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
     //[PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityProperty,
     //[PropertyName.DeviceVideoRecordingQuality]: DeviceVideoStreamingQualityCameraProperty,
@@ -151,7 +147,6 @@ export const EufyCamC35: CameraDevice = {
     [PropertyName.DeviceBattery]: DeviceBatteryProperty,
     [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
     [PropertyName.DeviceVideoWDR]: DeviceWDRProperty,
-    [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
     [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
     [PropertyName.DeviceRecordingRetriggerInterval]:
       DeviceRecordingRetriggerIntervalProperty,

@@ -1,5 +1,6 @@
 import { TypedEmitter } from "tiny-typed-emitter";
 
+import {AvailableDevices} from "./types";
 import { HTTPApi } from "./api";
 import {
   CommandName,
