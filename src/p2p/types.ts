@@ -1,4 +1,4 @@
-import { LockV12P2PCommandType, SmartLockP2PCommandType } from './models';
+import { LockV12P2PCommandType, SmartLockP2PCommandType } from "./models";
 
 export const RequestMessageType = {
     STUN: Buffer.from([0xf1, 0x00]),

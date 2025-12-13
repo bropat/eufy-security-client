@@ -1,11 +1,11 @@
-import { createCipheriv, createDecipheriv } from 'crypto';
-import { timeZoneData } from './const';
-import md5 from 'crypto-js/md5';
-import enc_hex from 'crypto-js/enc-hex';
-import sha256 from 'crypto-js/sha256';
+import { createCipheriv, createDecipheriv } from "crypto";
+import { timeZoneData } from "./const";
+import md5 from "crypto-js/md5";
+import enc_hex from "crypto-js/enc-hex";
+import sha256 from "crypto-js/sha256";
 
-import { Device } from './device';
-import { Picture, Schedule } from './interfaces';
+import { Device } from "./device";
+import { Picture, Schedule } from "./interfaces";
 import {
     NotificationSwitchMode,
     DeviceType,
@@ -20,25 +20,25 @@ import {
     CommandName,
     NotificationType,
     IndoorS350DetectionTypes,
-} from './types';
-import { HTTPApi } from './api';
-import { ensureError } from '../error';
-import { ImageBaseCodeError } from './error';
-import { LockPushEvent } from './../push/types';
-import { Station } from './station';
-import { rootHTTPLogger } from '../logging';
-import { getError, isEmpty } from '../utils';
-import { PushMessage } from '../push/models';
+} from "./types";
+import { HTTPApi } from "./api";
+import { ensureError } from "../error";
+import { ImageBaseCodeError } from "./error";
+import { LockPushEvent } from "./../push/types";
+import { Station } from "./station";
+import { rootHTTPLogger } from "../logging";
+import { getError, isEmpty } from "../utils";
+import { PushMessage } from "../push/models";
 
 const normalizeVersionString = function (version: string): number[] {
     const trimmed = version
-        ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, '$1')
-        : '';
-    const pieces = trimmed.split(RegExp('\\.'));
+        ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, "$1")
+        : "";
+    const pieces = trimmed.split(RegExp("\\."));
     const parts = [];
     let value, piece, num, i;
     for (i = 0; i < pieces.length; i += 1) {
-        piece = pieces[i].replace(RegExp('\\D'), '');
+        piece = pieces[i].replace(RegExp("\\D"), "");
         num = parseInt(piece, 10);
 
         if (isNaN(num)) {
@@ -81,12 +81,12 @@ export const isGreaterEqualMinVersion = function (
 
 export const pad = function (num: number): string {
     const norm = Math.floor(Math.abs(num));
-    return (norm < 10 ? '0' : '') + norm;
+    return (norm < 10 ? "0" : "") + norm;
 };
 
 export const getTimezoneGMTString = function (): string {
     const tzo = -new Date().getTimezoneOffset();
-    const dif = tzo >= 0 ? '+' : '-';
+    const dif = tzo >= 0 ? "+" : "-";
     return `GMT${dif}${pad(tzo / 60)}:${pad(tzo % 60)}`;
 };
 
@@ -96,9 +96,9 @@ export const getAbsoluteFilePath = function (
     filename: string
 ): string {
     if (device_type === DeviceType.FLOODLIGHT) {
-        return `/mnt/data/Camera${String(channel).padStart(2, '0')}/${filename}.dat`;
+        return `/mnt/data/Camera${String(channel).padStart(2, "0")}/${filename}.dat`;
     }
-    return `/media/mmcblk0p1/Camera${String(channel).padStart(2, '0')}/${filename}.dat`;
+    return `/media/mmcblk0p1/Camera${String(channel).padStart(2, "0")}/${filename}.dat`;
 };
 
 export const getImageFilePath = function (
@@ -107,9 +107,9 @@ export const getImageFilePath = function (
     filename: string
 ): string {
     if (device_type === DeviceType.FLOODLIGHT) {
-        return `/mnt/data/video/${filename}_c${String(channel).padStart(2, '0')}.jpg`;
+        return `/mnt/data/video/${filename}_c${String(channel).padStart(2, "0")}.jpg`;
     }
-    return `/media/mmcblk0p1/video/${filename}_c${String(channel).padStart(2, '0')}.jpg`;
+    return `/media/mmcblk0p1/video/${filename}_c${String(channel).padStart(2, "0")}.jpg`;
 };
 
 export const isNotificationSwitchMode = function (
@@ -217,13 +217,13 @@ export const calculateCellularSignalLevel = function (
 };
 
 export const encryptAPIData = (data: string, key: Buffer): string => {
-    const cipher = createCipheriv('aes-256-cbc', key, key.subarray(0, 16));
-    return cipher.update(data, 'utf8', 'base64') + cipher.final('base64');
+    const cipher = createCipheriv("aes-256-cbc", key, key.subarray(0, 16));
+    return cipher.update(data, "utf8", "base64") + cipher.final("base64");
 };
 
 export const decryptAPIData = (data: string, key: Buffer): Buffer => {
-    const cipher = createDecipheriv('aes-256-cbc', key, key.subarray(0, 16));
-    return Buffer.concat([cipher.update(data, 'base64'), cipher.final()]);
+    const cipher = createDecipheriv("aes-256-cbc", key, key.subarray(0, 16));
+    return Buffer.concat([cipher.update(data, "base64"), cipher.final()]);
 };
 
 export const getBlocklist = function (
@@ -331,13 +331,13 @@ export const getAdvancedLockTimezone = function (stationSN: string): string {
     const timezone = getEufyTimezone();
     if (timezone !== undefined) {
         if (
-            stationSN.startsWith('T8520') &&
-            isGreaterEqualMinVersion('1.2.8.6', stationSN)
+            stationSN.startsWith("T8520") &&
+            isGreaterEqualMinVersion("1.2.8.6", stationSN)
         )
             return `${timezone.timeZoneGMT}|1.${timezone.timeSn}`;
         else return timezone.timeZoneGMT;
     }
-    return '';
+    return "";
 };
 
 export class WritePayload {
@@ -388,7 +388,7 @@ export class ParsePayload {
     }
 
     public readStringHex(indexValue: number): string {
-        return this.readData(indexValue).toString('hex');
+        return this.readData(indexValue).toString("hex");
     }
 
     public readInt8(indexValue: number): number {
@@ -406,11 +406,11 @@ export class ParsePayload {
     public readData(indexValue: number): Buffer {
         let dataPosition = this.getDataPosition(indexValue);
         if (dataPosition == -1) {
-            return Buffer.from('');
+            return Buffer.from("");
         }
         dataPosition++;
         if (dataPosition >= this.data.length) {
-            return Buffer.from('');
+            return Buffer.from("");
         }
         const nextStep = this.getNextStep(indexValue, dataPosition, this.data);
         let tmp;
@@ -420,7 +420,7 @@ export class ParsePayload {
             tmp = this.data.readUint16LE(dataPosition);
         }
         if (dataPosition + nextStep + tmp > this.data.length) {
-            return Buffer.from('');
+            return Buffer.from("");
         }
         return this.data.subarray(
             dataPosition + nextStep,
@@ -503,7 +503,7 @@ export const encodeSmartSafeData = function(command: number, payload: Buffer): B
 }*/
 
 export const encodePasscode = function (pass: string): string {
-    let result = '';
+    let result = "";
     for (let i = 0; i < pass.length; i++)
         result += pass.charCodeAt(i).toString(16);
     return result;
@@ -514,14 +514,14 @@ export const hexDate = function (date: Date): string {
     buf.writeUint8(date.getDate());
     buf.writeUint8(date.getMonth() + 1, 1);
     buf.writeUint16BE(date.getFullYear(), 2);
-    return buf.readUInt32LE().toString(16).padStart(8, '0');
+    return buf.readUInt32LE().toString(16).padStart(8, "0");
 };
 
 export const hexTime = function (date: Date): string {
     const buf = Buffer.allocUnsafe(2);
     buf.writeUint8(date.getHours());
     buf.writeUint8(date.getMinutes(), 1);
-    return buf.readUInt16BE().toString(16).padStart(4, '0');
+    return buf.readUInt16BE().toString(16).padStart(4, "0");
 };
 
 export const hexWeek = function (schedule: Schedule): string {
@@ -559,7 +559,7 @@ export const hexWeek = function (schedule: Schedule): string {
         }
         return result.toString(16);
     }
-    return 'ff';
+    return "ff";
 };
 
 export const hexStringScheduleToSchedule = function (
@@ -580,7 +580,7 @@ export const hexStringScheduleToSchedule = function (
     const weekNumber = Number.parseInt(week, 16);
     return {
         startDateTime:
-            startDay === '00000000'
+            startDay === "00000000"
                 ? undefined
                 : new Date(
                       Number.parseInt(
@@ -593,7 +593,7 @@ export const hexStringScheduleToSchedule = function (
                       Number.parseInt(startTime.substring(2, 4), 16)
                   ),
         endDateTime:
-            endDay === 'ffffffff'
+            endDay === "ffffffff"
                 ? undefined
                 : new Date(
                       Number.parseInt(
@@ -648,7 +648,7 @@ export const getImageBaseCode = function (
         nr = Number.parseInt(`0x${serialnumber[serialnumber.length - 1]}`);
     } catch (err) {
         const error = ensureError(err);
-        throw new ImageBaseCodeError('Error generating image base code', {
+        throw new ImageBaseCodeError("Error generating image base code", {
             cause: error,
             context: { serialnumber: serialnumber, p2pDid: p2pDid },
         });
@@ -665,7 +665,7 @@ export const getImageSeed = function (p2pDid: string, code: string): string {
         return md5(`${prefix}${ncode}`).toString(enc_hex).toUpperCase();
     } catch (err) {
         const error = ensureError(err);
-        throw new ImageBaseCodeError('Error generating image seed', {
+        throw new ImageBaseCodeError("Error generating image seed", {
             cause: error,
             context: { p2pDid: p2pDid, code: code },
         });
@@ -681,7 +681,7 @@ export const getImageKey = function (
     const seed = getImageSeed(p2pDid, code);
     const data = `01${basecode}${seed}`;
     const hash = sha256(data);
-    const hashBytes = [...Buffer.from(hash.toString(enc_hex), 'hex')];
+    const hashBytes = [...Buffer.from(hash.toString(enc_hex), "hex")];
     const startByte = hashBytes[10];
     for (let i = 0; i < 32; i++) {
         const byte = hashBytes[i];
@@ -702,21 +702,21 @@ export const getImageKey = function (
             hashBytes[i] = fixed_byte + byte;
         }
     }
-    return `${Buffer.from(hashBytes.slice(16)).toString('hex').toUpperCase()}`;
+    return `${Buffer.from(hashBytes.slice(16)).toString("hex").toUpperCase()}`;
 };
 
 export const decodeImage = function (p2pDid: string, data: Buffer): Buffer {
     if (data.length >= 12) {
         const header = data.subarray(0, 12).toString();
-        if (header === 'eufysecurity') {
+        if (header === "eufysecurity") {
             const serialnumber = data.subarray(13, 29).toString();
             const code = data.subarray(30, 40).toString();
             const imageKey = getImageKey(serialnumber, p2pDid, code);
             const otherData = data.subarray(41);
             const encryptedData = otherData.subarray(0, 256);
             const cipher = createDecipheriv(
-                'aes-128-ecb',
-                Buffer.from(imageKey, 'utf-8').subarray(0, 16),
+                "aes-128-ecb",
+                Buffer.from(imageKey, "utf-8").subarray(0, 16),
                 null
             );
             cipher.setAutoPadding(false);
@@ -732,7 +732,7 @@ export const decodeImage = function (p2pDid: string, data: Buffer): Buffer {
 };
 
 export const getImagePath = function (path: string): string {
-    const splittedPath = path.split('~');
+    const splittedPath = path.split("~");
     if (splittedPath.length === 2) {
         return splittedPath[1];
     }
@@ -744,7 +744,7 @@ export const getImage = async function (
     serial: string,
     url: string
 ): Promise<Picture> {
-    const { default: imageType } = await import('image-type');
+    const { default: imageType } = await import("image-type");
     const image = await api.getImage(serial, url);
     const type = await imageType(image);
     return {
@@ -752,7 +752,7 @@ export const getImage = async function (
         type:
             type !== null && type !== undefined
                 ? type
-                : { ext: 'unknown', mime: 'application/octet-stream' },
+                : { ext: "unknown", mime: "application/octet-stream" },
     };
 };
 
@@ -761,13 +761,13 @@ export const isPrioritySourceType = function (
     update: SourceType
 ): boolean {
     if (
-        ((current === 'http' ||
-            current === 'p2p' ||
-            current === 'push' ||
-            current === 'mqtt' ||
+        ((current === "http" ||
+            current === "p2p" ||
+            current === "push" ||
+            current === "mqtt" ||
             current === undefined) &&
-            (update === 'p2p' || update === 'push' || update === 'mqtt')) ||
-        ((current === 'http' || current === undefined) && update === 'http')
+            (update === "p2p" || update === "push" || update === "mqtt")) ||
+        ((current === "http" || current === undefined) && update === "http")
     ) {
         return true;
     }
@@ -775,7 +775,7 @@ export const isPrioritySourceType = function (
 };
 
 export const decryptTrackerData = (data: Buffer, key: Buffer): Buffer => {
-    const decipher = createDecipheriv('aes-128-ecb', key, null);
+    const decipher = createDecipheriv("aes-128-ecb", key, null);
     decipher.setAutoPadding(false);
     return Buffer.concat([decipher.update(data), decipher.final()]);
 };

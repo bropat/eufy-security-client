@@ -1,16 +1,16 @@
-import * as path from 'path';
-import { BufferReader, load, Root } from 'protobufjs';
-import { TypedEmitter } from 'tiny-typed-emitter';
+import * as path from "path";
+import { BufferReader, load, Root } from "protobufjs";
+import { TypedEmitter } from "tiny-typed-emitter";
 
-import { MessageTag, ProcessingState } from './models';
-import { PushClientParserEvents } from './interfaces';
-import { ensureError } from '../error';
+import { MessageTag, ProcessingState } from "./models";
+import { PushClientParserEvents } from "./interfaces";
+import { ensureError } from "../error";
 import {
     MCSProtocolMessageTagError,
     MCSProtocolProcessingStateError,
     MCSProtocolVersionError,
-} from './error';
-import { rootPushLogger } from '../logging';
+} from "./error";
+import { rootPushLogger } from "../logging";
 
 export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
     private static proto: Root | null = null;
@@ -38,7 +38,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
     }
 
     public static async init(): Promise<PushClientParser> {
-        this.proto = await load(path.join(__dirname, './proto/mcs.proto'));
+        this.proto = await load(path.join(__dirname, "./proto/mcs.proto"));
         return new PushClientParser();
     }
 
@@ -77,7 +77,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
                 this.onGotMessageBytes();
                 break;
             default:
-                rootPushLogger.warn('Push Parser - Unknown state', {
+                rootPushLogger.warn("Push Parser - Unknown state", {
                     state: this.state,
                 });
                 break;
@@ -88,7 +88,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
         const version = this.data.readInt8(0);
         this.data = this.data.subarray(1);
         if (version < 41 && version !== 38) {
-            throw new MCSProtocolVersionError('Got wrong protocol version', {
+            throw new MCSProtocolVersionError("Got wrong protocol version", {
                 context: { version: version },
             });
         }
@@ -113,7 +113,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
             const error = ensureError(err);
             if (
                 error instanceof Error &&
-                error.message.startsWith('index out of range:')
+                error.message.startsWith("index out of range:")
             ) {
                 incompleteSizePacket = true;
             } else {
@@ -143,7 +143,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
         const protobuf = this.buildProtobufFromTag(this.messageTag);
 
         if (this.messageSize === 0) {
-            this.emit('message', { tag: this.messageTag, object: {} });
+            this.emit("message", { tag: this.messageTag, object: {} });
             this.getNextMessage();
             return;
         }
@@ -163,12 +163,12 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
             bytes: Buffer,
         });
 
-        this.emit('message', { tag: this.messageTag, object: object });
+        this.emit("message", { tag: this.messageTag, object: object });
 
         if (this.messageTag === MessageTag.LoginResponse) {
             if (this.handshakeComplete) {
                 rootPushLogger.error(
-                    'Push Parser - Unexpected login response!'
+                    "Push Parser - Unexpected login response!"
                 );
             } else {
                 this.handshakeComplete = true;
@@ -197,7 +197,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
                 return this.messageSize;
             default:
                 throw new MCSProtocolProcessingStateError(
-                    'Unknown protocol processing state',
+                    "Unknown protocol processing state",
                     { context: { state: this.state } }
                 );
         }
@@ -207,35 +207,35 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
         switch (messageTag) {
             case MessageTag.HeartbeatPing:
                 return PushClientParser.proto!.lookupType(
-                    'mcs_proto.HeartbeatPing'
+                    "mcs_proto.HeartbeatPing"
                 );
             case MessageTag.HeartbeatAck:
                 return PushClientParser.proto!.lookupType(
-                    'mcs_proto.HeartbeatAck'
+                    "mcs_proto.HeartbeatAck"
                 );
             case MessageTag.LoginRequest:
                 return PushClientParser.proto!.lookupType(
-                    'mcs_proto.LoginRequest'
+                    "mcs_proto.LoginRequest"
                 );
             case MessageTag.LoginResponse:
                 return PushClientParser.proto!.lookupType(
-                    'mcs_proto.LoginResponse'
+                    "mcs_proto.LoginResponse"
                 );
             case MessageTag.Close:
-                return PushClientParser.proto!.lookupType('mcs_proto.Close');
+                return PushClientParser.proto!.lookupType("mcs_proto.Close");
             case MessageTag.IqStanza:
-                return PushClientParser.proto!.lookupType('mcs_proto.IqStanza');
+                return PushClientParser.proto!.lookupType("mcs_proto.IqStanza");
             case MessageTag.DataMessageStanza:
                 return PushClientParser.proto!.lookupType(
-                    'mcs_proto.DataMessageStanza'
+                    "mcs_proto.DataMessageStanza"
                 );
             case MessageTag.StreamErrorStanza:
                 return PushClientParser.proto!.lookupType(
-                    'mcs_proto.StreamErrorStanza'
+                    "mcs_proto.StreamErrorStanza"
                 );
             default:
                 throw new MCSProtocolMessageTagError(
-                    'Unknown protocol message tag',
+                    "Unknown protocol message tag",
                     {
                         context: { messageTag: this.messageTag },
                     }

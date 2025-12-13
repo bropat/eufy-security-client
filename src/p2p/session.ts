@@ -23,7 +23,7 @@ import {
     ESLAdvancedLockStatusNotificationT8530,
     SmartLockP2PThroughData,
     SmartLockP2PSequenceData,
-} from './models';
+} from "./models";
 import {
     sendMessage,
     hasHeader,
@@ -65,7 +65,7 @@ import {
     getNullTerminatedString,
     generateSmartLockAESKey,
     readNullTerminatedBuffer,
-} from './utils';
+} from "./utils";
 import {
     RequestMessageType,
     ResponseMessageType,
@@ -88,8 +88,8 @@ import {
     SmartLockBleCommandFunctionType2,
     SmartLockBleCommandFunctionType1,
     SmartLockFunctionType,
-} from './types';
-import { AlarmMode } from '../http/types';
+} from "./types";
+import { AlarmMode } from "../http/types";
 import {
     P2PDataMessage,
     P2PDataMessageAudio,
@@ -115,23 +115,23 @@ import {
     P2PDatabaseQueryLocalHistoryRecordInfo,
     P2PDatabaseQueryLocalRecordCropPictureInfo,
     CustomDataType,
-} from './interfaces';
+} from "./interfaces";
 import {
     DskKeyResponse,
     ResultResponse,
     StationListResponse,
-} from '../http/models';
-import { HTTPApi } from '../http/api';
-import { Device } from '../http/device';
-import { ParsePayload, decodeImage } from '../http/utils';
-import { TalkbackStream } from './talkback';
-import { LivestreamError, TalkbackError, ensureError } from '../error';
-import { SmartSafeEvent } from '../push/types';
-import { SmartSafeEventValueDetail } from '../push/models';
-import { BleCommandFactory, BleParameterIndex } from './ble';
-import { CommandName, ParamType, Station } from '../http';
-import { getError, parseJSON } from '../utils';
-import { rootP2PLogger } from '../logging';
+} from "../http/models";
+import { HTTPApi } from "../http/api";
+import { Device } from "../http/device";
+import { ParsePayload, decodeImage } from "../http/utils";
+import { TalkbackStream } from "./talkback";
+import { LivestreamError, TalkbackError, ensureError } from "../error";
+import { SmartSafeEvent } from "../push/types";
+import { SmartSafeEventValueDetail } from "../push/models";
+import { BleCommandFactory, BleParameterIndex } from "./ble";
+import { CommandName, ParamType, Station } from "../http";
+import { getError, parseJSON } from "../utils";
+import { rootP2PLogger } from "../logging";
 
 export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private readonly MAX_RETRIES = 10;
@@ -237,7 +237,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private localIPAddress: string | undefined = undefined;
     private preferredIPAddress: string | undefined = undefined;
     private listeningPort: number = 0;
-    private dskKey = '';
+    private dskKey = "";
     private dskExpiration: Date | null = null;
     private deviceSNs: DeviceSerial = {};
     private api: HTTPApi;
@@ -255,7 +255,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         api: HTTPApi,
         ipAddress?: string,
         listeningPort = 0,
-        publicKey = '',
+        publicKey = "",
         enableEmbeddedPKCS1Support = false
     ) {
         super();
@@ -265,17 +265,17 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (listeningPort >= 0) this.listeningPort = listeningPort;
         this.enableEmbeddedPKCS1Support = enableEmbeddedPKCS1Support;
         this.cloudAddresses = decodeP2PCloudIPs(rawStation.app_conn);
-        rootP2PLogger.debug('Loaded P2P cloud ip addresses', {
+        rootP2PLogger.debug("Loaded P2P cloud ip addresses", {
             stationSN: rawStation.station_sn,
             ipAddress: ipAddress,
             cloudAddresses: this.cloudAddresses,
         });
         this.updateRawStation(rawStation);
 
-        this.socket = createSocket('udp4');
-        this.socket.on('message', (msg, rinfo) => this.handleMsg(msg, rinfo));
-        this.socket.on('error', (error) => this.onError(error));
-        this.socket.on('close', () => this.onClose());
+        this.socket = createSocket("udp4");
+        this.socket.on("message", (msg, rinfo) => this.handleMsg(msg, rinfo));
+        this.socket.on("error", (error) => this.onError(error));
+        this.socket.on("close", () => this.onClose());
 
         this._initialize();
     }
@@ -490,8 +490,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 error: getError(error),
                 stationSN: this.rawStation.station_sn,
                 address: address,
-                msgID: msgID.toString('hex'),
-                payload: payload?.toString('hex'),
+                msgID: msgID.toString("hex"),
+                payload: payload?.toString("hex"),
             });
         });
     }
@@ -524,9 +524,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 queue.p2pCommand.commandType !== CommandType.CMD_GET_DEVICE_PING
         );
         if (this.connected) {
-            this.emit('close');
+            this.emit("close");
         } else if (!this.terminating) {
-            this.emit('timeout');
+            this.emit("timeout");
         }
         this._initialize();
     }
@@ -569,7 +569,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private async renewDSKKey(): Promise<void> {
         if (
-            this.dskKey === '' ||
+            this.dskKey === "" ||
             (this.dskExpiration &&
                 new Date().getTime() >= this.dskExpiration.getTime())
         ) {
@@ -725,8 +725,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             } else {
                 const localIP = getLocalIpAddress();
                 host = localIP
-                    .substring(0, localIP.lastIndexOf('.') + 1)
-                    .concat('255');
+                    .substring(0, localIP.lastIndexOf(".") + 1)
+                    .concat("255");
             }
         }
         this.localLookup(host);
@@ -842,9 +842,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (p2pcommand.channel === undefined) p2pcommand.channel = 0;
         if (
             p2pcommand.value === undefined ||
-            typeof p2pcommand.value !== 'number'
+            typeof p2pcommand.value !== "number"
         )
-            throw new TypeError('value must be a number');
+            throw new TypeError("value must be a number");
 
         this.sendCommand(
             p2pcommand,
@@ -861,9 +861,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (p2pcommand.channel === undefined) p2pcommand.channel = this.channel;
         if (
             p2pcommand.value === undefined ||
-            typeof p2pcommand.value !== 'number'
+            typeof p2pcommand.value !== "number"
         )
-            throw new TypeError('value must be a number');
+            throw new TypeError("value must be a number");
 
         this.sendCommand(
             p2pcommand,
@@ -880,9 +880,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         if (p2pcommand.channel === undefined) p2pcommand.channel = 0;
         if (
             p2pcommand.value === undefined ||
-            typeof p2pcommand.value !== 'string'
+            typeof p2pcommand.value !== "string"
         )
-            throw new TypeError('value must be a string');
+            throw new TypeError("value must be a string");
 
         let nested_commandType = undefined;
         let nested_commandType2 = undefined;
@@ -946,9 +946,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     ): void {
         if (p2pcommand.channel === undefined) p2pcommand.channel = this.channel;
         if (p2pcommand.strValue === undefined)
-            throw new TypeError('strValue must be defined');
+            throw new TypeError("strValue must be defined");
         if (p2pcommand.strValueSub === undefined)
-            throw new TypeError('strValueSub must be defined');
+            throw new TypeError("strValueSub must be defined");
 
         this.sendCommand(
             p2pcommand,
@@ -1131,7 +1131,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             message.p2pCommand.commandType,
                             message.p2pCommand.value as number,
                             message.p2pCommand.strValue === undefined
-                                ? ''
+                                ? ""
                                 : message.p2pCommand.strValue,
                             channel
                         );
@@ -1148,10 +1148,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 ? 0
                                 : message.p2pCommand.valueSub,
                             message.p2pCommand.strValue === undefined
-                                ? ''
+                                ? ""
                                 : message.p2pCommand.strValue,
                             message.p2pCommand.strValueSub === undefined
-                                ? ''
+                                ? ""
                                 : message.p2pCommand.strValueSub,
                             channel
                         );
@@ -1224,7 +1224,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         maxAgeing: this.MAX_COMMAND_QUEUE_TIMEOUT,
                     }
                 );
-                this.emit('command', {
+                this.emit("command", {
                     command_type:
                         message.nestedCommandType !== undefined
                             ? message.nestedCommandType
@@ -1257,7 +1257,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     retries: message.retries,
                     returnCode: message.returnCode,
                 });
-                this.emit('command', {
+                this.emit("command", {
                     command_type:
                         message.nestedCommandType !== undefined
                             ? message.nestedCommandType
@@ -1334,7 +1334,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             );
         }
 
-        rootP2PLogger.debug('Sending p2p command...', {
+        rootP2PLogger.debug("Sending p2p command...", {
             station: this.rawStation.station_sn,
             sequence: messageState.sequence,
             commandType: messageState.commandType,
@@ -1408,7 +1408,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     this.currentMessageState[P2PDataType.DATA].rtspStreaming[
                         messageState.channel
                     ] = true;
-                    this.emit('rtsp livestream started', messageState.channel);
+                    this.emit("rtsp livestream started", messageState.channel);
                 } else {
                     this.endRTSPStream(messageState.channel);
                 }
@@ -1424,14 +1424,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
                 const p2pDid = `${msg
                     .subarray(4, 12)
-                    .toString('utf8')
+                    .toString("utf8")
                     .replace(
                         /[\0]+$/g,
-                        ''
-                    )}-${msg.subarray(12, 16).readUInt32BE().toString().padStart(6, '0')}-${msg
+                        ""
+                    )}-${msg.subarray(12, 16).readUInt32BE().toString().padStart(6, "0")}-${msg
                     .subarray(16, 24)
-                    .toString('utf8')
-                    .replace(/[\0]+$/g, '')}`;
+                    .toString("utf8")
+                    .replace(/[\0]+$/g, "")}`;
                 rootP2PLogger.trace(
                     `Received message - LOCAL_LOOKUP_RESP - Got response`,
                     {
@@ -1483,7 +1483,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     }
                 );
 
-                if (ip === '0.0.0.0') {
+                if (ip === "0.0.0.0") {
                     rootP2PLogger.trace(
                         `Received message - LOOKUP_ADDR - Got invalid ip address 0.0.0.0, ignoring response...`,
                         {
@@ -1691,7 +1691,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 if (this.energySavingDevice) {
                     this.scheduleP2PKeepalive();
                 }
-                this.emit('connect', this.connectAddress);
+                this.emit("connect", this.connectAddress);
             }
         } else if (hasHeader(msg, ResponseMessageType.PONG)) {
             // Response to a ping from our side
@@ -1787,7 +1787,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                 },
                                             }
                                         );
-                                        this.emit('command', {
+                                        this.emit("command", {
                                             command_type:
                                                 msg_state.nestedCommandType !==
                                                 undefined
@@ -2037,7 +2037,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         response: {
                             ip: ip,
                             port: port,
-                            data: data.toString('hex'),
+                            data: data.toString("hex"),
                         },
                     }
                 );
@@ -2047,7 +2047,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         stationSN: this.rawStation.station_sn,
                         ip: ip,
                         port: port,
-                        data: data.toString('hex'),
+                        data: data.toString("hex"),
                     }
                 );
 
@@ -2073,7 +2073,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         remoteAddress: rinfo.address,
                         remotePort: rinfo.port,
                         response: {
-                            message: msg.toString('hex'),
+                            message: msg.toString("hex"),
                             length: msg.length,
                         },
                     }
@@ -2097,7 +2097,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         stationSN: this.rawStation.station_sn,
                         ip: ip,
                         port: port,
-                        binaryIP: binaryIP.toString('hex'),
+                        binaryIP: binaryIP.toString("hex"),
                     }
                 );
                 for (let i = 0; i < 4; i++)
@@ -2114,7 +2114,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         remotePort: rinfo.port,
                         response: {
                             port: port,
-                            binaryIP: binaryIP.toString('hex'),
+                            binaryIP: binaryIP.toString("hex"),
                         },
                     }
                 );
@@ -2148,7 +2148,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 stationSN: this.rawStation.station_sn,
                 remoteAddress: rinfo.address,
                 remotePort: rinfo.port,
-                response: { message: msg.toString('hex'), length: msg.length },
+                response: { message: msg.toString("hex"), length: msg.length },
             });
         }
     }
@@ -2253,7 +2253,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 stationSN: this.rawStation.station_sn,
                                 seqNo: message.seqNo,
                                 dataSize: data.length,
-                                data: data.toString('hex'),
+                                data: data.toString("hex"),
                             }
                         );
                         data = Buffer.from([]);
@@ -2339,7 +2339,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 seqNo: message.seqNo,
                                 data_message: data_message,
                                 datalen: data.length,
-                                data: data.toString('hex'),
+                                data: data.toString("hex"),
                                 offsetDataSeqNumber: this.offsetDataSeqNumber,
                                 seqNumber: this.seqNumber,
                                 p2pDataSeqNumber: this.p2pDataSeqNumber,
@@ -2366,7 +2366,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         bytesToRead:
                             this.currentMessageBuilder[message.type].header
                                 .bytesToRead,
-                        message: message.data.toString('hex'),
+                        message: message.data.toString("hex"),
                         messageSize: message.data.length,
                     }
                 );
@@ -2407,7 +2407,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                         signCode: message.signCode,
                                         type: message.type,
                                         dataType: P2PDataType[message.dataType],
-                                        data: message.data.toString('hex'),
+                                        data: message.data.toString("hex"),
                                     },
                                 }
                             );
@@ -2428,8 +2428,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         commandId: message.commandId,
                         resultCodeName: error_codeStr,
                         resultCode: return_code,
-                        resultData: resultData?.toString('hex'),
-                        data: message.data.toString('hex'),
+                        resultData: resultData?.toString("hex"),
+                        data: message.data.toString("hex"),
                         seqNumber: this.seqNumber,
                         p2pDataSeqNumber: this.p2pDataSeqNumber,
                         offsetDataSeqNumber: this.offsetDataSeqNumber,
@@ -2486,7 +2486,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             this._sendCommand(msg_state);
                         } else {
                             if (command_type !== CommandType.CMD_GATEWAYINFO) {
-                                this.emit('command', {
+                                this.emit("command", {
                                     command_type: command_type,
                                     channel: msg_state.channel,
                                     return_code: return_code,
@@ -2557,7 +2557,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                         );
                                         this.secondaryCommandTimeout =
                                             undefined;
-                                        this.emit('secondary command', {
+                                        this.emit("secondary command", {
                                             command_type:
                                                 msg_state!.nestedCommandType !==
                                                 undefined
@@ -2619,10 +2619,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     return_code === ErrorCode.ERROR_NOT_FIND_DEV
                                 ) {
                                     this.emit(
-                                        'talkback error',
+                                        "talkback error",
                                         msg_state.channel,
                                         new TalkbackError(
-                                            'Someone is responding now.',
+                                            "Someone is responding now.",
                                             {
                                                 context: {
                                                     station:
@@ -2637,10 +2637,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     return_code === ErrorCode.ERROR_DEV_BUSY
                                 ) {
                                     this.emit(
-                                        'talkback error',
+                                        "talkback error",
                                         msg_state.channel,
                                         new TalkbackError(
-                                            'Wait a second, device is busy.',
+                                            "Wait a second, device is busy.",
                                             {
                                                 context: {
                                                     station:
@@ -2653,10 +2653,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     );
                                 } else {
                                     this.emit(
-                                        'talkback error',
+                                        "talkback error",
                                         msg_state.channel,
                                         new TalkbackError(
-                                            'Connect failed please try again later.',
+                                            "Connect failed please try again later.",
                                             {
                                                 context: {
                                                     station:
@@ -2691,7 +2691,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     .readUInt32LE();
                                 if (return_code >= -1) {
                                     this.emit(
-                                        'sd info ex',
+                                        "sd info ex",
                                         return_code,
                                         totalCapacity,
                                         availableCapacity
@@ -2716,7 +2716,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     commandType: CommandType[message.commandId],
                                     channel: message.channel,
                                     signCode: message.signCode,
-                                    data: message.data.toString('hex'),
+                                    data: message.data.toString("hex"),
                                 },
                             }
                         );
@@ -2741,7 +2741,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 commandType: CommandType[message.commandId],
                                 channel: message.channel,
                                 signCode: message.signCode,
-                                data: message.data.toString('hex'),
+                                data: message.data.toString("hex"),
                             },
                         }
                     );
@@ -2756,7 +2756,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             commandType: message.commandId,
                             channel: message.channel,
                             signCode: message.signCode,
-                            data: message.data.toString('hex'),
+                            data: message.data.toString("hex"),
                         },
                     }
                 );
@@ -2776,7 +2776,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         commandType: message.commandId,
                         channel: message.channel,
                         signCode: message.signCode,
-                        data: message.data.toString('hex'),
+                        data: message.data.toString("hex"),
                     },
                 }
             );
@@ -2785,22 +2785,22 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private isIFrame(data: Buffer, isKeyFrame: boolean): boolean {
         if (
-            this.rawStation.station_sn.startsWith('T8410') ||
-            this.rawStation.station_sn.startsWith('T8400') ||
-            this.rawStation.station_sn.startsWith('T8401') ||
-            this.rawStation.station_sn.startsWith('T8411') ||
-            this.rawStation.station_sn.startsWith('T8202') ||
-            this.rawStation.station_sn.startsWith('T8422') ||
-            this.rawStation.station_sn.startsWith('T8424') ||
-            this.rawStation.station_sn.startsWith('T8423') ||
-            this.rawStation.station_sn.startsWith('T8130') ||
-            this.rawStation.station_sn.startsWith('T8131') ||
-            this.rawStation.station_sn.startsWith('T8420') ||
-            this.rawStation.station_sn.startsWith('T8440') ||
-            this.rawStation.station_sn.startsWith('T8171') ||
-            this.rawStation.station_sn.startsWith('T8426') ||
-            this.rawStation.station_sn.startsWith('T8441') ||
-            this.rawStation.station_sn.startsWith('T8442') ||
+            this.rawStation.station_sn.startsWith("T8410") ||
+            this.rawStation.station_sn.startsWith("T8400") ||
+            this.rawStation.station_sn.startsWith("T8401") ||
+            this.rawStation.station_sn.startsWith("T8411") ||
+            this.rawStation.station_sn.startsWith("T8202") ||
+            this.rawStation.station_sn.startsWith("T8422") ||
+            this.rawStation.station_sn.startsWith("T8424") ||
+            this.rawStation.station_sn.startsWith("T8423") ||
+            this.rawStation.station_sn.startsWith("T8130") ||
+            this.rawStation.station_sn.startsWith("T8131") ||
+            this.rawStation.station_sn.startsWith("T8420") ||
+            this.rawStation.station_sn.startsWith("T8440") ||
+            this.rawStation.station_sn.startsWith("T8171") ||
+            this.rawStation.station_sn.startsWith("T8426") ||
+            this.rawStation.station_sn.startsWith("T8441") ||
+            this.rawStation.station_sn.startsWith("T8442") ||
             checkT8420(this.rawStation.station_sn)
         ) {
             //TODO: Need to add battery doorbells as seen in source => T8210,T8220,T8221,T8222
@@ -2848,7 +2848,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         videoHeight: 1080,
                         videoTimestamp: 0,
                         videoDataLength: 0,
-                        aesKey: '',
+                        aesKey: "",
                     };
                     const data_length = message.data.readUInt32LE();
                     const isKeyFrame =
@@ -2887,7 +2887,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             try {
                                 videoMetaData.aesKey = rsaKey
                                     .decrypt(key)
-                                    .toString('hex');
+                                    .toString("hex");
                                 rootP2PLogger.trace(
                                     `Handle DATA ${P2PDataType[message.dataType]} - Decrypted AES key`,
                                     {
@@ -2902,17 +2902,17 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     {
                                         error: getError(error),
                                         stationSN: this.rawStation.station_sn,
-                                        key: key.toString('hex'),
+                                        key: key.toString("hex"),
                                     }
                                 );
                                 this.currentMessageState[
                                     message.dataType
                                 ].invalidStream = true;
                                 this.emit(
-                                    'livestream error',
+                                    "livestream error",
                                     message.channel,
                                     new LivestreamError(
-                                        'Station AES key could not be decrypted! The entire stream is discarded.',
+                                        "Station AES key could not be decrypted! The entire stream is discarded.",
                                         {
                                             context: {
                                                 station:
@@ -2931,10 +2931,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 message.dataType
                             ].invalidStream = true;
                             this.emit(
-                                'livestream error',
+                                "livestream error",
                                 message.channel,
                                 new LivestreamError(
-                                    'Station Private RSA key is missing! Stream could not be decrypted. The entire stream is discarded.',
+                                    "Station Private RSA key is missing! Stream could not be decrypted. The entire stream is discarded.",
                                     {
                                         context: {
                                             station: this.rawStation.station_sn,
@@ -2948,7 +2948,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     }
 
                     let video_data: Buffer;
-                    if (videoMetaData.aesKey !== '') {
+                    if (videoMetaData.aesKey !== "") {
                         const encrypted_data = message.data.subarray(
                             payloadStart,
                             payloadStart + 128
@@ -2996,22 +2996,22 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             .p2pStreamFirstVideoDataReceived
                     ) {
                         if (
-                            this.rawStation.station_sn.startsWith('T8410') ||
-                            this.rawStation.station_sn.startsWith('T8400') ||
-                            this.rawStation.station_sn.startsWith('T8401') ||
-                            this.rawStation.station_sn.startsWith('T8411') ||
-                            this.rawStation.station_sn.startsWith('T8202') ||
-                            this.rawStation.station_sn.startsWith('T8422') ||
-                            this.rawStation.station_sn.startsWith('T8424') ||
-                            this.rawStation.station_sn.startsWith('T8423') ||
-                            this.rawStation.station_sn.startsWith('T8130') ||
-                            this.rawStation.station_sn.startsWith('T8131') ||
-                            this.rawStation.station_sn.startsWith('T8420') ||
-                            this.rawStation.station_sn.startsWith('T8440') ||
-                            this.rawStation.station_sn.startsWith('T8171') ||
-                            this.rawStation.station_sn.startsWith('T8426') ||
-                            this.rawStation.station_sn.startsWith('T8441') ||
-                            this.rawStation.station_sn.startsWith('T8442') ||
+                            this.rawStation.station_sn.startsWith("T8410") ||
+                            this.rawStation.station_sn.startsWith("T8400") ||
+                            this.rawStation.station_sn.startsWith("T8401") ||
+                            this.rawStation.station_sn.startsWith("T8411") ||
+                            this.rawStation.station_sn.startsWith("T8202") ||
+                            this.rawStation.station_sn.startsWith("T8422") ||
+                            this.rawStation.station_sn.startsWith("T8424") ||
+                            this.rawStation.station_sn.startsWith("T8423") ||
+                            this.rawStation.station_sn.startsWith("T8130") ||
+                            this.rawStation.station_sn.startsWith("T8131") ||
+                            this.rawStation.station_sn.startsWith("T8420") ||
+                            this.rawStation.station_sn.startsWith("T8440") ||
+                            this.rawStation.station_sn.startsWith("T8171") ||
+                            this.rawStation.station_sn.startsWith("T8426") ||
+                            this.rawStation.station_sn.startsWith("T8441") ||
+                            this.rawStation.station_sn.startsWith("T8442") ||
                             checkT8420(this.rawStation.station_sn)
                         ) {
                             this.currentMessageState[
@@ -3335,7 +3335,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             commandIdName: CommandType[message.commandId],
                             commandId: message.commandId,
                             channel: message.channel,
-                            data: message.data.toString('hex'),
+                            data: message.data.toString("hex"),
                         }
                     );
                     break;
@@ -3348,7 +3348,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     commandIdName: CommandType[message.commandId],
                     commandId: message.commandId,
                     channel: message.channel,
-                    data: message.data.toString('hex'),
+                    data: message.data.toString("hex"),
                 }
             );
         }
@@ -3383,7 +3383,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 signCode: message.signCode,
                                 type: message.type,
                                 dataType: P2PDataType[message.dataType],
-                                data: message.data.toString('hex'),
+                                data: message.data.toString("hex"),
                             },
                         }
                     );
@@ -3395,7 +3395,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     stationSN: this.rawStation.station_sn,
                     commandIdName: CommandType[message.commandId],
                     commandId: message.commandId,
-                    data: message.data.toString('hex'),
+                    data: message.data.toString("hex"),
                     seqNumber: this.seqNumber,
                     p2pDataSeqNumber: this.p2pDataSeqNumber,
                     offsetDataSeqNumber: this.offsetDataSeqNumber,
@@ -3407,13 +3407,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         `Handle DATA ${P2PDataType[message.dataType]} - Alarm mode changed to: ${AlarmMode[data.readUIntBE(0, 1)]}`,
                         { stationSN: this.rawStation.station_sn }
                     );
-                    this.emit('alarm mode', data.readUIntBE(0, 1) as AlarmMode);
+                    this.emit("alarm mode", data.readUIntBE(0, 1) as AlarmMode);
                     break;
                 case CommandType.CMD_CAMERA_INFO:
                     try {
                         const cameraData = getNullTerminatedString(
                             data,
-                            'utf8'
+                            "utf8"
                         );
                         rootP2PLogger.debug(
                             `Handle DATA ${P2PDataType[message.dataType]} - Camera info`,
@@ -3423,7 +3423,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             }
                         );
                         this.emit(
-                            'camera info',
+                            "camera info",
                             parseJSON(
                                 cameraData,
                                 rootP2PLogger
@@ -3443,7 +3443,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     signCode: message.signCode,
                                     type: message.type,
                                     dataType: P2PDataType[message.dataType],
-                                    data: message.data.toString('hex'),
+                                    data: message.data.toString("hex"),
                                 },
                             }
                         );
@@ -3476,7 +3476,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             rssi: rssi,
                         }
                     );
-                    this.emit('wifi rssi', message.channel, rssi);
+                    this.emit("wifi rssi", message.channel, rssi);
                     break;
                 case CommandType.CMD_DOWNLOAD_FINISH:
                     rootP2PLogger.debug(
@@ -3490,7 +3490,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     break;
                 case CommandType.CMD_DOORBELL_NOTIFY_PAYLOAD:
                     try {
-                        const str = getNullTerminatedString(data, 'utf8');
+                        const str = getNullTerminatedString(data, "utf8");
                         rootP2PLogger.debug(
                             `Handle DATA ${P2PDataType[message.dataType]} - CMD_DOORBELL_NOTIFY_PAYLOAD`,
                             {
@@ -3515,7 +3515,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     signCode: message.signCode,
                                     type: message.type,
                                     dataType: P2PDataType[message.dataType],
-                                    data: message.data.toString('hex'),
+                                    data: message.data.toString("hex"),
                                 },
                             }
                         );
@@ -3523,7 +3523,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     break;
                 case CommandType.CMD_NAS_SWITCH:
                     try {
-                        const str = getNullTerminatedString(data, 'utf8');
+                        const str = getNullTerminatedString(data, "utf8");
                         rootP2PLogger.debug(
                             `Handle DATA ${P2PDataType[message.dataType]} - CMD_NAS_SWITCH`,
                             {
@@ -3531,7 +3531,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 payload: str,
                             }
                         );
-                        this.emit('rtsp url', message.channel, str);
+                        this.emit("rtsp url", message.channel, str);
                     } catch (err) {
                         const error = ensureError(err);
                         rootP2PLogger.error(
@@ -3546,7 +3546,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     signCode: message.signCode,
                                     type: message.type,
                                     dataType: P2PDataType[message.dataType],
-                                    data: message.data.toString('hex'),
+                                    data: message.data.toString("hex"),
                                 },
                             }
                         );
@@ -3564,7 +3564,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         const chargeType = data.subarray(0, 4).readUInt32LE();
                         const batteryLevel = data.subarray(4, 8).readUInt32LE();
                         this.emit(
-                            'charging state',
+                            "charging state",
                             message.channel,
                             chargeType,
                             batteryLevel
@@ -3583,7 +3583,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     signCode: message.signCode,
                                     type: message.type,
                                     dataType: P2PDataType[message.dataType],
-                                    data: message.data.toString('hex'),
+                                    data: message.data.toString("hex"),
                                 },
                             }
                         );
@@ -3601,7 +3601,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         const batteryLevel = data.subarray(0, 4).readUInt32LE();
                         const temperature = data.subarray(4, 8).readUInt32LE();
                         this.emit(
-                            'runtime state',
+                            "runtime state",
                             message.channel,
                             batteryLevel,
                             temperature
@@ -3620,7 +3620,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     signCode: message.signCode,
                                     type: message.type,
                                     dataType: P2PDataType[message.dataType],
-                                    data: message.data.toString('hex'),
+                                    data: message.data.toString("hex"),
                                 },
                             }
                         );
@@ -3639,7 +3639,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             }
                         );
                         this.emit(
-                            'floodlight manual switch',
+                            "floodlight manual switch",
                             message.channel,
                             enabled
                         );
@@ -3657,7 +3657,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     signCode: message.signCode,
                                     type: message.type,
                                     dataType: P2PDataType[message.dataType],
-                                    data: message.data.toString('hex'),
+                                    data: message.data.toString("hex"),
                                 },
                             }
                         );
@@ -3687,7 +3687,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     signCode: message.signCode,
                                     type: message.type,
                                     dataType: P2PDataType[message.dataType],
-                                    data: message.data.toString('hex'),
+                                    data: message.data.toString("hex"),
                                 },
                             }
                         );
@@ -3703,7 +3703,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             }
                         );
                         const json: CmdNotifyPayload = parseJSON(
-                            getNullTerminatedString(data, 'utf8'),
+                            getNullTerminatedString(data, "utf8"),
                             rootP2PLogger
                         ) as CmdNotifyPayload;
                         if (json !== undefined) {
@@ -3730,15 +3730,15 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                             decryptPayloadData(
                                                 Buffer.from(
                                                     json.payload as string,
-                                                    'base64'
+                                                    "base64"
                                                 ),
-                                                Buffer.from(aesKey, 'hex'),
+                                                Buffer.from(aesKey, "hex"),
                                                 Buffer.from(
                                                     getLockVectorBytes(
                                                         this.rawStation
                                                             .station_sn
                                                     ),
-                                                    'hex'
+                                                    "hex"
                                                 )
                                             ).toString();
                                         rootP2PLogger.debug(
@@ -3768,13 +3768,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     const payload: ESLAdvancedLockStatusNotification =
                                         json.payload as ESLAdvancedLockStatusNotification;
                                     this.emit(
-                                        'parameter',
+                                        "parameter",
                                         message.channel,
                                         CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL,
                                         payload.slBattery
                                     );
                                     this.emit(
-                                        'parameter',
+                                        "parameter",
                                         message.channel,
                                         CommandType.CMD_SMARTLOCK_QUERY_STATUS,
                                         payload.slState
@@ -3800,19 +3800,19 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 const payload: ESLAdvancedLockStatusNotificationT8530 =
                                     json.payload as ESLAdvancedLockStatusNotificationT8530;
                                 this.emit(
-                                    'parameter',
+                                    "parameter",
                                     message.channel,
                                     CommandType.CMD_GET_BATTERY,
                                     payload.slBattery
                                 );
                                 this.emit(
-                                    'parameter',
+                                    "parameter",
                                     message.channel,
                                     CommandType.CMD_DOORLOCK_GET_STATE,
                                     payload.slState
                                 );
                                 this.emit(
-                                    'parameter',
+                                    "parameter",
                                     message.channel,
                                     CommandType.CMD_SMARTLOCK_NIGHT_VISION_SIDE,
                                     payload.slOpenDirection
@@ -3846,7 +3846,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     }
                                     if (payload.lock_cmd > 0) {
                                         this.emit(
-                                            'sequence error',
+                                            "sequence error",
                                             message.channel,
                                             payload.lock_cmd,
                                             payload.seq_num!,
@@ -3884,7 +3884,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                             )
                                         ) {
                                             this.emit(
-                                                'sequence error',
+                                                "sequence error",
                                                 message.channel,
                                                 ESLCommand[
                                                     ESLBleCommand[
@@ -3917,7 +3917,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                             )
                                         ) {
                                             this.emit(
-                                                'sequence error',
+                                                "sequence error",
                                                 message.channel,
                                                 SmartLockCommand[
                                                     payload.bus_type! ==
@@ -3987,7 +3987,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                 key: key,
                                                 iv: iv,
                                                 decoded:
-                                                    decoded.toString('hex'),
+                                                    decoded.toString("hex"),
                                             }
                                         );
 
@@ -3996,17 +3996,17 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                 key,
                                                 iv,
                                                 decoded
-                                            ).toString('hex');
+                                            ).toString("hex");
 
                                         switch (payload.lock_cmd) {
                                             case ESLBleCommand.NOTIFY:
                                                 const notifyBuffer =
                                                     Buffer.from(
                                                         payload.lock_payload,
-                                                        'hex'
+                                                        "hex"
                                                     );
                                                 this.emit(
-                                                    'parameter',
+                                                    "parameter",
                                                     message.channel,
                                                     CommandType.CMD_GET_BATTERY,
                                                     notifyBuffer
@@ -4015,7 +4015,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                         .toString()
                                                 );
                                                 this.emit(
-                                                    'parameter',
+                                                    "parameter",
                                                     message.channel,
                                                     CommandType.CMD_DOORLOCK_GET_STATE,
                                                     notifyBuffer
@@ -4069,13 +4069,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                             if (aesKey !== undefined) {
                                                 data = decryptPayloadData(
                                                     data,
-                                                    Buffer.from(aesKey, 'hex'),
+                                                    Buffer.from(aesKey, "hex"),
                                                     Buffer.from(
                                                         getLockVectorBytes(
                                                             this.rawStation
                                                                 .station_sn
                                                         ),
-                                                        'hex'
+                                                        "hex"
                                                     )
                                                 );
                                             }
@@ -4105,7 +4105,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                         customData.customData,
                                                 };
                                                 this.emit(
-                                                    'secondary command',
+                                                    "secondary command",
                                                     result
                                                 );
                                                 delete this.customDataStaging[
@@ -4122,7 +4122,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                         CommandType[json.cmd],
                                                     commandId: json.cmd,
                                                     decoded:
-                                                        data.toString('hex'),
+                                                        data.toString("hex"),
                                                     bleCommandCode:
                                                         ESLBleCommand[
                                                             fac.getCommandCode()!
@@ -4142,7 +4142,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                 case ESLBleCommand.QUERY_STATUS_IN_LOCK:
                                                 case ESLBleCommand.NOTIFY:
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL,
                                                         parsePayload
@@ -4152,7 +4152,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                             .toString()
                                                     );
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTLOCK_QUERY_STATUS,
                                                         parsePayload
@@ -4164,7 +4164,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                     break;
                                                 case ESLBleCommand.GET_LOCK_PARAM:
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTLOCK_LOCK_SOUND,
                                                         parsePayload
@@ -4174,7 +4174,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                             .toString()
                                                     );
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTLOCK_AUTO_LOCK,
                                                         parsePayload
@@ -4184,7 +4184,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                             .toString()
                                                     );
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTLOCK_AUTO_LOCK_TIMER,
                                                         parsePayload
@@ -4194,7 +4194,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                             .toString()
                                                     );
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE,
                                                         parsePayload
@@ -4204,7 +4204,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                             .toString()
                                                     );
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_STARTTIME,
                                                         parsePayload.readStringHex(
@@ -4212,7 +4212,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                         )
                                                     );
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_ENDTIME,
                                                         parsePayload.readStringHex(
@@ -4220,7 +4220,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                         )
                                                     );
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTLOCK_ONE_TOUCH_LOCK,
                                                         parsePayload
@@ -4230,7 +4230,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                             .toString()
                                                     );
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTLOCK_WRONG_TRY_PROTECT,
                                                         parsePayload
@@ -4240,7 +4240,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                             .toString()
                                                     );
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTLOCK_WRONG_TRY_LOCKDOWN,
                                                         parsePayload
@@ -4250,7 +4250,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                             .toString()
                                                     );
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTLOCK_WRONG_TRY_ATTEMPTS,
                                                         parsePayload
@@ -4260,7 +4260,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                             .toString()
                                                     );
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTLOCK_SCRAMBLE_PASSCODE,
                                                         parsePayload
@@ -4404,7 +4404,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                 aesKey,
                                                                 Buffer.from(
                                                                     iv,
-                                                                    'hex'
+                                                                    "hex"
                                                                 )
                                                             );
                                                     }
@@ -4452,7 +4452,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                     customData.customData,
                                                             };
                                                         this.emit(
-                                                            'secondary command',
+                                                            "secondary command",
                                                             result
                                                         );
                                                         delete this
@@ -4473,7 +4473,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                             commandId: json.cmd,
                                                             decoded:
                                                                 data.toString(
-                                                                    'hex'
+                                                                    "hex"
                                                                 ),
                                                             bleCommandCode:
                                                                 functionTypeCommand[
@@ -4499,7 +4499,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                             case SmartLockBleCommandFunctionType2.QUERY_STATUS_IN_LOCK:
                                                             case SmartLockBleCommandFunctionType2.NOTIFY:
                                                                 this.emit(
-                                                                    'parameter',
+                                                                    "parameter",
                                                                     message.channel,
                                                                     CommandType.CMD_SMARTLOCK_QUERY_BATTERY_LEVEL,
                                                                     parsePayload
@@ -4509,7 +4509,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                         .toString()
                                                                 );
                                                                 this.emit(
-                                                                    'parameter',
+                                                                    "parameter",
                                                                     message.channel,
                                                                     CommandType.CMD_SMARTLOCK_QUERY_STATUS,
                                                                     parsePayload
@@ -4521,7 +4521,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                 break;
                                                             case SmartLockBleCommandFunctionType2.GET_LOCK_PARAM:
                                                                 this.emit(
-                                                                    'parameter',
+                                                                    "parameter",
                                                                     message.channel,
                                                                     CommandType.CMD_SMARTLOCK_AUTO_LOCK,
                                                                     parsePayload
@@ -4531,7 +4531,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                         .toString()
                                                                 );
                                                                 this.emit(
-                                                                    'parameter',
+                                                                    "parameter",
                                                                     message.channel,
                                                                     CommandType.CMD_SMARTLOCK_AUTO_LOCK_TIMER,
                                                                     parsePayload
@@ -4541,7 +4541,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                         .toString()
                                                                 );
                                                                 this.emit(
-                                                                    'parameter',
+                                                                    "parameter",
                                                                     message.channel,
                                                                     CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE,
                                                                     parsePayload
@@ -4551,7 +4551,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                         .toString()
                                                                 );
                                                                 this.emit(
-                                                                    'parameter',
+                                                                    "parameter",
                                                                     message.channel,
                                                                     CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_STARTTIME,
                                                                     parsePayload.readStringHex(
@@ -4559,7 +4559,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                     )
                                                                 );
                                                                 this.emit(
-                                                                    'parameter',
+                                                                    "parameter",
                                                                     message.channel,
                                                                     CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_ENDTIME,
                                                                     parsePayload.readStringHex(
@@ -4567,7 +4567,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                     )
                                                                 );
                                                                 this.emit(
-                                                                    'parameter',
+                                                                    "parameter",
                                                                     message.channel,
                                                                     CommandType.CMD_SMARTLOCK_ONE_TOUCH_LOCK,
                                                                     parsePayload
@@ -4577,7 +4577,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                         .toString()
                                                                 );
                                                                 this.emit(
-                                                                    'parameter',
+                                                                    "parameter",
                                                                     message.channel,
                                                                     CommandType.CMD_SMARTLOCK_SCRAMBLE_PASSCODE,
                                                                     parsePayload
@@ -4587,7 +4587,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                         .toString()
                                                                 );
                                                                 this.emit(
-                                                                    'parameter',
+                                                                    "parameter",
                                                                     message.channel,
                                                                     CommandType.CMD_SMARTLOCK_WRONG_TRY_PROTECT,
                                                                     parsePayload
@@ -4597,7 +4597,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                         .toString()
                                                                 );
                                                                 this.emit(
-                                                                    'parameter',
+                                                                    "parameter",
                                                                     message.channel,
                                                                     CommandType.CMD_SMARTLOCK_WRONG_TRY_ATTEMPTS,
                                                                     parsePayload
@@ -4607,7 +4607,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                         .toString()
                                                                 );
                                                                 this.emit(
-                                                                    'parameter',
+                                                                    "parameter",
                                                                     message.channel,
                                                                     CommandType.CMD_SMARTLOCK_WRONG_TRY_LOCKDOWN,
                                                                     parsePayload
@@ -4617,7 +4617,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                                         .toString()
                                                                 );
                                                                 this.emit(
-                                                                    'parameter',
+                                                                    "parameter",
                                                                     message.channel,
                                                                     CommandType.CMD_SMARTLOCK_LOCK_SOUND,
                                                                     parsePayload
@@ -4782,7 +4782,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                         try {
                                             const data = decodeSmartSafeData(
                                                 this.rawStation.station_sn,
-                                                Buffer.from(payload.data, 'hex')
+                                                Buffer.from(payload.data, "hex")
                                             );
                                             const returnCode =
                                                 data.data.readInt8(0);
@@ -4805,7 +4805,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                         customData.customData,
                                                 };
                                                 this.emit(
-                                                    'secondary command',
+                                                    "secondary command",
                                                     result
                                                 );
                                                 delete this.customDataStaging[
@@ -4881,32 +4881,32 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                 */
                                                 if (eventValues.action === 0) {
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTSAFE_LOCK_STATUS,
-                                                        '0'
+                                                        "0"
                                                     );
                                                 } else if (
                                                     eventValues.action === 1
                                                 ) {
                                                     this.emit(
-                                                        'parameter',
+                                                        "parameter",
                                                         message.channel,
                                                         CommandType.CMD_SMARTSAFE_LOCK_STATUS,
-                                                        '1'
+                                                        "1"
                                                     );
                                                 } else if (
                                                     eventValues.action === 2
                                                 ) {
                                                     this.emit(
-                                                        'jammed',
+                                                        "jammed",
                                                         message.channel
                                                     );
                                                 } else if (
                                                     eventValues.action === 3
                                                 ) {
                                                     this.emit(
-                                                        'low battery',
+                                                        "low battery",
                                                         message.channel
                                                     );
                                                 }
@@ -4914,14 +4914,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                             }
                                             case SmartSafeEvent.SHAKE_ALARM:
                                                 this.emit(
-                                                    'shake alarm',
+                                                    "shake alarm",
                                                     message.channel,
                                                     payload.event_value as number
                                                 );
                                                 break;
                                             case SmartSafeEvent.ALARM_911:
                                                 this.emit(
-                                                    '911 alarm',
+                                                    "911 alarm",
                                                     message.channel,
                                                     payload.event_value as number
                                                 );
@@ -4930,7 +4930,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                             //    break;
                                             case SmartSafeEvent.INPUT_ERR_MAX:
                                                 this.emit(
-                                                    'wrong try-protect alarm',
+                                                    "wrong try-protect alarm",
                                                     message.channel
                                                 );
                                                 break;
@@ -4975,7 +4975,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 );
                                 if (payload) {
                                     this.emit(
-                                        'sensor status',
+                                        "sensor status",
                                         message.channel,
                                         payload.status
                                     );
@@ -4998,7 +4998,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 );
                                 if (payload) {
                                     this.emit(
-                                        'garage door status',
+                                        "garage door status",
                                         message.channel,
                                         payload.door_id,
                                         payload.type
@@ -5017,7 +5017,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 );
                                 if (payload) {
                                     this.emit(
-                                        'storage info hb3',
+                                        "storage info hb3",
                                         message.channel,
                                         payload.body
                                     );
@@ -5060,7 +5060,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             `Handle DATA ${P2PDataType[message.dataType]} - CMD_GET_DELAY_ALARM :`,
                             {
                                 stationSN: this.rawStation.station_sn,
-                                payload: data.toString('hex'),
+                                payload: data.toString("hex"),
                             }
                         );
                         //When the alarm is armed, CMD_GET_DELAY_ALARM is called with event data 0, so ignore it
@@ -5069,10 +5069,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             .readUInt32LE();
                         const alarmDelay = data.subarray(4, 8).readUInt32LE();
                         if (alarmEventNumber === 0) {
-                            this.emit('alarm armed');
+                            this.emit("alarm armed");
                         } else {
                             this.emit(
-                                'alarm delay',
+                                "alarm delay",
                                 alarmEventNumber as AlarmEvent,
                                 alarmDelay
                             );
@@ -5091,7 +5091,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     signCode: message.signCode,
                                     type: message.type,
                                     dataType: P2PDataType[message.dataType],
-                                    data: message.data.toString('hex'),
+                                    data: message.data.toString("hex"),
                                 },
                             }
                         );
@@ -5103,13 +5103,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             `Handle DATA ${P2PDataType[message.dataType]} - CMD_SET_TONE_FILE :`,
                             {
                                 stationSN: this.rawStation.station_sn,
-                                payload: data.toString('hex'),
+                                payload: data.toString("hex"),
                             }
                         );
                         const alarmEventNumber: AlarmEvent = data
                             .subarray(0, 4)
                             .readUInt32LE();
-                        this.emit('alarm event', alarmEventNumber);
+                        this.emit("alarm event", alarmEventNumber);
                     } catch (err) {
                         const error = ensureError(err);
                         rootP2PLogger.error(
@@ -5124,7 +5124,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     signCode: message.signCode,
                                     type: message.type,
                                     dataType: P2PDataType[message.dataType],
-                                    data: message.data.toString('hex'),
+                                    data: message.data.toString("hex"),
                                 },
                             }
                         );
@@ -5139,12 +5139,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 stationSN: this.rawStation.station_sn,
                                 payload: Buffer.from(
                                     data.toString(),
-                                    'base64'
+                                    "base64"
                                 ).toString(),
                             }
                         );
                         this.emit(
-                            'parameter',
+                            "parameter",
                             message.channel,
                             CommandType.CMD_SET_SNOOZE_MODE,
                             data.toString()
@@ -5163,7 +5163,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     signCode: message.signCode,
                                     type: message.type,
                                     dataType: P2PDataType[message.dataType],
-                                    data: message.data.toString('hex'),
+                                    data: message.data.toString("hex"),
                                 },
                             }
                         );
@@ -5175,7 +5175,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 case CommandType.CMD_DATABASE_IMAGE:
                     // Received data for preview image download
                     try {
-                        const str = getNullTerminatedString(data, 'utf8');
+                        const str = getNullTerminatedString(data, "utf8");
                         rootP2PLogger.debug(
                             `Handle DATA ${P2PDataType[message.dataType]} - CMD_DATABASE_IMAGE`,
                             {
@@ -5188,11 +5188,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             rootP2PLogger
                         ) as CmdDatabaseImageResponse;
                         this.emit(
-                            'image download',
+                            "image download",
                             image.file,
                             decodeImage(
                                 this.rawStation.p2p_did,
-                                Buffer.from(image.content, 'base64')
+                                Buffer.from(image.content, "base64")
                             )
                         );
                     } catch (err) {
@@ -5221,14 +5221,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             `Handle DATA ${P2PDataType[message.dataType]} - CMD_GET_TFCARD_STATUS :`,
                             {
                                 stationSN: this.rawStation.station_sn,
-                                payload: data.toString('hex'),
+                                payload: data.toString("hex"),
                             }
                         );
                         const tfCardStatus: TFCardStatus = data
                             .subarray(0, 4)
                             .readUInt32LE();
                         this.emit(
-                            'tfcard status',
+                            "tfcard status",
                             message.channel,
                             tfCardStatus
                         );
@@ -5246,7 +5246,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     signCode: message.signCode,
                                     type: message.type,
                                     dataType: P2PDataType[message.dataType],
-                                    data: message.data.toString('hex'),
+                                    data: message.data.toString("hex"),
                                 },
                             }
                         );
@@ -5254,7 +5254,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     break;
                 case CommandType.CMD_DATABASE:
                     try {
-                        const str = getNullTerminatedString(data, 'utf8');
+                        const str = getNullTerminatedString(data, "utf8");
                         rootP2PLogger.debug(
                             `Handle DATA ${P2PDataType[message.dataType]} - CMD_DATABASE :`,
                             {
@@ -5273,14 +5273,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 if (
                                     databaseResponse.data !== undefined &&
                                     (databaseResponse.data as unknown as string) !==
-                                        '[]'
+                                        "[]"
                                 )
                                     data =
                                         databaseResponse.data as Array<P2PDatabaseQueryLatestInfoResponse>;
                                 const result: Array<DatabaseQueryLatestInfo> =
                                     [];
                                 for (const record of data) {
-                                    if (record.payload.crop_hb3_path !== '') {
+                                    if (record.payload.crop_hb3_path !== "") {
                                         result.push({
                                             device_sn: record.device_sn,
                                             event_count:
@@ -5299,7 +5299,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     }
                                 }
                                 this.emit(
-                                    'database query latest',
+                                    "database query latest",
                                     databaseResponse.mIntRet,
                                     result
                                 );
@@ -5311,7 +5311,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 if (
                                     databaseResponse.data !== undefined &&
                                     (databaseResponse.data as unknown as string) !==
-                                        '[]'
+                                        "[]"
                                 )
                                     data =
                                         databaseResponse.data as Array<P2PDatabaseCountByDateResponse>;
@@ -5320,13 +5320,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     result.push({
                                         day: parse(
                                             record.days,
-                                            'YYYYMMDD'
+                                            "YYYYMMDD"
                                         ),
                                         count: record.count,
                                     });
                                 }
                                 this.emit(
-                                    'database count by date',
+                                    "database count by date",
                                     databaseResponse.mIntRet,
                                     result
                                 );
@@ -5338,7 +5338,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 if (
                                     databaseResponse.data !== undefined &&
                                     (databaseResponse.data as unknown as string) !==
-                                        '[]'
+                                        "[]"
                                 )
                                     data =
                                         databaseResponse.data as Array<P2PDatabaseQueryLocalResponse>;
@@ -5366,7 +5366,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                         }
                                         if (
                                             record.table_name ===
-                                            'history_record_info'
+                                            "history_record_info"
                                         ) {
                                             tmpRecord.history = {
                                                 device_type: (
@@ -5379,13 +5379,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                     (
                                                         tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo
                                                     ).start_time,
-                                                    'YYYY-MM-DD HH:mm:ss'
+                                                    "YYYY-MM-DD HH:mm:ss"
                                                 ),
                                                 end_time: parse(
                                                     (
                                                         tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo
                                                     ).end_time,
-                                                    'YYYY-MM-DD HH:mm:ss'
+                                                    "YYYY-MM-DD HH:mm:ss"
                                                 ),
                                                 frame_num: (
                                                     tableRecord as P2PDatabaseQueryLocalHistoryRecordInfo
@@ -5468,7 +5468,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                             };
                                         } else if (
                                             record.table_name ===
-                                            'record_crop_picture_info'
+                                            "record_crop_picture_info"
                                         ) {
                                             if (
                                                 tmpRecord.picture === undefined
@@ -5492,7 +5492,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                     (
                                                         tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo
                                                     ).event_time,
-                                                    'YYYY-MM-DD HH:mm:ss'
+                                                    "YYYY-MM-DD HH:mm:ss"
                                                 ),
                                                 person_recog_flag: (
                                                     tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo
@@ -5513,7 +5513,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                                     (
                                                         tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo
                                                     ).start_time,
-                                                    'YYYY-MM-DD HH:mm:ss'
+                                                    "YYYY-MM-DD HH:mm:ss"
                                                 ),
                                                 storage_type: (
                                                     tableRecord as P2PDatabaseQueryLocalRecordCropPictureInfo
@@ -5548,7 +5548,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     }
                                 }
                                 this.emit(
-                                    'database query local',
+                                    "database query local",
                                     databaseResponse.mIntRet,
                                     Array.from(
                                         result.values()
@@ -5563,11 +5563,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 if (
                                     databaseResponse.data !== undefined &&
                                     (data.failed_delete as unknown as string) !==
-                                        '[]'
+                                        "[]"
                                 )
                                     failed_delete = data.failed_delete;
                                 this.emit(
-                                    'database delete',
+                                    "database delete",
                                     databaseResponse.mIntRet,
                                     failed_delete
                                 );
@@ -5615,7 +5615,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         {
                             stationSN: this.rawStation.station_sn,
                             channel: message.channel,
-                            data: data.toString('hex'),
+                            data: data.toString("hex"),
                             cipherID: cipherID,
                         }
                     );
@@ -5633,7 +5633,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                 {
                                     stationSN: this.rawStation.station_sn,
                                     channel: message.channel,
-                                    data: data.toString('hex'),
+                                    data: data.toString("hex"),
                                     cipherID: cipherID,
                                     cipher: JSON.stringify(cipher),
                                 }
@@ -5649,7 +5649,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     `Handle DATA ${P2PDataType[message.dataType]} - CMD_GATEWAYINFO - set encryption level 2`,
                                     {
                                         stationSN: this.rawStation.station_sn,
-                                        key: this.p2pKey.toString('hex'),
+                                        key: this.p2pKey.toString("hex"),
                                     }
                                 );
                             } else {
@@ -5664,7 +5664,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     `Handle DATA ${P2PDataType[message.dataType]} - CMD_GATEWAYINFO - set encryption level 1`,
                                     {
                                         stationSN: this.rawStation.station_sn,
-                                        key: this.p2pKey.toString('hex'),
+                                        key: this.p2pKey.toString("hex"),
                                     }
                                 );
                             }
@@ -5708,9 +5708,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                         signCode: message.signCode,
                                         type: message.type,
                                         dataType: P2PDataType[message.dataType],
-                                        data: message.data.toString('hex'),
+                                        data: message.data.toString("hex"),
                                     },
-                                    key: this.p2pKey.toString('hex'),
+                                    key: this.p2pKey.toString("hex"),
                                 }
                             );
                             this._clearTimeout(
@@ -5740,7 +5740,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             commandIdName: CommandType[message.commandId],
                             commandId: message.commandId,
                             channel: message.channel,
-                            data: data.toString('hex'),
+                            data: data.toString("hex"),
                         }
                     );
                     break;
@@ -5759,7 +5759,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         signCode: message.signCode,
                         type: message.type,
                         dataType: P2PDataType[message.dataType],
-                        data: message.data.toString('hex'),
+                        data: message.data.toString("hex"),
                     },
                 }
             );
@@ -5829,10 +5829,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private onClose(): void {
         this.socket.removeAllListeners();
-        this.socket = createSocket('udp4');
-        this.socket.on('message', (msg, rinfo) => this.handleMsg(msg, rinfo));
-        this.socket.on('error', (error) => this.onError(error));
-        this.socket.on('close', () => this.onClose());
+        this.socket = createSocket("udp4");
+        this.socket.on("message", (msg, rinfo) => this.handleMsg(msg, rinfo));
+        this.socket.on("error", (error) => this.onError(error));
+        this.socket.on("close", () => this.onClose());
         this.binded = false;
         this._disconnected();
     }
@@ -6027,7 +6027,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 false;
             this.currentMessageState[P2PDataType.DATA].rtspStreaming[channel] =
                 false;
-            this.emit('rtsp livestream stopped', channel);
+            this.emit("rtsp livestream stopped", channel);
         }
     }
 
@@ -6035,7 +6035,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.currentMessageState[datatype].p2pStreamNotStarted = false;
         if (datatype === P2PDataType.VIDEO) {
             this.emit(
-                'livestream started',
+                "livestream started",
                 this.currentMessageState[datatype].p2pStreamChannel,
                 this.currentMessageState[datatype].p2pStreamMetadata,
                 this.currentMessageState[datatype].videoStream!,
@@ -6043,7 +6043,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             );
         } else if (datatype === P2PDataType.BINARY) {
             this.emit(
-                'download started',
+                "download started",
                 this.currentMessageState[datatype].p2pStreamChannel,
                 this.currentMessageState[datatype].p2pStreamMetadata,
                 this.currentMessageState[datatype].videoStream!,
@@ -6055,12 +6055,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     private emitStreamStopEvent(datatype: P2PDataType): void {
         if (datatype === P2PDataType.VIDEO) {
             this.emit(
-                'livestream stopped',
+                "livestream stopped",
                 this.currentMessageState[datatype].p2pStreamChannel
             );
         } else if (datatype === P2PDataType.BINARY) {
             this.emit(
-                'download finished',
+                "download finished",
                 this.currentMessageState[datatype].p2pStreamChannel
             );
         }
@@ -6139,10 +6139,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                     station_sns: [this.rawStation.station_sn],
                     transaction: `${new Date().getTime()}`,
                 };
-                data.invalid_dsks[this.rawStation.station_sn] = '';
+                data.invalid_dsks[this.rawStation.station_sn] = "";
                 const response = await this.api.request({
-                    method: 'post',
-                    endpoint: 'v1/app/equipment/get_dsk_keys',
+                    method: "post",
+                    endpoint: "v1/app/equipment/get_dsk_keys",
                     data: data,
                 });
                 rootP2PLogger.debug(`Get DSK keys - Response:`, {
@@ -6228,13 +6228,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
     private initializeTalkbackStream(channel = 0): void {
         this.talkbackStream = new TalkbackStream();
-        this.talkbackStream.on('data', (audioData) => {
+        this.talkbackStream.on("data", (audioData) => {
             this.sendTalkbackAudioFrame(audioData, channel);
         });
-        this.talkbackStream.on('error', (error) => {
+        this.talkbackStream.on("error", (error) => {
             this.onTalkbackStreamError(error);
         });
-        this.talkbackStream.on('close', () => {
+        this.talkbackStream.on("close", () => {
             this.onTalkbackStreamClose();
         });
     }
@@ -6293,10 +6293,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             );
             this.messageVideoStates.delete(message.sequence);
             this.emit(
-                'talkback error',
+                "talkback error",
                 message.channel,
                 new TalkbackError(
-                    'Max send video data retries reached. Discard data packet.',
+                    "Max send video data retries reached. Discard data packet.",
                     {
                         context: {
                             station: this.rawStation.station_sn,
@@ -6315,7 +6315,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         }, this.MAX_AKNOWLEDGE_TIMEOUT);
         this.messageVideoStates.set(message.sequence, message);
 
-        rootP2PLogger.trace('Sending p2p video data...', {
+        rootP2PLogger.trace("Sending p2p video data...", {
             station: this.rawStation.station_sn,
             sequence: message.sequence,
             channel: message.channel,
@@ -6345,14 +6345,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             channel;
         this.initializeTalkbackStream(channel);
         this.talkbackStream?.startTalkback();
-        this.emit('talkback started', channel, this.talkbackStream!);
+        this.emit("talkback started", channel, this.talkbackStream!);
     }
 
     public stopTalkback(channel = 0): void {
         this.currentMessageState[P2PDataType.VIDEO].p2pTalkback = false;
         this.currentMessageState[P2PDataType.VIDEO].p2pTalkbackChannel = -1;
         this.talkbackStream?.stopTalkback();
-        this.emit('talkback stopped', channel);
+        this.emit("talkback stopped", channel);
         this.closeEnergySavingDevice();
     }
 

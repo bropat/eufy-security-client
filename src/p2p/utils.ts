@@ -1,6 +1,6 @@
-import { Socket } from 'dgram';
-import NodeRSA, { Options as NodeRSAOptions } from 'node-rsa';
-import * as CryptoJS from 'crypto-js';
+import { Socket } from "dgram";
+import NodeRSA, { Options as NodeRSAOptions } from "node-rsa";
+import * as CryptoJS from "crypto-js";
 import {
     randomBytes,
     createCipheriv,
@@ -8,15 +8,15 @@ import {
     ECDH,
     createHmac,
     createDecipheriv,
-} from 'crypto';
-import * as os from 'os';
+} from "crypto";
+import * as os from "os";
 
 import {
     P2PMessageParts,
     P2PMessageState,
     P2PQueueMessage,
     RGBColor,
-} from './interfaces';
+} from "./interfaces";
 import {
     CommandType,
     ESLCommand,
@@ -31,7 +31,7 @@ import {
     SmartLockBleCommandFunctionType1,
     SmartLockCommand,
     SmartLockBleCommandFunctionType2,
-} from './types';
+} from "./types";
 import {
     Address,
     LockP2PCommandPayloadType,
@@ -40,13 +40,13 @@ import {
     SmartLockP2PCommandPayloadType,
     SmartSafeNotificationResponse,
     SmartSafeP2PCommandType,
-} from './models';
-import { DeviceType } from '../http/types';
-import { Device, Lock, SmartSafe } from '../http/device';
-import { BleCommandFactory } from './ble';
-import { rootP2PLogger } from '../logging';
+} from "./models";
+import { DeviceType } from "../http/types";
+import { Device, Lock, SmartSafe } from "../http/device";
+import { BleCommandFactory } from "./ble";
+import { rootP2PLogger } from "../logging";
 
-export const MAGIC_WORD = 'XZYH';
+export const MAGIC_WORD = "XZYH";
 
 export const isPrivateIp = (ip: string): boolean =>
     /^(::f{4}:)?10\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/i.test(ip) ||
@@ -72,12 +72,12 @@ const stringWithLength = (input: string, chunkLength = 128): Buffer => {
     return result;
 };
 
-export const getLocalIpAddress = (init = ''): string => {
+export const getLocalIpAddress = (init = ""): string => {
     const ifaces = os.networkInterfaces();
     let localAddress = init;
     for (const name in ifaces) {
         const iface = ifaces[name]!.filter(function (details) {
-            return details.family === 'IPv4' && details.internal === false;
+            return details.family === "IPv4" && details.internal === false;
         });
 
         if (iface.length > 0) {
@@ -89,7 +89,7 @@ export const getLocalIpAddress = (init = ''): string => {
 };
 
 const p2pDidToBuffer = (p2pDid: string): Buffer => {
-    const p2pArray = p2pDid.split('-');
+    const p2pArray = p2pDid.split("-");
     const buf1 = stringWithLength(p2pArray[0], 8);
     const buf2 = Buffer.allocUnsafe(4);
     buf2.writeUInt32BE(Number.parseInt(p2pArray[1]), 0);
@@ -119,17 +119,17 @@ export const getP2PCommandEncryptionKey = function (
     serialNumber: string,
     p2pDid: string
 ): string {
-    return `${serialNumber.slice(-7)}${p2pDid.substring(p2pDid.indexOf('-'), p2pDid.indexOf('-') + 9)}`;
+    return `${serialNumber.slice(-7)}${p2pDid.substring(p2pDid.indexOf("-"), p2pDid.indexOf("-") + 9)}`;
 };
 
 export const encryptP2PData = (data: Buffer, key: Buffer): Buffer => {
-    const cipher = createCipheriv('aes-128-ecb', key, null);
+    const cipher = createCipheriv("aes-128-ecb", key, null);
     cipher.setAutoPadding(false);
     return Buffer.concat([cipher.update(data), cipher.final()]);
 };
 
 export const decryptP2PData = (data: Buffer, key: Buffer): Buffer => {
-    const decipher = createDecipheriv('aes-128-ecb', key, null);
+    const decipher = createDecipheriv("aes-128-ecb", key, null);
     decipher.setAutoPadding(false);
     return Buffer.concat([decipher.update(data), decipher.final()]);
 };
@@ -158,7 +158,7 @@ export const buildLookupWithKeyPayload = (
     //const ip = socket.address().address;
     const ip = getLocalIpAddress(addressInfo.address);
     const temp_buff: number[] = [];
-    ip.split('.')
+    ip.split(".")
         .reverse()
         .forEach((element) => {
             temp_buff.push(Number.parseInt(element));
@@ -205,7 +205,7 @@ export const buildLookupWithKeyPayload3 = (
     portAsBuffer.writeUInt16LE(address.port, 0);
     const temp_buff: number[] = [];
     address.host
-        .split('.')
+        .split(".")
         .reverse()
         .forEach((element) => {
             temp_buff.push(Number.parseInt(element));
@@ -245,7 +245,7 @@ export const buildIntCommandPayload = (
     p2pDid: string,
     commandType: CommandType,
     value: number,
-    strValue = '',
+    strValue = "",
     channel = 255
 ): Buffer => {
     const emptyBuffer = Buffer.from([0x00, 0x00]);
@@ -331,8 +331,8 @@ export const buildIntStringCommandPayload = (
     commandType: CommandType,
     value: number,
     valueSub = 0,
-    strValue = '',
-    strValueSub = '',
+    strValue = "",
+    strValueSub = "",
     channel = 0
 ): Buffer => {
     const emptyBuffer = Buffer.from([0x00, 0x00]);
@@ -493,20 +493,20 @@ export const getRSAPrivateKey = (
     enableEmbeddedPKCS1Support = false
 ): NodeRSA => {
     const key = new NodeRSA();
-    if (pem.indexOf('\n') !== -1) {
-        pem = pem.replaceAll('\n', '');
+    if (pem.indexOf("\n") !== -1) {
+        pem = pem.replaceAll("\n", "");
     }
-    if (pem.startsWith('-----BEGIN RSA PRIVATE KEY-----')) {
+    if (pem.startsWith("-----BEGIN RSA PRIVATE KEY-----")) {
         pem = pem
-            .replace('-----BEGIN RSA PRIVATE KEY-----', '')
-            .replace('-----END RSA PRIVATE KEY-----', '');
+            .replace("-----BEGIN RSA PRIVATE KEY-----", "")
+            .replace("-----END RSA PRIVATE KEY-----", "");
     }
-    key.importKey(pem, 'pkcs8');
+    key.importKey(pem, "pkcs8");
     const options: NodeRSAOptions = {
-        encryptionScheme: 'pkcs1',
+        encryptionScheme: "pkcs1",
     };
     if (enableEmbeddedPKCS1Support) {
-        options.environment = 'browser';
+        options.environment = "browser";
     }
     key.setOptions(options);
     return key;
@@ -517,10 +517,10 @@ export const getNewRSAPrivateKey = (
 ): NodeRSA => {
     const key = new NodeRSA({ b: 1024 });
     const options: NodeRSAOptions = {
-        encryptionScheme: 'pkcs1',
+        encryptionScheme: "pkcs1",
     };
     if (enableEmbeddedPKCS1Support) {
-        options.environment = 'browser';
+        options.environment = "browser";
     }
     key.setOptions(options);
     return key;
@@ -529,13 +529,13 @@ export const getNewRSAPrivateKey = (
 export const decryptAESData = (hexkey: string, data: Buffer): Buffer => {
     const key = CryptoJS.enc.Hex.parse(hexkey);
     const cipherParams = CryptoJS.lib.CipherParams.create({
-        ciphertext: CryptoJS.enc.Hex.parse(data.toString('hex')),
+        ciphertext: CryptoJS.enc.Hex.parse(data.toString("hex")),
     });
     const decrypted = CryptoJS.AES.decrypt(cipherParams, key, {
         mode: CryptoJS.mode.ECB,
         padding: CryptoJS.pad.NoPadding,
     });
-    return Buffer.from(CryptoJS.enc.Hex.stringify(decrypted), 'hex');
+    return Buffer.from(CryptoJS.enc.Hex.stringify(decrypted), "hex");
 };
 
 export const findStartCode = (data: Buffer): boolean => {
@@ -584,14 +584,14 @@ export const decryptLockAESData = (
     const ekey = CryptoJS.enc.Hex.parse(key);
     const eiv = CryptoJS.enc.Hex.parse(iv);
     const cipherParams = CryptoJS.lib.CipherParams.create({
-        ciphertext: CryptoJS.enc.Hex.parse(data.toString('hex')),
+        ciphertext: CryptoJS.enc.Hex.parse(data.toString("hex")),
     });
     const decrypted = CryptoJS.AES.decrypt(cipherParams, ekey, {
         iv: eiv,
         mode: CryptoJS.mode.CBC,
         padding: CryptoJS.pad.Pkcs7,
     });
-    return Buffer.from(CryptoJS.enc.Hex.stringify(decrypted), 'hex');
+    return Buffer.from(CryptoJS.enc.Hex.stringify(decrypted), "hex");
 };
 
 export const encryptLockAESData = (
@@ -602,7 +602,7 @@ export const encryptLockAESData = (
     const ekey = CryptoJS.enc.Hex.parse(key);
     const eiv = CryptoJS.enc.Hex.parse(iv);
     const encrypted = CryptoJS.AES.encrypt(
-        CryptoJS.enc.Hex.parse(data.toString('hex')),
+        CryptoJS.enc.Hex.parse(data.toString("hex")),
         ekey,
         {
             iv: eiv,
@@ -610,7 +610,7 @@ export const encryptLockAESData = (
             padding: CryptoJS.pad.Pkcs7,
         }
     );
-    return Buffer.from(CryptoJS.enc.Hex.stringify(encrypted.ciphertext), 'hex');
+    return Buffer.from(CryptoJS.enc.Hex.stringify(encrypted.ciphertext), "hex");
 };
 
 export const generateBasicLockAESKey = (
@@ -632,7 +632,7 @@ export const generateBasicLockAESKey = (
             encOwnerID[(encOwnerID[i] * 3 + 5) % 40];
     }
 
-    return Buffer.from(array).toString('hex');
+    return Buffer.from(array).toString("hex");
 };
 
 export const getCurrentTimeInSeconds = function (): number {
@@ -673,12 +673,12 @@ export const getLockVectorBytes = (data: string): string => {
     const encData = encoder.encode(data);
     const old_buffer = Buffer.from(encData);
 
-    if (encData.length >= 16) return old_buffer.toString('hex');
+    if (encData.length >= 16) return old_buffer.toString("hex");
 
     const new_buffer = Buffer.alloc(16);
     old_buffer.copy(new_buffer, 0);
 
-    return new_buffer.toString('hex');
+    return new_buffer.toString("hex");
 };
 
 export const decodeLockPayload = (data: Buffer): string => {
@@ -689,7 +689,7 @@ export const decodeLockPayload = (data: Buffer): string => {
 export const decodeBase64 = (data: string): Buffer => {
     const base64RegExp =
         /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{4})$/;
-    if (base64RegExp.test(data)) return Buffer.from(data, 'base64');
+    if (base64RegExp.test(data)) return Buffer.from(data, "base64");
     return Buffer.from(data);
 };
 
@@ -705,10 +705,10 @@ export const eslTimestamp = function (
 
 export const generateAdvancedLockAESKey = (): string => {
     const randomBytesArray = [...randomBytes(16)];
-    let result = '';
+    let result = "";
     for (let pos = 0; pos < randomBytesArray.length; pos++) {
-        result += '0123456789ABCDEF'.charAt((randomBytesArray[pos] >> 4) & 15);
-        result += '0123456789ABCDEF'.charAt(randomBytesArray[pos] & 15);
+        result += "0123456789ABCDEF".charAt((randomBytesArray[pos] >> 4) & 15);
+        result += "0123456789ABCDEF".charAt(randomBytesArray[pos] & 15);
     }
     return result;
 };
@@ -738,10 +738,10 @@ export const checkT8420 = (serialNumber: string): boolean => {
             serialNumber !== undefined &&
             serialNumber !== null &&
             serialNumber.length > 0 &&
-            serialNumber.startsWith('T8420')
+            serialNumber.startsWith("T8420")
         ) ||
         serialNumber.length <= 7 ||
-        serialNumber[6] != '6'
+        serialNumber[6] != "6"
     ) {
         return false;
     }
@@ -774,7 +774,7 @@ export const encryptPayloadData = (
     key: Buffer,
     iv: Buffer
 ): Buffer => {
-    const cipher = createCipheriv('aes-128-cbc', key, iv);
+    const cipher = createCipheriv("aes-128-cbc", key, iv);
     return Buffer.concat([cipher.update(data), cipher.final()]);
 };
 
@@ -783,21 +783,21 @@ export const decryptPayloadData = (
     key: Buffer,
     iv: Buffer
 ): Buffer => {
-    const cipher = createDecipheriv('aes-128-cbc', key, iv);
+    const cipher = createDecipheriv("aes-128-cbc", key, iv);
     return Buffer.concat([cipher.update(data), cipher.final()]);
 };
 
 export const eufyKDF = (key: Buffer): Buffer => {
     const hash_length = 32;
     const digest_length = 48;
-    const staticBuffer = Buffer.from('ECIES');
+    const staticBuffer = Buffer.from("ECIES");
     const steps = Math.ceil(digest_length / hash_length);
     const buffer = Buffer.alloc(hash_length * steps);
 
     let tmpBuffer = staticBuffer;
     for (let step = 0; step < steps; ++step) {
-        tmpBuffer = createHmac('sha256', key).update(tmpBuffer).digest();
-        const digest = createHmac('sha256', key)
+        tmpBuffer = createHmac("sha256", key).update(tmpBuffer).digest();
+        const digest = createHmac("sha256", key)
             .update(Buffer.concat([tmpBuffer, staticBuffer]))
             .digest();
         digest.copy(buffer, hash_length * step);
@@ -807,10 +807,10 @@ export const eufyKDF = (key: Buffer): Buffer => {
 };
 
 export const getAdvancedLockKey = (key: string, publicKey: string): string => {
-    const ecdh: ECDH = createECDH('prime256v1');
+    const ecdh: ECDH = createECDH("prime256v1");
     ecdh.generateKeys();
     const secret = ecdh.computeSecret(
-        Buffer.concat([Buffer.from('04', 'hex'), Buffer.from(publicKey, 'hex')])
+        Buffer.concat([Buffer.from("04", "hex"), Buffer.from(publicKey, "hex")])
     );
     const randomValue = randomBytes(16);
 
@@ -821,45 +821,45 @@ export const getAdvancedLockKey = (key: string, publicKey: string): string => {
         randomValue
     );
 
-    const hmac = createHmac('sha256', derivedKey.subarray(16));
+    const hmac = createHmac("sha256", derivedKey.subarray(16));
     hmac.update(randomValue);
     hmac.update(encryptedData);
     const hmacDigest = hmac.digest();
 
     return Buffer.concat([
-        Buffer.from(ecdh.getPublicKey('hex', 'compressed'), 'hex'),
+        Buffer.from(ecdh.getPublicKey("hex", "compressed"), "hex"),
         randomValue,
         encryptedData,
         hmacDigest,
-    ]).toString('hex');
+    ]).toString("hex");
 };
 
 export const getLockV12Key = (key: string, publicKey: string): string => {
-    const ecdh: ECDH = createECDH('prime256v1');
+    const ecdh: ECDH = createECDH("prime256v1");
     ecdh.generateKeys();
     const secret = ecdh.computeSecret(
-        Buffer.concat([Buffer.from('04', 'hex'), Buffer.from(publicKey, 'hex')])
+        Buffer.concat([Buffer.from("04", "hex"), Buffer.from(publicKey, "hex")])
     );
     const randomValue = randomBytes(16);
 
     const derivedKey = eufyKDF(secret);
     const encryptedData = encryptPayloadData(
-        Buffer.from(key, 'hex'),
+        Buffer.from(key, "hex"),
         derivedKey.subarray(0, 16),
         randomValue
     );
 
-    const hmac = createHmac('sha256', derivedKey.subarray(16));
+    const hmac = createHmac("sha256", derivedKey.subarray(16));
     hmac.update(randomValue);
     hmac.update(encryptedData);
     const hmacDigest = hmac.digest();
 
     return Buffer.concat([
-        Buffer.from(ecdh.getPublicKey('hex', 'compressed'), 'hex'),
+        Buffer.from(ecdh.getPublicKey("hex", "compressed"), "hex"),
         randomValue,
         encryptedData,
         hmacDigest,
-    ]).toString('hex');
+    ]).toString("hex");
 };
 
 export const buildTalkbackAudioFrameHeader = (
@@ -895,11 +895,11 @@ export const buildTalkbackAudioFrameHeader = (
 
 export const decodeP2PCloudIPs = (data: string): Array<Address> => {
     const lookupTable = Buffer.from(
-        '4959433db5bf6da347534f6165e371e9677f02030badb3892b2f35c16b8b959711e5a70deff1050783fb9d3bc5c713171d1f2529d3df',
-        'hex'
+        "4959433db5bf6da347534f6165e371e9677f02030badb3892b2f35c16b8b959711e5a70deff1050783fb9d3bc5c713171d1f2529d3df",
+        "hex"
     );
 
-    const [encoded, name = 'name not included'] = data.split(':');
+    const [encoded, name = "name not included"] = data.split(":");
     const output = Buffer.alloc(encoded.length / 2);
 
     for (let i = 0; i <= data.length / 2; i++) {
@@ -909,17 +909,17 @@ export const decodeP2PCloudIPs = (data: string): Array<Address> => {
             z = z ^ output[j];
         }
 
-        const x = data.charCodeAt(i * 2 + 1) - 'A'.charCodeAt(0);
-        const y = (data.charCodeAt(i * 2) - 'A'.charCodeAt(0)) * 0x10;
+        const x = data.charCodeAt(i * 2 + 1) - "A".charCodeAt(0);
+        const y = (data.charCodeAt(i * 2) - "A".charCodeAt(0)) * 0x10;
         output[i] = z ^ lookupTable[i % lookupTable.length] ^ (x + y);
     }
 
     const result: Array<Address> = [];
     output
-        .toString('utf8')
-        .split(',')
+        .toString("utf8")
+        .split(",")
         .forEach((ip) => {
-            if (ip !== '') {
+            if (ip !== "") {
                 result.push({ host: ip, port: 32100 });
             }
         });
@@ -940,7 +940,7 @@ export const decodeSmartSafeData = function (
         data: decryptPayloadData(
             response.getData()!,
             Buffer.from(deviceSN),
-            Buffer.from(SmartSafe.IV, 'hex')
+            Buffer.from(SmartSafe.IV, "hex")
         ),
     } as SmartSafeNotificationResponse;
 };
@@ -957,7 +957,7 @@ export const getSmartSafeP2PCommand = function (
     const encPayload = encryptPayloadData(
         data,
         Buffer.from(deviceSN),
-        Buffer.from(SmartSafe.IV, 'hex')
+        Buffer.from(SmartSafe.IV, "hex")
     );
     const bleCommand = new BleCommandFactory()
         .setVersionCode(SmartSafe.VERSION_CODE)
@@ -973,7 +973,7 @@ export const getSmartSafeP2PCommand = function (
         intCommand: intCommand,
         channel: channel,
         sequence: sequence,
-        data: data.toString('hex'),
+        data: data.toString("hex"),
     });
 
     return {
@@ -984,7 +984,7 @@ export const getSmartSafeP2PCommand = function (
             mChannel: channel,
             mValue3: 0,
             payload: {
-                data: bleCommand.toString('hex'),
+                data: bleCommand.toString("hex"),
                 prj_id: command,
                 seq_num: sequence,
             },
@@ -1026,8 +1026,8 @@ export const getLockP2PCommand = function (
             cmd: command,
             mChannel: channel,
             mValue3: 0,
-            payload: encPayload.toString('base64'),
-        } as LockP2PCommandPayloadType).replace(/=/g, '\\u003d'),
+            payload: encPayload.toString("base64"),
+        } as LockP2PCommandPayloadType).replace(/=/g, "\\u003d"),
         channel: channel,
         aesKey: key,
     };
@@ -1047,8 +1047,8 @@ export const getLockV12P2PCommand = function (
     const iv = getLockVectorBytes(deviceSN);
     const encPayload = encryptPayloadData(
         data,
-        Buffer.from(key, 'hex'),
-        Buffer.from(iv, 'hex')
+        Buffer.from(key, "hex"),
+        Buffer.from(iv, "hex")
     );
 
     rootP2PLogger.debug(`Generate smart lock v12 command`, {
@@ -1057,7 +1057,7 @@ export const getLockV12P2PCommand = function (
         command: command,
         channel: channel,
         sequence: sequence,
-        data: data.toString('hex'),
+        data: data.toString("hex"),
     });
 
     const bleCommand = new BleCommandFactory()
@@ -1069,7 +1069,7 @@ export const getLockV12P2PCommand = function (
         ) //TODO: Change internal command identification?
         .setDataType(-1)
         .setData(encPayload)
-        .setAdditionalData(Buffer.from(encryptedAesKey, 'hex'));
+        .setAdditionalData(Buffer.from(encryptedAesKey, "hex"));
     return {
         aesKey: key,
         bleCommand: bleCommand.getCommandCode()!,
@@ -1084,7 +1084,7 @@ export const getLockV12P2PCommand = function (
                     apiCommand: command,
                     lock_payload: bleCommand
                         .getLockV12Command()
-                        .toString('hex'),
+                        .toString("hex"),
                     seq_num: sequence,
                 },
             } as LockV12P2PCommandPayloadType),
@@ -1163,7 +1163,7 @@ export const getSmartLockP2PCommand = function (
     const time = getSmartLockCurrentTimeInSeconds();
     const key = generateSmartLockAESKey(user_id, time);
     const iv = getLockVectorBytes(deviceSN);
-    const encPayload = encryptPayloadData(data, key, Buffer.from(iv, 'hex'));
+    const encPayload = encryptPayloadData(data, key, Buffer.from(iv, "hex"));
 
     rootP2PLogger.debug(`Generate smart lock command`, {
         deviceSN: deviceSN,
@@ -1171,7 +1171,7 @@ export const getSmartLockP2PCommand = function (
         command: command,
         channel: channel,
         sequence: sequence,
-        data: data.toString('hex'),
+        data: data.toString("hex"),
         functionType: functionType,
     });
 
@@ -1208,7 +1208,7 @@ export const getSmartLockP2PCommand = function (
                     apiCommand: command,
                     lock_payload: bleCommand
                         .getSmartLockCommand()
-                        .toString('hex'),
+                        .toString("hex"),
                     seq_num: sequence,
                     time: time,
                 },

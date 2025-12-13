@@ -27,7 +27,7 @@ export class BaseError extends Error {
 
 export function ensureError(value: unknown): BaseError {
     if (value instanceof Error) return value;
-    let stringified = '[Unable to stringify the thrown value]';
+    let stringified = "[Unable to stringify the thrown value]";
     try {
         stringified = JSON.stringify(value);
     } catch {}

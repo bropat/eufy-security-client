@@ -1,6 +1,6 @@
-import { TypedEmitter } from 'tiny-typed-emitter';
+import { TypedEmitter } from "tiny-typed-emitter";
 
-import { HTTPApi } from './api';
+import { HTTPApi } from "./api";
 import {
     CommandName,
     DeviceCommands,
@@ -52,7 +52,7 @@ import {
     DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
     DeviceStatusLedIndoorS350Property,
     IndoorS350DetectionTypes,
-} from './types';
+} from "./types";
 import {
     DeviceListResponse,
     Voice,
@@ -60,8 +60,8 @@ import {
     FloodlightDetectionRangeT8425Property,
     FloodlightLightSettingsMotionT8425Property,
     FloodlightLightSettingsBrightnessScheduleT8425Property,
-} from './models';
-import { ParameterHelper } from './parameter';
+} from "./models";
+import { ParameterHelper } from "./parameter";
 import {
     DeviceEvents,
     PropertyValue,
@@ -76,12 +76,12 @@ import {
     Voices,
     PropertyMetadataObject,
     DeviceConfig,
-} from './interfaces';
+} from "./interfaces";
 import {
     CommandType,
     ESLAnkerBleConstant,
     TrackerCommandType,
-} from '../p2p/types';
+} from "../p2p/types";
 import {
     calculateCellularSignalLevel,
     calculateWifiSignalLevel,
@@ -101,13 +101,13 @@ import {
     isT8170DetectionModeEnabled,
     loadEventImage,
     WritePayload,
-} from './utils';
+} from "./utils";
 import {
     DecimalToRGBColor,
     eslTimestamp,
     getCurrentTimeInSeconds,
     isCharging,
-} from '../p2p/utils';
+} from "../p2p/utils";
 import {
     CusPushEvent,
     DoorbellPushEvent,
@@ -119,21 +119,21 @@ import {
     SmartDropOpen,
     SmartDropOpenedBy,
     SmartDropPushEvent,
-} from '../push/types';
-import { PushMessage, SmartSafeEventValueDetail } from '../push/models';
-import { getError, isEmpty, validValue } from '../utils';
-import { InvalidPropertyError, PropertyNotSupportedError } from './error';
-import { DeviceSmartLockNotifyData } from '../mqtt/model';
+} from "../push/types";
+import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
+import { getError, isEmpty, validValue } from "../utils";
+import { InvalidPropertyError, PropertyNotSupportedError } from "./error";
+import { DeviceSmartLockNotifyData } from "../mqtt/model";
 import {
     DynamicLighting,
     InternalColoredLighting,
     InternalDynamicLighting,
     RGBColor,
     VideoStreamingRecordingQuality,
-} from '../p2p';
-import { ensureError } from '../error';
-import { rootHTTPLogger } from '../logging';
-import { Station } from './station';
+} from "../p2p";
+import { ensureError } from "../error";
+import { rootHTTPLogger } from "../logging";
+import { Station } from "./station";
 
 export class Device extends TypedEmitter<DeviceEvents> {
     protected api: HTTPApi;
@@ -161,7 +161,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         this.update(this.rawDevice);
         this.ready = true;
         setImmediate(() => {
-            this.emit('ready', this);
+            this.emit("ready", this);
         });
     }
 
@@ -179,12 +179,12 @@ export class Device extends TypedEmitter<DeviceEvents> {
         for (const property of Object.values(metadata)) {
             if (
                 this.rawDevice[property.key] !== undefined &&
-                typeof property.key === 'string'
+                typeof property.key === "string"
             ) {
                 if (
-                    property.key === 'cover_path' &&
+                    property.key === "cover_path" &&
                     !this.getPropertyValue(property.name) &&
-                    this.rawDevice[property.key] !== ''
+                    this.rawDevice[property.key] !== ""
                 ) {
                     // First image initialisation if no image has been set yet and a cloud value is available
                     this.updateProperty(
@@ -216,11 +216,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 this.updateRawProperty(
                     param.param_type,
                     param.param_value,
-                    'http'
+                    "http"
                 );
             });
         }
-        rootHTTPLogger.debug('Update device cloud properties', {
+        rootHTTPLogger.debug("Update device cloud properties", {
             deviceSN: this.getSerial(),
             properties: this.properties,
         });
@@ -239,7 +239,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         ) {
             const oldValue = this.properties[name];
             this.properties[name] = value;
-            this.emit('property changed', this, name, value, this.ready);
+            this.emit("property changed", this, name, value, this.ready);
             try {
                 this.handlePropertyChange(
                     this.getPropertyMetadata(name, true),
@@ -317,11 +317,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     const mode = Number.parseInt(rawMode);
 
                     const sensitivityMapping: Record<string, number> = {
-                        '3_2': 1,
-                        '1_1': 2,
-                        '1_2': 3,
-                        '1_3': 4,
-                        '2_1': 5,
+                        "3_2": 1,
+                        "1_1": 2,
+                        "1_2": 3,
+                        "1_3": 4,
+                        "2_1": 5,
                     };
                     const key = `${mode}_${sensitivity}`;
                     if (sensitivityMapping[key] !== undefined) {
@@ -387,7 +387,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             };
             if (this.ready)
                 this.emit(
-                    'raw property changed',
+                    "raw property changed",
                     this,
                     type,
                     this.rawProperties[type].value
@@ -409,7 +409,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         const error = ensureError(err);
                         if (error instanceof PropertyNotSupportedError) {
                             rootHTTPLogger.debug(
-                                'Device update raw property - Property not supported error',
+                                "Device update raw property - Property not supported error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -420,7 +420,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             );
                         } else {
                             rootHTTPLogger.error(
-                                'Device update raw property - Property error',
+                                "Device update raw property - Property error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -458,13 +458,13 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     this.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424
                 ) {
                     return value !== undefined
-                        ? value === 'true'
+                        ? value === "true"
                             ? true
                             : false
                         : false;
                 }
                 return value !== undefined
-                    ? value === '0'
+                    ? value === "0"
                         ? true
                         : false
                     : false;
@@ -487,7 +487,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationRing Error',
+                                "Device convert raw property - CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationRing Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -511,7 +511,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationMotion Error',
+                                "Device convert raw property - CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationMotion Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -534,7 +534,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationType Error',
+                                "Device convert raw property - CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE DeviceNotificationType Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -571,7 +571,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - DOORBELL_NOTIFICATION_OPEN Error',
+                        "Device convert raw property - DOORBELL_NOTIFICATION_OPEN Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -632,7 +632,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - CMD_SET_PIRSENSITIVITY Error',
+                        "Device convert raw property - CMD_SET_PIRSENSITIVITY Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -652,8 +652,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 property.key ===
                     CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_ENDTIME
             ) {
-                const tmpBuffer = Buffer.from(value, 'hex');
-                return `${tmpBuffer.subarray(0, 1).readInt8().toString().padStart(2, '0')}:${tmpBuffer.subarray(1).readInt8().toString().padStart(2, '0')}`;
+                const tmpBuffer = Buffer.from(value, "hex");
+                return `${tmpBuffer.subarray(0, 1).readInt8().toString().padStart(2, "0")}:${tmpBuffer.subarray(1).readInt8().toString().padStart(2, "0")}`;
             } else if (
                 property.key ===
                 CommandType.CMD_DOORBELL_DUAL_RADAR_WD_DETECTION_SENSITIVITY
@@ -773,14 +773,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
                                 val?.setting?.length > 0 &&
                                 val?.setting[0]?.start_hour !== undefined &&
                                 val?.setting[0]?.start_min !== undefined
-                                ? `${val?.setting[0]?.start_hour?.padStart(2, '0')}:${val?.setting[0]?.start_min?.padStart(2, '0')}`
+                                ? `${val?.setting[0]?.start_hour?.padStart(2, "0")}:${val?.setting[0]?.start_min?.padStart(2, "0")}`
                                 : stringProperty.default !== undefined
                                   ? stringProperty.default
-                                  : '';
+                                  : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseTimeFrom Error',
+                                "Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseTimeFrom Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -790,7 +790,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             );
                             return stringProperty.default !== undefined
                                 ? stringProperty.default
-                                : '';
+                                : "";
                         }
                     }
                     case PropertyName.DeviceLoiteringCustomResponseTimeTo: {
@@ -801,14 +801,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
                                 val?.setting?.length > 0 &&
                                 val?.setting[0]?.end_hour !== undefined &&
                                 val?.setting[0]?.end_min !== undefined
-                                ? `${val?.setting[0]?.end_hour?.padStart(2, '0')}:${val?.setting[0]?.end_min?.padStart(2, '0')}`
+                                ? `${val?.setting[0]?.end_hour?.padStart(2, "0")}:${val?.setting[0]?.end_min?.padStart(2, "0")}`
                                 : stringProperty.default !== undefined
                                   ? stringProperty.default
-                                  : '';
+                                  : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseTimeTo Error',
+                                "Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseTimeTo Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -818,7 +818,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             );
                             return stringProperty.default !== undefined
                                 ? stringProperty.default
-                                : '';
+                                : "";
                         }
                     }
                     case PropertyName.DeviceLoiteringCustomResponsePhoneNotification: {
@@ -833,7 +833,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponsePhoneNotification Error',
+                                "Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponsePhoneNotification Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -858,7 +858,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseHomeBaseNotification Error',
+                                "Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseHomeBaseNotification Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -883,7 +883,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseAutoVoiceResponse Error',
+                                "Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseAutoVoiceResponse Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -912,7 +912,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseAutoVoiceResponseVoice Error',
+                                "Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_AUTO_RESPONSE DeviceLoiteringCustomResponseAutoVoiceResponseVoice Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -943,7 +943,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - CMD_DOORBELL_DUAL_DELIVERY_GUARD_SWITCH Error',
+                        "Device convert raw property - CMD_DOORBELL_DUAL_DELIVERY_GUARD_SWITCH Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -963,14 +963,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 try {
                     return val?.start_h !== undefined &&
                         val?.start_m !== undefined
-                        ? `${val?.start_h?.toString().padStart(2, '0')}:${val?.start_m?.toString().padStart(2, '0')}`
+                        ? `${val?.start_h?.toString().padStart(2, "0")}:${val?.start_m?.toString().padStart(2, "0")}`
                         : stringProperty.default !== undefined
                           ? stringProperty.default
-                          : '';
+                          : "";
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - CMD_DOORBELL_DUAL_PACKAGE_STRAND_TIME Error',
+                        "Device convert raw property - CMD_DOORBELL_DUAL_PACKAGE_STRAND_TIME Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -980,7 +980,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                     );
                     return stringProperty.default !== undefined
                         ? stringProperty.default
-                        : '';
+                        : "";
                 }
             } else if (
                 property.key ===
@@ -999,7 +999,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponse Error',
+                                "Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponse Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1024,7 +1024,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseVoiceResponse Error',
+                                "Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseVoiceResponse Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1048,14 +1048,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
                                     undefined &&
                                 (value as any)?.setting[0]?.start_min !==
                                     undefined
-                                ? `${(value as any)?.setting[0]?.start_hour?.padStart(2, '0')}:${(value as any)?.setting[0]?.start_min?.padStart(2, '0')}`
+                                ? `${(value as any)?.setting[0]?.start_hour?.padStart(2, "0")}:${(value as any)?.setting[0]?.start_min?.padStart(2, "0")}`
                                 : stringProperty.default !== undefined
                                   ? stringProperty.default
-                                  : '';
+                                  : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseTimeFrom Error',
+                                "Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseTimeFrom Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1065,7 +1065,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             );
                             return stringProperty.default !== undefined
                                 ? stringProperty.default
-                                : '';
+                                : "";
                         }
                     }
                     case PropertyName.DeviceRingAutoResponseTimeTo: {
@@ -1079,14 +1079,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
                                     undefined &&
                                 (value as any)?.setting[0]?.end_min !==
                                     undefined
-                                ? `${(value as any)?.setting[0]?.end_hour?.padStart(2, '0')}:${(value as any)?.setting[0]?.end_min?.padStart(2, '0')}`
+                                ? `${(value as any)?.setting[0]?.end_hour?.padStart(2, "0")}:${(value as any)?.setting[0]?.end_min?.padStart(2, "0")}`
                                 : stringProperty.default !== undefined
                                   ? stringProperty.default
-                                  : '';
+                                  : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseTimeTo Error',
+                                "Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseTimeTo Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1096,7 +1096,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             );
                             return stringProperty.default !== undefined
                                 ? stringProperty.default
-                                : '';
+                                : "";
                         }
                     }
                     case PropertyName.DeviceRingAutoResponseVoiceResponseVoice: {
@@ -1117,7 +1117,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseVoiceResponseVoice Error',
+                                "Device convert raw property - CMD_DOORBELL_DUAL_RING_AUTO_RESPONSE DeviceRingAutoResponseVoiceResponseVoice Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1144,14 +1144,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         try {
                             return (value as any)?.start_h !== undefined &&
                                 (value as any)?.start_m !== undefined
-                                ? `${(value as any)?.start_h?.toString().padStart(2, '0')}:${(value as any)?.start_m?.toString().padStart(2, '0')}`
+                                ? `${(value as any)?.start_h?.toString().padStart(2, "0")}:${(value as any)?.start_m?.toString().padStart(2, "0")}`
                                 : stringProperty.default !== undefined
                                   ? stringProperty.default
-                                  : '';
+                                  : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_DOORBELL_DUAL_PACKAGE_GUARD_TIME DeviceDeliveryGuardPackageGuardingActivatedTimeFrom Error',
+                                "Device convert raw property - CMD_DOORBELL_DUAL_PACKAGE_GUARD_TIME DeviceDeliveryGuardPackageGuardingActivatedTimeFrom Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1161,7 +1161,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             );
                             return stringProperty.default !== undefined
                                 ? stringProperty.default
-                                : '';
+                                : "";
                         }
                     }
                     case PropertyName.DeviceDeliveryGuardPackageGuardingActivatedTimeTo: {
@@ -1170,14 +1170,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         try {
                             return (value as any)?.end_h !== undefined &&
                                 (value as any)?.end_m !== undefined
-                                ? `${(value as any)?.end_h?.toString().padStart(2, '0')}:${(value as any)?.end_m?.toString().padStart(2, '0')}`
+                                ? `${(value as any)?.end_h?.toString().padStart(2, "0")}:${(value as any)?.end_m?.toString().padStart(2, "0")}`
                                 : stringProperty.default !== undefined
                                   ? stringProperty.default
-                                  : '';
+                                  : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_DOORBELL_DUAL_PACKAGE_GUARD_TIME DeviceDeliveryGuardPackageGuardingActivatedTimeTo Error',
+                                "Device convert raw property - CMD_DOORBELL_DUAL_PACKAGE_GUARD_TIME DeviceDeliveryGuardPackageGuardingActivatedTimeTo Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1187,7 +1187,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             );
                             return stringProperty.default !== undefined
                                 ? stringProperty.default
-                                : '';
+                                : "";
                         }
                     }
                 }
@@ -1207,7 +1207,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_DISTANCE Error',
+                        "Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_DISTANCE Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -1237,7 +1237,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_TIME Error',
+                        "Device convert raw property - CMD_DOORBELL_DUAL_RADAR_WD_TIME Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -1268,7 +1268,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - CMD_DOORBELL_DUAL_PACKAGE_GUARD_VOICE Error',
+                        "Device convert raw property - CMD_DOORBELL_DUAL_PACKAGE_GUARD_VOICE Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -1293,14 +1293,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             return value !== undefined &&
                                 (value as any).start_hour !== undefined &&
                                 (value as any).start_min !== undefined
-                                ? `${(value as any).start_hour.padStart(2, '0')}:${(value as any).start_min.padStart(2, '0')}`
+                                ? `${(value as any).start_hour.padStart(2, "0")}:${(value as any).start_min.padStart(2, "0")}`
                                 : stringProperty.default !== undefined
                                   ? stringProperty.default
-                                  : '';
+                                  : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_MOTION_SET_LEAVING_REACTIONS DeviceLeavingReactionStartTime Error',
+                                "Device convert raw property - CMD_MOTION_SET_LEAVING_REACTIONS DeviceLeavingReactionStartTime Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1310,7 +1310,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             );
                             return stringProperty.default !== undefined
                                 ? stringProperty.default
-                                : '';
+                                : "";
                         }
                     }
                     case PropertyName.DeviceLeavingReactionEndTime: {
@@ -1320,14 +1320,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             return value !== undefined &&
                                 (value as any).end_hour !== undefined &&
                                 (value as any).end_min !== undefined
-                                ? `${(value as any).end_hour.padStart(2, '0')}:${(value as any).end_min.padStart(2, '0')}`
+                                ? `${(value as any).end_hour.padStart(2, "0")}:${(value as any).end_min.padStart(2, "0")}`
                                 : stringProperty.default !== undefined
                                   ? stringProperty.default
-                                  : '';
+                                  : "";
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_MOTION_SET_LEAVING_REACTIONS DeviceLeavingReactionEndTime Error',
+                                "Device convert raw property - CMD_MOTION_SET_LEAVING_REACTIONS DeviceLeavingReactionEndTime Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1337,7 +1337,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             );
                             return stringProperty.default !== undefined
                                 ? stringProperty.default
-                                : '';
+                                : "";
                         }
                     }
                     case PropertyName.DeviceLeavingReactionNotification: {
@@ -1353,7 +1353,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_MOTION_SET_LEAVING_REACTIONS DeviceLeavingReactionNotification Error',
+                                "Device convert raw property - CMD_MOTION_SET_LEAVING_REACTIONS DeviceLeavingReactionNotification Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1375,7 +1375,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         try {
                             return value !== undefined &&
                                 (value as any).snooze_time !== undefined &&
-                                (value as any).snooze_time !== '' &&
+                                (value as any).snooze_time !== "" &&
                                 Number.parseInt((value as any).snooze_time) !==
                                     0
                                 ? true
@@ -1385,7 +1385,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_SET_SNOOZE_MODE DeviceSnooze Error',
+                                "Device convert raw property - CMD_SET_SNOOZE_MODE DeviceSnooze Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1404,7 +1404,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         try {
                             return value !== undefined &&
                                 (value as any).snooze_time !== undefined &&
-                                (value as any).snooze_time !== ''
+                                (value as any).snooze_time !== ""
                                 ? Number.parseInt((value as any).snooze_time)
                                 : numericProperty.default !== undefined
                                   ? numericProperty.default
@@ -1414,7 +1414,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_SET_SNOOZE_MODE DeviceSnoozeTime Error',
+                                "Device convert raw property - CMD_SET_SNOOZE_MODE DeviceSnoozeTime Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1444,7 +1444,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_SET_SNOOZE_MODE DeviceSnoozeTime Error',
+                                "Device convert raw property - CMD_SET_SNOOZE_MODE DeviceSnoozeTime Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1474,7 +1474,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_SET_SNOOZE_MODE DeviceSnoozeHomebase Error',
+                                "Device convert raw property - CMD_SET_SNOOZE_MODE DeviceSnoozeHomebase Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1502,7 +1502,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_SET_SNOOZE_MODE DeviceSnoozeMotion Error',
+                                "Device convert raw property - CMD_SET_SNOOZE_MODE DeviceSnoozeMotion Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1530,7 +1530,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         } catch (err) {
                             const error = ensureError(err);
                             rootHTTPLogger.error(
-                                'Device convert raw property - CMD_SET_SNOOZE_MODE DeviceSnoozeChime Error',
+                                "Device convert raw property - CMD_SET_SNOOZE_MODE DeviceSnoozeChime Error",
                                 {
                                     error: getError(error),
                                     deviceSN: this.getSerial(),
@@ -1555,7 +1555,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         PropertyName.DeviceMotionDetectionTypeVehicle ||
                     property.name ===
                         PropertyName.DeviceMotionDetectionTypeAllOtherMotions) &&
-                this.getStationSerial().startsWith('T8030')
+                this.getStationSerial().startsWith("T8030")
             ) {
                 const booleanProperty = property as PropertyMetadataBoolean;
                 try {
@@ -1578,7 +1578,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - HB3 motion detection type Error',
+                        "Device convert raw property - HB3 motion detection type Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -1614,7 +1614,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - T8170 motion detection type Error',
+                        "Device convert raw property - T8170 motion detection type Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -1650,7 +1650,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - T8416 motion detection type Error',
+                        "Device convert raw property - T8416 motion detection type Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -1684,7 +1684,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - SoloCamera motion detection type Error',
+                        "Device convert raw property - SoloCamera motion detection type Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -1727,7 +1727,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - IndoorPanAndTiltCameraS350 notification Error',
+                        "Device convert raw property - IndoorPanAndTiltCameraS350 notification Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -1765,7 +1765,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - FloodLightT8425 notification Error',
+                        "Device convert raw property - FloodLightT8425 notification Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -1787,7 +1787,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             ? String((value as any).Signal)
                             : stringProperty.default !== undefined
                               ? stringProperty.default
-                              : '';
+                              : "";
                     }
                     case PropertyName.DeviceCellularBand: {
                         const stringProperty =
@@ -1797,7 +1797,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             ? String((value as any).band)
                             : stringProperty.default !== undefined
                               ? stringProperty.default
-                              : '';
+                              : "";
                     }
                     case PropertyName.DeviceCellularIMEI: {
                         const stringProperty =
@@ -1807,7 +1807,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             ? String((value as any).imei)
                             : stringProperty.default !== undefined
                               ? stringProperty.default
-                              : '';
+                              : "";
                     }
                     case PropertyName.DeviceCellularICCID: {
                         const stringProperty =
@@ -1817,7 +1817,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                             ? String((value as any).iccid)
                             : stringProperty.default !== undefined
                               ? stringProperty.default
-                              : '';
+                              : "";
                     }
                 }
             } else if (
@@ -1843,7 +1843,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - CMD_BAT_DOORBELL_VIDEO_QUALITY2 Error',
+                        "Device convert raw property - CMD_BAT_DOORBELL_VIDEO_QUALITY2 Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -1880,7 +1880,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error(
-                        'Device convert raw property - CMD_BAT_DOORBELL_RECORD_QUALITY2 Error',
+                        "Device convert raw property - CMD_BAT_DOORBELL_RECORD_QUALITY2 Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -1899,7 +1899,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 this.isCameraProfessional247()
             ) {
                 return value !== undefined
-                    ? value === '0'
+                    ? value === "0"
                         ? true
                         : false
                     : false;
@@ -2079,7 +2079,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.warn(
-                        'Device convert raw property - SUB1G_REP_UNPLUG_POWER_LINE Error',
+                        "Device convert raw property - SUB1G_REP_UNPLUG_POWER_LINE Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -2097,8 +2097,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 property.name === PropertyName.Model &&
                 this.isLockWifiT8510P()
             ) {
-                return 'T8510P';
-            } else if (property.type === 'number') {
+                return "T8510P";
+            } else if (property.type === "number") {
                 const numericProperty = property as PropertyMetadataNumeric;
                 try {
                     return value !== undefined
@@ -2111,7 +2111,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.warn(
-                        'Device convert raw property - PropertyMetadataNumeric Convert Error',
+                        "Device convert raw property - PropertyMetadataNumeric Convert Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -2125,13 +2125,13 @@ export class Device extends TypedEmitter<DeviceEvents> {
                           ? numericProperty.min
                           : 0;
                 }
-            } else if (property.type === 'boolean') {
+            } else if (property.type === "boolean") {
                 const booleanProperty = property as PropertyMetadataBoolean;
                 try {
                     return value !== undefined
-                        ? typeof value === 'number'
+                        ? typeof value === "number"
                             ? !!value
-                            : value === '1' || value.toLowerCase() === 'true'
+                            : value === "1" || value.toLowerCase() === "true"
                               ? true
                               : false
                         : booleanProperty.default !== undefined
@@ -2140,7 +2140,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.warn(
-                        'Device convert raw property - PropertyMetadataBoolean Convert Error',
+                        "Device convert raw property - PropertyMetadataBoolean Convert Error",
                         {
                             error: getError(error),
                             deviceSN: this.getSerial(),
@@ -2152,14 +2152,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
                         ? booleanProperty.default
                         : false;
                 }
-            } else if (property.type === 'string') {
+            } else if (property.type === "string") {
                 const stringProperty = property as PropertyMetadataString;
                 return value !== undefined
                     ? value
                     : stringProperty.default !== undefined
                       ? stringProperty.default
-                      : '';
-            } else if (property.type === 'object') {
+                      : "";
+            } else if (property.type === "object") {
                 const objectProperty = property as PropertyMetadataObject;
                 return value !== undefined
                     ? value
@@ -2169,7 +2169,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('Device convert raw property - Error', {
+            rootHTTPLogger.error("Device convert raw property - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
                 property: property,
@@ -2185,7 +2185,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     ): PropertyMetadataAny {
         const property = this.getPropertiesMetadata(hidden)[name];
         if (property !== undefined) return property;
-        throw new InvalidPropertyError('Property name is not valid', {
+        throw new InvalidPropertyError("Property name is not valid", {
             context: { name: name },
         });
     }
@@ -2209,7 +2209,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     public getProperties(): PropertyValues {
         const result: PropertyValues = {};
         for (const property of Object.keys(this.properties)) {
-            if (!property.startsWith('hidden-'))
+            if (!property.startsWith("hidden-"))
                 result[property] = this.properties[property];
         }
         return result;
@@ -2233,14 +2233,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
             };
             (metadata[PropertyName.Type] as PropertyMetadataNumeric).states![
                 this.getDeviceType()
-            ] = 'Smart Lock S230 (T8510P)';
+            ] = "Smart Lock S230 (T8510P)";
         } else if (this.isLockWifiT8520P()) {
             metadata = {
                 ...LockT8520PDeviceProperties,
             };
             (metadata[PropertyName.Type] as PropertyMetadataNumeric).states![
                 this.getDeviceType()
-            ] = 'Smart Lock S231 (T8520P)';
+            ] = "Smart Lock S231 (T8520P)";
         } else if (
             this.isSoloCameras() &&
             Station.isStationHomeBase3BySn(this.getStationSerial())
@@ -2351,7 +2351,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         }
         if (!hidden) {
             for (const property of Object.keys(metadata)) {
-                if (property.startsWith('hidden-')) delete metadata[property];
+                if (property.startsWith("hidden-")) delete metadata[property];
             }
         }
         return metadata;
@@ -2382,8 +2382,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
     public setCustomPropertyValue(name: string, value: PropertyValue): void {
         const metadata = this.getPropertyMetadata(name);
         if (
-            typeof metadata.key === 'string' &&
-            metadata.key.startsWith('custom_')
+            typeof metadata.key === "string" &&
+            metadata.key.startsWith("custom_")
         ) {
             this.updateProperty(name, value);
         }
@@ -2564,9 +2564,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
     static isWiredDoorbellT8200X(type: number, serialnumber: string): boolean {
         if (
             type == DeviceType.DOORBELL &&
-            serialnumber.startsWith('T8200') &&
+            serialnumber.startsWith("T8200") &&
             serialnumber.length > 7 &&
-            serialnumber.charAt(6) === '6'
+            serialnumber.charAt(6) === "6"
         )
             return true;
         return false;
@@ -2654,9 +2654,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
     static isFloodLightT8420X(type: number, serialnumber: string): boolean {
         if (
             type == DeviceType.FLOODLIGHT &&
-            serialnumber.startsWith('T8420') &&
+            serialnumber.startsWith("T8420") &&
             serialnumber.length > 7 &&
-            serialnumber.charAt(6) === '6'
+            serialnumber.charAt(6) === "6"
         )
             return true;
         return false;
@@ -2688,7 +2688,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     static isLock(type: number): boolean {
         return (
             Device.isLockBle(type) ||
-            Device.isLockWifi(type, '') ||
+            Device.isLockWifi(type, "") ||
             Device.isLockBleNoFinger(type) ||
             Device.isLockWifiNoFinger(type) ||
             Device.isLockWifiR10(type) ||
@@ -2756,9 +2756,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
     static isLockWifiT8510P(type: number, serialnumber: string): boolean {
         if (
             type == DeviceType.LOCK_WIFI &&
-            serialnumber.startsWith('T8520') &&
+            serialnumber.startsWith("T8520") &&
             serialnumber.length > 6 &&
-            serialnumber.charAt(6) === '8'
+            serialnumber.charAt(6) === "8"
         )
             return true;
         return false;
@@ -2767,9 +2767,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
     static isLockWifiT8520P(type: number, serialnumber: string): boolean {
         if (
             type == DeviceType.LOCK_WIFI &&
-            serialnumber.startsWith('T8520') &&
+            serialnumber.startsWith("T8520") &&
             serialnumber.length > 6 &&
-            serialnumber.charAt(6) === '9'
+            serialnumber.charAt(6) === "9"
         )
             return true;
         return false;
@@ -2982,98 +2982,98 @@ export class Device extends TypedEmitter<DeviceEvents> {
     static isIntegratedDeviceBySn(sn: string): boolean {
         //TODO: Update this implementation!
         return (
-            sn.startsWith('T8420') ||
-            sn.startsWith('T820') ||
-            sn.startsWith('T8410') ||
-            sn.startsWith('T8400') ||
-            sn.startsWith('T8401') ||
-            sn.startsWith('T8411') ||
-            sn.startsWith('T8414') ||
-            sn.startsWith('T8130') ||
-            sn.startsWith('T8131') ||
-            sn.startsWith('T8171') ||
-            sn.startsWith('T8422') ||
-            sn.startsWith('T8423') ||
-            sn.startsWith('T8424') ||
-            sn.startsWith('T8426') ||
-            sn.startsWith('T8440') ||
-            sn.startsWith('T8441') ||
-            sn.startsWith('T8442')
+            sn.startsWith("T8420") ||
+            sn.startsWith("T820") ||
+            sn.startsWith("T8410") ||
+            sn.startsWith("T8400") ||
+            sn.startsWith("T8401") ||
+            sn.startsWith("T8411") ||
+            sn.startsWith("T8414") ||
+            sn.startsWith("T8130") ||
+            sn.startsWith("T8131") ||
+            sn.startsWith("T8171") ||
+            sn.startsWith("T8422") ||
+            sn.startsWith("T8423") ||
+            sn.startsWith("T8424") ||
+            sn.startsWith("T8426") ||
+            sn.startsWith("T8440") ||
+            sn.startsWith("T8441") ||
+            sn.startsWith("T8442")
         );
     }
 
     static isSoloCameraBySn(sn: string): boolean {
         return (
-            sn.startsWith('T8130') ||
-            sn.startsWith('T8131') ||
-            sn.startsWith('T8122') ||
-            sn.startsWith('T8123') ||
-            sn.startsWith('T8124') ||
-            sn.startsWith('T8171') ||
-            sn.startsWith('T8134')
+            sn.startsWith("T8130") ||
+            sn.startsWith("T8131") ||
+            sn.startsWith("T8122") ||
+            sn.startsWith("T8123") ||
+            sn.startsWith("T8124") ||
+            sn.startsWith("T8171") ||
+            sn.startsWith("T8134")
         );
     }
 
     static isSmartDropBySn(sn: string): boolean {
-        return sn.startsWith('T8790');
+        return sn.startsWith("T8790");
     }
 
     static isLockBySn(sn: string): boolean {
         return (
-            sn.startsWith('T8510') ||
-            sn.startsWith('T8520') ||
-            sn.startsWith('T8500') ||
-            sn.startsWith('T8501') ||
-            sn.startsWith('T8503') ||
-            sn.startsWith('T8502') ||
-            sn.startsWith('T8504') ||
-            sn.startsWith('T8506') ||
-            sn.startsWith('T8530')
+            sn.startsWith("T8510") ||
+            sn.startsWith("T8520") ||
+            sn.startsWith("T8500") ||
+            sn.startsWith("T8501") ||
+            sn.startsWith("T8503") ||
+            sn.startsWith("T8502") ||
+            sn.startsWith("T8504") ||
+            sn.startsWith("T8506") ||
+            sn.startsWith("T8530")
         );
     }
 
     static isGarageCameraBySn(sn: string): boolean {
-        return sn.startsWith('T8453') || sn.startsWith('T8452');
+        return sn.startsWith("T8453") || sn.startsWith("T8452");
     }
 
     static isFloodlightBySn(sn: string): boolean {
         return (
-            sn.startsWith('T8420') ||
-            sn.startsWith('T8422') ||
-            sn.startsWith('T8423') ||
-            sn.startsWith('T8424') ||
-            sn.startsWith('T8426')
+            sn.startsWith("T8420") ||
+            sn.startsWith("T8422") ||
+            sn.startsWith("T8423") ||
+            sn.startsWith("T8424") ||
+            sn.startsWith("T8426")
         );
         //(sn.startsWith("T8420") && sn.length > 7 && sn[6] == "6");
     }
 
     static isIndoorCameraBySn(sn: string): boolean {
         return (
-            sn.startsWith('T8410') ||
-            sn.startsWith('T8400') ||
-            sn.startsWith('T8401') ||
-            sn.startsWith('T8411') ||
-            sn.startsWith('T8440') ||
-            sn.startsWith('T8441') ||
-            sn.startsWith('T8442') ||
-            sn.startsWith('T8414')
+            sn.startsWith("T8410") ||
+            sn.startsWith("T8400") ||
+            sn.startsWith("T8401") ||
+            sn.startsWith("T8411") ||
+            sn.startsWith("T8440") ||
+            sn.startsWith("T8441") ||
+            sn.startsWith("T8442") ||
+            sn.startsWith("T8414")
         );
     }
 
     static is4GCameraBySn(sn: string): boolean {
         return (
-            sn.startsWith('T8150') ||
-            sn.startsWith('T8151') ||
-            sn.startsWith('T8152') ||
-            sn.startsWith('T8153')
+            sn.startsWith("T8150") ||
+            sn.startsWith("T8151") ||
+            sn.startsWith("T8152") ||
+            sn.startsWith("T8153")
         );
     }
 
     static isSmartSafeBySn(sn: string): boolean {
         return (
-            sn.startsWith('T7400') ||
-            sn.startsWith('T7401') ||
-            sn.startsWith('T7402')
+            sn.startsWith("T7400") ||
+            sn.startsWith("T7401") ||
+            sn.startsWith("T7402")
         );
     }
 
@@ -3471,12 +3471,12 @@ export class Device extends TypedEmitter<DeviceEvents> {
             default:
                 if (state)
                     return `${this.getStationSerial()}.${this.getStateChannel()}.${this.getSerial()}.${state}`;
-                throw new Error('No state value passed.');
+                throw new Error("No state value passed.");
         }
     }
 
     public getStateChannel(): string {
-        return 'devices';
+        return "devices";
     }
 
     public getWifiRssi(): PropertyValue {
@@ -3506,7 +3506,7 @@ export class Camera extends Device {
 
         this.properties[PropertyName.DeviceMotionDetected] = false;
         this.properties[PropertyName.DevicePersonDetected] = false;
-        this.properties[PropertyName.DevicePersonName] = '';
+        this.properties[PropertyName.DevicePersonName] = "";
     }
 
     static async getInstance(
@@ -3518,7 +3518,7 @@ export class Camera extends Device {
     }
 
     public getStateChannel(): string {
-        return 'cameras';
+        return "cameras";
     }
 
     protected convertRawPropertyValue(
@@ -3529,14 +3529,14 @@ export class Camera extends Device {
             switch (property.key) {
                 case CommandType.CMD_SET_AUDIO_MUTE_RECORD:
                     return value !== undefined
-                        ? value === '0'
+                        ? value === "0"
                             ? true
                             : false
                         : false;
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('Camera convert raw property - Error', {
+            rootHTTPLogger.error("Camera convert raw property - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
                 property: property,
@@ -3561,7 +3561,7 @@ export class Camera extends Device {
             { paramType: ParamType.DETECT_SWITCH, paramValue: 1 },
         ]).catch((err) => {
             const error = ensureError(err);
-            rootHTTPLogger.error('Camera start detection - Error', {
+            rootHTTPLogger.error("Camera start detection - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
             });
@@ -3659,33 +3659,33 @@ export class Camera extends Device {
             metadata.name === PropertyName.DeviceStrangerPersonDetected
         ) {
             this.emit(
-                'person detected',
+                "person detected",
                 this,
                 newValue as boolean,
                 this.getPropertyValue(PropertyName.DevicePersonName) as string
             );
             if (metadata.name === PropertyName.DeviceStrangerPersonDetected)
                 this.emit(
-                    'stranger person detected',
+                    "stranger person detected",
                     this,
                     newValue as boolean
                 );
         } else if (metadata.name === PropertyName.DeviceMotionDetected) {
-            this.emit('motion detected', this, newValue as boolean);
+            this.emit("motion detected", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceCryingDetected) {
-            this.emit('crying detected', this, newValue as boolean);
+            this.emit("crying detected", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceDogDetected) {
-            this.emit('dog detected', this, newValue as boolean);
+            this.emit("dog detected", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceDogLickDetected) {
-            this.emit('dog lick detected', this, newValue as boolean);
+            this.emit("dog lick detected", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceDogPoopDetected) {
-            this.emit('dog poop detected', this, newValue as boolean);
+            this.emit("dog poop detected", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DevicePetDetected) {
-            this.emit('pet detected', this, newValue as boolean);
+            this.emit("pet detected", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceSoundDetected) {
-            this.emit('sound detected', this, newValue as boolean);
+            this.emit("sound detected", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceVehicleDetected) {
-            this.emit('vehicle detected', this, newValue as boolean);
+            this.emit("vehicle detected", this, newValue as boolean);
         }
     }
 
@@ -3714,7 +3714,7 @@ export class Camera extends Device {
                             PropertyName.DevicePersonName,
                             !isEmpty(message.person_name)
                                 ? message.person_name!
-                                : 'Unknown'
+                                : "Unknown"
                         );
                         this.updateProperty(
                             PropertyName.DevicePersonDetected,
@@ -3726,7 +3726,7 @@ export class Camera extends Device {
                             setTimeout(async () => {
                                 this.updateProperty(
                                     PropertyName.DevicePersonName,
-                                    ''
+                                    ""
                                 );
                                 this.updateProperty(
                                     PropertyName.DevicePersonDetected,
@@ -3824,7 +3824,7 @@ export class Camera extends Device {
                                     PropertyName.DevicePersonName,
                                     !isEmpty(message.person_name)
                                         ? message.person_name!
-                                        : 'Unknown'
+                                        : "Unknown"
                                 );
                                 this.updateProperty(
                                     PropertyName.DevicePersonDetected,
@@ -3838,7 +3838,7 @@ export class Camera extends Device {
                                     setTimeout(async () => {
                                         this.updateProperty(
                                             PropertyName.DevicePersonName,
-                                            ''
+                                            ""
                                         );
                                         this.updateProperty(
                                             PropertyName.DevicePersonDetected,
@@ -4064,7 +4064,7 @@ export class Camera extends Device {
                                     PropertyName.DevicePersonName,
                                     !isEmpty(message.person_name)
                                         ? message.person_name!
-                                        : 'Unknown'
+                                        : "Unknown"
                                 );
                                 this.updateProperty(
                                     PropertyName.DeviceIdentityPersonDetected,
@@ -4078,7 +4078,7 @@ export class Camera extends Device {
                                     setTimeout(async () => {
                                         this.updateProperty(
                                             PropertyName.DevicePersonName,
-                                            ''
+                                            ""
                                         );
                                         this.updateProperty(
                                             PropertyName.DeviceIdentityPersonDetected,
@@ -4136,7 +4136,7 @@ export class Camera extends Device {
                                     PropertyName.DevicePersonName,
                                     !isEmpty(message.person_name)
                                         ? message.person_name!
-                                        : 'Unknown'
+                                        : "Unknown"
                                 );
                                 this.updateProperty(
                                     PropertyName.DeviceStrangerPersonDetected,
@@ -4150,7 +4150,7 @@ export class Camera extends Device {
                                     setTimeout(async () => {
                                         this.updateProperty(
                                             PropertyName.DevicePersonName,
-                                            ''
+                                            ""
                                         );
                                         this.updateProperty(
                                             PropertyName.DeviceStrangerPersonDetected,
@@ -4205,7 +4205,7 @@ export class Camera extends Device {
                                 break;
                             default:
                                 rootHTTPLogger.debug(
-                                    'Camera process push notification - Unhandled homebase3 camera push event',
+                                    "Camera process push notification - Unhandled homebase3 camera push event",
                                     message
                                 );
                                 break;
@@ -4253,14 +4253,14 @@ export class SoloCamera extends Camera {
             switch (property.key) {
                 case CommandType.CMD_DEV_RECORD_AUTOSTOP:
                     return value !== undefined
-                        ? value === '0'
+                        ? value === "0"
                             ? true
                             : false
                         : false;
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('SoloCamera convert raw property - Error', {
+            rootHTTPLogger.error("SoloCamera convert raw property - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
                 property: property,
@@ -4315,7 +4315,7 @@ export class SoloCamera extends Camera {
                                 PropertyName.DevicePersonName,
                                 !isEmpty(message.person_name)
                                     ? message.person_name!
-                                    : 'Unknown'
+                                    : "Unknown"
                             );
                             this.updateProperty(
                                 PropertyName.DevicePersonDetected,
@@ -4327,7 +4327,7 @@ export class SoloCamera extends Camera {
                                 setTimeout(async () => {
                                     this.updateProperty(
                                         PropertyName.DevicePersonName,
-                                        ''
+                                        ""
                                     );
                                     this.updateProperty(
                                         PropertyName.DevicePersonDetected,
@@ -4363,7 +4363,7 @@ export class SoloCamera extends Camera {
                             break;
                         default:
                             rootHTTPLogger.debug(
-                                'SoloCamera process push notification - Unhandled solo camera push event',
+                                "SoloCamera process push notification - Unhandled solo camera push event",
                                 message
                             );
                             break;
@@ -4483,7 +4483,7 @@ export class IndoorCamera extends Camera {
                                 PropertyName.DevicePersonName,
                                 !isEmpty(message.person_name)
                                     ? message.person_name!
-                                    : 'Unknown'
+                                    : "Unknown"
                             );
                             this.updateProperty(
                                 PropertyName.DevicePersonDetected,
@@ -4495,7 +4495,7 @@ export class IndoorCamera extends Camera {
                                 setTimeout(async () => {
                                     this.updateProperty(
                                         PropertyName.DevicePersonName,
-                                        ''
+                                        ""
                                     );
                                     this.updateProperty(
                                         PropertyName.DevicePersonDetected,
@@ -4628,7 +4628,7 @@ export class IndoorCamera extends Camera {
                             break;
                         default:
                             rootHTTPLogger.debug(
-                                'IndoorCamera process push notification - Unhandled indoor camera push event',
+                                "IndoorCamera process push notification - Unhandled indoor camera push event",
                                 message
                             );
                             break;
@@ -4694,7 +4694,7 @@ export class DoorbellCamera extends Camera {
 
     public getVoiceName(id: number): string {
         if (this.voices[id] !== undefined) return this.voices[id].desc;
-        return '';
+        return "";
     }
 
     public getVoices(): Voices {
@@ -4729,17 +4729,17 @@ export class DoorbellCamera extends Camera {
     ): void {
         super.handlePropertyChange(metadata, oldValue, newValue);
         if (metadata.name === PropertyName.DeviceRinging) {
-            this.emit('rings', this, newValue as boolean);
+            this.emit("rings", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DevicePackageDelivered) {
-            this.emit('package delivered', this, newValue as boolean);
+            this.emit("package delivered", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DevicePackageStranded) {
-            this.emit('package stranded', this, newValue as boolean);
+            this.emit("package stranded", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DevicePackageTaken) {
-            this.emit('package taken', this, newValue as boolean);
+            this.emit("package taken", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceSomeoneLoitering) {
-            this.emit('someone loitering', this, newValue as boolean);
+            this.emit("someone loitering", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceRadarMotionDetected) {
-            this.emit('radar motion detected', this, newValue as boolean);
+            this.emit("radar motion detected", this, newValue as boolean);
         }
     }
 
@@ -4789,7 +4789,7 @@ export class DoorbellCamera extends Camera {
                                 PropertyName.DevicePersonName,
                                 !isEmpty(message.person_name)
                                     ? message.person_name!
-                                    : 'Unknown'
+                                    : "Unknown"
                             );
                             this.updateProperty(
                                 PropertyName.DevicePersonDetected,
@@ -4801,7 +4801,7 @@ export class DoorbellCamera extends Camera {
                                 setTimeout(async () => {
                                     this.updateProperty(
                                         PropertyName.DevicePersonName,
-                                        ''
+                                        ""
                                     );
                                     this.updateProperty(
                                         PropertyName.DevicePersonDetected,
@@ -5046,7 +5046,7 @@ export class DoorbellCamera extends Camera {
                             break;
                         default:
                             rootHTTPLogger.debug(
-                                'DoorbellCamera process push notification - Unhandled doorbell push event',
+                                "DoorbellCamera process push notification - Unhandled doorbell push event",
                                 message
                             );
                             break;
@@ -5138,7 +5138,7 @@ export class FloodlightCamera extends Camera {
                         this.getDeviceType() === DeviceType.FLOODLIGHT
                     )
                         return value !== undefined
-                            ? value === '0'
+                            ? value === "0"
                                 ? true
                                 : false
                             : false;
@@ -5149,14 +5149,14 @@ export class FloodlightCamera extends Camera {
                         DeviceType.FLOODLIGHT_CAMERA_8423
                     )
                         return value !== undefined
-                            ? value === '0'
+                            ? value === "0"
                                 ? true
                                 : false
                             : false;
                     break;
                 case CommandType.CMD_RECORD_AUDIO_SWITCH:
                     return value !== undefined
-                        ? value === '0'
+                        ? value === "0"
                             ? true
                             : false
                         : false;
@@ -5166,12 +5166,12 @@ export class FloodlightCamera extends Camera {
                         DeviceType.FLOODLIGHT_CAMERA_8423
                     )
                         return value !== undefined
-                            ? value === '1'
+                            ? value === "1"
                                 ? true
                                 : false
                             : false;
                     return value !== undefined
-                        ? value === '0'
+                        ? value === "0"
                             ? true
                             : false
                         : false;
@@ -5194,7 +5194,7 @@ export class FloodlightCamera extends Camera {
         } catch (err) {
             const error = ensureError(err);
             rootHTTPLogger.error(
-                'FloodlightCamera convert raw property - Error',
+                "FloodlightCamera convert raw property - Error",
                 {
                     error: getError(error),
                     deviceSN: this.getSerial(),
@@ -5251,7 +5251,7 @@ export class FloodlightCamera extends Camera {
                                 PropertyName.DevicePersonName,
                                 !isEmpty(message.person_name)
                                     ? message.person_name!
-                                    : 'Unknown'
+                                    : "Unknown"
                             );
                             this.updateProperty(
                                 PropertyName.DevicePersonDetected,
@@ -5263,7 +5263,7 @@ export class FloodlightCamera extends Camera {
                                 setTimeout(async () => {
                                     this.updateProperty(
                                         PropertyName.DevicePersonName,
-                                        ''
+                                        ""
                                     );
                                     this.updateProperty(
                                         PropertyName.DevicePersonDetected,
@@ -5299,7 +5299,7 @@ export class FloodlightCamera extends Camera {
                             break;
                         default:
                             rootHTTPLogger.debug(
-                                'FloodlightCamera process push notification - Unhandled floodlight push event',
+                                "FloodlightCamera process push notification - Unhandled floodlight push event",
                                 message
                             );
                             break;
@@ -5346,13 +5346,13 @@ export class WallLightCam extends Camera {
             switch (property.key) {
                 case CommandType.CMD_DEV_RECORD_AUTOSTOP:
                     return value !== undefined
-                        ? value === '0'
+                        ? value === "0"
                             ? true
                             : false
                         : false;
                 case CommandType.CMD_SET_AUDIO_MUTE_RECORD:
                     return value !== undefined
-                        ? value === '1'
+                        ? value === "1"
                             ? true
                             : false
                         : false;
@@ -5395,7 +5395,7 @@ export class WallLightCam extends Camera {
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('WallLightCam convert raw property - Error', {
+            rootHTTPLogger.error("WallLightCam convert raw property - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
                 property: property,
@@ -5475,7 +5475,7 @@ export class WallLightCam extends Camera {
                                 PropertyName.DevicePersonName,
                                 !isEmpty(message.person_name)
                                     ? message.person_name!
-                                    : 'Unknown'
+                                    : "Unknown"
                             );
                             this.updateProperty(
                                 PropertyName.DevicePersonDetected,
@@ -5487,7 +5487,7 @@ export class WallLightCam extends Camera {
                                 setTimeout(async () => {
                                     this.updateProperty(
                                         PropertyName.DevicePersonName,
-                                        ''
+                                        ""
                                     );
                                     this.updateProperty(
                                         PropertyName.DevicePersonDetected,
@@ -5523,7 +5523,7 @@ export class WallLightCam extends Camera {
                             break;
                         default:
                             rootHTTPLogger.debug(
-                                'WallLightCam process push notification - Unhandled WallLightCam push event',
+                                "WallLightCam process push notification - Unhandled WallLightCam push event",
                                 message
                             );
                             break;
@@ -5570,7 +5570,7 @@ export class GarageCamera extends Camera {
             switch (property.key) {
                 case CommandType.CMD_SET_AUDIO_MUTE_RECORD:
                     return value !== undefined
-                        ? value === '1'
+                        ? value === "1"
                             ? true
                             : false
                         : false;
@@ -5643,7 +5643,7 @@ export class GarageCamera extends Camera {
                             return sensorsData?.data?.door_1?.mac_address !==
                                 undefined
                                 ? sensorsData?.data?.door_1?.mac_address
-                                : '';
+                                : "";
                         } else if (
                             property.name ===
                             PropertyName.DeviceDoorSensor2MacAddress
@@ -5651,33 +5651,33 @@ export class GarageCamera extends Camera {
                             return sensorsData?.data?.door_2?.mac_address !==
                                 undefined
                                 ? sensorsData?.data?.door_2?.mac_address
-                                : '';
+                                : "";
                         } else if (
                             property.name === PropertyName.DeviceDoorSensor1Name
                         ) {
                             return sensorsData?.data?.door_1?.name !== undefined
                                 ? sensorsData?.data?.door_1?.name
-                                : '';
+                                : "";
                         } else if (
                             property.name === PropertyName.DeviceDoorSensor2Name
                         ) {
                             return sensorsData?.data?.door_2?.name !== undefined
                                 ? sensorsData?.data?.door_2?.name
-                                : '';
+                                : "";
                         } else if (
                             property.name ===
                             PropertyName.DeviceDoorSensor1SerialNumber
                         ) {
                             return sensorsData?.data?.door_1?.sn !== undefined
                                 ? sensorsData?.data?.door_1?.sn
-                                : '';
+                                : "";
                         } else if (
                             property.name ===
                             PropertyName.DeviceDoorSensor2SerialNumber
                         ) {
                             return sensorsData?.data?.door_2?.sn !== undefined
                                 ? sensorsData?.data?.door_2?.sn
-                                : '';
+                                : "";
                         } else if (
                             property.name ===
                             PropertyName.DeviceDoorSensor1Version
@@ -5685,7 +5685,7 @@ export class GarageCamera extends Camera {
                             return sensorsData?.data?.door_1?.version !==
                                 undefined
                                 ? sensorsData?.data?.door_1?.version
-                                : '';
+                                : "";
                         } else if (
                             property.name ===
                             PropertyName.DeviceDoorSensor2Version
@@ -5693,7 +5693,7 @@ export class GarageCamera extends Camera {
                             return sensorsData?.data?.door_2?.version !==
                                 undefined
                                 ? sensorsData?.data?.door_2?.version
-                                : '';
+                                : "";
                         } else if (
                             property.name ===
                             PropertyName.DeviceDoorControlWarning
@@ -5711,7 +5711,7 @@ export class GarageCamera extends Camera {
                             return sensorsData?.data?.door_1?.power !==
                                 undefined
                                 ? sensorsData?.data?.door_1?.power >= 1 &&
-                                  sensorsData?.data?.door_1?.sn !== ''
+                                  sensorsData?.data?.door_1?.sn !== ""
                                     ? 1
                                     : 0
                                 : 0;
@@ -5722,7 +5722,7 @@ export class GarageCamera extends Camera {
                             return sensorsData?.data?.door_2?.power !==
                                 undefined
                                 ? sensorsData?.data?.door_2?.power >= 1 &&
-                                  sensorsData?.data?.door_2?.sn !== ''
+                                  sensorsData?.data?.door_2?.sn !== ""
                                     ? 1
                                     : 0
                                 : 0;
@@ -5732,7 +5732,7 @@ export class GarageCamera extends Camera {
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('GarageCamera convert raw property - Error', {
+            rootHTTPLogger.error("GarageCamera convert raw property - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
                 property: property,
@@ -5806,7 +5806,7 @@ export class GarageCamera extends Camera {
                             break;
                         default:
                             rootHTTPLogger.debug(
-                                'GarageCamera process push notification - Unhandled GarageDoor push event',
+                                "GarageCamera process push notification - Unhandled GarageDoor push event",
                                 message
                             );
                             break;
@@ -5838,7 +5838,7 @@ export class Sensor extends Device {
     }
 
     public getStateChannel(): string {
-        return 'sensors';
+        return "sensors";
     }
 
     public getState(): PropertyValue {
@@ -5882,8 +5882,8 @@ export class EntrySensor extends Sensor {
                     if (message.sensor_open !== undefined) {
                         this.updateRawProperty(
                             CommandType.CMD_ENTRY_SENSOR_STATUS,
-                            message.sensor_open ? '1' : '0',
-                            'push'
+                            message.sensor_open ? "1" : "0",
+                            "push"
                         );
                     }
                 } catch (err) {
@@ -5912,7 +5912,7 @@ export class EntrySensor extends Sensor {
             metadata.name === PropertyName.DeviceSensorOpen &&
             metadata.key === CommandType.CMD_ENTRY_SENSOR_STATUS
         ) {
-            this.emit('open', this, newValue as boolean);
+            this.emit("open", this, newValue as boolean);
         }
     }
 }
@@ -5979,7 +5979,7 @@ export class MotionSensor extends Sensor {
     ): void {
         super.handlePropertyChange(metadata, oldValue, newValue);
         if (metadata.name === PropertyName.DeviceMotionDetected) {
-            this.emit('motion detected', this, newValue as boolean);
+            this.emit("motion detected", this, newValue as boolean);
         }
     }
 
@@ -6042,7 +6042,7 @@ export class Lock extends Device {
     }
 
     public getStateChannel(): string {
-        return 'locks';
+        return "locks";
     }
 
     protected handlePropertyChange(
@@ -6052,9 +6052,9 @@ export class Lock extends Device {
     ): void {
         super.handlePropertyChange(metadata, oldValue, newValue);
         if (metadata.name === PropertyName.DeviceLocked) {
-            this.emit('locked', this, newValue as boolean);
+            this.emit("locked", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceLowBatteryAlert) {
-            this.emit('low battery', this, newValue as boolean);
+            this.emit("low battery", this, newValue as boolean);
         } else if (
             (metadata.key === CommandType.CMD_DOORLOCK_GET_STATE ||
                 metadata.key === CommandType.CMD_SMARTLOCK_QUERY_STATUS) &&
@@ -6137,7 +6137,7 @@ export class Lock extends Device {
                 message.device_sn,
                 message.person_name!,
                 eventDurationSeconds,
-                'push'
+                "push"
             );
         }
     }
@@ -6152,7 +6152,7 @@ export class Lock extends Device {
                 this.isLockBle() || this.isLockBleNoFinger()
                     ? CommandType.CMD_DOORLOCK_GET_STATE
                     : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-            this.updateRawProperty(cmdType, message.lockState, 'mqtt');
+            this.updateRawProperty(cmdType, message.lockState, "mqtt");
         } else if (message.eventType === LockPushEvent.OTA_STATUS) {
             // OTA Status - ignore event
         } else {
@@ -6162,7 +6162,7 @@ export class Lock extends Device {
                 this.getSerial(),
                 message.nickName,
                 eventDurationSeconds,
-                'mqtt'
+                "mqtt"
             );
         }
     }
@@ -6189,7 +6189,7 @@ export class Lock extends Device {
                             this.isLockBle() || this.isLockBleNoFinger()
                                 ? CommandType.CMD_DOORLOCK_GET_STATE
                                 : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                        this.updateRawProperty(cmdType, '4', source);
+                        this.updateRawProperty(cmdType, "4", source);
 
                         if (!isEmpty(personName)) {
                             this.updateProperty(
@@ -6206,7 +6206,7 @@ export class Lock extends Device {
                                 setTimeout(async () => {
                                     this.updateProperty(
                                         PropertyName.DevicePersonName,
-                                        ''
+                                        ""
                                     );
                                     this.updateProperty(
                                         PropertyName.DeviceLockEventOrigin,
@@ -6228,7 +6228,7 @@ export class Lock extends Device {
                             this.isLockBle() || this.isLockBleNoFinger()
                                 ? CommandType.CMD_DOORLOCK_GET_STATE
                                 : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                        this.updateRawProperty(cmdType, '3', source);
+                        this.updateRawProperty(cmdType, "3", source);
 
                         if (!isEmpty(personName)) {
                             this.updateProperty(
@@ -6245,7 +6245,7 @@ export class Lock extends Device {
                                 setTimeout(async () => {
                                     this.updateProperty(
                                         PropertyName.DevicePersonName,
-                                        ''
+                                        ""
                                     );
                                     this.updateProperty(
                                         PropertyName.DeviceLockEventOrigin,
@@ -6265,7 +6265,7 @@ export class Lock extends Device {
                             this.isLockBle() || this.isLockBleNoFinger()
                                 ? CommandType.CMD_DOORLOCK_GET_STATE
                                 : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                        this.updateRawProperty(cmdType, '5', source);
+                        this.updateRawProperty(cmdType, "5", source);
                         break;
                     }
                     case LockPushEvent.LOW_POWER:
@@ -6296,7 +6296,7 @@ export class Lock extends Device {
                     //     break;
                     default:
                         rootHTTPLogger.debug(
-                            'Lock process push notification - Unhandled lock notification event',
+                            "Lock process push notification - Unhandled lock notification event",
                             eventType,
                             eventTime,
                             deviceSN
@@ -6361,7 +6361,7 @@ export class Lock extends Device {
 
     public static encodeCmdStatus(user_id: string): Buffer {
         const payload = new WritePayload();
-        payload.write(Buffer.from(user_id, 'hex'));
+        payload.write(Buffer.from(user_id, "hex"));
         payload.write(this.getCurrentTimeInSeconds());
         return payload.getData();
     }
@@ -6372,7 +6372,7 @@ export class Lock extends Device {
         username: string
     ): Buffer {
         const payload = new WritePayload();
-        payload.write(Buffer.from(short_user_id, 'hex'));
+        payload.write(Buffer.from(short_user_id, "hex"));
         payload.write(this.getUInt8Buffer(value));
         payload.write(this.getCurrentTimeInSeconds());
         payload.write(Buffer.from(username));
@@ -6392,46 +6392,46 @@ export class Lock extends Device {
     ): Buffer {
         // or user_permission 1?
         const payload = new WritePayload();
-        payload.write(Buffer.from(short_user_id, 'hex'));
-        payload.write(Buffer.from(passcode, 'hex'));
+        payload.write(Buffer.from(short_user_id, "hex"));
+        payload.write(Buffer.from(passcode, "hex"));
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.startDateTime !== undefined
                     ? hexDate(schedule.startDateTime)
-                    : '00000000',
-                'hex'
+                    : "00000000",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.endDateTime !== undefined
                     ? hexDate(schedule.endDateTime)
-                    : 'ffffffff',
-                'hex'
+                    : "ffffffff",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.week !== undefined
                     ? hexWeek(schedule)
-                    : 'ff',
-                'hex'
+                    : "ff",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.startDateTime !== undefined
                     ? hexTime(schedule.startDateTime)
-                    : '0000',
-                'hex'
+                    : "0000",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.endDateTime !== undefined
                     ? hexTime(schedule.endDateTime)
-                    : 'ffff',
-                'hex'
+                    : "ffff",
+                "hex"
             )
         );
         payload.write(this.getUInt8Buffer(user_permission));
@@ -6449,32 +6449,32 @@ export class Lock extends Device {
             Buffer.from(
                 schedule !== undefined && schedule.startDateTime !== undefined
                     ? hexDate(schedule.startDateTime)
-                    : '00000000',
-                'hex'
+                    : "00000000",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.endDateTime !== undefined
                     ? hexDate(schedule.endDateTime)
-                    : 'ffffffff',
-                'hex'
+                    : "ffffffff",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.startDateTime !== undefined
                     ? hexTime(schedule.startDateTime)
-                    : '0000',
-                'hex'
+                    : "0000",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.endDateTime !== undefined
                     ? hexTime(schedule.endDateTime)
-                    : 'ffff',
-                'hex'
+                    : "ffff",
+                "hex"
             )
         );
         payload.write(this.getUInt8Buffer(unlimited === false ? 1 : 2));
@@ -6503,7 +6503,7 @@ export class Lock extends Device {
 
     public static encodeCmdQueryUser(short_user_id: string): Buffer {
         const payload = new WritePayload();
-        payload.write(Buffer.from(short_user_id, 'hex'));
+        payload.write(Buffer.from(short_user_id, "hex"));
         payload.write(this.getUInt8Buffer(0)); //TODO: eSLQueryAllUsers.index
         payload.write(this.getCurrentTimeInSeconds());
         return payload.getData();
@@ -6511,7 +6511,7 @@ export class Lock extends Device {
 
     public static encodeCmdQueryPassword(password_id: string): Buffer {
         const payload = new WritePayload();
-        payload.write(Buffer.from(password_id, 'hex'));
+        payload.write(Buffer.from(password_id, "hex"));
         payload.write(this.getCurrentTimeInSeconds());
         return payload.getData();
     }
@@ -6521,8 +6521,8 @@ export class Lock extends Device {
         passcode: string
     ): Buffer {
         const payload = new WritePayload();
-        payload.write(Buffer.from(password_id, 'hex'));
-        payload.write(Buffer.from(passcode, 'hex'));
+        payload.write(Buffer.from(password_id, "hex"));
+        payload.write(Buffer.from(passcode, "hex"));
         payload.write(this.getCurrentTimeInSeconds());
         return payload.getData();
     }
@@ -6532,45 +6532,45 @@ export class Lock extends Device {
         schedule: Schedule
     ): Buffer {
         const payload = new WritePayload();
-        payload.write(Buffer.from(short_user_id, 'hex'));
+        payload.write(Buffer.from(short_user_id, "hex"));
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.startDateTime !== undefined
                     ? hexDate(schedule.startDateTime)
-                    : '00000000',
-                'hex'
+                    : "00000000",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.endDateTime !== undefined
                     ? hexDate(schedule.endDateTime)
-                    : 'ffffffff',
-                'hex'
+                    : "ffffffff",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.week !== undefined
                     ? hexWeek(schedule)
-                    : 'ff',
-                'hex'
+                    : "ff",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.startDateTime !== undefined
                     ? hexTime(schedule.startDateTime)
-                    : '0000',
-                'hex'
+                    : "0000",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.endDateTime !== undefined
                     ? hexTime(schedule.endDateTime)
-                    : 'ffff',
-                'hex'
+                    : "ffff",
+                "hex"
             )
         );
         payload.write(this.getCurrentTimeInSeconds());
@@ -6582,7 +6582,7 @@ export class Lock extends Device {
         password_id: string
     ): Buffer {
         const payload = new WritePayload();
-        payload.write(Buffer.from(password_id, 'hex'));
+        payload.write(Buffer.from(password_id, "hex"));
         payload.write(Buffer.from(username));
         payload.write(this.getCurrentTimeInSeconds());
         return payload.getData();
@@ -6608,9 +6608,9 @@ export class Lock extends Device {
 
     private static hexTime = function (time: string): string {
         const buf = Buffer.allocUnsafe(2);
-        buf.writeUint8(Number.parseInt(time.split(':')[0]));
-        buf.writeUint8(Number.parseInt(time.split(':')[1]), 1);
-        return buf.readUInt16BE().toString(16).padStart(4, '0');
+        buf.writeUint8(Number.parseInt(time.split(":")[0]));
+        buf.writeUint8(Number.parseInt(time.split(":")[1]), 1);
+        return buf.readUInt16BE().toString(16).padStart(4, "0");
     };
 
     public static encodeCmdSetLockParamAutoLockSchedule(
@@ -6623,8 +6623,8 @@ export class Lock extends Device {
             this.getUint16BEBuffer(CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE)
         );
         payload.write(this.getUInt8Buffer(enabled === true ? 1 : 0));
-        payload.write(Buffer.from(Lock.hexTime(schedule_start), 'hex'));
-        payload.write(Buffer.from(Lock.hexTime(schedule_end), 'hex'));
+        payload.write(Buffer.from(Lock.hexTime(schedule_start), "hex"));
+        payload.write(Buffer.from(Lock.hexTime(schedule_end), "hex"));
         payload.write(this.getCurrentTimeInSeconds());
         return payload.getData();
     }
@@ -6715,7 +6715,7 @@ export class Lock extends Device {
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('WallLightCam convert raw property - Error', {
+            rootHTTPLogger.error("WallLightCam convert raw property - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
                 property: property,
@@ -6736,7 +6736,7 @@ export class Lock extends Device {
         payload.write(Buffer.from(adminUserId));
         payload.write(this.getUInt8Buffer(lock ? 0 : 1));
         payload.write(Buffer.from(username));
-        payload.write(Buffer.from(shortUserId, 'hex'));
+        payload.write(Buffer.from(shortUserId, "hex"));
         return payload.getData();
     }
 
@@ -6765,8 +6765,8 @@ export class Lock extends Device {
 
     private static hexTimeSmartLock = function (time: string): Buffer {
         const buf = Buffer.allocUnsafe(2);
-        buf.writeUint8(Number.parseInt(time.split(':')[0]));
-        buf.writeUint8(Number.parseInt(time.split(':')[1]), 1);
+        buf.writeUint8(Number.parseInt(time.split(":")[0]));
+        buf.writeUint8(Number.parseInt(time.split(":")[1]), 1);
         return buf;
     };
 
@@ -6838,51 +6838,51 @@ export class Lock extends Device {
         const payload = new WritePayload();
         payload.write(this.getCurrentTimeInSeconds());
         payload.write(Buffer.from(adminUserId));
-        payload.write(Buffer.from(passcode, 'hex'));
+        payload.write(Buffer.from(passcode, "hex"));
         payload.write(this.getUInt8Buffer(userPermission));
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.startDateTime !== undefined
                     ? hexDate(schedule.startDateTime)
-                    : '00000000',
-                'hex'
+                    : "00000000",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.endDateTime !== undefined
                     ? hexDate(schedule.endDateTime)
-                    : 'ffffffff',
-                'hex'
+                    : "ffffffff",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.week !== undefined
                     ? hexWeek(schedule)
-                    : 'ff',
-                'hex'
+                    : "ff",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.startDateTime !== undefined
                     ? hexTime(schedule.startDateTime)
-                    : '0000',
-                'hex'
+                    : "0000",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.endDateTime !== undefined
                     ? hexTime(schedule.endDateTime)
-                    : 'ffff',
-                'hex'
+                    : "ffff",
+                "hex"
             )
         );
         payload.write(this.getUInt8Buffer(userPermission === 5 ? 1 : 0));
         payload.write(Buffer.from(username));
-        payload.write(Buffer.from(shortUserId, 'hex'));
+        payload.write(Buffer.from(shortUserId, "hex"));
         return payload.getData();
     }
 
@@ -6893,7 +6893,7 @@ export class Lock extends Device {
         const payload = new WritePayload();
         payload.write(this.getCurrentTimeInSeconds());
         payload.write(Buffer.from(adminUserId));
-        payload.write(Buffer.from(shortUserId, 'hex'));
+        payload.write(Buffer.from(shortUserId, "hex"));
         return payload.getData();
     }
 
@@ -6912,45 +6912,45 @@ export class Lock extends Device {
             Buffer.from(
                 schedule !== undefined && schedule.startDateTime !== undefined
                     ? hexDate(schedule.startDateTime)
-                    : '00000000',
-                'hex'
+                    : "00000000",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.endDateTime !== undefined
                     ? hexDate(schedule.endDateTime)
-                    : 'ffffffff',
-                'hex'
+                    : "ffffffff",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.week !== undefined
                     ? hexWeek(schedule)
-                    : 'ff',
-                'hex'
+                    : "ff",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.startDateTime !== undefined
                     ? hexTime(schedule.startDateTime)
-                    : '0000',
-                'hex'
+                    : "0000",
+                "hex"
             )
         );
         payload.write(
             Buffer.from(
                 schedule !== undefined && schedule.endDateTime !== undefined
                     ? hexTime(schedule.endDateTime)
-                    : 'ffff',
-                'hex'
+                    : "ffff",
+                "hex"
             )
         );
         payload.write(this.getUInt8Buffer(userPermission === 5 ? 1 : 0));
         payload.write(Buffer.from(username));
-        payload.write(Buffer.from(shortUserId, 'hex'));
+        payload.write(Buffer.from(shortUserId, "hex"));
         return payload.getData();
     }
 
@@ -6962,8 +6962,8 @@ export class Lock extends Device {
         const payload = new WritePayload();
         payload.write(this.getCurrentTimeInSeconds());
         payload.write(Buffer.from(adminUserId));
-        payload.write(Buffer.from(passwordId, 'hex'));
-        payload.write(Buffer.from(passcode, 'hex'));
+        payload.write(Buffer.from(passwordId, "hex"));
+        payload.write(Buffer.from(passcode, "hex"));
         return payload.getData();
     }
 
@@ -6997,7 +6997,7 @@ export class LockKeypad extends Device {
     }
 
     public getStateChannel(): string {
-        return 'lock_keypads';
+        return "lock_keypads";
     }
 }
 
@@ -7019,7 +7019,7 @@ export class Keypad extends Device {
     }
 
     public getStateChannel(): string {
-        return 'keypads';
+        return "keypads";
     }
 
     public getState(): PropertyValue {
@@ -7042,14 +7042,14 @@ export class Keypad extends Device {
             switch (property.key) {
                 case CommandType.CMD_KEYPAD_BATTERY_CHARGER_STATE:
                     return value !== undefined
-                        ? value === '0' || value === '2'
+                        ? value === "0" || value === "2"
                             ? false
                             : true
                         : false;
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('Keypad convert raw property - Error', {
+            rootHTTPLogger.error("Keypad convert raw property - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
                 property: property,
@@ -7061,7 +7061,7 @@ export class Keypad extends Device {
 }
 
 export class SmartSafe extends Device {
-    public static readonly IV = '052E19EB3F880512E99EBB684D4DC1FE';
+    public static readonly IV = "052E19EB3F880512E99EBB684D4DC1FE";
     public static readonly DATA_HEADER = [-1, 9];
     public static readonly VERSION_CODE = 1;
     public static readonly PUSH_NOTIFICATION_POSITION: {
@@ -7086,7 +7086,7 @@ export class SmartSafe extends Device {
     }
 
     public getStateChannel(): string {
-        return 'smartsafes';
+        return "smartsafes";
     }
 
     private static getCurrentTimeInSeconds(): Buffer {
@@ -7268,7 +7268,7 @@ export class SmartSafe extends Device {
                         const booleanProperty =
                             property as PropertyMetadataBoolean;
                         return value !== undefined
-                            ? value === '0' || value === '1'
+                            ? value === "0" || value === "1"
                                 ? true
                                 : false
                             : booleanProperty.default !== undefined
@@ -7279,7 +7279,7 @@ export class SmartSafe extends Device {
                         const booleanProperty =
                             property as PropertyMetadataBoolean;
                         return value !== undefined
-                            ? value === '0'
+                            ? value === "0"
                                 ? true
                                 : false
                             : booleanProperty.default !== undefined
@@ -7300,7 +7300,7 @@ export class SmartSafe extends Device {
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('SmartSafe convert raw property - Error', {
+            rootHTTPLogger.error("SmartSafe convert raw property - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
                 property: property,
@@ -7393,8 +7393,8 @@ export class SmartSafe extends Device {
                             if (eventValues.action === 0) {
                                 this.updateRawProperty(
                                     CommandType.CMD_SMARTSAFE_LOCK_STATUS,
-                                    '0',
-                                    'push'
+                                    "0",
+                                    "push"
                                 );
                                 /*
                                         type values:
@@ -7407,8 +7407,8 @@ export class SmartSafe extends Device {
                             } else if (eventValues.action === 1) {
                                 this.updateRawProperty(
                                     CommandType.CMD_SMARTSAFE_LOCK_STATUS,
-                                    '1',
-                                    'push'
+                                    "1",
+                                    "push"
                                 );
                             } else if (eventValues.action === 2) {
                                 this.jammedEvent(eventDurationSeconds);
@@ -7467,7 +7467,7 @@ export class SmartSafe extends Device {
                         }
                         default:
                             rootHTTPLogger.debug(
-                                'SmartSafe process push notification - Unhandled smart safe notification event',
+                                "SmartSafe process push notification - Unhandled smart safe notification event",
                                 message.event_type,
                                 message.event_time,
                                 message.device_sn
@@ -7500,14 +7500,14 @@ export class SmartSafe extends Device {
             metadata.name === PropertyName.DeviceLocked &&
             metadata.key === CommandType.CMD_SMARTSAFE_LOCK_STATUS
         ) {
-            this.emit('locked', this, newValue as boolean);
+            this.emit("locked", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceJammedAlert) {
-            this.emit('jammed', this, newValue as boolean);
+            this.emit("jammed", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceLowBatteryAlert) {
-            this.emit('low battery', this, newValue as boolean);
+            this.emit("low battery", this, newValue as boolean);
         } else if (metadata.name === PropertyName.Device911Alert) {
             this.emit(
-                '911 alarm',
+                "911 alarm",
                 this,
                 newValue as boolean,
                 this.getPropertyValue(
@@ -7516,7 +7516,7 @@ export class SmartSafe extends Device {
             );
         } else if (metadata.name === PropertyName.DeviceShakeAlert) {
             this.emit(
-                'shake alarm',
+                "shake alarm",
                 this,
                 newValue as boolean,
                 this.getPropertyValue(
@@ -7524,9 +7524,9 @@ export class SmartSafe extends Device {
                 ) as number
             );
         } else if (metadata.name === PropertyName.DeviceLongTimeNotCloseAlert) {
-            this.emit('long time not close', this, newValue as boolean);
+            this.emit("long time not close", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceWrongTryProtectAlert) {
-            this.emit('wrong try-protect alarm', this, newValue as boolean);
+            this.emit("wrong try-protect alarm", this, newValue as boolean);
         }
     }
 
@@ -7557,7 +7557,7 @@ export class Tracker extends Device {
     }
 
     public getStateChannel(): string {
-        return 'tracker';
+        return "tracker";
     }
 
     protected convertRawPropertyValue(
@@ -7567,8 +7567,8 @@ export class Tracker extends Device {
         try {
             switch (property.key) {
                 case TrackerCommandType.COMMAND_NEW_LOCATION: {
-                    if (value !== undefined && typeof value === 'string') {
-                        const items = value.split(',');
+                    if (value !== undefined && typeof value === "string") {
+                        const items = value.split(",");
                         if (items.length === 3) {
                             switch (property.name) {
                                 case PropertyName.DeviceLocationCoordinates:
@@ -7585,7 +7585,7 @@ export class Tracker extends Device {
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('Tracker convert raw property - Error', {
+            rootHTTPLogger.error("Tracker convert raw property - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
                 property: property,
@@ -7604,12 +7604,12 @@ export class Tracker extends Device {
             return await this.setParameters([
                 {
                     paramType: TrackerCommandType.COMMAND_TYPE_FINDMYPHONE,
-                    paramValue: value ? '1' : '0',
+                    paramValue: value ? "1" : "0",
                 },
             ]);
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('Tracker set find phone - Error', {
+            rootHTTPLogger.error("Tracker set find phone - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
                 value: value,
@@ -7627,12 +7627,12 @@ export class Tracker extends Device {
             return await this.setParameters([
                 {
                     paramType: TrackerCommandType.COMMAND_ANTILOST,
-                    paramValue: value ? '1' : '0',
+                    paramValue: value ? "1" : "0",
                 },
             ]);
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('Tracker set left behind alarm - Error', {
+            rootHTTPLogger.error("Tracker set left behind alarm - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
                 value: value,
@@ -7655,7 +7655,7 @@ export class Tracker extends Device {
             ]);
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('Tracker set tracker type - Error', {
+            rootHTTPLogger.error("Tracker set tracker type - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
                 value: value,
@@ -7676,7 +7676,7 @@ export class DoorbellLock extends DoorbellCamera {
     }
 
     public getStateChannel(): string {
-        return 'locks';
+        return "locks";
     }
 
     protected handlePropertyChange(
@@ -7686,9 +7686,9 @@ export class DoorbellLock extends DoorbellCamera {
     ): void {
         super.handlePropertyChange(metadata, oldValue, newValue);
         if (metadata.name === PropertyName.DeviceLocked) {
-            this.emit('locked', this, newValue as boolean);
+            this.emit("locked", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceLowBatteryAlert) {
-            this.emit('low battery', this, newValue as boolean);
+            this.emit("low battery", this, newValue as boolean);
         } else if (
             (metadata.key === CommandType.CMD_DOORLOCK_GET_STATE ||
                 metadata.key === CommandType.CMD_SMARTLOCK_QUERY_STATUS) &&
@@ -7712,14 +7712,14 @@ export class DoorbellLock extends DoorbellCamera {
             switch (property.key) {
                 case CommandType.CMD_DEV_RECORD_AUTOSTOP:
                     return value !== undefined
-                        ? value === '0'
+                        ? value === "0"
                             ? true
                             : false
                         : false;
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('DoorbellLock convert raw property - Error', {
+            rootHTTPLogger.error("DoorbellLock convert raw property - Error", {
                 error: getError(error),
                 deviceSN: this.getSerial(),
                 property: property,
@@ -7773,7 +7773,7 @@ export class DoorbellLock extends DoorbellCamera {
                             this.isLockBle() || this.isLockBleNoFinger()
                                 ? CommandType.CMD_DOORLOCK_GET_STATE
                                 : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                        this.updateRawProperty(cmdType, '4', 'push');
+                        this.updateRawProperty(cmdType, "4", "push");
 
                         if (!isEmpty(message.person_name)) {
                             this.updateProperty(
@@ -7790,7 +7790,7 @@ export class DoorbellLock extends DoorbellCamera {
                                 setTimeout(async () => {
                                     this.updateProperty(
                                         PropertyName.DevicePersonName,
-                                        ''
+                                        ""
                                     );
                                     this.updateProperty(
                                         PropertyName.DeviceLockEventOrigin,
@@ -7812,7 +7812,7 @@ export class DoorbellLock extends DoorbellCamera {
                             this.isLockBle() || this.isLockBleNoFinger()
                                 ? CommandType.CMD_DOORLOCK_GET_STATE
                                 : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                        this.updateRawProperty(cmdType, '3', 'push');
+                        this.updateRawProperty(cmdType, "3", "push");
 
                         if (!isEmpty(message.person_name)) {
                             this.updateProperty(
@@ -7829,7 +7829,7 @@ export class DoorbellLock extends DoorbellCamera {
                                 setTimeout(async () => {
                                     this.updateProperty(
                                         PropertyName.DevicePersonName,
-                                        ''
+                                        ""
                                     );
                                     this.updateProperty(
                                         PropertyName.DeviceLockEventOrigin,
@@ -7849,7 +7849,7 @@ export class DoorbellLock extends DoorbellCamera {
                             this.isLockBle() || this.isLockBleNoFinger()
                                 ? CommandType.CMD_DOORLOCK_GET_STATE
                                 : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                        this.updateRawProperty(cmdType, '5', 'push');
+                        this.updateRawProperty(cmdType, "5", "push");
                         break;
                     }
                     case LockPushEvent.LOW_POWER:
@@ -7880,7 +7880,7 @@ export class DoorbellLock extends DoorbellCamera {
                         break;
                     default:
                         rootHTTPLogger.debug(
-                            'DoorbellLock process push notification - Unhandled lock notification event',
+                            "DoorbellLock process push notification - Unhandled lock notification event",
                             {
                                 eventType: message.event_type,
                                 eventTime: message.event_time,
@@ -7915,7 +7915,7 @@ export class SmartDrop extends Camera {
     }
 
     public getStateChannel(): string {
-        return 'boxes';
+        return "boxes";
     }
 
     public processPushNotification(
@@ -7940,8 +7940,8 @@ export class SmartDrop extends Camera {
                                 // Open
                                 this.updateRawProperty(
                                     CommandType.CMD_SMART_DROP_OPEN,
-                                    '1',
-                                    'push'
+                                    "1",
+                                    "push"
                                 );
                                 switch (message.openType) {
                                     case SmartDropOpenedBy.APP:
@@ -7953,7 +7953,7 @@ export class SmartDrop extends Camera {
                                         break;
                                     case SmartDropOpenedBy.PIN:
                                         // Open with PIN
-                                        if (message.pin === '0') {
+                                        if (message.pin === "0") {
                                             // Master PIN
                                             this.updateProperty(
                                                 PropertyName.DeviceOpenedByType,
@@ -7971,7 +7971,7 @@ export class SmartDrop extends Camera {
                                                 message.person_name !==
                                                     undefined
                                                     ? message.person_name
-                                                    : ''
+                                                    : ""
                                             );
                                         }
                                         break;
@@ -7998,7 +7998,7 @@ export class SmartDrop extends Camera {
                                         break;
                                     default:
                                         rootHTTPLogger.debug(
-                                            'SmartDrop process push notification - Unhandled SmartDrop push event (openType)',
+                                            "SmartDrop process push notification - Unhandled SmartDrop push event (openType)",
                                             message
                                         );
                                         break;
@@ -8008,8 +8008,8 @@ export class SmartDrop extends Camera {
                                 // Closed
                                 this.updateRawProperty(
                                     CommandType.CMD_SMART_DROP_OPEN,
-                                    '0',
-                                    'push'
+                                    "0",
+                                    "push"
                                 );
                                 break;
                             case SmartDropOpen.LID_STUCK:
@@ -8102,7 +8102,7 @@ export class SmartDrop extends Camera {
                                 break;
                             default:
                                 rootHTTPLogger.debug(
-                                    'SmartDrop process push notification - Unhandled SmartDrop push event (1)',
+                                    "SmartDrop process push notification - Unhandled SmartDrop push event (1)",
                                     message
                                 );
                                 break;
@@ -8203,7 +8203,7 @@ export class SmartDrop extends Camera {
                                     PropertyName.DevicePersonName,
                                     !isEmpty(message.person_name)
                                         ? message.person_name!
-                                        : 'Unknown'
+                                        : "Unknown"
                                 );
                                 this.updateProperty(
                                     PropertyName.DevicePersonDetected,
@@ -8217,7 +8217,7 @@ export class SmartDrop extends Camera {
                                     setTimeout(async () => {
                                         this.updateProperty(
                                             PropertyName.DevicePersonName,
-                                            ''
+                                            ""
                                         );
                                         this.updateProperty(
                                             PropertyName.DevicePersonDetected,
@@ -8231,13 +8231,13 @@ export class SmartDrop extends Camera {
                                 break;
                             default:
                                 rootHTTPLogger.debug(
-                                    'SmartDrop process push notification - Unhandled SmartDrop push event (2)',
+                                    "SmartDrop process push notification - Unhandled SmartDrop push event (2)",
                                     message
                                 );
                         }
                     } else {
                         rootHTTPLogger.debug(
-                            'SmartDrop process push notification - Unhandled SmartDrop push event type',
+                            "SmartDrop process push notification - Unhandled SmartDrop push event type",
                             message
                         );
                     }
@@ -8267,34 +8267,34 @@ export class SmartDrop extends Camera {
             const open = newValue as boolean;
             if (open === false) {
                 this.updateProperty(PropertyName.DeviceOpenedByType, 0);
-                this.updateProperty(PropertyName.DeviceOpenedByName, '');
+                this.updateProperty(PropertyName.DeviceOpenedByName, "");
             }
-            this.emit('open', this, open);
+            this.emit("open", this, open);
         } else if (metadata.name === PropertyName.DeviceDeliveries) {
             this.updateProperty(
                 PropertyName.DevicePackageDelivered,
                 (newValue as number) > 0
             );
         } else if (metadata.name === PropertyName.DevicePackageDelivered) {
-            this.emit('package delivered', this, newValue as boolean);
+            this.emit("package delivered", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceLowBatteryAlert) {
-            this.emit('low battery', this, newValue as boolean);
+            this.emit("low battery", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceTamperingAlert) {
-            this.emit('tampering', this, newValue as boolean);
+            this.emit("tampering", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceLongTimeNotCloseAlert) {
-            this.emit('long time not close', this, newValue as boolean);
+            this.emit("long time not close", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceLowTemperatureAlert) {
-            this.emit('low temperature', this, newValue as boolean);
+            this.emit("low temperature", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceHighTemperatureAlert) {
-            this.emit('high temperature', this, newValue as boolean);
+            this.emit("high temperature", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DevicePinIncorrectAlert) {
-            this.emit('pin incorrect', this, newValue as boolean);
+            this.emit("pin incorrect", this, newValue as boolean);
         } else if (metadata.name === PropertyName.DeviceLidStuckAlert) {
-            this.emit('lid stuck', this, newValue as boolean);
+            this.emit("lid stuck", this, newValue as boolean);
         } else if (
             metadata.name === PropertyName.DeviceBatteryFullyChargedAlert
         ) {
-            this.emit('battery fully charged', this, newValue as boolean);
+            this.emit("battery fully charged", this, newValue as boolean);
         }
     }
 }
@@ -8309,6 +8309,6 @@ export class UnknownDevice extends Device {
     }
 
     public getStateChannel(): string {
-        return 'unknown';
+        return "unknown";
     }
 }

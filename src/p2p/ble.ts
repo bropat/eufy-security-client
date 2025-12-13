@@ -6,7 +6,7 @@ import {
     BleInvalidChecksumError,
     BleInvalidDataHeaderError,
     BleVersionCodeError,
-} from './error';
+} from "./error";
 
 export enum BleParameterIndex {
     ZERO = -96,
@@ -41,14 +41,14 @@ export class BleCommandFactory {
     private partial?: boolean;
 
     public static parseLockV12(data: string | Buffer): BleCommandFactory {
-        if (typeof data === 'string') {
-            data = Buffer.from(data, 'hex');
+        if (typeof data === "string") {
+            data = Buffer.from(data, "hex");
         }
         if (
             data.readInt8(0) !== BleCommandFactory.HEADER[0] &&
             data.readInt8(1) !== BleCommandFactory.HEADER[1]
         ) {
-            throw new BleInvalidDataHeaderError('Invalid BLE data header');
+            throw new BleInvalidDataHeaderError("Invalid BLE data header");
         }
         const fac = new BleCommandFactory();
         fac.setVersionCode(data.readUint8(4));
@@ -72,7 +72,7 @@ export class BleCommandFactory {
             ) !== data.readUint8(data.length - 1)
         ) {
             throw new BleInvalidChecksumError(
-                'Invalid BLE data, checksum mismatch'
+                "Invalid BLE data, checksum mismatch"
             );
         }
         return fac;
@@ -83,15 +83,15 @@ export class BleCommandFactory {
     }
 
     public static parseSmartLock(data: string | Buffer): BleCommandFactory {
-        if (typeof data === 'string') {
-            data = Buffer.from(data, 'hex');
+        if (typeof data === "string") {
+            data = Buffer.from(data, "hex");
         }
         if (
             data.length < 9 ||
             (data.readInt8(0) !== BleCommandFactory.HEADER[0] &&
                 data.readInt8(1) !== BleCommandFactory.HEADER[1])
         ) {
-            throw new BleInvalidDataHeaderError('Invalid BLE data header');
+            throw new BleInvalidDataHeaderError("Invalid BLE data header");
         }
         if (
             BleCommandFactory.generateHash(
@@ -99,7 +99,7 @@ export class BleCommandFactory {
             ) !== data.readUint8(data.length - 1)
         ) {
             throw new BleInvalidChecksumError(
-                'Invalid BLE data, checksum mismatch'
+                "Invalid BLE data, checksum mismatch"
             );
         }
         const fac = new BleCommandFactory();
@@ -114,7 +114,7 @@ export class BleCommandFactory {
     }
 
     public toString = (): string => {
-        return `BleCommandFactory (versionCode: ${this.versionCode} commandCode: ${this.commandCode} dataType: ${this.dataType} partial: ${this.partial} encrypted: ${this.encrypted} data: ${this.data?.toString('hex')} packageFlag: ${this.packageFlag} responseCode: ${this.responseCode})`;
+        return `BleCommandFactory (versionCode: ${this.versionCode} commandCode: ${this.commandCode} dataType: ${this.dataType} partial: ${this.partial} encrypted: ${this.encrypted} data: ${this.data?.toString("hex")} packageFlag: ${this.packageFlag} responseCode: ${this.responseCode})`;
     };
 
     private setResponseCode(code: number): void {
@@ -222,21 +222,21 @@ export class BleCommandFactory {
     public getLockV12Command(): Buffer {
         if (this.versionCode === undefined)
             throw new BleVersionCodeError(
-                'BleCommandFactory version code value missing'
+                "BleCommandFactory version code value missing"
             );
         if (this.dataType === undefined)
             throw new BleDataTypeError(
-                'BleCommandFactory data type value missing'
+                "BleCommandFactory data type value missing"
             );
         if (this.commandCode === undefined)
             throw new BleCommandCodeError(
-                'BleCommandFactory command code value missing'
+                "BleCommandFactory command code value missing"
             );
         if (this.data === undefined)
-            throw new BleDataError('BleCommandFactory data value missing');
+            throw new BleDataError("BleCommandFactory data value missing");
         if (this.additionalData === undefined)
             throw new BleAdditionalDataError(
-                'BleCommandFactory additional data value missing'
+                "BleCommandFactory additional data value missing"
             );
 
         this.setAdditionalDataSeparator(BleParameterIndex.ZERO);
@@ -281,18 +281,18 @@ export class BleCommandFactory {
     public getSmartSafeCommand(): Buffer {
         if (this.versionCode === undefined)
             throw new BleVersionCodeError(
-                'BleCommandFactory version code value missing'
+                "BleCommandFactory version code value missing"
             );
         if (this.dataType === undefined)
             throw new BleDataTypeError(
-                'BleCommandFactory data type value missing'
+                "BleCommandFactory data type value missing"
             );
         if (this.commandCode === undefined)
             throw new BleCommandCodeError(
-                'BleCommandFactory command code value missing'
+                "BleCommandFactory command code value missing"
             );
         if (this.data === undefined)
-            throw new BleDataError('BleCommandFactory data value missing');
+            throw new BleDataError("BleCommandFactory data value missing");
 
         const bVersionCode = Buffer.from([this.versionCode]);
         const bDataType = Buffer.from([this.dataType]);
@@ -328,18 +328,18 @@ export class BleCommandFactory {
     public getSmartLockCommand(): Buffer {
         if (this.versionCode === undefined)
             throw new BleVersionCodeError(
-                'BleCommandFactory version code value missing'
+                "BleCommandFactory version code value missing"
             );
         if (this.dataType === undefined)
             throw new BleDataTypeError(
-                'BleCommandFactory data type value missing'
+                "BleCommandFactory data type value missing"
             );
         if (this.commandCode === undefined)
             throw new BleCommandCodeError(
-                'BleCommandFactory command code value missing'
+                "BleCommandFactory command code value missing"
             );
         if (this.data === undefined)
-            throw new BleDataError('BleCommandFactory data value missing');
+            throw new BleDataError("BleCommandFactory data value missing");
 
         const bVersionCode = Buffer.from([this.versionCode]);
         const bDataType = Buffer.from([this.dataType]);

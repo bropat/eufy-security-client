@@ -1,24 +1,24 @@
-import * as mqtt from 'mqtt';
-import { TypedEmitter } from 'tiny-typed-emitter';
-import { readFileSync } from 'fs';
-import * as path from 'path';
-import { load, Root } from 'protobufjs';
+import * as mqtt from "mqtt";
+import { TypedEmitter } from "tiny-typed-emitter";
+import { readFileSync } from "fs";
+import * as path from "path";
+import { load, Root } from "protobufjs";
 
-import { MQTTServiceEvents } from './interface';
-import { DeviceSmartLockMessage } from './model';
-import { getError } from '../utils';
-import { rootMainLogger, rootMQTTLogger } from '../logging';
-import { ensureError } from '../error';
+import { MQTTServiceEvents } from "./interface";
+import { DeviceSmartLockMessage } from "./model";
+import { getError } from "../utils";
+import { rootMainLogger, rootMQTTLogger } from "../logging";
+import { ensureError } from "../error";
 
 export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
     private readonly CLIENT_ID_FORMAT =
-        'android_EufySecurity_<user_id>_<android_id>';
-    private readonly USERNAME_FORMAT = 'eufy_<user_id>';
-    private readonly SUBSCRIBE_NOTICE_FORMAT = '/phone/<user_id>/notice';
+        "android_EufySecurity_<user_id>_<android_id>";
+    private readonly USERNAME_FORMAT = "eufy_<user_id>";
+    private readonly SUBSCRIBE_NOTICE_FORMAT = "/phone/<user_id>/notice";
     private readonly SUBSCRIBE_LOCK_FORMAT =
-        '/phone/smart_lock/<device_sn>/push_message';
+        "/phone/smart_lock/<device_sn>/push_message";
     private readonly SUBSCRIBE_DOORBELL_FORMAT =
-        '/phone/doorbell/<device_sn>/push_message';
+        "/phone/doorbell/<device_sn>/push_message";
 
     private static proto: Root | null = null;
 
@@ -39,15 +39,15 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
         super();
 
         this.deviceSmartLockMessageModel = MQTTService.proto!.lookupType(
-            'DeviceSmartLockMessage'
+            "DeviceSmartLockMessage"
         );
     }
 
     public static async init(): Promise<MQTTService> {
         try {
-            this.proto = await load(path.join(__dirname, './proto/lock.proto'));
+            this.proto = await load(path.join(__dirname, "./proto/lock.proto"));
         } catch (error) {
-            rootMainLogger.error('Error loading MQTT proto lock file', {
+            rootMainLogger.error("Error loading MQTT proto lock file", {
                 error: ensureError(error),
             });
         }
@@ -66,19 +66,19 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
 
     private getMQTTBrokerUrl(apiBase: string): string {
         switch (apiBase) {
-            case 'https://security-app.eufylife.com':
-                return 'mqtts://security-mqtt.eufylife.com';
-            case 'https://security-app-ci.eufylife.com':
-                return 'mqtts://security-mqtt-ci.eufylife.com';
-            case 'https://security-app-qa.eufylife.com':
-            case 'https://security-app-cn-qa.anker-in.com':
-                return 'mqtts://security-mqtt-qa.eufylife.com';
-            case 'https://security-app-eu.eufylife.com':
-                return 'mqtts://security-mqtt-eu.eufylife.com';
-            case 'https://security-app-short-qa.eufylife.com':
-                return 'mqtts://security-mqtt-short-qa.eufylife.com';
+            case "https://security-app.eufylife.com":
+                return "mqtts://security-mqtt.eufylife.com";
+            case "https://security-app-ci.eufylife.com":
+                return "mqtts://security-mqtt-ci.eufylife.com";
+            case "https://security-app-qa.eufylife.com":
+            case "https://security-app-cn-qa.anker-in.com":
+                return "mqtts://security-mqtt-qa.eufylife.com";
+            case "https://security-app-eu.eufylife.com":
+                return "mqtts://security-mqtt-eu.eufylife.com";
+            case "https://security-app-short-qa.eufylife.com":
+                return "mqtts://security-mqtt-short-qa.eufylife.com";
             default:
-                return 'mqtts://security-mqtt.eufylife.com';
+                return "mqtts://security-mqtt.eufylife.com";
         }
     }
 
@@ -108,21 +108,21 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
                 reschedulePings: true,
                 resubscribe: true,
                 port: 8789,
-                username: this.USERNAME_FORMAT.replace('<user_id>', clientID),
+                username: this.USERNAME_FORMAT.replace("<user_id>", clientID),
                 password: email,
-                ca: readFileSync(path.join(__dirname, './mqtt-eufy.crt')),
+                ca: readFileSync(path.join(__dirname, "./mqtt-eufy.crt")),
                 clientId: this.CLIENT_ID_FORMAT.replace(
-                    '<user_id>',
+                    "<user_id>",
                     clientID
-                ).replace('<android_id>', androidID),
+                ).replace("<android_id>", androidID),
                 rejectUnauthorized: false, // Some eufy mqtt servers have an expired certificate :(
             });
-            this.client.on('connect', (_connack) => {
+            this.client.on("connect", (_connack) => {
                 this.connected = true;
                 this.connecting = false;
-                this.emit('connect');
+                this.emit("connect");
                 this.client!.subscribe(
-                    this.SUBSCRIBE_NOTICE_FORMAT.replace('<user_id>', clientID),
+                    this.SUBSCRIBE_NOTICE_FORMAT.replace("<user_id>", clientID),
                     { qos: 1 }
                 );
 
@@ -133,13 +133,13 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
                     }
                 }
             });
-            this.client.on('close', () => {
+            this.client.on("close", () => {
                 this.connected = false;
-                this.emit('close');
+                this.emit("close");
             });
-            this.client.on('error', (error) => {
+            this.client.on("error", (error) => {
                 this.connecting = false;
-                rootMQTTLogger.error('MQTT Error', { error: getError(error) });
+                rootMQTTLogger.error("MQTT Error", { error: getError(error) });
                 if (
                     (error as any).code === 1 ||
                     (error as any).code === 2 ||
@@ -148,20 +148,20 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
                 )
                     this.client?.end();
             });
-            this.client.on('message', (topic, message, _packet) => {
-                if (topic.includes('smart_lock')) {
+            this.client.on("message", (topic, message, _packet) => {
+                if (topic.includes("smart_lock")) {
                     const parsedMessage = this.parseSmartLockMessage(message);
                     rootMQTTLogger.debug(
-                        'Received a smart lock message over MQTT',
+                        "Received a smart lock message over MQTT",
                         {
                             message: parsedMessage,
                         }
                     );
-                    this.emit('lock message', parsedMessage);
+                    this.emit("lock message", parsedMessage);
                 } else {
-                    rootMQTTLogger.debug('MQTT message received', {
+                    rootMQTTLogger.debug("MQTT message received", {
                         topic: topic,
-                        message: message.toString('hex'),
+                        message: message.toString("hex"),
                     });
                 }
             });
@@ -170,7 +170,7 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
 
     private _subscribeLock(deviceSN: string): void {
         this.client?.subscribe(
-            this.SUBSCRIBE_LOCK_FORMAT.replace('<device_sn>', deviceSN),
+            this.SUBSCRIBE_LOCK_FORMAT.replace("<device_sn>", deviceSN),
             { qos: 1 },
             (error, granted) => {
                 if (error) {

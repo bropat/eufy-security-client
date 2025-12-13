@@ -1,11 +1,11 @@
-import { Category } from 'typescript-logging-category-style';
+import { Category } from "typescript-logging-category-style";
 
-import { CommandType, TrackerCommandType } from '../p2p/types';
-import { decodeBase64, getNullTerminatedString } from '../p2p/utils';
-import { getError, parseJSON } from '../utils';
-import { ParamType } from './types';
-import { decryptTrackerData } from './utils';
-import { ensureError } from '../error';
+import { CommandType, TrackerCommandType } from "../p2p/types";
+import { decodeBase64, getNullTerminatedString } from "../p2p/utils";
+import { getError, parseJSON } from "../utils";
+import { ParamType } from "./types";
+import { decryptTrackerData } from "./utils";
+import { ensureError } from "../error";
 
 export class ParameterHelper {
     private static readonly JSON_PARSE_BASE64_PARAMS = new Set<number>([
@@ -58,14 +58,14 @@ export class ParameterHelper {
     ): string | undefined {
         if (value) {
             if (ParameterHelper.JSON_PARSE_BASE64_PARAMS.has(type)) {
-                if (typeof value === 'string') {
+                if (typeof value === "string") {
                     const parsedValue = parseJSON(
-                        getNullTerminatedString(decodeBase64(value), 'utf-8'),
+                        getNullTerminatedString(decodeBase64(value), "utf-8"),
                         log
                     );
                     if (parsedValue === undefined) {
                         log.debug(
-                            'Non-parsable parameter value received from eufy cloud. Will be ignored.',
+                            "Non-parsable parameter value received from eufy cloud. Will be ignored.",
                             {
                                 serialNumber: serialNumber,
                                 type: type,
@@ -78,11 +78,11 @@ export class ParameterHelper {
                     return value; //return object
                 }
             } else if (ParameterHelper.JSON_PARSE_PLAIN_PARAMS.has(type)) {
-                if (typeof value === 'string') {
+                if (typeof value === "string") {
                     const parsedValue = parseJSON(value, log);
                     if (parsedValue === undefined) {
                         log.debug(
-                            'Non-parsable parameter value received from eufy cloud. Will be ignored.',
+                            "Non-parsable parameter value received from eufy cloud. Will be ignored.",
                             {
                                 serialNumber: serialNumber,
                                 type: type,
@@ -100,16 +100,16 @@ export class ParameterHelper {
             ) {
                 try {
                     const decrypted = decryptTrackerData(
-                        Buffer.from(value, 'hex'),
+                        Buffer.from(value, "hex"),
                         Buffer.from(serialNumber)
                     );
                     if (decrypted !== undefined) {
-                        return decrypted.toString('utf8').trim();
+                        return decrypted.toString("utf8").trim();
                     }
                 } catch (err) {
                     const error = ensureError(err);
                     log.debug(
-                        'Non-parsable parameter value received from eufy cloud. Will be ignored.',
+                        "Non-parsable parameter value received from eufy cloud. Will be ignored.",
                         {
                             serialNumber: serialNumber,
                             type: type,
@@ -118,7 +118,7 @@ export class ParameterHelper {
                         }
                     );
                 }
-                return '';
+                return "";
             }
         }
         return value;
@@ -132,10 +132,10 @@ export class ParameterHelper {
                 type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN_DELAY ||
                 type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN
             ) {
-                return Buffer.from(JSON.stringify(value)).toString('base64');
+                return Buffer.from(JSON.stringify(value)).toString("base64");
             }
             return value;
         }
-        return '';
+        return "";
     }
 }

@@ -1,10 +1,10 @@
-import { Credentials, RawPushMessage, PushMessage } from './models';
+import { Credentials, RawPushMessage, PushMessage } from "./models";
 
 export interface PushNotificationServiceEvents {
     credential: (credentials: Credentials) => void;
     connect: (token: string) => void;
     close: () => void;
-    'raw message': (message: RawPushMessage) => void;
+    "raw message": (message: RawPushMessage) => void;
     message: (message: PushMessage) => void;
 }
 
