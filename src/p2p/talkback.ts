@@ -1,10 +1,10 @@
-import { Transform } from 'stream'
+import { Transform } from 'stream';
 
 export class TalkbackStream extends Transform {
-    private isStreaming = false
+    private isStreaming = false;
 
     constructor() {
-        super()
+        super();
     }
 
     _transform(
@@ -12,15 +12,15 @@ export class TalkbackStream extends Transform {
         _encoding: string,
         callback: (err?: Error | null) => void
     ): void {
-        if (this.isStreaming) this.push(data)
-        callback()
+        if (this.isStreaming) this.push(data);
+        callback();
     }
 
     public startTalkback(): void {
-        this.isStreaming = true
+        this.isStreaming = true;
     }
 
     public stopTalkback(): void {
-        this.isStreaming = false
+        this.isStreaming = false;
     }
 }

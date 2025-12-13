@@ -83,9 +83,9 @@ npm install eufy-security-client
 Then import and use in TypeScript:
 
 ```typescript
-import { EufySecurity } from 'eufy-security-client'
+import { EufySecurity } from 'eufy-security-client';
 // ...existing code...
-const eufyClient = new EufySecurity()
+const eufyClient = new EufySecurity();
 // ...existing code...
 ```
 

@@ -1,203 +1,205 @@
-import * as path from 'path'
-import { BufferReader, load, Root } from 'protobufjs'
-import { TypedEmitter } from 'tiny-typed-emitter'
+import * as path from 'path';
+import { BufferReader, load, Root } from 'protobufjs';
+import { TypedEmitter } from 'tiny-typed-emitter';
 
-import { MessageTag, ProcessingState } from './models'
-import { PushClientParserEvents } from './interfaces'
-import { ensureError } from '../error'
+import { MessageTag, ProcessingState } from './models';
+import { PushClientParserEvents } from './interfaces';
+import { ensureError } from '../error';
 import {
     MCSProtocolMessageTagError,
     MCSProtocolProcessingStateError,
     MCSProtocolVersionError,
-} from './error'
-import { rootPushLogger } from '../logging'
+} from './error';
+import { rootPushLogger } from '../logging';
 
 export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
-    private static proto: Root | null = null
-    private state: ProcessingState = ProcessingState.MCS_VERSION_TAG_AND_SIZE
-    private data: Buffer = Buffer.alloc(0)
-    private isWaitingForData = true
-    private sizePacketSoFar = 0
-    private messageSize = 0
-    private messageTag = 0
-    private handshakeComplete = false
+    private static proto: Root | null = null;
+    private state: ProcessingState = ProcessingState.MCS_VERSION_TAG_AND_SIZE;
+    private data: Buffer = Buffer.alloc(0);
+    private isWaitingForData = true;
+    private sizePacketSoFar = 0;
+    private messageSize = 0;
+    private messageTag = 0;
+    private handshakeComplete = false;
 
     private constructor() {
-        super()
+        super();
     }
 
     public resetState(): void {
-        this.state = ProcessingState.MCS_VERSION_TAG_AND_SIZE
-        this.data = Buffer.alloc(0)
-        this.isWaitingForData = true
-        this.sizePacketSoFar = 0
-        this.messageSize = 0
-        this.messageTag = 0
-        this.handshakeComplete = false
-        this.removeAllListeners()
+        this.state = ProcessingState.MCS_VERSION_TAG_AND_SIZE;
+        this.data = Buffer.alloc(0);
+        this.isWaitingForData = true;
+        this.sizePacketSoFar = 0;
+        this.messageSize = 0;
+        this.messageTag = 0;
+        this.handshakeComplete = false;
+        this.removeAllListeners();
     }
 
     public static async init(): Promise<PushClientParser> {
-        this.proto = await load(path.join(__dirname, './proto/mcs.proto'))
-        return new PushClientParser()
+        this.proto = await load(path.join(__dirname, './proto/mcs.proto'));
+        return new PushClientParser();
     }
 
     handleData(newData: Buffer): void {
-        this.data = Buffer.concat([this.data, newData])
+        this.data = Buffer.concat([this.data, newData]);
         if (this.isWaitingForData) {
-            this.isWaitingForData = false
-            this.waitForData()
+            this.isWaitingForData = false;
+            this.waitForData();
         }
     }
 
     private waitForData(): void {
-        const minBytesNeeded = this.getMinBytesNeeded()
+        const minBytesNeeded = this.getMinBytesNeeded();
 
         // If we don't have all bytes yet, wait some more
         if (this.data.length < minBytesNeeded) {
-            this.isWaitingForData = true
-            return
+            this.isWaitingForData = true;
+            return;
         } else {
-            this.handleFullMessage()
+            this.handleFullMessage();
         }
     }
 
     private handleFullMessage(): void {
         switch (this.state) {
             case ProcessingState.MCS_VERSION_TAG_AND_SIZE:
-                this.onGotVersion()
-                break
+                this.onGotVersion();
+                break;
             case ProcessingState.MCS_TAG_AND_SIZE:
-                this.onGotMessageTag()
-                break
+                this.onGotMessageTag();
+                break;
             case ProcessingState.MCS_SIZE:
-                this.onGotMessageSize()
-                break
+                this.onGotMessageSize();
+                break;
             case ProcessingState.MCS_PROTO_BYTES:
-                this.onGotMessageBytes()
-                break
+                this.onGotMessageBytes();
+                break;
             default:
                 rootPushLogger.warn('Push Parser - Unknown state', {
                     state: this.state,
-                })
-                break
+                });
+                break;
         }
     }
 
     private onGotVersion(): void {
-        const version = this.data.readInt8(0)
-        this.data = this.data.subarray(1)
+        const version = this.data.readInt8(0);
+        this.data = this.data.subarray(1);
         if (version < 41 && version !== 38) {
             throw new MCSProtocolVersionError('Got wrong protocol version', {
                 context: { version: version },
-            })
+            });
         }
 
         // Process the LoginResponse message tag.
-        this.onGotMessageTag()
+        this.onGotMessageTag();
     }
 
     private onGotMessageTag(): void {
-        this.messageTag = this.data.readInt8(0)
-        this.data = this.data.subarray(1)
-        this.onGotMessageSize()
+        this.messageTag = this.data.readInt8(0);
+        this.data = this.data.subarray(1);
+        this.onGotMessageSize();
     }
 
     private onGotMessageSize(): void {
-        let incompleteSizePacket = false
-        const reader = new BufferReader(this.data)
+        let incompleteSizePacket = false;
+        const reader = new BufferReader(this.data);
 
         try {
-            this.messageSize = reader.int32()
+            this.messageSize = reader.int32();
         } catch (err) {
-            const error = ensureError(err)
+            const error = ensureError(err);
             if (
                 error instanceof Error &&
                 error.message.startsWith('index out of range:')
             ) {
-                incompleteSizePacket = true
+                incompleteSizePacket = true;
             } else {
-                throw error
+                throw error;
             }
         }
 
         if (incompleteSizePacket) {
-            this.sizePacketSoFar = reader.pos
-            this.state = ProcessingState.MCS_SIZE
-            this.waitForData()
-            return
+            this.sizePacketSoFar = reader.pos;
+            this.state = ProcessingState.MCS_SIZE;
+            this.waitForData();
+            return;
         }
 
-        this.data = this.data.subarray(reader.pos)
-        this.sizePacketSoFar = 0
+        this.data = this.data.subarray(reader.pos);
+        this.sizePacketSoFar = 0;
 
         if (this.messageSize > 0) {
-            this.state = ProcessingState.MCS_PROTO_BYTES
-            this.waitForData()
+            this.state = ProcessingState.MCS_PROTO_BYTES;
+            this.waitForData();
         } else {
-            this.onGotMessageBytes()
+            this.onGotMessageBytes();
         }
     }
 
     private onGotMessageBytes(): void {
-        const protobuf = this.buildProtobufFromTag(this.messageTag)
+        const protobuf = this.buildProtobufFromTag(this.messageTag);
 
         if (this.messageSize === 0) {
-            this.emit('message', { tag: this.messageTag, object: {} })
-            this.getNextMessage()
-            return
+            this.emit('message', { tag: this.messageTag, object: {} });
+            this.getNextMessage();
+            return;
         }
 
         if (this.data.length < this.messageSize) {
-            this.state = ProcessingState.MCS_PROTO_BYTES
-            this.waitForData()
-            return
+            this.state = ProcessingState.MCS_PROTO_BYTES;
+            this.waitForData();
+            return;
         }
 
-        const buffer = this.data.subarray(0, this.messageSize)
-        this.data = this.data.subarray(this.messageSize)
-        const message = protobuf.decode(buffer)
+        const buffer = this.data.subarray(0, this.messageSize);
+        this.data = this.data.subarray(this.messageSize);
+        const message = protobuf.decode(buffer);
         const object = protobuf.toObject(message, {
             longs: String,
             enums: String,
             bytes: Buffer,
-        })
+        });
 
-        this.emit('message', { tag: this.messageTag, object: object })
+        this.emit('message', { tag: this.messageTag, object: object });
 
         if (this.messageTag === MessageTag.LoginResponse) {
             if (this.handshakeComplete) {
-                rootPushLogger.error('Push Parser - Unexpected login response!')
+                rootPushLogger.error(
+                    'Push Parser - Unexpected login response!'
+                );
             } else {
-                this.handshakeComplete = true
+                this.handshakeComplete = true;
             }
         }
 
-        this.getNextMessage()
+        this.getNextMessage();
     }
 
     private getNextMessage(): void {
-        this.messageTag = 0
-        this.messageSize = 0
-        this.state = ProcessingState.MCS_TAG_AND_SIZE
-        this.waitForData()
+        this.messageTag = 0;
+        this.messageSize = 0;
+        this.state = ProcessingState.MCS_TAG_AND_SIZE;
+        this.waitForData();
     }
 
     private getMinBytesNeeded(): number {
         switch (this.state) {
             case ProcessingState.MCS_VERSION_TAG_AND_SIZE:
-                return 1 + 1 + 1
+                return 1 + 1 + 1;
             case ProcessingState.MCS_TAG_AND_SIZE:
-                return 1 + 1
+                return 1 + 1;
             case ProcessingState.MCS_SIZE:
-                return this.sizePacketSoFar + 1
+                return this.sizePacketSoFar + 1;
             case ProcessingState.MCS_PROTO_BYTES:
-                return this.messageSize
+                return this.messageSize;
             default:
                 throw new MCSProtocolProcessingStateError(
                     'Unknown protocol processing state',
                     { context: { state: this.state } }
-                )
+                );
         }
     }
 
@@ -206,38 +208,38 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
             case MessageTag.HeartbeatPing:
                 return PushClientParser.proto!.lookupType(
                     'mcs_proto.HeartbeatPing'
-                )
+                );
             case MessageTag.HeartbeatAck:
                 return PushClientParser.proto!.lookupType(
                     'mcs_proto.HeartbeatAck'
-                )
+                );
             case MessageTag.LoginRequest:
                 return PushClientParser.proto!.lookupType(
                     'mcs_proto.LoginRequest'
-                )
+                );
             case MessageTag.LoginResponse:
                 return PushClientParser.proto!.lookupType(
                     'mcs_proto.LoginResponse'
-                )
+                );
             case MessageTag.Close:
-                return PushClientParser.proto!.lookupType('mcs_proto.Close')
+                return PushClientParser.proto!.lookupType('mcs_proto.Close');
             case MessageTag.IqStanza:
-                return PushClientParser.proto!.lookupType('mcs_proto.IqStanza')
+                return PushClientParser.proto!.lookupType('mcs_proto.IqStanza');
             case MessageTag.DataMessageStanza:
                 return PushClientParser.proto!.lookupType(
                     'mcs_proto.DataMessageStanza'
-                )
+                );
             case MessageTag.StreamErrorStanza:
                 return PushClientParser.proto!.lookupType(
                     'mcs_proto.StreamErrorStanza'
-                )
+                );
             default:
                 throw new MCSProtocolMessageTagError(
                     'Unknown protocol message tag',
                     {
                         context: { messageTag: this.messageTag },
                     }
-                )
+                );
         }
     }
 }

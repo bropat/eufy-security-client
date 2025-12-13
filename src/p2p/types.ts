@@ -1,4 +1,4 @@
-import { LockV12P2PCommandType, SmartLockP2PCommandType } from './models'
+import { LockV12P2PCommandType, SmartLockP2PCommandType } from './models';
 
 export const RequestMessageType = {
     STUN: Buffer.from([0xf1, 0x00]),
@@ -16,7 +16,7 @@ export const RequestMessageType = {
     DATA: Buffer.from([0xf1, 0xd0]),
     ACK: Buffer.from([0xf1, 0xd1]),
     END: Buffer.from([0xf1, 0xf0]),
-}
+};
 
 export const ResponseMessageType = {
     STUN: Buffer.from([0xf1, 0x01]),
@@ -36,7 +36,7 @@ export const ResponseMessageType = {
     CAM_ID: Buffer.from([0xf1, 0x42]),
     ACK: Buffer.from([0xf1, 0xd1]),
     DATA: Buffer.from([0xf1, 0xd0]),
-}
+};
 
 export enum P2PDataType {
     UNKNOWN = -1,
@@ -51,7 +51,7 @@ export const P2PDataTypeHeader = {
     VIDEO: Buffer.from([0xd1, P2PDataType.VIDEO]),
     CONTROL: Buffer.from([0xd1, P2PDataType.CONTROL]),
     BINARY: Buffer.from([0xd1, P2PDataType.BINARY]),
-}
+};
 
 export enum CommandType {
     //com.oceanwing.battery.cam.zmedia.model.CommandType
@@ -1144,14 +1144,14 @@ export const LockV12CommandMapping: Mapping = {
 }*/
 
 export interface LockV12P2PCommand {
-    aesKey: string
-    bleCommand: number
-    payload: LockV12P2PCommandType
+    aesKey: string;
+    bleCommand: number;
+    payload: LockV12P2PCommandType;
 }
 
 export interface SmartLockP2PCommand {
-    bleCommand: number
-    payload: SmartLockP2PCommandType
+    bleCommand: number;
+    payload: SmartLockP2PCommandType;
 }
 
 export enum EncryptionType {
