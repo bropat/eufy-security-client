@@ -1,36 +1,36 @@
-import { randomBytes } from 'crypto'
-import * as path from 'path'
-import { load } from 'protobufjs'
+import { randomBytes } from 'crypto';
+import * as path from 'path';
+import { load } from 'protobufjs';
 
-import { CheckinResponse } from './models'
-import { FidGenerationError } from './error'
-import { rootPushLogger } from '../logging'
+import { CheckinResponse } from './models';
+import { FidGenerationError } from './error';
+import { rootPushLogger } from '../logging';
 
-export const VALID_FID_PATTERN = /^[cdef][\w-]{21}$/
+export const VALID_FID_PATTERN = /^[cdef][\w-]{21}$/;
 
 export function generateFid(): string {
-    const fidByteArray = new Uint8Array(17)
-    fidByteArray.set(randomBytes(fidByteArray.length))
+    const fidByteArray = new Uint8Array(17);
+    fidByteArray.set(randomBytes(fidByteArray.length));
 
     // Replace the first 4 random bits with the constant FID header of 0b0111.
-    fidByteArray[0] = 0b01110000 + (fidByteArray[0] % 0b00010000)
+    fidByteArray[0] = 0b01110000 + (fidByteArray[0] % 0b00010000);
 
-    const b64 = Buffer.from(fidByteArray).toString('base64')
-    const b64_safe = b64.replace(/\+/g, '-').replace(/\//g, '_')
-    const fid = b64_safe.substr(0, 22)
+    const b64 = Buffer.from(fidByteArray).toString('base64');
+    const b64_safe = b64.replace(/\+/g, '-').replace(/\//g, '_');
+    const fid = b64_safe.substr(0, 22);
 
     if (VALID_FID_PATTERN.test(fid)) {
-        rootPushLogger.info('generateFid', fid)
-        return fid
+        rootPushLogger.info('generateFid', fid);
+        return fid;
     }
     throw new FidGenerationError('Generated invalid FID', {
         context: { fid: fid },
-    })
+    });
 }
 
 export const buildCheckinRequest = async (): Promise<Uint8Array> => {
-    const root = await load(path.join(__dirname, './proto/checkin.proto'))
-    const CheckinRequestModel = root.lookupType('CheckinRequest')
+    const root = await load(path.join(__dirname, './proto/checkin.proto'));
+    const CheckinRequestModel = root.lookupType('CheckinRequest');
 
     const payload = {
         imei: '109269993813709',
@@ -58,35 +58,35 @@ export const buildCheckinRequest = async (): Promise<Uint8Array> => {
         macAddressType: ['wifi'],
         fragment: 0,
         userSerialNumber: 0,
-    }
+    };
 
-    const message = CheckinRequestModel.create(payload)
-    return CheckinRequestModel.encode(message).finish()
-}
+    const message = CheckinRequestModel.create(payload);
+    return CheckinRequestModel.encode(message).finish();
+};
 
 export const parseCheckinResponse = async (
     data: Buffer
 ): Promise<CheckinResponse> => {
-    const root = await load(path.join(__dirname, './proto/checkin.proto'))
-    const CheckinResponseModel = root.lookupType('CheckinResponse')
-    const message = CheckinResponseModel.decode(data)
+    const root = await load(path.join(__dirname, './proto/checkin.proto'));
+    const CheckinResponseModel = root.lookupType('CheckinResponse');
+    const message = CheckinResponseModel.decode(data);
     const object = CheckinResponseModel.toObject(message, {
         longs: String,
         enums: String,
         bytes: String,
-    })
-    return object as CheckinResponse
-}
+    });
+    return object as CheckinResponse;
+};
 
 export const sleep = async (ms: number): Promise<void> => {
     return new Promise((resolve) => {
-        setTimeout(resolve, ms)
-    })
-}
+        setTimeout(resolve, ms);
+    });
+};
 
 export function convertTimestampMs(timestamp: number): number {
     if (timestamp.toString().length === 10) {
-        return timestamp * 1000
+        return timestamp * 1000;
     }
-    return timestamp
+    return timestamp;
 }

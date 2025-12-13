@@ -2,7 +2,7 @@ import { TypedEmitter } from "tiny-typed-emitter";
 import { Readable } from "stream";
 const { format } = require('date-and-time');
 
-import { HTTPApi } from './api'
+import { HTTPApi } from './api';
 import {
     AlarmMode,
     AlarmTone,
@@ -42,15 +42,15 @@ import {
     PresetPositionType,
     SmartLockNotification,
     IndoorS350DetectionTypes,
-} from './types'
+} from './types';
 import {
     FloodlightDetectionRangeT8425Property,
     FloodlightLightSettingsMotionT8425Property,
     SnoozeDetail,
     StationListResponse,
     StationSecuritySettings,
-} from './models'
-import { ParameterHelper } from './parameter'
+} from './models';
+import { ParameterHelper } from './parameter';
 import {
     IndexedProperty,
     PropertyMetadataAny,
@@ -63,7 +63,7 @@ import {
     PropertyMetadataString,
     Schedule,
     PropertyMetadataObject,
-} from './interfaces'
+} from './interfaces';
 import {
     encodePasscode,
     getAdvancedLockTimezone,
@@ -81,7 +81,7 @@ import {
     isPrioritySourceType,
     switchNotificationMode,
     switchSmartLockNotification,
-} from './utils'
+} from './utils';
 import {
     CrossTrackingGroupEntry,
     DatabaseCountByDate,
@@ -94,8 +94,8 @@ import {
     P2PCommand,
     RGBColor,
     StreamMetadata,
-} from '../p2p/interfaces'
-import { P2PClientProtocol } from '../p2p/session'
+} from '../p2p/interfaces';
+import { P2PClientProtocol } from '../p2p/session';
 import {
     AlarmEvent,
     CalibrateGarageType,
@@ -122,7 +122,7 @@ import {
     WatermarkSetting3,
     WatermarkSetting4,
     WatermarkSetting5,
-} from '../p2p/types'
+} from '../p2p/types';
 import {
     Address,
     CmdCameraInfoResponse,
@@ -135,8 +135,8 @@ import {
     CommandData,
     StorageInfoBodyHB3,
     AdvancedLockSetParamsTypeT8520,
-} from '../p2p/models'
-import { Device, DoorbellCamera, Lock, SmartSafe } from './device'
+} from '../p2p/models';
+import { Device, DoorbellCamera, Lock, SmartSafe } from './device';
 import {
     encodeLockPayload,
     encryptLockAESData,
@@ -148,7 +148,7 @@ import {
     getLockP2PCommand,
     RGBColorToDecimal,
     getSmartLockP2PCommand,
-} from '../p2p/utils'
+} from '../p2p/utils';
 import {
     InvalidCommandValueError,
     InvalidPropertyValueError,
@@ -158,40 +158,40 @@ import {
     StationConnectTimeoutError,
     PinNotVerifiedError,
     ensureError,
-} from '../error'
-import { PushMessage } from '../push/models'
-import { CusPushEvent } from '../push/types'
+} from '../error';
+import { PushMessage } from '../push/models';
+import { CusPushEvent } from '../push/types';
 import {
     InvalidPropertyError,
     LivestreamAlreadyRunningError,
     LivestreamNotRunningError,
     PropertyNotSupportedError,
-} from './error'
-import { getError, validValue } from '../utils'
-import { TalkbackStream } from '../p2p/talkback'
-import { start } from 'repl'
-import { rootHTTPLogger } from '../logging'
+} from './error';
+import { getError, validValue } from '../utils';
+import { TalkbackStream } from '../p2p/talkback';
+import { start } from 'repl';
+import { rootHTTPLogger } from '../logging';
 
 export class Station extends TypedEmitter<StationEvents> {
-    private api: HTTPApi
-    private rawStation: StationListResponse
+    private api: HTTPApi;
+    private rawStation: StationListResponse;
 
-    private p2pSession: P2PClientProtocol
-    private properties: PropertyValues = {}
-    private rawProperties: RawValues = {}
-    private ready = false
-    private lockPublicKey: string
+    private p2pSession: P2PClientProtocol;
+    private properties: PropertyValues = {};
+    private rawProperties: RawValues = {};
+    private ready = false;
+    private lockPublicKey: string;
 
-    private currentDelay = 0
-    private reconnectTimeout?: NodeJS.Timeout
-    private terminating = false
+    private currentDelay = 0;
+    private reconnectTimeout?: NodeJS.Timeout;
+    private terminating = false;
 
-    private p2pConnectionType = P2PConnectionType.QUICKEST
+    private p2pConnectionType = P2PConnectionType.QUICKEST;
 
-    public static readonly CHANNEL: number = 255
-    public static readonly CHANNEL_INDOOR: number = 1000
+    public static readonly CHANNEL: number = 255;
+    public static readonly CHANNEL_INDOOR: number = 1000;
 
-    private pinVerified = false
+    private pinVerified = false;
 
     protected constructor(
         api: HTTPApi,
@@ -201,10 +201,10 @@ export class Station extends TypedEmitter<StationEvents> {
         publicKey = '',
         enableEmbeddedPKCS1Support = false
     ) {
-        super()
-        this.api = api
-        this.rawStation = station
-        this.lockPublicKey = publicKey
+        super();
+        this.api = api;
+        this.rawStation = station;
+        this.lockPublicKey = publicKey;
         this.p2pSession = new P2PClientProtocol(
             this.rawStation,
             this.api,
@@ -212,21 +212,21 @@ export class Station extends TypedEmitter<StationEvents> {
             listeningPort,
             publicKey,
             enableEmbeddedPKCS1Support
-        )
+        );
         this.p2pSession.on('connect', (address: Address) =>
             this.onConnect(address)
-        )
-        this.p2pSession.on('close', () => this.onDisconnect())
-        this.p2pSession.on('timeout', () => this.onTimeout())
+        );
+        this.p2pSession.on('close', () => this.onDisconnect());
+        this.p2pSession.on('timeout', () => this.onTimeout());
         this.p2pSession.on('command', (result: CommandResult) =>
             this.onCommandResponse(result)
-        )
+        );
         this.p2pSession.on('alarm mode', (mode: AlarmMode) =>
             this.onAlarmMode(mode)
-        )
+        );
         this.p2pSession.on('camera info', (cameraInfo: CmdCameraInfoResponse) =>
             this.onCameraInfo(cameraInfo)
-        )
+        );
         this.p2pSession.on(
             'download started',
             (
@@ -241,10 +241,10 @@ export class Station extends TypedEmitter<StationEvents> {
                     videoStream,
                     audioStream
                 )
-        )
+        );
         this.p2pSession.on('download finished', (channel: number) =>
             this.onFinishDownload(channel)
-        )
+        );
         this.p2pSession.on(
             'livestream started',
             (
@@ -259,125 +259,125 @@ export class Station extends TypedEmitter<StationEvents> {
                     videoStream,
                     audioStream
                 )
-        )
+        );
         this.p2pSession.on('livestream stopped', (channel: number) =>
             this.onStopLivestream(channel)
-        )
+        );
         this.p2pSession.on(
             'livestream error',
             (channel: number, error: Error) =>
                 this.onErrorLivestream(channel, error)
-        )
+        );
         this.p2pSession.on('wifi rssi', (channel: number, rssi: number) =>
             this.onWifiRssiChanged(channel, rssi)
-        )
+        );
         this.p2pSession.on('rtsp livestream started', (channel: number) =>
             this.onStartRTSPLivestream(channel)
-        )
+        );
         this.p2pSession.on('rtsp livestream stopped', (channel: number) =>
             this.onStopRTSPLivestream(channel)
-        )
+        );
         this.p2pSession.on('rtsp url', (channel: number, rtspUrl: string) =>
             this.onRTSPUrl(channel, rtspUrl)
-        )
+        );
         this.p2pSession.on(
             'parameter',
             (channel: number, param: number, value: string) =>
                 this.onParameter(channel, param, value)
-        )
+        );
         this.p2pSession.on(
             'runtime state',
             (channel: number, batteryLevel: number, temperature: number) =>
                 this.onRuntimeState(channel, batteryLevel, temperature)
-        )
+        );
         this.p2pSession.on(
             'charging state',
             (channel: number, chargeType: number, batteryLevel: number) =>
                 this.onChargingState(channel, chargeType, batteryLevel)
-        )
+        );
         this.p2pSession.on(
             'floodlight manual switch',
             (channel: number, enabled: boolean) =>
                 this.onFloodlightManualSwitch(channel, enabled)
-        )
+        );
         this.p2pSession.on(
             'alarm delay',
             (alarmDelayEvent: AlarmEvent, alarmDelay: number) =>
                 this.onAlarmDelay(alarmDelayEvent, alarmDelay)
-        )
-        this.p2pSession.on('alarm armed', () => this.onAlarmArmed())
+        );
+        this.p2pSession.on('alarm armed', () => this.onAlarmArmed());
         this.p2pSession.on('alarm event', (alarmEvent: AlarmEvent) =>
             this.onAlarmEvent(alarmEvent)
-        )
+        );
         this.p2pSession.on(
             'talkback started',
             (channel: number, talkbackStream: TalkbackStream) =>
                 this.onTalkbackStarted(channel, talkbackStream)
-        )
+        );
         this.p2pSession.on('talkback stopped', (channel: number) =>
             this.onTalkbackStopped(channel)
-        )
+        );
         this.p2pSession.on('talkback error', (channel: number, error: Error) =>
             this.onTalkbackError(channel, error)
-        )
+        );
         this.p2pSession.on('secondary command', (result: CommandResult) =>
             this.onSecondaryCommandResponse(result)
-        )
+        );
         this.p2pSession.on(
             'shake alarm',
             (channel: number, event: SmartSafeShakeAlarmEvent) =>
                 this.onDeviceShakeAlarm(channel, event)
-        )
+        );
         this.p2pSession.on(
             '911 alarm',
             (channel: number, event: SmartSafeAlarm911Event) =>
                 this.onDevice911Alarm(channel, event)
-        )
+        );
         this.p2pSession.on('jammed', (channel: number) =>
             this.onDeviceJammed(channel)
-        )
+        );
         this.p2pSession.on('low battery', (channel: number) =>
             this.onDeviceLowBattery(channel)
-        )
+        );
         this.p2pSession.on('wrong try-protect alarm', (channel: number) =>
             this.onDeviceWrongTryProtectAlarm(channel)
-        )
+        );
         this.p2pSession.on(
             'sd info ex',
             (sdStatus, sdCapacity, sdCapacityAvailable) =>
                 this.onSdInfoEx(sdStatus, sdCapacity, sdCapacityAvailable)
-        )
+        );
         this.p2pSession.on('image download', (file, image) =>
             this.onImageDownload(file, image)
-        )
+        );
         this.p2pSession.on('tfcard status', (channel, status) =>
             this.onTFCardStatus(channel, status)
-        )
+        );
         this.p2pSession.on('database query latest', (returnCode, data) =>
             this.onDatabaseQueryLatest(returnCode, data)
-        )
+        );
         this.p2pSession.on('database query local', (returnCode, data) =>
             this.onDatabaseQueryLocal(returnCode, data)
-        )
+        );
         this.p2pSession.on('database count by date', (returnCode, data) =>
             this.onDatabaseCountByDate(returnCode, data)
-        )
+        );
         this.p2pSession.on('database delete', (returnCode, failedIds) =>
             this.onDatabaseDelete(returnCode, failedIds)
-        )
+        );
         this.p2pSession.on('sensor status', (channel: number, status: number) =>
             this.onSensorStatus(channel, status)
-        )
+        );
         this.p2pSession.on(
             'garage door status',
             (channel: number, doorId: number, status: number) =>
                 this.onGarageDoorStatus(channel, doorId, status)
-        )
+        );
         this.p2pSession.on(
             'storage info hb3',
             (channel: number, storageInfo: StorageInfoBodyHB3) =>
                 this.onStorageInfoHB3(channel, storageInfo)
-        )
+        );
         this.p2pSession.on(
             'sequence error',
             (
@@ -386,19 +386,19 @@ export class Station extends TypedEmitter<StationEvents> {
                 sequence: number,
                 serialnumber: string
             ) => this.onSequenceError(channel, command, sequence, serialnumber)
-        )
+        );
     }
 
     protected initializeState(): void {
-        this.update(this.rawStation)
-        this.ready = true
+        this.update(this.rawStation);
+        this.ready = true;
         setImmediate(() => {
-            this.emit('ready', this)
-        })
+            this.emit('ready', this);
+        });
     }
 
     public initialize(): void {
-        this.initializeState()
+        this.initializeState();
     }
 
     static async getInstance(
@@ -408,7 +408,7 @@ export class Station extends TypedEmitter<StationEvents> {
         listeningPort?: number,
         enableEmbeddedPKCS1Support?: boolean
     ): Promise<Station> {
-        let publicKey: string | undefined
+        let publicKey: string | undefined;
         if (
             Device.isLock(stationData.device_type) &&
             !Device.isLockWifiT8506(stationData.device_type) &&
@@ -425,7 +425,7 @@ export class Station extends TypedEmitter<StationEvents> {
             publicKey = await api.getPublicKey(
                 stationData.station_sn,
                 PublicKeyType.LOCK
-            )
+            );
         }
         return new Station(
             api,
@@ -434,36 +434,36 @@ export class Station extends TypedEmitter<StationEvents> {
             listeningPort,
             publicKey,
             enableEmbeddedPKCS1Support
-        )
+        );
     }
 
     //TODO: To remove
     public getStateID(state: string, level = 2): string {
         switch (level) {
             case 0:
-                return `${this.getSerial()}`
+                return `${this.getSerial()}`;
             case 1:
-                return `${this.getSerial()}.${this.getStateChannel()}`
+                return `${this.getSerial()}.${this.getStateChannel()}`;
             default:
                 if (state)
-                    return `${this.getSerial()}.${this.getStateChannel()}.${state}`
-                throw new Error('No state value passed.')
+                    return `${this.getSerial()}.${this.getStateChannel()}.${state}`;
+                throw new Error('No state value passed.');
         }
     }
 
     public getStateChannel(): string {
-        return 'station'
+        return 'station';
     }
 
     public getRawStation(): StationListResponse {
-        return this.rawStation
+        return this.rawStation;
     }
 
     public update(station: StationListResponse): void {
-        this.rawStation = station
-        this.p2pSession.updateRawStation(station)
+        this.rawStation = station;
+        this.p2pSession.updateRawStation(station);
 
-        const metadata = this.getPropertiesMetadata(true)
+        const metadata = this.getPropertiesMetadata(true);
         for (const property of Object.values(metadata)) {
             if (
                 this.rawStation[property.key] !== undefined &&
@@ -475,13 +475,13 @@ export class Station extends TypedEmitter<StationEvents> {
                         property,
                         this.rawStation[property.key] as string
                     )
-                )
+                );
             } else if (
                 this.properties[property.name] === undefined &&
                 property.default !== undefined &&
                 !this.ready
             ) {
-                this.updateProperty(property.name, property.default)
+                this.updateProperty(property.name, property.default);
             }
         }
         if (this.rawStation.params) {
@@ -490,13 +490,13 @@ export class Station extends TypedEmitter<StationEvents> {
                     param.param_type,
                     param.param_value,
                     'http'
-                )
-            })
+                );
+            });
         }
         rootHTTPLogger.debug('Update station cloud properties', {
             stationSN: this.getSerial(),
             properties: this.properties,
-        })
+        });
     }
 
     public updateProperty(
@@ -510,17 +510,17 @@ export class Station extends TypedEmitter<StationEvents> {
             this.properties[name] === undefined ||
             force
         ) {
-            const oldValue = this.properties[name]
-            this.properties[name] = value
-            this.emit('property changed', this, name, value, this.ready)
+            const oldValue = this.properties[name];
+            this.properties[name] = value;
+            this.emit('property changed', this, name, value, this.ready);
             try {
                 this.handlePropertyChange(
                     this.getPropertyMetadata(name, true),
                     oldValue,
                     this.properties[name]
-                )
+                );
             } catch (err) {
-                const error = ensureError(err)
+                const error = ensureError(err);
                 if (error instanceof InvalidPropertyError) {
                     rootHTTPLogger.error(
                         `Station update property - Invalid Property error`,
@@ -531,7 +531,7 @@ export class Station extends TypedEmitter<StationEvents> {
                             propertyValue: value,
                             force: force,
                         }
-                    )
+                    );
                 } else {
                     rootHTTPLogger.error(
                         `Station update property - Property error`,
@@ -542,23 +542,23 @@ export class Station extends TypedEmitter<StationEvents> {
                             propertyValue: value,
                             force: force,
                         }
-                    )
+                    );
                 }
             }
-            return true
+            return true;
         }
-        return false
+        return false;
     }
 
     public updateRawProperties(values: RawValues): void {
         Object.keys(values).forEach((paramtype) => {
-            const param_type = Number.parseInt(paramtype)
+            const param_type = Number.parseInt(paramtype);
             this.updateRawProperty(
                 param_type,
                 values[param_type].value,
                 values[param_type].source
-            )
-        })
+            );
+        });
     }
 
 
@@ -571,19 +571,19 @@ export class Station extends TypedEmitter<StationEvents> {
             //TODO: Finish implementation!
             if (newValue === AlarmMode.DISARMED) {
                 if (this.hasProperty(PropertyName.StationAlarmArmed)) {
-                    this.updateProperty(PropertyName.StationAlarmArmed, false)
+                    this.updateProperty(PropertyName.StationAlarmArmed, false);
                 }
                 if (this.hasProperty(PropertyName.StationAlarmDelay)) {
-                    this.updateProperty(PropertyName.StationAlarmDelay, 0)
+                    this.updateProperty(PropertyName.StationAlarmDelay, 0);
                 }
                 if (this.hasProperty(PropertyName.StationAlarmDelayType)) {
-                    this.updateProperty(PropertyName.StationAlarmDelayType, 0)
+                    this.updateProperty(PropertyName.StationAlarmDelayType, 0);
                 }
                 if (this.hasProperty(PropertyName.StationAlarm)) {
-                    this.updateProperty(PropertyName.StationAlarm, false)
+                    this.updateProperty(PropertyName.StationAlarm, false);
                 }
                 if (this.hasProperty(PropertyName.StationAlarmType)) {
-                    this.updateProperty(PropertyName.StationAlarmType, 0)
+                    this.updateProperty(PropertyName.StationAlarmType, 0);
                 }
             } /*else if (this.hasProperty(PropertyName.StationAlarmArmed)) { //TODO: Type !== HB3 or STATION
                 this.updateProperty(PropertyName.StationAlarmArmed, this.isAlarmArmable(newValue as AlarmMode));
@@ -601,7 +601,7 @@ export class Station extends TypedEmitter<StationEvents> {
             type,
             value,
             rootHTTPLogger
-        )
+        );
         if (
             parsedValue !== undefined &&
             ((this.rawProperties[type] !== undefined &&
@@ -615,14 +615,14 @@ export class Station extends TypedEmitter<StationEvents> {
             this.rawProperties[type] = {
                 value: parsedValue,
                 source: source,
-            }
+            };
             if (this.ready) {
                 this.emit(
                     'raw property changed',
                     this,
                     type,
                     this.rawProperties[type].value
-                )
+                );
 
                 try {
                     if (type === ParamType.GUARD_MODE) {
@@ -630,16 +630,16 @@ export class Station extends TypedEmitter<StationEvents> {
                             'guard mode',
                             this,
                             Number.parseInt(parsedValue)
-                        )
+                        );
                     } else if (type === CommandType.CMD_GET_ALARM_MODE) {
                         this.emit(
                             'current mode',
                             this,
                             Number.parseInt(parsedValue)
-                        )
+                        );
                     }
                 } catch (err) {
-                    const error = ensureError(err)
+                    const error = ensureError(err);
                     rootHTTPLogger.error(
                         'Station update raw property - Number conversion error',
                         {
@@ -649,11 +649,11 @@ export class Station extends TypedEmitter<StationEvents> {
                             value: value,
                             source: source,
                         }
-                    )
+                    );
                 }
             }
 
-            const metadata = this.getPropertiesMetadata(true)
+            const metadata = this.getPropertiesMetadata(true);
 
             for (const property of Object.values(metadata)) {
                 if (property.key === type) {
@@ -664,9 +664,9 @@ export class Station extends TypedEmitter<StationEvents> {
                                 property,
                                 this.rawProperties[type].value
                             )
-                        )
+                        );
                     } catch (err) {
-                        const error = ensureError(err)
+                        const error = ensureError(err);
                         if (error instanceof PropertyNotSupportedError) {
                             rootHTTPLogger.debug(
                                 'Station update raw property - Property not supported error',
@@ -677,7 +677,7 @@ export class Station extends TypedEmitter<StationEvents> {
                                     value: value,
                                     source: source,
                                 }
-                            )
+                            );
                         } else {
                             rootHTTPLogger.error(
                                 'Station update raw property - Property error',
@@ -688,14 +688,14 @@ export class Station extends TypedEmitter<StationEvents> {
                                     value: value,
                                     source: source,
                                 }
-                            )
+                            );
                         }
                     }
                 }
             }
-            return true
+            return true;
         }
-        return false
+        return false;
     }
 
     protected convertRawPropertyValue(
@@ -709,11 +709,11 @@ export class Station extends TypedEmitter<StationEvents> {
                         ? isPrivateIp(value)
                             ? value
                             : ''
-                        : ''
+                        : '';
                 case CommandType.CMD_SET_ARMING:
-                    return Number.parseInt(value !== undefined ? value : '-1')
+                    return Number.parseInt(value !== undefined ? value : '-1');
                 case CommandType.CMD_GET_ALARM_MODE: {
-                    const guard_mode = this.getGuardMode()
+                    const guard_mode = this.getGuardMode();
                     return Number.parseInt(
                         value !== undefined
                             ? value
@@ -722,7 +722,7 @@ export class Station extends TypedEmitter<StationEvents> {
                                 guard_mode !== GuardMode.GEO
                               ? (guard_mode as string)
                               : GuardMode.UNKNOWN.toString()
-                    )
+                    );
                 }
                 case CommandType.CMD_HUB_NOTIFY_MODE: {
                     switch (property.name) {
@@ -737,14 +737,14 @@ export class Station extends TypedEmitter<StationEvents> {
                                     ? value === '1'
                                         ? true
                                         : false
-                                    : false
+                                    : false;
                             }
                             return value !== undefined
                                 ? isNotificationSwitchMode(
                                       Number.parseInt(value),
                                       NotificationSwitchMode.SCHEDULE
                                   )
-                                : false
+                                : false;
                         case PropertyName.StationNotificationSwitchModeGeofence:
                             if (
                                 !isGreaterEqualMinVersion(
@@ -762,14 +762,14 @@ export class Station extends TypedEmitter<StationEvents> {
                                                 this.getSoftwareVersion(),
                                         },
                                     }
-                                )
+                                );
                             }
                             return value !== undefined
                                 ? isNotificationSwitchMode(
                                       Number.parseInt(value),
                                       NotificationSwitchMode.GEOFENCE
                                   )
-                                : false
+                                : false;
                         case PropertyName.StationNotificationSwitchModeApp:
                             if (
                                 !isGreaterEqualMinVersion(
@@ -787,14 +787,14 @@ export class Station extends TypedEmitter<StationEvents> {
                                                 this.getSoftwareVersion(),
                                         },
                                     }
-                                )
+                                );
                             }
                             return value !== undefined
                                 ? isNotificationSwitchMode(
                                       Number.parseInt(value),
                                       NotificationSwitchMode.APP
                                   )
-                                : false
+                                : false;
                         case PropertyName.StationNotificationSwitchModeKeypad:
                             if (
                                 !isGreaterEqualMinVersion(
@@ -812,14 +812,14 @@ export class Station extends TypedEmitter<StationEvents> {
                                                 this.getSoftwareVersion(),
                                         },
                                     }
-                                )
+                                );
                             }
                             return value !== undefined
                                 ? isNotificationSwitchMode(
                                       Number.parseInt(value),
                                       NotificationSwitchMode.KEYPAD
                                   )
-                                : false
+                                : false;
                     }
                 }
                 case CommandType.CMD_HUB_NOTIFY_ALARM:
@@ -827,12 +827,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         ? value === '1'
                             ? true
                             : false
-                        : false
+                        : false;
                 case CommandType.CMD_HUB_ALARM_TONE:
                     try {
-                        return value !== undefined ? Number.parseInt(value) : 1
+                        return value !== undefined ? Number.parseInt(value) : 1;
                     } catch (err) {
-                        const error = ensureError(err)
+                        const error = ensureError(err);
                         rootHTTPLogger.error(
                             'Station convert raw property - CMD_HUB_ALARM_TONE Error',
                             {
@@ -841,14 +841,16 @@ export class Station extends TypedEmitter<StationEvents> {
                                 property: property,
                                 value: value,
                             }
-                        )
-                        return 1
+                        );
+                        return 1;
                     }
                 case CommandType.CMD_SET_HUB_SPK_VOLUME:
                     try {
-                        return value !== undefined ? Number.parseInt(value) : 26
+                        return value !== undefined
+                            ? Number.parseInt(value)
+                            : 26;
                     } catch (err) {
-                        const error = ensureError(err)
+                        const error = ensureError(err);
                         rootHTTPLogger.error(
                             'Station convert raw property - CMD_SET_HUB_SPK_VOLUME Error',
                             {
@@ -857,14 +859,16 @@ export class Station extends TypedEmitter<StationEvents> {
                                 property: property,
                                 value: value,
                             }
-                        )
-                        return 26
+                        );
+                        return 26;
                     }
                 case CommandType.CMD_SET_PROMPT_VOLUME:
                     try {
-                        return value !== undefined ? Number.parseInt(value) : 26
+                        return value !== undefined
+                            ? Number.parseInt(value)
+                            : 26;
                     } catch (err) {
-                        const error = ensureError(err)
+                        const error = ensureError(err);
                         rootHTTPLogger.error(
                             'Station convert raw property - CMD_SET_PROMPT_VOLUME Error',
                             {
@@ -873,14 +877,14 @@ export class Station extends TypedEmitter<StationEvents> {
                                 property: property,
                                 value: value,
                             }
-                        )
-                        return 26
+                        );
+                        return 26;
                     }
                 case CommandType.CMD_SET_HUB_OSD:
                     try {
-                        return value !== undefined ? Number.parseInt(value) : 0
+                        return value !== undefined ? Number.parseInt(value) : 0;
                     } catch (err) {
-                        const error = ensureError(err)
+                        const error = ensureError(err);
                         rootHTTPLogger.error(
                             'Station convert raw property - CMD_SET_HUB_OSD Error',
                             {
@@ -889,29 +893,29 @@ export class Station extends TypedEmitter<StationEvents> {
                                 property: property,
                                 value: value,
                             }
-                        )
-                        return 0
+                        );
+                        return 0;
                     }
                 case CommandType.CMD_SET_HUB_ALARM_AUTO_END:
                     return value !== undefined
                         ? value !== '0'
                             ? false
                             : true
-                        : false
+                        : false;
                 case CommandType.CMD_SET_HUB_ALARM_CLOSE:
                     return value !== undefined
                         ? value === '1'
                             ? false
                             : true
-                        : false
+                        : false;
             }
             if (
                 property.name === PropertyName.Model &&
                 Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial())
             ) {
-                return 'T8510P'
+                return 'T8510P';
             } else if (property.type === 'number') {
-                const numericProperty = property as PropertyMetadataNumeric
+                const numericProperty = property as PropertyMetadataNumeric;
                 try {
                     return value !== undefined
                         ? Number.parseInt(value)
@@ -919,9 +923,9 @@ export class Station extends TypedEmitter<StationEvents> {
                           ? numericProperty.default
                           : numericProperty.min !== undefined
                             ? numericProperty.min
-                            : 0
+                            : 0;
                 } catch (err) {
-                    const error = ensureError(err)
+                    const error = ensureError(err);
                     rootHTTPLogger.warn(
                         'Station convert raw property - PropertyMetadataNumeric Convert Error',
                         {
@@ -930,15 +934,15 @@ export class Station extends TypedEmitter<StationEvents> {
                             property: property,
                             value: value,
                         }
-                    )
+                    );
                     return numericProperty.default !== undefined
                         ? numericProperty.default
                         : numericProperty.min !== undefined
                           ? numericProperty.min
-                          : 0
+                          : 0;
                 }
             } else if (property.type === 'boolean') {
-                const booleanProperty = property as PropertyMetadataBoolean
+                const booleanProperty = property as PropertyMetadataBoolean;
                 try {
                     return value !== undefined
                         ? typeof value === 'number'
@@ -948,9 +952,9 @@ export class Station extends TypedEmitter<StationEvents> {
                               : false
                         : booleanProperty.default !== undefined
                           ? booleanProperty.default
-                          : false
+                          : false;
                 } catch (err) {
-                    const error = ensureError(err)
+                    const error = ensureError(err);
                     rootHTTPLogger.warn(
                         'Station convert raw property - PropertyMetadataBoolean Convert Error',
                         {
@@ -959,52 +963,52 @@ export class Station extends TypedEmitter<StationEvents> {
                             property: property,
                             value: value,
                         }
-                    )
+                    );
                     return booleanProperty.default !== undefined
                         ? booleanProperty.default
-                        : false
+                        : false;
                 }
             } else if (property.type === 'string') {
-                const stringProperty = property as PropertyMetadataString
+                const stringProperty = property as PropertyMetadataString;
                 return value !== undefined
                     ? value
                     : stringProperty.default !== undefined
                       ? stringProperty.default
-                      : ''
+                      : '';
             } else if (property.type === 'object') {
-                const objectProperty = property as PropertyMetadataObject
+                const objectProperty = property as PropertyMetadataObject;
                 return value !== undefined
                     ? value
                     : objectProperty.default !== undefined
                       ? objectProperty.default
-                      : undefined
+                      : undefined;
             }
         } catch (err) {
-            const error = ensureError(err)
+            const error = ensureError(err);
             rootHTTPLogger.error('Station convert raw property - Error', {
                 error: getError(error),
                 stationSN: this.getSerial(),
                 property: property,
                 value: value,
-            })
+            });
         }
-        return value
+        return value;
     }
 
     public getPropertyMetadata(
         name: string,
         hidden = false
     ): PropertyMetadataAny {
-        const property = this.getPropertiesMetadata(hidden)[name]
-        if (property !== undefined) return property
+        const property = this.getPropertiesMetadata(hidden)[name];
+        if (property !== undefined) return property;
         throw new InvalidPropertyError('Property name is not valid', {
             context: { name: name },
-        })
+        });
     }
 
     public getPropertyValue(name: string): PropertyValue {
         if (name === PropertyName.StationCurrentMode) {
-            const guard_mode = this.properties[PropertyName.StationGuardMode]
+            const guard_mode = this.properties[PropertyName.StationGuardMode];
             return this.properties[PropertyName.StationCurrentMode] !==
                 undefined
                 ? this.properties[PropertyName.StationCurrentMode]
@@ -1012,73 +1016,73 @@ export class Station extends TypedEmitter<StationEvents> {
                     guard_mode !== GuardMode.SCHEDULE &&
                     guard_mode !== GuardMode.GEO
                   ? guard_mode
-                  : GuardMode.UNKNOWN
+                  : GuardMode.UNKNOWN;
         }
-        return this.properties[name]
+        return this.properties[name];
     }
 
     public hasPropertyValue(name: string): boolean {
-        return this.getPropertyValue(name) !== undefined
+        return this.getPropertyValue(name) !== undefined;
     }
 
     public getRawProperty(type: number): string | undefined {
-        return this.rawProperties[type]?.value
+        return this.rawProperties[type]?.value;
     }
 
     public getRawProperties(): RawValues {
-        return this.rawProperties
+        return this.rawProperties;
     }
 
     public getProperties(): PropertyValues {
-        const result: PropertyValues = {}
+        const result: PropertyValues = {};
         for (const property of Object.keys(this.properties)) {
             if (!property.startsWith('hidden-'))
-                result[property] = this.properties[property]
+                result[property] = this.properties[property];
         }
-        return result
+        return result;
     }
 
     public getPropertiesMetadata(hidden = false): IndexedProperty {
         let metadata = {
             ...StationProperties[this.getDeviceType()],
-        }
+        };
         if (Object.keys(metadata).length === 0) {
             metadata = {
                 ...BaseStationProperties,
-            }
+            };
         }
         if (this.hasDeviceWithType(DeviceType.KEYPAD)) {
             metadata[PropertyName.StationGuardMode] =
-                StationGuardModeKeyPadProperty
+                StationGuardModeKeyPadProperty;
             metadata[PropertyName.StationCurrentMode] =
-                StationCurrentModeKeyPadProperty
+                StationCurrentModeKeyPadProperty;
             metadata[PropertyName.StationSwitchModeWithAccessCode] =
-                StationSwitchModeWithAccessCodeProperty
+                StationSwitchModeWithAccessCodeProperty;
             metadata[PropertyName.StationAutoEndAlarm] =
-                StationAutoEndAlarmProperty
+                StationAutoEndAlarmProperty;
             metadata[PropertyName.StationTurnOffAlarmWithButton] =
-                StationTurnOffAlarmWithButtonProperty
+                StationTurnOffAlarmWithButtonProperty;
         }
         if (!hidden) {
             for (const property of Object.keys(metadata)) {
-                if (property.startsWith('hidden-')) delete metadata[property]
+                if (property.startsWith('hidden-')) delete metadata[property];
             }
         }
-        return metadata
+        return metadata;
     }
 
     public hasProperty(name: string, hidden = false): boolean {
-        return this.getPropertiesMetadata(hidden)[name] !== undefined
+        return this.getPropertiesMetadata(hidden)[name] !== undefined;
     }
 
     public getCommands(): Array<CommandName> {
-        const commands = StationCommands[this.getDeviceType()]
-        if (commands === undefined) return []
-        return commands
+        const commands = StationCommands[this.getDeviceType()];
+        if (commands === undefined) return [];
+        return commands;
     }
 
     public hasCommand(name: CommandName): boolean {
-        return this.getCommands().includes(name)
+        return this.getCommands().includes(name);
     }
 
     public static getChannel(type: number): number {
@@ -1086,7 +1090,7 @@ export class Station extends TypedEmitter<StationEvents> {
             ? Device.isIndoorCamera(type)
                 ? Station.CHANNEL_INDOOR
                 : Station.CHANNEL
-            : 0
+            : 0;
     }
 
     public static isStation(type: number): boolean {
@@ -1094,23 +1098,23 @@ export class Station extends TypedEmitter<StationEvents> {
             type === DeviceType.STATION ||
             type === DeviceType.HB3 ||
             type === DeviceType.MINIBASE_CHIME
-        )
+        );
     }
 
     public isStation(): boolean {
-        return Station.isStation(this.rawStation.device_type)
+        return Station.isStation(this.rawStation.device_type);
     }
 
     public static isStationHomeBase3(type: number): boolean {
-        return type === DeviceType.HB3
+        return type === DeviceType.HB3;
     }
 
     public static isStationHomeBase3BySn(sn: string): boolean {
-        return sn.startsWith('T8030')
+        return sn.startsWith('T8030');
     }
 
     public isStationHomeBase3(): boolean {
-        return Station.isStationHomeBase3(this.rawStation.device_type)
+        return Station.isStationHomeBase3(this.rawStation.device_type);
     }
 
     public isIntegratedDevice(): boolean {
@@ -1124,8 +1128,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 return (
                     this.rawStation.devices[0]?.device_sn ===
                     this.rawStation.station_sn
-                )
-            else return true
+                );
+            else return true;
         }
         return (
             Device.isWiredDoorbellDual(this.getDeviceType()) ||
@@ -1136,7 +1140,7 @@ export class Station extends TypedEmitter<StationEvents> {
             Device.isWallLightCam(this.getDeviceType()) ||
             Device.isStarlight4GLTE(this.getDeviceType()) ||
             Device.isSoloCameraPro(this.getDeviceType())
-        )
+        );
     }
 
     public isP2PConnectableDevice(): boolean {
@@ -1151,55 +1155,55 @@ export class Station extends TypedEmitter<StationEvents> {
                 rootHTTPLogger.debug(
                     'Station not supported, no connection over p2p will be initiated',
                     { stationSN: this.getSerial(), type: this.getDeviceType() }
-                )
+                );
             }
-            return false
+            return false;
         }
-        return true
+        return true;
     }
 
     public getDeviceType(): number {
-        return this.rawStation.device_type
+        return this.rawStation.device_type;
     }
 
     public getHardwareVersion(): string {
-        return this.rawStation.main_hw_version
+        return this.rawStation.main_hw_version;
     }
 
     public getMACAddress(): string {
-        return this.rawStation.wifi_mac
+        return this.rawStation.wifi_mac;
     }
 
     public getModel(): string {
-        return this.rawStation.station_model
+        return this.rawStation.station_model;
     }
 
     public getName(): string {
-        return this.rawStation.station_name
+        return this.rawStation.station_name;
     }
 
     public getSerial(): string {
-        return this.rawStation.station_sn
+        return this.rawStation.station_sn;
     }
 
     public getSoftwareVersion(): string {
-        return this.rawStation.main_sw_version
+        return this.rawStation.main_sw_version;
     }
 
     public getIPAddress(): string {
-        return this.rawStation.ip_addr
+        return this.rawStation.ip_addr;
     }
 
     public getLANIPAddress(): PropertyValue {
-        return this.getPropertyValue(PropertyName.StationLANIpAddress)
+        return this.getPropertyValue(PropertyName.StationLANIpAddress);
     }
 
     public getGuardMode(): PropertyValue {
-        return this.getPropertyValue(PropertyName.StationGuardMode)
+        return this.getPropertyValue(PropertyName.StationGuardMode);
     }
 
     public getCurrentMode(): PropertyValue {
-        const guard_mode = this.getGuardMode()
+        const guard_mode = this.getGuardMode();
         return this.getPropertyValue(PropertyName.StationCurrentMode) !==
             undefined
             ? this.getPropertyValue(PropertyName.StationCurrentMode)
@@ -1207,7 +1211,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 guard_mode !== GuardMode.SCHEDULE &&
                 guard_mode !== GuardMode.GEO
               ? guard_mode
-              : GuardMode.UNKNOWN
+              : GuardMode.UNKNOWN;
     }
 
     public processPushNotification(message: PushMessage): void {
@@ -1223,22 +1227,22 @@ export class Station extends TypedEmitter<StationEvents> {
                         current_mode: message.station_current_mode,
                         stationSN: message.station_sn,
                     }
-                )
+                );
                 try {
                     if (message.station_guard_mode !== undefined)
                         this.updateRawProperty(
                             ParamType.GUARD_MODE,
                             message.station_guard_mode.toString(),
                             'push'
-                        )
+                        );
                     if (message.station_current_mode !== undefined)
                         this.updateRawProperty(
                             CommandType.CMD_GET_ALARM_MODE,
                             message.station_current_mode.toString(),
                             'push'
-                        )
+                        );
                 } catch (err) {
-                    const error = ensureError(err)
+                    const error = ensureError(err);
                     rootHTTPLogger.debug(
                         `Station process push notification - MODE_SWITCH event error`,
                         {
@@ -1246,7 +1250,7 @@ export class Station extends TypedEmitter<StationEvents> {
                             stationSN: this.getSerial(),
                             message: JSON.stringify(message),
                         }
-                    )
+                    );
                 }
             } else if (
                 message.event_type === CusPushEvent.ALARM &&
@@ -1259,9 +1263,9 @@ export class Station extends TypedEmitter<StationEvents> {
                         stationSN: message.station_sn,
                         alarmType: message.alarm_type,
                     }
-                )
+                );
                 if (message.alarm_type !== undefined) {
-                    this.onAlarmEvent(message.alarm_type)
+                    this.onAlarmEvent(message.alarm_type);
                 }
             }
         } else if (
@@ -1273,28 +1277,28 @@ export class Station extends TypedEmitter<StationEvents> {
                 CommandType.CMD_GET_TFCARD_STATUS,
                 message.tfcard_status.toString(),
                 'push'
-            )
+            );
         }
     }
 
     public isConnected(): boolean {
-        return this.p2pSession.isConnected()
+        return this.p2pSession.isConnected();
     }
 
     public close(): void {
-        this.terminating = true
+        this.terminating = true;
         if (this.reconnectTimeout) {
-            clearTimeout(this.reconnectTimeout)
-            this.reconnectTimeout = undefined
+            clearTimeout(this.reconnectTimeout);
+            this.reconnectTimeout = undefined;
         }
         if (this.p2pSession.isConnected()) {
-            rootHTTPLogger.info(`Disconnect from station ${this.getSerial()}`)
-            this.p2pSession.close()
+            rootHTTPLogger.info(`Disconnect from station ${this.getSerial()}`);
+            this.p2pSession.close();
         }
     }
 
     public isEnergySavingDevice(): boolean {
-        return this.p2pSession.isEnergySavingDevice()
+        return this.p2pSession.isEnergySavingDevice();
     }
 
     public async connect(): Promise<void> {
@@ -1306,14 +1310,14 @@ export class Station extends TypedEmitter<StationEvents> {
                     p2pConnectionType:
                         P2PConnectionType[this.p2pConnectionType],
                 }
-            )
-            this.p2pSession.setConnectionType(this.p2pConnectionType)
-            await this.p2pSession.connect()
+            );
+            this.p2pSession.setConnectionType(this.p2pConnectionType);
+            await this.p2pSession.connect();
         }
     }
 
     private onFinishDownload(channel: number): void {
-        this.emit('download finish', this, channel)
+        this.emit('download finish', this, channel);
     }
 
     private onStartDownload(
@@ -1329,15 +1333,15 @@ export class Station extends TypedEmitter<StationEvents> {
             metadata,
             videoStream,
             audioStream
-        )
+        );
     }
 
     private onStopLivestream(channel: number): void {
-        this.emit('livestream stop', this, channel)
+        this.emit('livestream stop', this, channel);
     }
 
     private onErrorLivestream(channel: number, error: Error): void {
-        this.emit('livestream error', this, channel, error)
+        this.emit('livestream error', this, channel, error);
     }
 
     private onStartLivestream(
@@ -1353,41 +1357,41 @@ export class Station extends TypedEmitter<StationEvents> {
             metadata,
             videoStream,
             audioStream
-        )
+        );
     }
 
     private onStopRTSPLivestream(channel: number): void {
-        this.emit('rtsp livestream stop', this, channel)
+        this.emit('rtsp livestream stop', this, channel);
     }
 
     private onStartRTSPLivestream(channel: number): void {
-        this.emit('rtsp livestream start', this, channel)
+        this.emit('rtsp livestream start', this, channel);
     }
 
     private onWifiRssiChanged(channel: number, rssi: number): void {
-        this.emit('wifi rssi', this, channel, rssi)
+        this.emit('wifi rssi', this, channel, rssi);
     }
 
     private onRTSPUrl(channel: number, rtspUrl: string): void {
-        this.emit('rtsp url', this, channel, rtspUrl)
+        this.emit('rtsp url', this, channel, rtspUrl);
     }
 
     private onParameter(channel: number, param: number, value: string): void {
-        const params: RawValues = {}
+        const params: RawValues = {};
         const parsedValue = ParameterHelper.readValue(
             this.getSerial(),
             param,
             value,
             rootHTTPLogger
-        )
+        );
         if (parsedValue !== undefined) {
             params[param] = {
                 value: parsedValue,
                 source: 'p2p',
-            }
-            const deviceSerial = this._getDeviceSerial(channel)
+            };
+            const deviceSerial = this._getDeviceSerial(channel);
             if (deviceSerial !== undefined) {
-                this.emit('raw device property changed', deviceSerial, params)
+                this.emit('raw device property changed', deviceSerial, params);
             }
         }
     }
@@ -1396,50 +1400,50 @@ export class Station extends TypedEmitter<StationEvents> {
         alarmDelayEvent: AlarmEvent,
         alarmDelay: number
     ): void {
-        this.emit('alarm delay event', this, alarmDelayEvent, alarmDelay)
+        this.emit('alarm delay event', this, alarmDelayEvent, alarmDelay);
         if (this.hasProperty(PropertyName.StationAlarmDelay)) {
-            this.updateProperty(PropertyName.StationAlarmDelay, alarmDelay)
+            this.updateProperty(PropertyName.StationAlarmDelay, alarmDelay);
         }
         if (this.hasProperty(PropertyName.StationAlarmDelayType)) {
             this.updateProperty(
                 PropertyName.StationAlarmDelayType,
                 alarmDelayEvent
-            )
+            );
         }
     }
 
     private onAlarmArmed(): void {
-        this.emit('alarm armed event', this)
+        this.emit('alarm armed event', this);
         if (this.hasProperty(PropertyName.StationAlarmArmDelay)) {
-            this.updateProperty(PropertyName.StationAlarmArmDelay, 0)
+            this.updateProperty(PropertyName.StationAlarmArmDelay, 0);
         }
         /*if (this.hasProperty(PropertyName.StationAlarmArmed) && this.hasProperty(PropertyName.StationCurrentMode)) {
             this.updateProperty(PropertyName.StationAlarmArmed, this.isAlarmArmable(this.getPropertyValue(PropertyName.StationCurrentMode) as AlarmMode));
         }*/
         if (this.hasProperty(PropertyName.StationAlarmArmed)) {
-            this.updateProperty(PropertyName.StationAlarmArmed, true)
+            this.updateProperty(PropertyName.StationAlarmArmed, true);
         }
         if (this.hasProperty(PropertyName.StationAlarmDelay)) {
-            this.updateProperty(PropertyName.StationAlarmDelay, 0)
+            this.updateProperty(PropertyName.StationAlarmDelay, 0);
         }
         if (this.hasProperty(PropertyName.StationAlarmDelayType)) {
-            this.updateProperty(PropertyName.StationAlarmDelayType, 0)
+            this.updateProperty(PropertyName.StationAlarmDelayType, 0);
         }
         if (this.hasProperty(PropertyName.StationAlarm)) {
-            this.updateProperty(PropertyName.StationAlarm, false)
+            this.updateProperty(PropertyName.StationAlarm, false);
         }
         if (this.hasProperty(PropertyName.StationAlarmType)) {
-            this.updateProperty(PropertyName.StationAlarmType, 0)
+            this.updateProperty(PropertyName.StationAlarmType, 0);
         }
     }
 
     private onAlarmEvent(alarmEvent: AlarmEvent): void {
-        this.emit('alarm event', this, alarmEvent)
+        this.emit('alarm event', this, alarmEvent);
         if (this.hasProperty(PropertyName.StationAlarmDelay)) {
-            this.updateProperty(PropertyName.StationAlarmDelay, 0)
+            this.updateProperty(PropertyName.StationAlarmDelay, 0);
         }
         if (this.hasProperty(PropertyName.StationAlarmDelayType)) {
-            this.updateProperty(PropertyName.StationAlarmDelayType, 0)
+            this.updateProperty(PropertyName.StationAlarmDelayType, 0);
         }
         switch (alarmEvent) {
             case AlarmEvent.DEV_STOP:
@@ -1448,23 +1452,23 @@ export class Station extends TypedEmitter<StationEvents> {
             case AlarmEvent.HUB_STOP_BY_HAND:
             case AlarmEvent.HUB_STOP_BY_KEYPAD:
                 if (this.hasProperty(PropertyName.StationAlarm)) {
-                    this.updateProperty(PropertyName.StationAlarm, false)
+                    this.updateProperty(PropertyName.StationAlarm, false);
                 }
                 if (this.hasProperty(PropertyName.StationAlarmType)) {
-                    this.updateProperty(PropertyName.StationAlarmType, 0)
+                    this.updateProperty(PropertyName.StationAlarmType, 0);
                 }
-                break
+                break;
             default:
                 if (this.hasProperty(PropertyName.StationAlarm)) {
-                    this.updateProperty(PropertyName.StationAlarm, true)
+                    this.updateProperty(PropertyName.StationAlarm, true);
                 }
                 if (this.hasProperty(PropertyName.StationAlarmType)) {
                     this.updateProperty(
                         PropertyName.StationAlarmType,
                         alarmEvent
-                    )
+                    );
                 }
-                break
+                break;
         }
     }
 
@@ -1472,7 +1476,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.StationGuardMode,
             value: mode,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -1483,15 +1487,15 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, mode)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, mode);
 
         rootHTTPLogger.debug(`Station set guard mode - sending command`, {
             stationSN: this.getSerial(),
             mode: mode,
-        })
+        });
         if (
             (isGreaterEqualMinVersion('2.0.7.9', this.getSoftwareVersion()) &&
                 !Device.isIntegratedDeviceBySn(this.getSerial())) ||
@@ -1505,7 +1509,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     mode: mode,
                     main_sw_version: this.getSoftwareVersion(),
                 }
-            )
+            );
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -1523,7 +1527,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             rootHTTPLogger.debug(
                 `Station set guard mode - Using CMD_SET_ARMING`,
@@ -1531,7 +1535,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     stationSN: this.getSerial(),
                     mode: mode,
                 }
-            )
+            );
             this.p2pSession.sendCommandWithInt(
                 {
                     commandType: CommandType.CMD_SET_ARMING,
@@ -1542,25 +1546,25 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         }
     }
 
     public getCameraInfo(): void {
         rootHTTPLogger.debug(`Station send get camera info command`, {
             stationSN: this.getSerial(),
-        })
+        });
         this.p2pSession.sendCommandWithInt({
             commandType: CommandType.CMD_CAMERA_INFO,
             value: 255,
             channel: Station.CHANNEL,
-        })
+        });
     }
 
     public getStorageInfoEx(): void {
         rootHTTPLogger.debug(`Station send get storage info command`, {
             stationSN: this.getSerial(),
-        })
+        });
         if (
             this.isStation() &&
             this.rawStation.device_type !== DeviceType.HB3 &&
@@ -1569,7 +1573,7 @@ export class Station extends TypedEmitter<StationEvents> {
             this.p2pSession.sendCommandWithoutData(
                 CommandType.CMD_SDINFO_EX,
                 Station.CHANNEL
-            )
+            );
         } else if (this.rawStation.device_type === DeviceType.HB3|| this.rawStation.device_type === DeviceType.HOMEBASE_MINI) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -1583,7 +1587,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         cmd: 11001.0,
                     },
                 }),
-            })
+            });
         } else {
             this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_SDINFO_EX,
@@ -1591,7 +1595,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 valueSub: 0,
                 channel: Station.CHANNEL,
                 strValue: this.rawStation.member.admin_user_id,
-            })
+            });
         }
     }
 
@@ -1599,63 +1603,66 @@ export class Station extends TypedEmitter<StationEvents> {
         rootHTTPLogger.debug(`Station alarm mode changed`, {
             stationSN: this.getSerial(),
             mode: mode,
-        })
+        });
         this.updateRawProperty(
             CommandType.CMD_GET_ALARM_MODE,
             mode.toString(),
             'p2p'
-        )
-        const armDelay = this.getArmDelay(mode)
+        );
+        const armDelay = this.getArmDelay(mode);
         if (armDelay > 0) {
-            this.emit('alarm arm delay event', this, armDelay)
+            this.emit('alarm arm delay event', this, armDelay);
             if (this.hasProperty(PropertyName.StationAlarmArmDelay)) {
-                this.updateProperty(PropertyName.StationAlarmArmDelay, armDelay)
+                this.updateProperty(
+                    PropertyName.StationAlarmArmDelay,
+                    armDelay
+                );
             }
         }
 
         if (mode === AlarmMode.DISARMED) {
             if (this.hasProperty(PropertyName.StationAlarmArmDelay)) {
-                this.updateProperty(PropertyName.StationAlarmArmDelay, 0)
+                this.updateProperty(PropertyName.StationAlarmArmDelay, 0);
             }
             if (this.hasProperty(PropertyName.StationAlarmArmed)) {
-                this.updateProperty(PropertyName.StationAlarmArmed, false)
+                this.updateProperty(PropertyName.StationAlarmArmed, false);
             }
             if (this.hasProperty(PropertyName.StationAlarmDelay)) {
-                this.updateProperty(PropertyName.StationAlarmDelay, 0)
+                this.updateProperty(PropertyName.StationAlarmDelay, 0);
             }
             if (this.hasProperty(PropertyName.StationAlarmDelayType)) {
-                this.updateProperty(PropertyName.StationAlarmDelayType, 0)
+                this.updateProperty(PropertyName.StationAlarmDelayType, 0);
             }
             if (this.hasProperty(PropertyName.StationAlarm)) {
-                this.updateProperty(PropertyName.StationAlarm, false)
+                this.updateProperty(PropertyName.StationAlarm, false);
             }
             if (this.hasProperty(PropertyName.StationAlarmType)) {
-                this.updateProperty(PropertyName.StationAlarmType, 0)
+                this.updateProperty(PropertyName.StationAlarmType, 0);
             }
         }
 
         // Trigger refresh Guard Mode
-        this.getCameraInfo()
+        this.getCameraInfo();
     }
 
     private getArmDelay(mode: AlarmMode): number {
-        let propertyName
+        let propertyName;
         switch (mode) {
             case AlarmMode.HOME:
-                propertyName = PropertyName.StationHomeSecuritySettings
-                break
+                propertyName = PropertyName.StationHomeSecuritySettings;
+                break;
             case AlarmMode.AWAY:
-                propertyName = PropertyName.StationAwaySecuritySettings
-                break
+                propertyName = PropertyName.StationAwaySecuritySettings;
+                break;
             case AlarmMode.CUSTOM1:
-                propertyName = PropertyName.StationCustom1SecuritySettings
-                break
+                propertyName = PropertyName.StationCustom1SecuritySettings;
+                break;
             case AlarmMode.CUSTOM2:
-                propertyName = PropertyName.StationCustom2SecuritySettings
-                break
+                propertyName = PropertyName.StationCustom2SecuritySettings;
+                break;
             case AlarmMode.CUSTOM3:
-                propertyName = PropertyName.StationCustom3SecuritySettings
-                break
+                propertyName = PropertyName.StationCustom3SecuritySettings;
+                break;
         }
 
         if (
@@ -1665,26 +1672,26 @@ export class Station extends TypedEmitter<StationEvents> {
         ) {
             const settings: StationSecuritySettings = this.getPropertyValue(
                 propertyName
-            ) as any as StationSecuritySettings
+            ) as any as StationSecuritySettings;
             try {
                 if (
                     settings.count_down_arm?.channel_list?.length > 0 &&
                     settings.count_down_arm?.delay_time > 0
                 ) {
-                    return settings.count_down_arm.delay_time
+                    return settings.count_down_arm.delay_time;
                 }
             } catch (err) {
-                const error = ensureError(err)
+                const error = ensureError(err);
                 rootHTTPLogger.debug(`Station get arm delay - Error`, {
                     error: getError(error),
                     stationSN: this.getSerial(),
                     mode: mode,
                     propertyName: propertyName,
                     settings: settings,
-                })
+                });
             }
         }
-        return 0
+        return 0;
     }
 
     /*private getGuardModeActionSetting(mode: AlarmMode): number {
@@ -1729,21 +1736,21 @@ export class Station extends TypedEmitter<StationEvents> {
         if (this.rawStation.devices) {
             // The station has attached devices (the normal case)
             for (const device of this.rawStation.devices) {
-                if (device.device_channel === channel) return device.device_sn
+                if (device.device_channel === channel) return device.device_sn;
             }
         } else {
             // The station has no attached devices but there might be a device with the stations serial number (the special case)
             // e.g. Smart Lock C220 (T8506)
-            const devices = this.api.getDevices()
+            const devices = this.api.getDevices();
             if (devices) {
-                const device = devices[this.getSerial()]
+                const device = devices[this.getSerial()];
                 if (device) {
-                    return this.getSerial()
+                    return this.getSerial();
                 } else {
                     rootHTTPLogger.error(
                         `Station get device serial - No device with the same serial number as the station found`,
                         { station: this.getSerial(), channel: channel }
-                    )
+                    );
                 }
             } else {
                 rootHTTPLogger.error(
@@ -1752,10 +1759,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                         channel: channel,
                     }
-                )
+                );
             }
         }
-        return undefined
+        return undefined;
     }
 
     private _handleCameraInfoParameters(
@@ -1770,50 +1777,50 @@ export class Station extends TypedEmitter<StationEvents> {
             (this.isIntegratedDevice() &&
                 this.getDeviceType() !== DeviceType.HB3)
         ) {
-            this.updateRawProperty(type, value, 'p2p')
+            this.updateRawProperty(type, value, 'p2p');
             if (type === CommandType.CMD_GET_ALARM_MODE) {
                 if (
                     this.getDeviceType() !== DeviceType.STATION &&
                     this.getDeviceType() !== DeviceType.HB3
                 )
                     // Trigger refresh Guard Mode
-                    this.api.refreshStationData()
+                    this.api.refreshStationData();
             }
             if (this.isIntegratedDevice()) {
-                const device_sn = this.getSerial()
+                const device_sn = this.getSerial();
                 if (!devices[device_sn]) {
-                    devices[device_sn] = {}
+                    devices[device_sn] = {};
                 }
                 const parsedValue = ParameterHelper.readValue(
                     device_sn,
                     type,
                     value,
                     rootHTTPLogger
-                )
+                );
                 if (parsedValue !== undefined) {
                     devices[device_sn][type] = {
                         value: parsedValue,
                         source: 'p2p',
-                    }
+                    };
                 }
             }
         } else {
-            const device_sn = this._getDeviceSerial(channel)
+            const device_sn = this._getDeviceSerial(channel);
             if (device_sn !== undefined) {
                 if (!devices[device_sn]) {
-                    devices[device_sn] = {}
+                    devices[device_sn] = {};
                 }
                 const parsedValue = ParameterHelper.readValue(
                     device_sn,
                     type,
                     value,
                     rootHTTPLogger
-                )
+                );
                 if (parsedValue !== undefined) {
                     devices[device_sn][type] = {
                         value: parsedValue,
                         source: 'p2p',
-                    }
+                    };
                 }
             }
         }
@@ -1823,16 +1830,16 @@ export class Station extends TypedEmitter<StationEvents> {
         rootHTTPLogger.debug('Station got camera info', {
             station: this.getSerial(),
             cameraInfo: cameraInfo,
-        })
-        const devices: { [index: string]: RawValues } = {}
+        });
+        const devices: { [index: string]: RawValues } = {};
         cameraInfo.params.forEach((param) => {
             this._handleCameraInfoParameters(
                 devices,
                 param.dev_type,
                 param.param_type,
                 param.param_value
-            )
-        })
+            );
+        });
         if (Array.isArray(cameraInfo.db_bypass_str)) {
             cameraInfo.db_bypass_str?.forEach((param) => {
                 this._handleCameraInfoParameters(
@@ -1840,12 +1847,12 @@ export class Station extends TypedEmitter<StationEvents> {
                     param.channel,
                     param.param_type,
                     Buffer.from(param.param_value, 'base64').toString()
-                )
-            })
+                );
+            });
         }
         Object.keys(devices).forEach((device) => {
-            this.emit('raw device property changed', device, devices[device])
-        })
+            this.emit('raw device property changed', device, devices[device]);
+        });
     }
 
     private onCommandResponse(result: CommandResult): void {
@@ -1856,8 +1863,8 @@ export class Station extends TypedEmitter<StationEvents> {
             returnCodeName: ErrorCode[result.return_code],
             returnCode: result.return_code,
             customData: result.customData,
-        })
-        this.emit('command result', this, result)
+        });
+        this.emit('command result', this, result);
     }
 
     private onSecondaryCommandResponse(result: CommandResult): void {
@@ -1867,87 +1874,93 @@ export class Station extends TypedEmitter<StationEvents> {
             channel: result.channel,
             returnCode: result.return_code,
             customData: result.customData,
-        })
-        this.emit('secondary command result', this, result)
+        });
+        this.emit('secondary command result', this, result);
         if (
             result.command_type === CommandType.CMD_SMARTSAFE_SETTINGS &&
             result.customData?.command?.name === 'deviceVerifyPIN'
         ) {
             if (result.return_code === 0) {
                 // Verify PIN was successfull for this session
-                this.pinVerified = true
+                this.pinVerified = true;
             } else {
-                this.pinVerified = false
+                this.pinVerified = false;
             }
-            this.emit('device pin verified', this.getSerial(), this.pinVerified)
+            this.emit(
+                'device pin verified',
+                this.getSerial(),
+                this.pinVerified
+            );
         }
     }
 
     private onConnect(address: Address): void {
-        this.terminating = false
-        this.resetCurrentDelay()
+        this.terminating = false;
+        this.resetCurrentDelay();
         rootHTTPLogger.info(
             `Connected to station ${this.getSerial()} on host ${address.host} and port ${address.port}`
-        )
+        );
         if (this.hasCommand(CommandName.StationDatabaseQueryLatestInfo)) {
-            this.databaseQueryLatestInfo()
+            this.databaseQueryLatestInfo();
         }
-        this.emit('connect', this)
+        this.emit('connect', this);
     }
 
     private onDisconnect(): void {
-        rootHTTPLogger.info(`Disconnected from station ${this.getSerial()}`)
-        this.emit('close', this)
-        this.pinVerified = false
+        rootHTTPLogger.info(`Disconnected from station ${this.getSerial()}`);
+        this.emit('close', this);
+        this.pinVerified = false;
         if (!this.isEnergySavingDevice() && !this.terminating)
-            this.scheduleReconnect()
+            this.scheduleReconnect();
     }
 
     private onTimeout(): void {
-        rootHTTPLogger.info(`Timeout connecting to station ${this.getSerial()}`)
+        rootHTTPLogger.info(
+            `Timeout connecting to station ${this.getSerial()}`
+        );
         this.emit(
             'connection error',
             this,
             new StationConnectTimeoutError('Timeout connecting to station', {
                 context: { station: this.getSerial() },
             })
-        )
-        this.scheduleReconnect()
+        );
+        this.scheduleReconnect();
     }
 
     private getCurrentDelay(): number {
-        const delay = this.currentDelay == 0 ? 5000 : this.currentDelay
+        const delay = this.currentDelay == 0 ? 5000 : this.currentDelay;
 
-        if (this.currentDelay < 60000) this.currentDelay += 10000
+        if (this.currentDelay < 60000) this.currentDelay += 10000;
 
         if (this.currentDelay >= 60000 && this.currentDelay < 600000)
-            this.currentDelay += 60000
+            this.currentDelay += 60000;
 
-        return delay
+        return delay;
     }
 
     private resetCurrentDelay(): void {
-        this.currentDelay = 0
+        this.currentDelay = 0;
     }
 
     private scheduleReconnect(): void {
         if (!this.reconnectTimeout) {
-            const delay = this.getCurrentDelay()
+            const delay = this.getCurrentDelay();
             rootHTTPLogger.debug(`Station schedule reconnect`, {
                 stationSN: this.getSerial(),
                 delay: delay,
-            })
+            });
             this.reconnectTimeout = setTimeout(() => {
-                this.reconnectTimeout = undefined
-                this.connect()
-            }, delay)
+                this.reconnectTimeout = undefined;
+                this.connect();
+            }, delay);
         }
     }
 
     public rebootHUB(): void {
         const commandData: CommandData = {
             name: CommandName.StationReboot,
-        }
+        };
         if (!this.hasCommand(CommandName.StationReboot)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -1957,11 +1970,11 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station reboot - sending command`, {
             stationSN: this.getSerial(),
-        })
+        });
         this.p2pSession.sendCommandWithInt(
             {
                 commandType: CommandType.CMD_HUB_REBOOT,
@@ -1972,14 +1985,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 command: commandData,
             }
-        )
+        );
     }
 
     public setStatusLed(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceStatusLed,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -1991,7 +2004,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -2004,16 +2017,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set status led - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (
             device.isCamera2Product() ||
             device.isCamera3Product() ||
@@ -2033,7 +2046,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
             this.p2pSession.sendCommandWithIntString(
                 {
                     commandType: CommandType.CMD_LIVEVIEW_LED_SWITCH,
@@ -2045,7 +2058,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424
         ) {
@@ -2070,7 +2083,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 ||
             device.isFloodLightT8425() ||
@@ -2092,7 +2105,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isIndoorPanAndTiltCameraS350()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2111,7 +2124,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isStarlight4GLTE()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2128,7 +2141,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isIndoorCamera() || device.isFloodLight()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2163,7 +2176,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2177,7 +2190,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isSoloCameras() && !this.isStationHomeBase3()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2213,7 +2226,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isBatteryDoorbellDualE340() ||
             device.isBatteryDoorbellC30() ||
@@ -2236,7 +2249,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isBatteryDoorbell() || device.isWiredDoorbellDual()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2254,7 +2267,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbell()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2270,7 +2283,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -2282,7 +2295,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -2290,7 +2303,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceAutoNightvision,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -2302,7 +2315,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -2315,10 +2328,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set auto night vision - sending command`,
@@ -2327,7 +2340,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2341,7 +2354,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isSoloCameraC210() || device.isSoloCameraSolar()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2361,7 +2374,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -2373,7 +2386,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         }
     }
 
@@ -2381,7 +2394,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNightvision,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -2393,7 +2406,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -2406,16 +2419,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set night vision - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (
             device.isCameraProfessional247() ||
             device.isIndoorPanAndTiltCameraS350() ||
@@ -2439,7 +2452,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2458,7 +2471,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         }
     }
 
@@ -2466,7 +2479,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetection,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -2478,7 +2491,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -2491,16 +2504,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set motion detection - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (
             device.isSoloCameraSolar() ||
             device.isOutdoorPanAndTiltCamera() ||
@@ -2526,7 +2539,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isCameraProfessional247()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2550,7 +2563,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             (device.isIndoorCamera() &&
                 !device.isIndoorPanAndTiltCameraS350()) ||
@@ -2583,7 +2596,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isSoloCameras() || device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2598,7 +2611,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbell()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2614,7 +2627,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -2627,7 +2640,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         }
     }
 
@@ -2635,7 +2648,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceSoundDetection,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -2647,7 +2660,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -2660,16 +2673,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set sound detection - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -2691,14 +2704,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setSoundDetectionType(device: Device, value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceSoundDetectionType,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -2710,7 +2723,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -2723,10 +2736,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set sound detection type - sending command`,
@@ -2735,7 +2748,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -2757,14 +2770,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setSoundDetectionSensitivity(device: Device, value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceSoundDetectionSensitivity,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -2776,7 +2789,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -2789,10 +2802,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set sound detection sensitivity - sending command`,
@@ -2801,7 +2814,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -2823,14 +2836,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setPetDetection(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DevicePetDetection,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -2842,7 +2855,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -2855,16 +2868,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set pet detection - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -2885,7 +2898,7 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public panAndTilt(
@@ -2896,7 +2909,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const commandData: CommandData = {
             name: CommandName.DevicePanAndTilt,
             value: direction,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -2908,7 +2921,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DevicePanAndTilt)) {
             throw new NotSupportedError(
@@ -2921,7 +2934,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!(direction in PanTiltDirection)) {
             throw new InvalidCommandValueError(
@@ -2934,7 +2947,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
 
         rootHTTPLogger.debug(`Station pan and tilt - sending command`, {
@@ -2942,7 +2955,7 @@ export class Station extends TypedEmitter<StationEvents> {
             deviceSN: device.getSerial(),
             direction: PanTiltDirection[direction],
             command,
-        })
+        });
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -2965,7 +2978,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (
             device.isOutdoorPanAndTiltCamera() ||
             device.isIndoorPanAndTiltCameraS350() ||
@@ -2986,7 +2999,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     {
                         command: commandData,
                     }
-                )
+                );
             } else {
                 this.p2pSession.sendCommandWithStringPayload(
                     {
@@ -3004,7 +3017,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     {
                         command: commandData,
                     }
-                )
+                );
             }
         } else {
             this.p2pSession.sendCommandWithStringPayload(
@@ -3022,7 +3035,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         }
     }
 
@@ -3030,7 +3043,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLight,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -3042,7 +3055,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -3055,16 +3068,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station switch light - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (
             (device.isFloodLight() && !device.isFloodLightT8425()) ||
             device.isSoloCameraSpotlight1080() ||
@@ -3091,7 +3104,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isBatteryDoorbellDualE340() ||
             device.isOutdoorPanAndTiltCamera() ||
@@ -3114,7 +3127,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isStarlight4GLTE()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -3133,7 +3146,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -3150,7 +3163,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -3162,7 +3175,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -3170,7 +3183,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionSensitivity,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -3182,7 +3195,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -3195,10 +3208,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set motion detection sensitivity - sending command`,
@@ -3207,7 +3220,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             (device.isFloodLight() &&
                 device.getDeviceType() !== DeviceType.FLOODLIGHT &&
@@ -3240,7 +3253,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isOutdoorPanAndTiltCamera()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -3259,7 +3272,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             (device.isSoloCameras() && !this.isStationHomeBase3()) ||
             device.isWiredDoorbellT8200X() ||
@@ -3279,7 +3292,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -3293,7 +3306,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isBatteryDoorbellDualE340() ||
             device.isIndoorPanAndTiltCameraS350() ||
@@ -3317,7 +3330,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             (device.isBatteryDoorbell() && !device.isBatteryDoorbellDual()) ||
             device.isWiredDoorbellDual() ||
@@ -3339,34 +3352,34 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isCamera2Product()) {
-            let convertedValue
+            let convertedValue;
             switch (value) {
                 case 1:
-                    convertedValue = 192
-                    break
+                    convertedValue = 192;
+                    break;
                 case 2:
-                    convertedValue = 118
-                    break
+                    convertedValue = 118;
+                    break;
                 case 3:
-                    convertedValue = 72
-                    break
+                    convertedValue = 72;
+                    break;
                 case 4:
-                    convertedValue = 46
-                    break
+                    convertedValue = 46;
+                    break;
                 case 5:
-                    convertedValue = 30
-                    break
+                    convertedValue = 30;
+                    break;
                 case 6:
-                    convertedValue = 20
-                    break
+                    convertedValue = 20;
+                    break;
                 case 7:
-                    convertedValue = 14
-                    break
+                    convertedValue = 14;
+                    break;
                 default:
-                    convertedValue = 46
-                    break
+                    convertedValue = 46;
+                    break;
             }
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -3379,12 +3392,12 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.getDeviceType() === DeviceType.CAMERA ||
             device.getDeviceType() === DeviceType.CAMERA_E
         ) {
-            const convertedValue = 200 - (value - 1) * 2
+            const convertedValue = 200 - (value - 1) * 2;
             this.p2pSession.sendCommandWithIntString(
                 {
                     commandType: CommandType.CMD_SET_PIRSENSITIVITY,
@@ -3396,35 +3409,35 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbell()) {
-            let intMode: number
-            let intSensitivity: number
+            let intMode: number;
+            let intSensitivity: number;
             switch (value) {
                 case 1:
-                    intMode = 3
-                    intSensitivity = 2
-                    break
+                    intMode = 3;
+                    intSensitivity = 2;
+                    break;
                 case 2:
-                    intMode = 1
-                    intSensitivity = 1
-                    break
+                    intMode = 1;
+                    intSensitivity = 1;
+                    break;
                 case 3:
-                    intMode = 1
-                    intSensitivity = 2
-                    break
+                    intMode = 1;
+                    intSensitivity = 2;
+                    break;
                 case 4:
-                    intMode = 1
-                    intSensitivity = 3
-                    break
+                    intMode = 1;
+                    intSensitivity = 3;
+                    break;
                 case 5:
-                    intMode = 2
-                    intSensitivity = 1
-                    break
+                    intMode = 2;
+                    intSensitivity = 1;
+                    break;
                 default:
-                    intMode = 1
-                    intSensitivity = 3
-                    break
+                    intMode = 1;
+                    intSensitivity = 3;
+                    break;
             }
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -3441,7 +3454,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.getDeviceType() === DeviceType.FLOODLIGHT) {
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -3454,7 +3467,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isCamera3Product() ||
             device.isSmartDrop() ||
@@ -3471,7 +3484,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -3483,7 +3496,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -3491,7 +3504,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionType,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -3503,7 +3516,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -3516,10 +3529,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set motion detection type - sending command`,
@@ -3528,7 +3541,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isCamera2Product() ||
             device.isBatteryDoorbell() ||
@@ -3551,7 +3564,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isFloodLight() || device.isIndoorCamera()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -3574,7 +3587,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbellT8200X()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -3590,7 +3603,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -3602,7 +3615,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -3628,7 +3641,7 @@ export class Station extends TypedEmitter<StationEvents> {
                           ? PropertyName.DeviceMotionDetectionTypeVehicle
                           : PropertyName.DeviceMotionDetectionTypeAllOtherMotions,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -3640,7 +3653,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -3653,10 +3666,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set motion detection type HB3 - sending command`,
@@ -3666,7 +3679,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 type: type,
                 value: value,
             }
-        )
+        );
         if (this.getDeviceType() === DeviceType.HB3) {
             try {
                 if (
@@ -3679,8 +3692,8 @@ export class Station extends TypedEmitter<StationEvents> {
                         Object.values(HB3DetectionTypes).filter(
                             (value) => typeof value === 'number'
                         )
-                    )
-                    return
+                    );
+                    return;
                 }
                 const aiDetectionType =
                     device.getRawProperty(
@@ -3691,14 +3704,14 @@ export class Station extends TypedEmitter<StationEvents> {
                               device.getPropertyMetadata(propertyData.name)
                                   .key as number
                           )!
-                        : '0'
+                        : '0';
                 let newAiDetectionType = getHB3DetectionMode(
                     Number.parseInt(aiDetectionType),
                     type as HB3DetectionTypes,
                     value
-                )
+                );
                 if (newAiDetectionType === 0) {
-                    newAiDetectionType = type
+                    newAiDetectionType = type;
                 }
                 this.p2pSession.sendCommandWithStringPayload(
                     {
@@ -3722,17 +3735,17 @@ export class Station extends TypedEmitter<StationEvents> {
                                 CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
                                 newAiDetectionType.toString(),
                                 'p2p'
-                            )
+                            );
                         },
                     }
-                )
+                );
             } catch (err) {
-                const error = ensureError(err)
+                const error = ensureError(err);
                 rootHTTPLogger.error(`setMotionDetectionTypeHB3 Error`, {
                     error: getError(error),
                     stationSN: this.getSerial(),
                     deviceSN: device.getSerial(),
-                })
+                });
             }
         } else if (device.isOutdoorPanAndTiltCamera()) {
             try {
@@ -3746,8 +3759,8 @@ export class Station extends TypedEmitter<StationEvents> {
                         Object.values(T8170DetectionTypes).filter(
                             (value) => typeof value === 'number'
                         )
-                    )
-                    return
+                    );
+                    return;
                 }
                 const aiDetectionType =
                     device.getRawProperty(
@@ -3758,12 +3771,12 @@ export class Station extends TypedEmitter<StationEvents> {
                               device.getPropertyMetadata(propertyData.name)
                                   .key as number
                           )!
-                        : '0'
+                        : '0';
                 let newAiDetectionType = getT8170DetectionMode(
                     Number.parseInt(aiDetectionType),
                     type as T8170DetectionTypes,
                     value
-                )
+                );
                 this.p2pSession.sendCommandWithStringPayload(
                     {
                         commandType: CommandType.CMD_SET_PAYLOAD,
@@ -3786,12 +3799,12 @@ export class Station extends TypedEmitter<StationEvents> {
                                 CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
                                 newAiDetectionType.toString(),
                                 'p2p'
-                            )
+                            );
                         },
                     }
-                )
+                );
             } catch (err) {
-                const error = ensureError(err)
+                const error = ensureError(err);
                 rootHTTPLogger.error(
                     `setMotionDetectionTypeHB3 T8170DetectionTypes Error`,
                     {
@@ -3799,7 +3812,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         stationSN: this.getSerial(),
                         deviceSN: device.getSerial(),
                     }
-                )
+                );
             }
         } else if (device.isSoloCameras()) {
             try {
@@ -3813,15 +3826,15 @@ export class Station extends TypedEmitter<StationEvents> {
                         Object.values(SoloCameraDetectionTypes).filter(
                             (value) => typeof value === 'number'
                         )
-                    )
-                    return
+                    );
+                    return;
                 }
-                let newAiDetectionType = type
+                let newAiDetectionType = type;
                 if (!value) {
                     newAiDetectionType =
                         type === SoloCameraDetectionTypes.ALL_OTHER_MOTION
                             ? SoloCameraDetectionTypes.HUMAN_DETECTION
-                            : SoloCameraDetectionTypes.ALL_OTHER_MOTION
+                            : SoloCameraDetectionTypes.ALL_OTHER_MOTION;
                 }
                 this.p2pSession.sendCommandWithStringPayload(
                     {
@@ -3845,12 +3858,12 @@ export class Station extends TypedEmitter<StationEvents> {
                                 CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
                                 newAiDetectionType.toString(),
                                 'p2p'
-                            )
+                            );
                         },
                     }
-                )
+                );
             } catch (err) {
-                const error = ensureError(err)
+                const error = ensureError(err);
                 rootHTTPLogger.error(
                     `setMotionDetectionTypeHB3 SoloCameraDetectionTypes Error`,
                     {
@@ -3858,7 +3871,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         stationSN: this.getSerial(),
                         deviceSN: device.getSerial(),
                     }
-                )
+                );
             }
         } else if (device.isIndoorPanAndTiltCameraS350()) {
             try {
@@ -3872,8 +3885,8 @@ export class Station extends TypedEmitter<StationEvents> {
                         Object.values(IndoorS350DetectionTypes).filter(
                             (value) => typeof value === 'number'
                         )
-                    )
-                    return
+                    );
+                    return;
                 }
                 const aiDetectionType =
                     device.getRawProperty(
@@ -3884,12 +3897,12 @@ export class Station extends TypedEmitter<StationEvents> {
                               device.getPropertyMetadata(propertyData.name)
                                   .key as number
                           )!
-                        : '0'
+                        : '0';
                 let newAiDetectionType = getIndoorS350DetectionMode(
                     Number.parseInt(aiDetectionType),
                     type as IndoorS350DetectionTypes,
                     value
-                )
+                );
                 this.p2pSession.sendCommandWithStringPayload(
                     {
                         commandType: CommandType.CMD_SET_PAYLOAD,
@@ -3912,12 +3925,12 @@ export class Station extends TypedEmitter<StationEvents> {
                                 CommandType.CMD_SET_MOTION_DETECTION_TYPE_HB3,
                                 newAiDetectionType.toString(),
                                 'p2p'
-                            )
+                            );
                         },
                     }
-                )
+                );
             } catch (err) {
-                const error = ensureError(err)
+                const error = ensureError(err);
                 rootHTTPLogger.error(
                     `setMotionDetectionTypeHB3 IndoorS350DetectionTypes Error`,
                     {
@@ -3925,7 +3938,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         stationSN: this.getSerial(),
                         deviceSN: device.getSerial(),
                     }
-                )
+                );
             }
         } else {
             throw new NotSupportedError(
@@ -3938,7 +3951,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -3946,7 +3959,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionZone,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -3958,7 +3971,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -3971,16 +3984,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set motion zone - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -3993,14 +4006,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setMotionTracking(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionTracking,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -4012,7 +4025,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -4025,16 +4038,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set motion tracking - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -4056,14 +4069,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setPanAndTiltRotationSpeed(device: Device, value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRotationSpeed,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -4075,7 +4088,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -4088,10 +4101,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set pan and tilt rotation speed - sending command`,
@@ -4100,7 +4113,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -4122,14 +4135,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setMicMute(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMicrophone,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -4141,7 +4154,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -4154,16 +4167,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set mic mute - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         this.p2pSession.sendCommandWithIntString(
             {
                 commandType: CommandType.CMD_SET_DEV_MIC_MUTE,
@@ -4175,14 +4188,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setAudioRecording(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceAudioRecording,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -4194,7 +4207,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -4207,16 +4220,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set audio recording - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (
             device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 ||
             device.isGarageCamera()
@@ -4245,7 +4258,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.getDeviceType() === DeviceType.FLOODLIGHT &&
             !device.isFloodLightT8420X()
@@ -4265,7 +4278,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isOutdoorPanAndTiltCamera() ||
             (device.isIndoorPanAndTiltCameraS350() &&
@@ -4289,7 +4302,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             (device.isFloodLight() && !device.isFloodLightT8425()) ||
             (device.isIndoorCamera() &&
@@ -4319,7 +4332,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -4333,7 +4346,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isBatteryDoorbellDualE340() ||
             device.isSmartDrop() ||
@@ -4361,7 +4374,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isCamera2Product() ||
             device.isCamera3Product() ||
@@ -4387,7 +4400,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbellT8200X()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -4404,7 +4417,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbell()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -4420,7 +4433,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -4432,7 +4445,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -4440,7 +4453,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceSpeaker,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -4452,7 +4465,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -4465,16 +4478,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station enable speaker - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         this.p2pSession.sendCommandWithIntString(
             {
                 commandType: CommandType.CMD_SET_DEV_SPEAKER_MUTE,
@@ -4486,14 +4499,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setSpeakerVolume(device: Device, value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceSpeakerVolume,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -4505,7 +4518,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -4518,16 +4531,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set speaker volume - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -4541,7 +4554,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -4554,7 +4567,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         }
     }
 
@@ -4562,7 +4575,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRingtoneVolume,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -4574,7 +4587,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -4587,16 +4600,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set ringtone volume - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (
             device.isBatteryDoorbell() ||
             device.isWiredDoorbellDual() ||
@@ -4614,7 +4627,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbellT8200X()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -4630,7 +4643,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbell()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -4646,7 +4659,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -4658,7 +4671,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -4666,7 +4679,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceChimeIndoor,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -4678,7 +4691,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -4691,16 +4704,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station enable indoor chime - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isBatteryDoorbell()) {
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -4714,7 +4727,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbell()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -4730,7 +4743,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -4742,7 +4755,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -4750,7 +4763,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceChimeHomebase,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -4762,7 +4775,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -4775,10 +4788,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station enable homebase chime - sending command`,
@@ -4787,7 +4800,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isBatteryDoorbell() ||
             device.isLockWifiVideo() ||
@@ -4804,7 +4817,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -4816,7 +4829,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -4824,7 +4837,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceChimeHomebaseRingtoneVolume,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -4836,7 +4849,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -4849,10 +4862,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set homebase chime ringtone volume - sending command`,
@@ -4861,7 +4874,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isBatteryDoorbell()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -4879,7 +4892,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -4898,7 +4911,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -4910,7 +4923,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -4918,7 +4931,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceChimeHomebaseRingtoneType,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -4930,7 +4943,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -4943,10 +4956,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set homebase chime ringtone type - sending command`,
@@ -4955,7 +4968,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isBatteryDoorbell()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -4973,7 +4986,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -4992,7 +5005,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -5004,7 +5017,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -5015,7 +5028,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNotificationType,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -5027,7 +5040,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -5040,10 +5053,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set notification type - sending command`,
@@ -5052,7 +5065,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             (device.isFloodLight() && !device.isFloodLightT8425()) ||
             (device.isIndoorCamera() &&
@@ -5071,8 +5084,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(NotificationType).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5095,7 +5108,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isIndoorPanAndTiltCameraS350() &&
             !this.isStationHomeBase3()
@@ -5110,8 +5123,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(NotificationType).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5130,7 +5143,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbellT8200X()) {
             if (
                 !Object.values(NotificationType).includes(
@@ -5142,8 +5155,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(NotificationType).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5159,7 +5172,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             if (
                 !Object.values(WalllightNotificationType).includes(
@@ -5171,8 +5184,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(WalllightNotificationType).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5187,7 +5200,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isBatteryDoorbellDualE340() ||
             device.isLockWifiVideo()
@@ -5202,8 +5215,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(NotificationType).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5234,7 +5247,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isBatteryDoorbell() || device.isWiredDoorbellDual()) {
             if (
                 !Object.values(NotificationType).includes(
@@ -5246,8 +5259,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(NotificationType).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5277,7 +5290,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isCameraProfessional247() ||
             (device.isIndoorPanAndTiltCameraS350() &&
@@ -5295,8 +5308,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(NotificationType).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5315,7 +5328,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isCamera2Product() ||
             device.getDeviceType() === DeviceType.CAMERA ||
@@ -5332,8 +5345,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(NotificationType).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5351,7 +5364,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbell()) {
             if (
                 !Object.values(NotificationType).includes(
@@ -5363,8 +5376,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(NotificationType).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5380,7 +5393,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -5392,7 +5405,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -5400,7 +5413,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNotificationPerson,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -5412,7 +5425,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -5425,10 +5438,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set notification person - sending command`,
@@ -5437,7 +5450,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isIndoorCamera() || device.isGarageCamera()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5460,7 +5473,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5475,7 +5488,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -5487,7 +5500,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -5495,7 +5508,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNotificationPet,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -5507,7 +5520,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -5520,16 +5533,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set notification pet - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isIndoorCamera()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5552,7 +5565,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -5564,7 +5577,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -5572,7 +5585,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNotificationAllOtherMotion,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -5584,7 +5597,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -5597,10 +5610,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set notification all other motion - sending command`,
@@ -5609,7 +5622,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isIndoorCamera() || device.isGarageCamera()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5632,7 +5645,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5647,7 +5660,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -5659,7 +5672,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -5667,7 +5680,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNotificationAllSound,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -5679,7 +5692,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -5692,10 +5705,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set notification all sound - sending command`,
@@ -5704,7 +5717,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isIndoorCamera()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5727,7 +5740,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -5739,7 +5752,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -5747,7 +5760,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNotificationCrying,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -5759,7 +5772,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -5772,10 +5785,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set notification crying - sending command`,
@@ -5784,7 +5797,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isIndoorCamera()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5807,7 +5820,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -5819,7 +5832,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -5827,7 +5840,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNotificationRing,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -5839,7 +5852,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -5852,10 +5865,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set notification ring - sending command`,
@@ -5864,7 +5877,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isBatteryDoorbell() || device.isWiredDoorbellDual()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5891,7 +5904,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5919,7 +5932,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbell()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -5946,7 +5959,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -5958,7 +5971,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -5966,7 +5979,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNotificationMotion,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -5978,7 +5991,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -5991,10 +6004,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set notification motion - sending command`,
@@ -6003,7 +6016,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isBatteryDoorbell() || device.isWiredDoorbellDual()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -6030,7 +6043,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -6058,7 +6071,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbell()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -6085,7 +6098,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -6097,7 +6110,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -6105,7 +6118,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DevicePowerSource,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -6117,7 +6130,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -6130,16 +6143,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set power source - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isStarlight4GLTE()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -6155,7 +6168,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isOutdoorPanAndTiltCamera() ||
             (device.isSoloCameras() && !this.isStationHomeBase3())
@@ -6177,7 +6190,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -6195,7 +6208,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         }
     }
 
@@ -6203,7 +6216,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DevicePowerWorkingMode,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -6215,7 +6228,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -6228,10 +6241,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set power working mode - sending command`,
@@ -6240,7 +6253,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithIntString(
             {
                 commandType: CommandType.CMD_SET_PIR_POWERMODE,
@@ -6252,14 +6265,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setRecordingClipLength(device: Device, value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRecordingClipLength,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -6271,7 +6284,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -6284,10 +6297,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set recording clip length - sending command`,
@@ -6296,7 +6309,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithInt(
             {
                 commandType: CommandType.CMD_DEV_RECORD_TIMEOUT,
@@ -6307,14 +6320,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setRecordingRetriggerInterval(device: Device, value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRecordingRetriggerInterval,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -6326,7 +6339,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -6339,10 +6352,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set recording retrigger interval - sending command`,
@@ -6351,7 +6364,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithInt(
             {
                 commandType: CommandType.CMD_DEV_RECORD_INTERVAL,
@@ -6362,7 +6375,7 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setRecordingEndClipMotionStops(
@@ -6372,7 +6385,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRecordingEndClipMotionStops,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -6384,7 +6397,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -6397,10 +6410,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set recording end clip motion stops - sending command`,
@@ -6409,7 +6422,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithInt(
             {
                 commandType: CommandType.CMD_DEV_RECORD_AUTOSTOP,
@@ -6420,14 +6433,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setVideoStreamingQuality(device: Device, value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceVideoStreamingQuality,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -6439,7 +6452,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -6452,10 +6465,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set video streaming quality - sending command`,
@@ -6464,7 +6477,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
 
         if (device.isBatteryDoorbellDualE340()) {
             this.p2pSession.sendCommandWithStringPayload(
@@ -6486,7 +6499,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isOutdoorPanAndTiltCamera() ||
             device.isIndoorPanAndTiltCameraS350() ||
@@ -6512,7 +6525,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isIndoorCamera() ||
             (device.isSoloCameras() && !this.isStationHomeBase3()) ||
@@ -6535,7 +6548,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -6549,7 +6562,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isBatteryDoorbell() ||
             device.isCamera2CPro() ||
@@ -6573,7 +6586,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -6585,7 +6598,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -6593,7 +6606,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceVideoRecordingQuality,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -6605,7 +6618,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -6618,10 +6631,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set video recording quality - sending command`,
@@ -6630,7 +6643,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isBatteryDoorbellDualE340()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -6651,7 +6664,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isOutdoorPanAndTiltCamera() ||
             device.isIndoorPanAndTiltCameraS350() ||
@@ -6677,7 +6690,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isIndoorCamera() ||
             device.isWiredDoorbell() ||
@@ -6700,7 +6713,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -6714,7 +6727,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isCamera2CPro() ||
             device.isCamera3() ||
@@ -6739,7 +6752,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             (device.isSoloCameras() && this.isStationHomeBase3()) ||
             device.isLockWifiVideo()
@@ -6761,7 +6774,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -6773,7 +6786,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -6781,7 +6794,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceVideoWDR,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -6793,7 +6806,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -6806,16 +6819,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set wdr - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         this.p2pSession.sendCommandWithIntString(
             {
                 commandType: CommandType.CMD_BAT_DOORBELL_WDR_SWITCH,
@@ -6827,7 +6840,7 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setFloodlightLightSettingsEnable(
@@ -6837,7 +6850,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsEnable,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -6849,7 +6862,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -6862,10 +6875,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings enable - sending command`,
@@ -6874,7 +6887,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithIntString(
             {
                 commandType: CommandType.CMD_SET_FLOODLIGHT_TOTAL_SWITCH,
@@ -6886,7 +6899,7 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setFloodlightLightSettingsBrightnessManual(
@@ -6896,7 +6909,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsBrightnessManual,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -6908,7 +6921,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -6921,10 +6934,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings brightness manual - sending command`,
@@ -6933,7 +6946,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isFloodLight() ||
             device.isSoloCameraSpotlight1080() ||
@@ -6961,7 +6974,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -6979,7 +6992,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -6991,7 +7004,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -7002,7 +7015,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsBrightnessMotion,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -7014,7 +7027,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -7027,10 +7040,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings brightness motion - sending command`,
@@ -7039,16 +7052,16 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isFloodLightT8425()) {
             const rawProperty = device.getRawProperty(
                 CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425
-            ) as unknown as FloodlightLightSettingsMotionT8425Property
+            ) as unknown as FloodlightLightSettingsMotionT8425Property;
             if (rawProperty !== undefined) {
                 const payload: FloodlightLightSettingsMotionT8425Property = {
                     ...rawProperty,
                     brightness: value,
-                }
+                };
                 this.p2pSession.sendCommandWithStringPayload(
                     {
                         commandType: CommandType.CMD_SET_PAYLOAD,
@@ -7068,15 +7081,15 @@ export class Station extends TypedEmitter<StationEvents> {
                                 CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425,
                                 payload as unknown as string,
                                 'p2p'
-                            )
+                            );
                         },
                     }
-                )
+                );
             } else {
                 rootHTTPLogger.error(
                     `Station set light settings brightness motion - Needed raw property "${CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425}" on device ${device.getSerial()} is undefined`,
                     { stationSN: this.getSerial() }
-                )
+                );
             }
         } else if (device.isFloodLight()) {
             this.p2pSession.sendCommandWithIntString(
@@ -7090,7 +7103,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -7107,7 +7120,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -7119,7 +7132,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -7130,7 +7143,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsBrightnessSchedule,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -7142,7 +7155,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -7155,10 +7168,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings brightness schedule - sending command`,
@@ -7167,7 +7180,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isFloodLightT8425()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -7186,7 +7199,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isFloodLight()) {
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -7199,7 +7212,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -7216,7 +7229,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -7228,7 +7241,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -7239,7 +7252,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsMotionTriggered,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -7251,7 +7264,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -7264,10 +7277,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings motion triggered - sending command`,
@@ -7276,16 +7289,16 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isFloodLightT8425()) {
             const rawProperty = device.getRawProperty(
                 CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425
-            ) as unknown as FloodlightLightSettingsMotionT8425Property
+            ) as unknown as FloodlightLightSettingsMotionT8425Property;
             if (rawProperty !== undefined) {
                 const payload: FloodlightLightSettingsMotionT8425Property = {
                     ...rawProperty,
                     enable: value === true ? 1 : 0,
-                }
+                };
                 this.p2pSession.sendCommandWithStringPayload(
                     {
                         commandType: CommandType.CMD_SET_PAYLOAD,
@@ -7305,15 +7318,15 @@ export class Station extends TypedEmitter<StationEvents> {
                                 CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425,
                                 payload as unknown as string,
                                 'p2p'
-                            )
+                            );
                         },
                     }
-                )
+                );
             } else {
                 rootHTTPLogger.error(
                     `Station set light settings motion triggered - Needed raw property "${CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425}" on device ${device.getSerial()} is undefined`,
                     { stationSN: this.getSerial() }
-                )
+                );
             }
         } else if (device.isFloodLight()) {
             this.p2pSession.sendCommandWithIntString(
@@ -7327,7 +7340,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -7341,7 +7354,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -7353,7 +7366,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -7364,7 +7377,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsMotionTriggeredDistance,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -7376,7 +7389,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -7389,28 +7402,28 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
-        let newValue: FloodlightMotionTriggeredDistance
+        let newValue: FloodlightMotionTriggeredDistance;
         switch (value as number) {
             case 1:
-                newValue = FloodlightMotionTriggeredDistance.MIN
-                break
+                newValue = FloodlightMotionTriggeredDistance.MIN;
+                break;
             case 2:
-                newValue = FloodlightMotionTriggeredDistance.LOW
-                break
+                newValue = FloodlightMotionTriggeredDistance.LOW;
+                break;
             case 3:
-                newValue = FloodlightMotionTriggeredDistance.MEDIUM
-                break
+                newValue = FloodlightMotionTriggeredDistance.MEDIUM;
+                break;
             case 4:
-                newValue = FloodlightMotionTriggeredDistance.HIGH
-                break
+                newValue = FloodlightMotionTriggeredDistance.HIGH;
+                break;
             case 5:
-                newValue = FloodlightMotionTriggeredDistance.MAX
-                break
+                newValue = FloodlightMotionTriggeredDistance.MAX;
+                break;
             default:
                 throw new InvalidPropertyValueError(
                     'Invalid value for this property',
@@ -7422,7 +7435,7 @@ export class Station extends TypedEmitter<StationEvents> {
                             propertyValue: propertyData.value,
                         },
                     }
-                )
+                );
         }
 
         rootHTTPLogger.debug(
@@ -7432,7 +7445,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: newValue,
             }
-        )
+        );
         if (device.isFloodLight()) {
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -7445,7 +7458,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -7457,7 +7470,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -7468,7 +7481,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsMotionTriggeredTimer,
             value: seconds,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -7480,7 +7493,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -7493,10 +7506,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, seconds)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, seconds);
 
         rootHTTPLogger.debug(
             `Station set light settings motion triggered timer - sending command`,
@@ -7505,16 +7518,16 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: seconds,
             }
-        )
+        );
         if (device.isFloodLightT8425()) {
             const rawProperty = device.getRawProperty(
                 CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425
-            ) as unknown as FloodlightLightSettingsMotionT8425Property
+            ) as unknown as FloodlightLightSettingsMotionT8425Property;
             if (rawProperty !== undefined) {
                 const payload: FloodlightLightSettingsMotionT8425Property = {
                     ...rawProperty,
                     time: seconds,
-                }
+                };
                 this.p2pSession.sendCommandWithStringPayload(
                     {
                         commandType: CommandType.CMD_SET_PAYLOAD,
@@ -7534,15 +7547,15 @@ export class Station extends TypedEmitter<StationEvents> {
                                 CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425,
                                 payload as unknown as string,
                                 'p2p'
-                            )
+                            );
                         },
                     }
-                )
+                );
             } else {
                 rootHTTPLogger.error(
                     `Station set light settings motion triggered timer - Needed raw property "${CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425}" on device ${device.getSerial()} is undefined`,
                     { stationSN: this.getSerial() }
-                )
+                );
             }
         } else if (device.isFloodLight()) {
             this.p2pSession.sendCommandWithIntString(
@@ -7556,7 +7569,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -7570,7 +7583,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -7582,7 +7595,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -7590,7 +7603,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const commandData: CommandData = {
             name: CommandName.StationTriggerAlarmSound,
             value: seconds,
-        }
+        };
         if (!this.hasCommand(CommandName.StationTriggerAlarmSound)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -7600,12 +7613,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station trigger station alarm sound - sending command`,
             { stationSN: this.getSerial(), value: seconds }
-        )
+        );
         if (
             !isGreaterEqualMinVersion('2.0.7.9', this.getSoftwareVersion()) ||
             Device.isIntegratedDeviceBySn(this.getSerial())
@@ -7621,7 +7634,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -7640,19 +7653,19 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         }
     }
 
     public resetStationAlarmSound(): void {
-        this.triggerStationAlarmSound(0)
+        this.triggerStationAlarmSound(0);
     }
 
     public triggerDeviceAlarmSound(device: Device, seconds: number): void {
         const commandData: CommandData = {
             name: CommandName.DeviceTriggerAlarmSound,
             value: seconds,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -7664,7 +7677,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceTriggerAlarmSound)) {
             throw new NotSupportedError(
@@ -7677,7 +7690,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station trigger device alarm sound - sending command`,
@@ -7686,7 +7699,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: seconds,
             }
-        )
+        );
         this.p2pSession.sendCommandWithIntString(
             {
                 commandType: CommandType.CMD_SET_DEVS_TONE_FILE,
@@ -7698,18 +7711,18 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 command: commandData,
             }
-        )
+        );
     }
 
     public resetDeviceAlarmSound(device: Device): void {
-        this.triggerDeviceAlarmSound(device, 0)
+        this.triggerDeviceAlarmSound(device, 0);
     }
 
     public setStationAlarmRingtoneVolume(value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.StationAlarmVolume,
             value: value,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -7720,15 +7733,15 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set station alarm ringtone volume - sending command`,
             { stationSN: this.getSerial(), value: value }
-        )
+        );
         if (Device.isWallLightCam(this.getDeviceType())) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -7742,7 +7755,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             this.p2pSession.sendCommandWithInt(
                 {
@@ -7754,7 +7767,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         }
     }
 
@@ -7762,7 +7775,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.StationAlarmTone,
             value: value,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -7773,10 +7786,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set station alarm tone - sending command`,
@@ -7784,7 +7797,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 stationSN: this.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -7801,14 +7814,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setStationPromptVolume(value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.StationPromptVolume,
             value: value,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -7819,15 +7832,15 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set station prompt volume - sending command`,
             { stationSN: this.getSerial(), value: value }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -7844,7 +7857,7 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setStationNotificationSwitchMode(
@@ -7863,7 +7876,7 @@ export class Station extends TypedEmitter<StationEvents> {
                           ? PropertyName.StationNotificationSwitchModeSchedule
                           : ('' as PropertyName),
             value: value,
-        }
+        };
         if (
             (!this.hasProperty(PropertyName.StationNotificationSwitchModeApp) &&
                 mode === NotificationSwitchMode.APP) ||
@@ -7889,29 +7902,29 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set station notification switch mode - sending command`,
             { stationSN: this.getSerial(), mode: mode, value: value }
-        )
+        );
         if (
             this.isStation() &&
             isGreaterEqualMinVersion('2.1.1.6', this.getSoftwareVersion())
         ) {
-            let oldvalue = 0
+            let oldvalue = 0;
             const rawproperty = this.getRawProperty(
                 CommandType.CMD_HUB_NOTIFY_MODE
-            )
+            );
             if (rawproperty !== undefined) {
                 try {
-                    oldvalue = Number.parseInt(rawproperty)
+                    oldvalue = Number.parseInt(rawproperty);
                 } catch (error) {}
             }
-            const pushMode = switchNotificationMode(oldvalue, mode, value)
+            const pushMode = switchNotificationMode(oldvalue, mode, value);
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -7943,24 +7956,24 @@ export class Station extends TypedEmitter<StationEvents> {
                             CommandType.CMD_HUB_NOTIFY_MODE,
                             pushMode.toString(),
                             'p2p'
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else if (
             this.getDeviceType() === DeviceType.OUTDOOR_PT_CAMERA ||
             Device.isSoloCameraC210(this.getDeviceType())
         ) {
-            let oldvalue = 0
+            let oldvalue = 0;
             const rawproperty = this.getRawProperty(
                 CommandType.CMD_HUB_NOTIFY_MODE
-            )
+            );
             if (rawproperty !== undefined) {
                 try {
-                    oldvalue = Number.parseInt(rawproperty)
+                    oldvalue = Number.parseInt(rawproperty);
                 } catch (error) {}
             }
-            const pushMode = switchNotificationMode(oldvalue, mode, value)
+            const pushMode = switchNotificationMode(oldvalue, mode, value);
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -7984,10 +7997,10 @@ export class Station extends TypedEmitter<StationEvents> {
                             CommandType.CMD_HUB_NOTIFY_MODE,
                             pushMode.toString(),
                             'p2p'
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -8020,10 +8033,10 @@ export class Station extends TypedEmitter<StationEvents> {
                             CommandType.CMD_HUB_NOTIFY_MODE,
                             String(value === true ? 1 : 0),
                             'p2p'
-                        )
+                        );
                     },
                 }
-            )
+            );
         }
     }
 
@@ -8031,7 +8044,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.StationNotificationStartAlarmDelay,
             value: value,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -8042,22 +8055,24 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
-        let pushmode = 0
-        const rawproperty = this.getRawProperty(CommandType.CMD_HUB_NOTIFY_MODE)
+        let pushmode = 0;
+        const rawproperty = this.getRawProperty(
+            CommandType.CMD_HUB_NOTIFY_MODE
+        );
         if (rawproperty !== undefined) {
             try {
-                pushmode = Number.parseInt(rawproperty)
+                pushmode = Number.parseInt(rawproperty);
             } catch (error) {}
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set station notification start alarm delay - sending command`,
             { stationSN: this.getSerial(), value: value }
-        )
+        );
         if (isGreaterEqualMinVersion('2.1.1.6', this.getSoftwareVersion())) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -8077,7 +8092,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -8097,7 +8112,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         }
     }
 
@@ -8105,7 +8120,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.StationTimeFormat,
             value: value,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -8116,10 +8131,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set station time format - sending command`,
@@ -8127,7 +8142,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 stationSN: this.getSerial(),
                 value: value,
             }
-        )
+        );
         if (Device.isWallLightCam(this.getDeviceType())) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -8141,7 +8156,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             this.p2pSession.sendCommandWithInt(
                 {
@@ -8153,7 +8168,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         }
     }
 
@@ -8161,7 +8176,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRTSPStream,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -8173,7 +8188,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -8186,16 +8201,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set rtsp stream - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         this.p2pSession.sendCommandWithIntString(
             {
                 commandType: CommandType.CMD_NAS_SWITCH,
@@ -8207,14 +8222,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setAntiTheftDetection(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceAntitheftDetection,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -8226,7 +8241,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -8239,10 +8254,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set anti theft detection - sending command`,
@@ -8251,7 +8266,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithIntString(
             {
                 commandType: CommandType.CMD_EAS_SWITCH,
@@ -8263,7 +8278,7 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setWatermark(
@@ -8278,7 +8293,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceWatermark,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -8290,7 +8305,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -8303,16 +8318,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set watermark - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (
             device.isCamera2Product() ||
             device.isCamera3Product() ||
@@ -8333,8 +8348,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(WatermarkSetting3).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -8347,7 +8362,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isSoloCameras() ||
             device.isWiredDoorbell() ||
@@ -8364,8 +8379,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(WatermarkSetting1).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -8378,7 +8393,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isIndoorCamera() || device.isFloodLight()) {
             if (
                 !Object.values(WatermarkSetting4).includes(
@@ -8390,8 +8405,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(WatermarkSetting4).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -8404,7 +8419,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isBatteryDoorbell() ||
             device.getDeviceType() === DeviceType.CAMERA ||
@@ -8422,8 +8437,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(WatermarkSetting2).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -8436,7 +8451,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             if (
                 !Object.values(WatermarkSetting1).includes(
@@ -8448,8 +8463,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(WatermarkSetting1).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -8463,7 +8478,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isGarageCamera()) {
             if (
                 !Object.values(WatermarkSetting5).includes(
@@ -8475,8 +8490,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     Object.values(WatermarkSetting5).filter(
                         (value) => typeof value === 'number'
                     )
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -8489,7 +8504,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isSmartDrop()) {
             if (
                 !Object.values(WatermarkSetting1).includes(
@@ -8499,8 +8514,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 rootHTTPLogger.error(
                     `The device ${device.getSerial()} accepts only this type of values:`,
                     WatermarkSetting1
-                )
-                return
+                );
+                return;
             }
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -8513,7 +8528,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -8525,7 +8540,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -8533,7 +8548,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceEnabled,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -8545,7 +8560,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -8558,12 +8573,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
-        let param_value = value === true ? 0 : 1
+        let param_value = value === true ? 0 : 1;
 
         if (
             (device.isIndoorCamera() &&
@@ -8574,13 +8589,13 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424 ||
             device.isFloodLightT8420X()
         )
-            param_value = value === true ? 1 : 0
+            param_value = value === true ? 1 : 0;
 
         rootHTTPLogger.debug(`Station enable device - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isIndoorCamMini()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -8596,7 +8611,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isIndoorPanAndTiltCameraS350()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -8615,13 +8630,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isIndoorCamera() &&
             isGreaterEqualMinVersion('2.3.1.0', device.getSoftwareVersion()) &&
             Station.isStationHomeBase3BySn(device.getStationSerial())
         ) {
-            param_value = value === true ? 0 : 1
+            param_value = value === true ? 0 : 1;
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -8639,7 +8654,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -8652,7 +8667,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         }
     }
 
@@ -8667,7 +8682,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 path: path,
                 cipher_id: cipher_id,
             },
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -8679,7 +8694,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceStartDownload)) {
             throw new NotSupportedError(
@@ -8692,17 +8707,17 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station start download - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             path: path,
             cipherID: cipher_id,
-        })
+        });
         if (this.getDeviceType() === DeviceType.HB3) {
             //TODO: Implement HB3 Support! Actually doesn't work and returns return_code -104 (ERROR_INVALID_ACCOUNT). It could be that we need the new encrypted p2p protocol to make this work...
-            const rsa_key = this.p2pSession.getDownloadRSAPrivateKey()
+            const rsa_key = this.p2pSession.getDownloadRSAPrivateKey();
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_DOWNLOAD_VIDEO,
@@ -8725,14 +8740,14 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (cipher_id !== undefined) {
             const cipher = await this.api.getCipher(
                 /*this.rawStation.station_sn, */ cipher_id,
                 this.rawStation.member.admin_user_id
-            )
+            );
             if (Object.keys(cipher).length > 0) {
-                this.p2pSession.setDownloadRSAPrivateKeyPem(cipher.private_key)
+                this.p2pSession.setDownloadRSAPrivateKeyPem(cipher.private_key);
                 this.p2pSession.sendCommandWithString(
                     {
                         commandType: CommandType.CMD_DOWNLOAD_VIDEO,
@@ -8743,11 +8758,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     {
                         command: commandData,
                     }
-                )
+                );
             } else {
                 rootHTTPLogger.warn(
                     `Cancelled download of video "${path}" from Station ${this.getSerial()}, because RSA certificate couldn't be loaded`
-                )
+                );
                 this.emit('command result', this, {
                     channel: device.getChannel(),
                     command_type: CommandType.CMD_DOWNLOAD_VIDEO,
@@ -8755,7 +8770,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     customData: {
                         command: commandData,
                     },
-                })
+                });
             }
         } else {
             this.p2pSession.sendCommandWithString(
@@ -8768,7 +8783,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         }
         /* else {
             rootHTTPLogger.warn(`Cancelled download of video "${path}" from Station ${this.getSerial()}, because cipher_id is missing`);
@@ -8786,7 +8801,7 @@ export class Station extends TypedEmitter<StationEvents> {
     public cancelDownload(device: Device): void {
         const commandData: CommandData = {
             name: CommandName.DeviceCancelDownload,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -8798,7 +8813,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceCancelDownload)) {
             throw new NotSupportedError(
@@ -8811,12 +8826,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station cancel download - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
-        })
+        });
         this.p2pSession.sendCommandWithInt(
             {
                 commandType: CommandType.CMD_DOWNLOAD_CANCEL,
@@ -8827,7 +8842,7 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 command: commandData,
             }
-        )
+        );
     }
 
     public startLivestream(
@@ -8837,7 +8852,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const commandData: CommandData = {
             name: CommandName.DeviceStartLivestream,
             value: videoCodec,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -8849,7 +8864,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceStartLivestream)) {
             throw new NotSupportedError(
@@ -8862,7 +8877,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (this.isLiveStreaming(device)) {
             throw new LivestreamAlreadyRunningError(
@@ -8875,14 +8890,14 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station start livestream - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             videoCodec: videoCodec,
-        })
-        const rsa_key = this.p2pSession.getRSAPrivateKey()
+        });
+        const rsa_key = this.p2pSession.getRSAPrivateKey();
 
         if (device.isSmartDrop()) {
             rootHTTPLogger.debug(
@@ -8893,7 +8908,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     videoCodec: videoCodec,
                     main_sw_version: this.getSoftwareVersion(),
                 }
-            )
+            );
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -8918,7 +8933,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (device.isOutdoorPanAndTiltCamera()) {
             rootHTTPLogger.debug(
                 `Station start livestream - sending command using CMD_DOORBELL_SET_PAYLOAD (1)`,
@@ -8928,7 +8943,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     videoCodec: videoCodec,
                     main_sw_version: this.getSoftwareVersion(),
                 }
-            )
+            );
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -8950,7 +8965,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (
             device.isSoloCameras() ||
             device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 ||
@@ -8968,7 +8983,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     videoCodec: videoCodec,
                     main_sw_version: this.getSoftwareVersion(),
                 }
-            )
+            );
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -8988,7 +9003,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (
             (device.isIndoorPanAndTiltCameraS350() &&
                 this.isStationHomeBase3()) ||
@@ -9002,7 +9017,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     videoCodec: videoCodec,
                     main_sw_version: this.getSoftwareVersion(),
                 }
-            )
+            );
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -9028,7 +9043,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (device.isIndoorPanAndTiltCameraS350()) {
             rootHTTPLogger.debug(
                 `Station start livestream - sending command using CMD_DOORBELL_SET_PAYLOAD (4)`,
@@ -9038,7 +9053,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     videoCodec: videoCodec,
                     main_sw_version: this.getSoftwareVersion(),
                 }
-            )
+            );
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -9061,7 +9076,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (
             device.isWiredDoorbell() ||
             (device.isFloodLight() &&
@@ -9078,7 +9093,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     videoCodec: videoCodec,
                     main_sw_version: this.getSoftwareVersion(),
                 }
-            )
+            );
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -9098,7 +9113,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (device.isCameraProfessional247()) {
             rootHTTPLogger.debug(
                 `Station start livestream - sending command using CMD_SET_PAYLOAD`,
@@ -9108,7 +9123,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     videoCodec: videoCodec,
                     main_sw_version: this.getSoftwareVersion(),
                 }
-            )
+            );
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -9132,7 +9147,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else {
             if (
                 ((Device.isIntegratedDeviceBySn(this.getSerial()) ||
@@ -9155,7 +9170,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         videoCodec: videoCodec,
                         main_sw_version: this.getSoftwareVersion(),
                     }
-                )
+                );
                 this.p2pSession.sendCommandWithInt(
                     {
                         commandType: CommandType.CMD_START_REALTIME_MEDIA,
@@ -9169,7 +9184,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     {
                         command: commandData,
                     }
-                )
+                );
             } else {
                 rootHTTPLogger.debug(
                     `Station start livestream - sending command using CMD_SET_PAYLOAD`,
@@ -9179,7 +9194,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         videoCodec: videoCodec,
                         main_sw_version: this.getSoftwareVersion(),
                     }
-                )
+                );
                 this.p2pSession.sendCommandWithStringPayload(
                     {
                         commandType: CommandType.CMD_SET_PAYLOAD,
@@ -9202,7 +9217,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     {
                         command: commandData,
                     }
-                )
+                );
             }
         }
     }
@@ -9210,7 +9225,7 @@ export class Station extends TypedEmitter<StationEvents> {
     public stopLivestream(device: Device): void {
         const commandData: CommandData = {
             name: CommandName.DeviceStopLivestream,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -9222,7 +9237,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceStopLivestream)) {
             throw new NotSupportedError(
@@ -9235,7 +9250,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!this.isLiveStreaming(device)) {
             throw new LivestreamNotRunningError(
@@ -9248,12 +9263,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station stop livestream - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
-        })
+        });
         this.p2pSession.sendCommandWithInt(
             {
                 commandType: CommandType.CMD_STOP_REALTIME_MEDIA,
@@ -9263,24 +9278,24 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 command: commandData,
             }
-        )
+        );
     }
 
     public isLiveStreaming(device: Device): boolean {
-        if (device.getStationSerial() !== this.getSerial()) return false
-        return this.p2pSession.isLiveStreaming(device.getChannel())
+        if (device.getStationSerial() !== this.getSerial()) return false;
+        return this.p2pSession.isLiveStreaming(device.getChannel());
     }
 
     public isDownloading(device: Device): boolean {
-        if (device.getStationSerial() !== this.getSerial()) return false
-        return this.p2pSession.isDownloading(device.getChannel())
+        if (device.getStationSerial() !== this.getSerial()) return false;
+        return this.p2pSession.isDownloading(device.getChannel());
     }
 
     public quickResponse(device: Device, voice_id: number): void {
         const commandData: CommandData = {
             name: CommandName.DeviceQuickResponse,
             value: voice_id,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -9292,7 +9307,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceQuickResponse)) {
             throw new NotSupportedError(
@@ -9305,13 +9320,13 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station quick response - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             voiceID: voice_id,
-        })
+        });
         if (device.isBatteryDoorbell() || device.isLockWifiVideo()) {
             rootHTTPLogger.debug(
                 `Station quick response - sending command using CMD_BAT_DOORBELL_QUICK_RESPONSE`,
@@ -9320,7 +9335,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     deviceSN: device.getSerial(),
                     voiceID: voice_id,
                 }
-            )
+            );
             this.p2pSession.sendCommandWithIntString(
                 {
                     commandType: CommandType.CMD_BAT_DOORBELL_QUICK_RESPONSE,
@@ -9332,7 +9347,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (device.isWiredDoorbell()) {
             rootHTTPLogger.debug(
                 `Station quick response - sending command using CMD_DOORBELL_SET_PAYLOAD`,
@@ -9341,7 +9356,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     deviceSN: device.getSerial(),
                     voiceID: voice_id,
                 }
-            )
+            );
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -9356,7 +9371,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -9368,7 +9383,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -9376,7 +9391,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceChirpVolume,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -9388,7 +9403,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -9401,16 +9416,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set chirp volume - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isEntrySensor()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -9429,7 +9444,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -9441,7 +9456,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -9449,7 +9464,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceChirpTone,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -9461,7 +9476,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -9474,16 +9489,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set chirp tone - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isEntrySensor()) {
             this.p2pSession.sendCommandWithIntString(
                 {
@@ -9496,7 +9511,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -9508,7 +9523,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -9516,7 +9531,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceVideoHDR,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -9528,7 +9543,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -9541,16 +9556,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set hdr - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isWiredDoorbell()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -9566,7 +9581,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -9578,7 +9593,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -9586,7 +9601,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceVideoDistortionCorrection,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -9598,7 +9613,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -9611,10 +9626,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set distortion correction - sending command`,
@@ -9623,7 +9638,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWiredDoorbell()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -9639,7 +9654,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -9651,7 +9666,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -9659,7 +9674,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceVideoRingRecord,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -9671,7 +9686,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -9684,16 +9699,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set ring record - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isWiredDoorbell()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -9709,7 +9724,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -9721,7 +9736,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -9729,7 +9744,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLocked,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -9741,7 +9756,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -9754,38 +9769,38 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station lock device - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isLockBleNoFinger() || device.isLockBle()) {
             const key = generateBasicLockAESKey(
                 this.rawStation.member.admin_user_id,
                 this.getSerial()
-            )
-            const iv = getLockVectorBytes(this.getSerial())
+            );
+            const iv = getLockVectorBytes(this.getSerial());
             const lockCmd = Lock.encodeESLCmdOnOff(
                 Number.parseInt(this.rawStation.member.short_user_id),
                 this.rawStation.member.nick_name,
                 value
-            )
+            );
             const payload: ESLStationP2PThroughData = {
                 channel: device.getChannel(),
                 lock_cmd: ESLBleCommand.ON_OFF_LOCK,
                 lock_payload: lockCmd.toString('base64'),
                 seq_num: this.p2pSession.incLockSequenceNumber(),
-            }
+            };
             const encPayload = encryptLockAESData(
                 key,
                 iv,
                 encodeLockPayload(JSON.stringify(payload))
-            )
+            );
 
             rootHTTPLogger.debug(
                 'Station lock device - Locking/unlocking device...',
@@ -9796,7 +9811,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     payload: payload,
                     encPayload: encPayload.toString('hex'),
                 }
-            )
+            );
 
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -9814,7 +9829,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             const nestedPayload: LockAdvancedOnOffRequestPayload = {
                 shortUserId: this.rawStation.member.short_user_id,
@@ -9822,7 +9837,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 userId: this.rawStation.member.admin_user_id,
                 userName: this.rawStation.member.nick_name,
                 seq_num: this.p2pSession.incLockSequenceNumber(),
-            }
+            };
             const command = getLockP2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,
@@ -9830,11 +9845,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 device.getChannel(),
                 this.lockPublicKey,
                 nestedPayload
-            )
+            );
             this.p2pSession.setLockAESKey(
                 CommandType.P2P_ON_OFF_LOCK,
                 command.aesKey
-            )
+            );
             rootHTTPLogger.debug(
                 'Station lock device - Locking/unlocking device...',
                 {
@@ -9844,11 +9859,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     payload: command,
                     nestedPayload: nestedPayload,
                 }
-            )
+            );
 
             this.p2pSession.sendCommandWithStringPayload(command, {
                 property: propertyData,
-            })
+            });
         } else if (device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -9870,7 +9885,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
             rootHTTPLogger.debug(
                 'Station lock device - Locking/unlocking device...',
                 {
@@ -9878,7 +9893,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     device: device.getSerial(),
                     admin_user_id: this.rawStation.member.admin_user_id,
                 }
-            )
+            );
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             const command = getLockV12P2PCommand(
                 this.rawStation.station_sn,
@@ -9892,7 +9907,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     value === true ? 1 : 0,
                     this.rawStation.member.nick_name
                 )
-            )
+            );
             rootHTTPLogger.debug(
                 'Station lock device - Locking/unlocking device...',
                 {
@@ -9901,11 +9916,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     admin_user_id: this.rawStation.member.admin_user_id,
                     payload: command.payload,
                 }
-            )
+            );
 
             this._sendLockV12P2PCommand(command, {
                 property: propertyData,
-            })
+            });
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -9924,7 +9939,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     this.rawStation.member.nick_name,
                     this.rawStation.member.short_user_id
                 )
-            )
+            );
             rootHTTPLogger.debug(
                 'Station lock device - Locking/unlocking device...',
                 {
@@ -9933,11 +9948,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     admin_user_id: this.rawStation.member.admin_user_id,
                     payload: command.payload,
                 }
-            )
+            );
 
             this.p2pSession.sendCommandWithStringPayload(command.payload, {
                 property: propertyData,
-            })
+            });
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -9949,7 +9964,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -9957,7 +9972,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.StationNotificationSwitchModeGeofence,
             value: value,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -9968,15 +9983,15 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set station switch mode with access code - sending command`,
             { stationSN: this.getSerial(), value: value }
-        )
+        );
         if (this.isStation()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -9994,7 +10009,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -10005,7 +10020,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
     }
 
@@ -10013,7 +10028,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.StationAutoEndAlarm,
             value: value,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -10024,10 +10039,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station station auto end alarm - sending command`,
@@ -10035,7 +10050,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 stationSN: this.getSerial(),
                 value: value,
             }
-        )
+        );
         if (this.isStation()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -10053,7 +10068,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -10064,7 +10079,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
     }
 
@@ -10072,7 +10087,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.StationTurnOffAlarmWithButton,
             value: value,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -10083,15 +10098,15 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set station turn off alarm with button - sending command`,
             { stationSN: this.getSerial(), value: value }
-        )
+        );
         if (this.isStation()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -10109,7 +10124,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -10120,14 +10135,14 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
     }
 
     public startRTSPStream(device: Device): void {
         const rtspStreamProperty = device.getPropertyValue(
             PropertyName.DeviceRTSPStream
-        )
+        );
         if (rtspStreamProperty !== undefined && rtspStreamProperty !== true) {
             throw new RTSPPropertyNotEnabledError(
                 'RTSP setting for this device must be enabled first, to enable this functionality!',
@@ -10139,12 +10154,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: rtspStreamProperty,
                     },
                 }
-            )
+            );
         }
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRTSPStream,
             value: rtspStreamProperty,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -10156,7 +10171,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(PropertyName.DeviceRTSPStream)) {
             throw new NotSupportedError(
@@ -10169,12 +10184,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station start rtsp stream - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
-        })
+        });
         this.p2pSession.sendCommandWithIntString(
             {
                 commandType: CommandType.CMD_NAS_TEST,
@@ -10186,13 +10201,13 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public stopRTSPStream(device: Device): void {
         const rtspStreamProperty = device.getPropertyValue(
             PropertyName.DeviceRTSPStream
-        )
+        );
         if (rtspStreamProperty !== undefined && rtspStreamProperty !== true) {
             throw new RTSPPropertyNotEnabledError(
                 'RTSP setting for this device must be enabled first, to enable this functionality!',
@@ -10204,12 +10219,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: rtspStreamProperty,
                     },
                 }
-            )
+            );
         }
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRTSPStream,
             value: rtspStreamProperty,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -10221,7 +10236,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(PropertyName.DeviceRTSPStream)) {
             throw new NotSupportedError(
@@ -10234,12 +10249,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station stop rtsp stream - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
-        })
+        });
         this.p2pSession.sendCommandWithIntString(
             {
                 commandType: CommandType.CMD_NAS_TEST,
@@ -10251,7 +10266,7 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setMotionDetectionRange(
@@ -10261,7 +10276,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionRange,
             value: type,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -10273,7 +10288,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -10286,10 +10301,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, type)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, type);
 
         rootHTTPLogger.debug(
             `Station set motion detection range - sending command`,
@@ -10298,7 +10313,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: type,
             }
-        )
+        );
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -10315,15 +10330,15 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isFloodLightT8425()) {
             const rawProperty = device.getRawProperty(
                 CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425
-            ) as unknown as FloodlightDetectionRangeT8425Property
+            ) as unknown as FloodlightDetectionRangeT8425Property;
             if (rawProperty !== undefined) {
                 const payload: FloodlightDetectionRangeT8425Property = {
                     ...rawProperty,
-                }
+                };
                 const currentMode =
                     type === 0
                         ? payload.mode0
@@ -10331,13 +10346,13 @@ export class Station extends TypedEmitter<StationEvents> {
                           ? payload.mode1
                           : type === 2
                             ? payload.mode2
-                            : undefined
+                            : undefined;
                 if (
                     currentMode !== undefined &&
                     Array.isArray(currentMode) &&
                     currentMode.length === 4
                 ) {
-                    payload.cur_mode = type
+                    payload.cur_mode = type;
                     this.p2pSession.sendCommandWithStringPayload(
                         {
                             commandType: CommandType.CMD_SET_PAYLOAD,
@@ -10362,10 +10377,10 @@ export class Station extends TypedEmitter<StationEvents> {
                                     CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425,
                                     payload as unknown as string,
                                     'p2p'
-                                )
+                                );
                             },
                         }
-                    )
+                    );
                 } else {
                     rootHTTPLogger.error(
                         `Station set motion detection range - Needed raw property "${CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425}" on device ${device.getSerial()} has unexpected value`,
@@ -10373,13 +10388,13 @@ export class Station extends TypedEmitter<StationEvents> {
                             stationSN: this.getSerial(),
                             rawProperty: rawProperty,
                         }
-                    )
+                    );
                 }
             } else {
                 rootHTTPLogger.error(
                     `Station set motion detection range - Needed raw property "${CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425}" on device ${device.getSerial()} is undefined`,
                     { stationSN: this.getSerial() }
-                )
+                );
             }
         } else {
             throw new NotSupportedError(
@@ -10392,7 +10407,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -10403,7 +10418,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionRangeStandardSensitivity,
             value: sensitivity,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -10415,7 +10430,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -10428,10 +10443,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, sensitivity)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, sensitivity);
 
         rootHTTPLogger.debug(
             `Station set motion detection range standard sensitivity - sending command`,
@@ -10440,7 +10455,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: sensitivity,
             }
-        )
+        );
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -10457,11 +10472,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isFloodLightT8425()) {
             const rawProperty = device.getRawProperty(
                 CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425
-            ) as unknown as FloodlightDetectionRangeT8425Property
+            ) as unknown as FloodlightDetectionRangeT8425Property;
             if (rawProperty !== undefined) {
                 if (
                     rawProperty.mode0 !== undefined &&
@@ -10470,11 +10485,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 ) {
                     const payload: FloodlightDetectionRangeT8425Property = {
                         ...rawProperty,
-                    }
-                    payload.cur_mode = MotionDetectionRangeType.STANDARD
+                    };
+                    payload.cur_mode = MotionDetectionRangeType.STANDARD;
                     payload.mode0[
                         payload.mode0.findIndex((element) => element.id === 1)
-                    ].sst = sensitivity
+                    ].sst = sensitivity;
                     this.p2pSession.sendCommandWithStringPayload(
                         {
                             commandType: CommandType.CMD_SET_PAYLOAD,
@@ -10499,10 +10514,10 @@ export class Station extends TypedEmitter<StationEvents> {
                                     CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425,
                                     payload as unknown as string,
                                     'p2p'
-                                )
+                                );
                             },
                         }
-                    )
+                    );
                 } else {
                     rootHTTPLogger.error(
                         `Station set motion detection range standard sensitivity - Needed raw property "${CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425}" on device ${device.getSerial()} has unexpected value`,
@@ -10510,13 +10525,13 @@ export class Station extends TypedEmitter<StationEvents> {
                             stationSN: this.getSerial(),
                             rawProperty: rawProperty,
                         }
-                    )
+                    );
                 }
             } else {
                 rootHTTPLogger.error(
                     `Station set motion detection range standard sensitivity - Needed raw property "${CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425}" on device ${device.getSerial()} is undefined`,
                     { stationSN: this.getSerial() }
-                )
+                );
             }
         } else {
             throw new NotSupportedError(
@@ -10529,7 +10544,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -10540,7 +10555,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionRangeAdvancedLeftSensitivity,
             value: sensitivity,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -10552,7 +10567,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -10565,10 +10580,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, sensitivity)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, sensitivity);
 
         rootHTTPLogger.debug(
             `Station motion detection range advanced left sensitivity - sending command`,
@@ -10577,7 +10592,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: sensitivity,
             }
-        )
+        );
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -10594,11 +10609,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isFloodLightT8425()) {
             const rawProperty = device.getRawProperty(
                 CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425
-            ) as unknown as FloodlightDetectionRangeT8425Property
+            ) as unknown as FloodlightDetectionRangeT8425Property;
             if (rawProperty !== undefined) {
                 if (
                     rawProperty.mode1 !== undefined &&
@@ -10607,11 +10622,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 ) {
                     const payload: FloodlightDetectionRangeT8425Property = {
                         ...rawProperty,
-                    }
-                    payload.cur_mode = MotionDetectionRangeType.ADVANCED
+                    };
+                    payload.cur_mode = MotionDetectionRangeType.ADVANCED;
                     payload.mode1[
                         payload.mode0.findIndex((element) => element.id === 1)
-                    ].sst = sensitivity
+                    ].sst = sensitivity;
                     this.p2pSession.sendCommandWithStringPayload(
                         {
                             commandType: CommandType.CMD_SET_PAYLOAD,
@@ -10636,10 +10651,10 @@ export class Station extends TypedEmitter<StationEvents> {
                                     CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425,
                                     payload as unknown as string,
                                     'p2p'
-                                )
+                                );
                             },
                         }
-                    )
+                    );
                 } else {
                     rootHTTPLogger.error(
                         `Station set motion detection range advanced left sensitivity - Needed raw property "${CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425}" on device ${device.getSerial()} has unexpected value`,
@@ -10647,13 +10662,13 @@ export class Station extends TypedEmitter<StationEvents> {
                             stationSN: this.getSerial(),
                             rawProperty: rawProperty,
                         }
-                    )
+                    );
                 }
             } else {
                 rootHTTPLogger.error(
                     `Station set motion detection range advanced left sensitivity - Needed raw property "${CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425}" on device ${device.getSerial()} is undefined`,
                     { stationSN: this.getSerial() }
-                )
+                );
             }
         } else {
             throw new NotSupportedError(
@@ -10666,7 +10681,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -10677,7 +10692,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionRangeAdvancedMiddleSensitivity,
             value: sensitivity,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -10689,7 +10704,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -10702,10 +10717,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, sensitivity)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, sensitivity);
 
         rootHTTPLogger.debug(
             `Station set motion detection range advanced middle sensitivity - sending command`,
@@ -10714,7 +10729,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: sensitivity,
             }
-        )
+        );
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -10731,7 +10746,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -10743,7 +10758,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -10754,7 +10769,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionRangeAdvancedRightSensitivity,
             value: sensitivity,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -10766,7 +10781,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -10779,10 +10794,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, sensitivity)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, sensitivity);
 
         rootHTTPLogger.debug(
             `Station set motion detection range advanced right sensitivity - sending command`,
@@ -10791,7 +10806,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: sensitivity,
             }
-        )
+        );
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -10808,11 +10823,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isFloodLightT8425()) {
             const rawProperty = device.getRawProperty(
                 CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425
-            ) as unknown as FloodlightDetectionRangeT8425Property
+            ) as unknown as FloodlightDetectionRangeT8425Property;
             if (rawProperty !== undefined) {
                 if (
                     rawProperty.mode1 !== undefined &&
@@ -10821,11 +10836,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 ) {
                     const payload: FloodlightDetectionRangeT8425Property = {
                         ...rawProperty,
-                    }
-                    payload.cur_mode = MotionDetectionRangeType.ADVANCED
+                    };
+                    payload.cur_mode = MotionDetectionRangeType.ADVANCED;
                     payload.mode1[
                         payload.mode0.findIndex((element) => element.id === 2)
-                    ].sst = sensitivity
+                    ].sst = sensitivity;
                     this.p2pSession.sendCommandWithStringPayload(
                         {
                             commandType: CommandType.CMD_SET_PAYLOAD,
@@ -10850,10 +10865,10 @@ export class Station extends TypedEmitter<StationEvents> {
                                     CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425,
                                     payload as unknown as string,
                                     'p2p'
-                                )
+                                );
                             },
                         }
-                    )
+                    );
                 } else {
                     rootHTTPLogger.error(
                         `Station set motion detection range advanced right sensitivity - Needed raw property "${CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425}" on device ${device.getSerial()} has unexpected value`,
@@ -10861,13 +10876,13 @@ export class Station extends TypedEmitter<StationEvents> {
                             stationSN: this.getSerial(),
                             rawProperty: rawProperty,
                         }
-                    )
+                    );
                 }
             } else {
                 rootHTTPLogger.error(
                     `Station set motion detection range advanced right sensitivity - Needed raw property "${CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425}" on device ${device.getSerial()} is undefined`,
                     { stationSN: this.getSerial() }
-                )
+                );
             }
         } else {
             throw new NotSupportedError(
@@ -10880,7 +10895,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -10888,7 +10903,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionTestMode,
             value: enabled,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -10900,7 +10915,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -10913,10 +10928,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, enabled)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, enabled);
 
         rootHTTPLogger.debug(
             `Station set motion detection test mode - sending command`,
@@ -10925,7 +10940,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: enabled,
             }
-        )
+        );
         if (
             device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 ||
             device.getDeviceType() === DeviceType.FLOODLIGHT
@@ -10941,18 +10956,18 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isFloodLightT8425()) {
             const rawProperty = device.getRawProperty(
                 CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425
-            ) as unknown as FloodlightDetectionRangeT8425Property
+            ) as unknown as FloodlightDetectionRangeT8425Property;
             if (
                 rawProperty !== undefined &&
                 rawProperty.cur_mode !== undefined
             ) {
                 const payload: FloodlightDetectionRangeT8425Property = {
                     ...rawProperty,
-                }
+                };
                 const currentMode =
                     payload.cur_mode === 0
                         ? payload.mode0
@@ -10960,13 +10975,13 @@ export class Station extends TypedEmitter<StationEvents> {
                           ? payload.mode1
                           : payload.cur_mode === 2
                             ? payload.mode2
-                            : undefined
+                            : undefined;
                 if (
                     currentMode !== undefined &&
                     Array.isArray(currentMode) &&
                     currentMode.length === 4
                 ) {
-                    payload.test_mode = enabled === true ? 1 : 0
+                    payload.test_mode = enabled === true ? 1 : 0;
                     this.p2pSession.sendCommandWithStringPayload(
                         {
                             commandType: CommandType.CMD_SET_PAYLOAD,
@@ -10991,10 +11006,10 @@ export class Station extends TypedEmitter<StationEvents> {
                                     CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425,
                                     payload as unknown as string,
                                     'p2p'
-                                )
+                                );
                             },
                         }
-                    )
+                    );
                 } else {
                     rootHTTPLogger.error(
                         `Station set motion detection test mode - Needed raw property "${CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425}" on device ${device.getSerial()} has unexpected value`,
@@ -11002,13 +11017,13 @@ export class Station extends TypedEmitter<StationEvents> {
                             stationSN: this.getSerial(),
                             rawProperty: rawProperty,
                         }
-                    )
+                    );
                 }
             } else {
                 rootHTTPLogger.error(
                     `Station set motion detection test mode - Needed raw property "${CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_T8425}" on device ${device.getSerial()} is undefined`,
                     { stationSN: this.getSerial() }
-                )
+                );
             }
         } else {
             throw new NotSupportedError(
@@ -11021,7 +11036,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -11032,7 +11047,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionTrackingSensitivity,
             value: sensitivity,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -11044,7 +11059,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -11057,10 +11072,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, sensitivity)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, sensitivity);
 
         rootHTTPLogger.debug(
             `Station set motion tracking sensitivity - sending command`,
@@ -11069,7 +11084,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: sensitivity,
             }
-        )
+        );
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -11086,7 +11101,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -11098,7 +11113,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -11106,7 +11121,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionAutoCruise,
             value: enabled,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -11118,7 +11133,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -11131,10 +11146,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, enabled)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, enabled);
 
         rootHTTPLogger.debug(
             `Station set motion auto cruise - sending command`,
@@ -11143,7 +11158,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: enabled,
             }
-        )
+        );
         if (
             device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 ||
             device.isIndoorPanAndTiltCameraS350() ||
@@ -11164,7 +11179,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -11176,7 +11191,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -11184,7 +11199,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionOutOfViewDetection,
             value: enabled,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -11196,7 +11211,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -11209,10 +11224,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, enabled)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, enabled);
 
         rootHTTPLogger.debug(
             `Station set motion out of view detection - sending command`,
@@ -11221,7 +11236,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: enabled,
             }
-        )
+        );
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -11238,7 +11253,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isFloodLightT8425()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -11258,7 +11273,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -11270,7 +11285,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -11281,7 +11296,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsColorTemperatureManual,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -11293,7 +11308,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -11306,10 +11321,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings color temperature manual - sending command`,
@@ -11318,7 +11333,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -11335,7 +11350,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -11347,7 +11362,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -11358,7 +11373,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsColorTemperatureMotion,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -11370,7 +11385,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -11383,10 +11398,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings color temperature motion - sending command`,
@@ -11395,7 +11410,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -11412,7 +11427,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -11424,7 +11439,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -11435,7 +11450,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsColorTemperatureSchedule,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -11447,7 +11462,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -11460,10 +11475,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings color temperature schedule - sending command`,
@@ -11472,7 +11487,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -11489,7 +11504,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -11501,7 +11516,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -11512,7 +11527,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsMotionActivationMode,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -11524,7 +11539,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -11537,10 +11552,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings motion activation mode - sending command`,
@@ -11549,16 +11564,16 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isFloodLightT8425()) {
             const rawProperty = device.getRawProperty(
                 CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425
-            ) as unknown as FloodlightLightSettingsMotionT8425Property
+            ) as unknown as FloodlightLightSettingsMotionT8425Property;
             if (rawProperty !== undefined) {
                 const payload: FloodlightLightSettingsMotionT8425Property = {
                     ...rawProperty,
                     mode: value,
-                }
+                };
                 this.p2pSession.sendCommandWithStringPayload(
                     {
                         commandType: CommandType.CMD_SET_PAYLOAD,
@@ -11578,15 +11593,15 @@ export class Station extends TypedEmitter<StationEvents> {
                                 CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425,
                                 payload as unknown as string,
                                 'p2p'
-                            )
+                            );
                         },
                     }
-                )
+                );
             } else {
                 rootHTTPLogger.error(
                     `Station set light settings motion activation mode - Needed raw property "${CommandType.CMD_SET_LIGHT_CTRL_BRIGHT_PIR_T8425}" on device ${device.getSerial()} is undefined`,
                     { stationSN: this.getSerial() }
-                )
+                );
             }
         } else if (
             device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423
@@ -11602,7 +11617,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -11616,7 +11631,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -11628,7 +11643,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -11639,7 +11654,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceVideoNightvisionImageAdjustment,
             value: enabled,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -11651,7 +11666,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -11664,10 +11679,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, enabled)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, enabled);
 
         rootHTTPLogger.debug(
             `Station set video night vision image adjustment - sending command`,
@@ -11676,7 +11691,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: enabled,
             }
-        )
+        );
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -11693,7 +11708,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -11705,7 +11720,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -11713,7 +11728,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceVideoColorNightvision,
             value: enabled,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -11725,7 +11740,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -11738,10 +11753,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, enabled)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, enabled);
 
         rootHTTPLogger.debug(
             `Station set video color night vision - sending command`,
@@ -11750,7 +11765,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: enabled,
             }
-        )
+        );
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -11767,7 +11782,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -11779,7 +11794,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -11787,7 +11802,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceAutoCalibration,
             value: enabled,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -11799,7 +11814,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -11812,16 +11827,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, enabled)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, enabled);
 
         rootHTTPLogger.debug(`Station set auto calibration - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: enabled,
-        })
+        });
         if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -11838,7 +11853,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isIndoorPanAndTiltCameraS350() ||
             device.isFloodLightT8425()
@@ -11858,7 +11873,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -11870,20 +11885,20 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
     public isRTSPLiveStreaming(device: Device): boolean {
-        return this.p2pSession.isRTSPLiveStreaming(device.getChannel())
+        return this.p2pSession.isRTSPLiveStreaming(device.getChannel());
     }
 
     public setConnectionType(type: P2PConnectionType): void {
-        this.p2pConnectionType = type
+        this.p2pConnectionType = type;
     }
 
     public getConnectionType(): P2PConnectionType {
-        return this.p2pConnectionType
+        return this.p2pConnectionType;
     }
 
     private onRuntimeState(
@@ -11891,7 +11906,7 @@ export class Station extends TypedEmitter<StationEvents> {
         batteryLevel: number,
         temperature: number
     ): void {
-        this.emit('runtime state', this, channel, batteryLevel, temperature)
+        this.emit('runtime state', this, channel, batteryLevel, temperature);
     }
 
     private onChargingState(
@@ -11899,33 +11914,33 @@ export class Station extends TypedEmitter<StationEvents> {
         chargeType: number,
         batteryLevel: number
     ): void {
-        this.emit('charging state', this, channel, chargeType, batteryLevel)
+        this.emit('charging state', this, channel, chargeType, batteryLevel);
     }
 
     public hasDevice(deviceSN: string): boolean {
         if (this.rawStation.devices)
             for (const device of this.rawStation.devices) {
-                if (device.device_sn === deviceSN) return true
+                if (device.device_sn === deviceSN) return true;
             }
-        return false
+        return false;
     }
 
     public hasDeviceWithType(deviceType: DeviceType): boolean {
         if (this.rawStation.devices)
             for (const device of this.rawStation.devices) {
-                if (device.device_type === deviceType) return true
+                if (device.device_type === deviceType) return true;
             }
-        return false
+        return false;
     }
 
     private onFloodlightManualSwitch(channel: number, enabled: boolean): void {
-        this.emit('floodlight manual switch', this, channel, enabled)
+        this.emit('floodlight manual switch', this, channel, enabled);
     }
 
     public calibrateLock(device: Device): void {
         const commandData: CommandData = {
             name: CommandName.DeviceLockCalibration,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -11936,7 +11951,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!this.hasCommand(CommandName.DeviceLockCalibration)) {
             throw new NotSupportedError(
@@ -11948,16 +11963,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station calibrate lock - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
-        })
+        });
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             const nestedPayload = {
                 seq_num: this.p2pSession.incLockSequenceNumber(),
-            }
+            };
             const command = getLockP2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,
@@ -11965,22 +11980,22 @@ export class Station extends TypedEmitter<StationEvents> {
                 device.getChannel(),
                 this.lockPublicKey,
                 nestedPayload
-            )
+            );
             this.p2pSession.setLockAESKey(
                 CommandType.P2P_CALIBRATE_LOCK,
                 command.aesKey
-            )
+            );
             rootHTTPLogger.debug('Station calibrate lock - Calibrate lock...', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
                 nestedPayload: nestedPayload,
-            })
+            });
 
             this.p2pSession.sendCommandWithStringPayload(command, {
                 command: commandData,
-            })
+            });
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             const command = getLockV12P2PCommand(
                 this.rawStation.station_sn,
@@ -11990,17 +12005,17 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.lockPublicKey,
                 this.p2pSession.incLockSequenceNumber(),
                 Lock.encodeCmdCalibrate(this.rawStation.member.admin_user_id)
-            )
+            );
             rootHTTPLogger.debug('Station calibrate lock - Calibrate lock...', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command.payload,
-            })
+            });
 
             this._sendLockV12P2PCommand(command, {
                 command: commandData,
-            })
+            });
         } else if (device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -12017,12 +12032,12 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
             rootHTTPLogger.debug('Station calibrate lock - Calibrate lock...', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
-            })
+            });
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -12038,17 +12053,17 @@ export class Station extends TypedEmitter<StationEvents> {
                 Lock.encodeCmdSmartLockCalibrate(
                     this.rawStation.member.admin_user_id
                 )
-            )
+            );
             rootHTTPLogger.debug('Station calibrate lock - Calibrate lock...', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command.payload,
-            })
+            });
 
             this.p2pSession.sendCommandWithStringPayload(command.payload, {
                 command: commandData,
-            })
+            });
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -12059,7 +12074,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -12076,18 +12091,18 @@ export class Station extends TypedEmitter<StationEvents> {
             case PropertyName.DeviceScramblePasscode:
             case PropertyName.DeviceNotificationUnlocked:
             case PropertyName.DeviceWrongTryProtection:
-                return (value as boolean) === true ? 1 : 0
+                return (value as boolean) === true ? 1 : 0;
             case PropertyName.DeviceWrongTryLockdownTime:
             case PropertyName.DeviceSound:
             case PropertyName.DeviceWrongTryAttempts:
             case PropertyName.DeviceAutoLockTimer:
-                return value as number
+                return value as number;
             case PropertyName.DeviceAutoLockScheduleEndTime:
             case PropertyName.DeviceAutoLockScheduleStartTime:
-                const autoLockSchedule = (value as string).split(':')
-                return `${Number.parseInt(autoLockSchedule[0]).toString(16).padStart(2, '0')}${Number.parseInt(autoLockSchedule[1]).toString(16).padStart(2, '0')}`
+                const autoLockSchedule = (value as string).split(':');
+                return `${Number.parseInt(autoLockSchedule[0]).toString(16).padStart(2, '0')}${Number.parseInt(autoLockSchedule[1]).toString(16).padStart(2, '0')}`;
         }
-        return ''
+        return '';
     }
 
     private convertAdvancedLockSettingValueT8530(
@@ -12103,19 +12118,19 @@ export class Station extends TypedEmitter<StationEvents> {
             case PropertyName.DeviceScramblePasscode:
             case PropertyName.DeviceWrongTryProtection:
             case PropertyName.DeviceNightvisionOptimization:
-                return (value as boolean) === true ? 1 : 0
+                return (value as boolean) === true ? 1 : 0;
             case PropertyName.DeviceWrongTryLockdownTime:
             case PropertyName.DeviceBeepVolume:
             case PropertyName.DeviceWrongTryAttempts:
             case PropertyName.DeviceAutoLockTimer:
             case PropertyName.DeviceNightvisionOptimizationSide:
-                return value as number
+                return value as number;
             case PropertyName.DeviceAutoLockScheduleEndTime:
             case PropertyName.DeviceAutoLockScheduleStartTime:
-                const autoLockSchedule = (value as string).split(':')
-                return `${Number.parseInt(autoLockSchedule[0]).toString(16).padStart(2, '0')}${Number.parseInt(autoLockSchedule[1]).toString(16).padStart(2, '0')}`
+                const autoLockSchedule = (value as string).split(':');
+                return `${Number.parseInt(autoLockSchedule[0]).toString(16).padStart(2, '0')}${Number.parseInt(autoLockSchedule[1]).toString(16).padStart(2, '0')}`;
         }
-        return ''
+        return '';
     }
 
     private getAdvancedLockSettingsPayload(
@@ -12125,19 +12140,19 @@ export class Station extends TypedEmitter<StationEvents> {
         switch (command) {
             case CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_STARTTIME:
             case CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_ENDTIME:
-                command = CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE
-                break
+                command = CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE;
+                break;
             case CommandType.CMD_SMARTLOCK_AUTO_LOCK_TIMER:
-                command = CommandType.CMD_SMARTLOCK_AUTO_LOCK
-                break
+                command = CommandType.CMD_SMARTLOCK_AUTO_LOCK;
+                break;
             case CommandType.CMD_SMARTLOCK_WRONG_TRY_ATTEMPTS:
             case CommandType.CMD_SMARTLOCK_WRONG_TRY_LOCKDOWN:
-                command = CommandType.CMD_SMARTLOCK_WRONG_TRY_PROTECT
-                break
+                command = CommandType.CMD_SMARTLOCK_WRONG_TRY_PROTECT;
+                break;
             case CommandType.CMD_SMARTLOCK_NOTIFICATION_LOCKED:
             case CommandType.CMD_SMARTLOCK_NOTIFICATION_UNLOCKED:
-                command = CommandType.CMD_SMARTLOCK_NOTIFICATION
-                break
+                command = CommandType.CMD_SMARTLOCK_NOTIFICATION;
+                break;
         }
         return {
             autoLockTime: this.convertAdvancedLockSettingValue(
@@ -12202,7 +12217,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 device.getPropertyValue(PropertyName.DeviceWrongTryAttempts)
             ) as number,
             seq_num: this.p2pSession.incLockSequenceNumber(),
-        }
+        };
     }
 
     private getAdvancedLockSettingsPayloadT8530(
@@ -12212,22 +12227,22 @@ export class Station extends TypedEmitter<StationEvents> {
         switch (command) {
             case CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_STARTTIME:
             case CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_ENDTIME:
-                command = CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE
-                break
+                command = CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE;
+                break;
             case CommandType.CMD_SMARTLOCK_AUTO_LOCK_TIMER:
-                command = CommandType.CMD_SMARTLOCK_AUTO_LOCK
-                break
+                command = CommandType.CMD_SMARTLOCK_AUTO_LOCK;
+                break;
             case CommandType.CMD_SMARTLOCK_WRONG_TRY_ATTEMPTS:
             case CommandType.CMD_SMARTLOCK_WRONG_TRY_LOCKDOWN:
-                command = CommandType.CMD_SMARTLOCK_WRONG_TRY_PROTECT
-                break
+                command = CommandType.CMD_SMARTLOCK_WRONG_TRY_PROTECT;
+                break;
             case CommandType.CMD_SMARTLOCK_NOTIFICATION_LOCKED:
             case CommandType.CMD_SMARTLOCK_NOTIFICATION_UNLOCKED:
-                command = CommandType.CMD_SMARTLOCK_NOTIFICATION
-                break
+                command = CommandType.CMD_SMARTLOCK_NOTIFICATION;
+                break;
             case CommandType.CMD_SMARTLOCK_VOLUME:
-                command = CommandType.CMD_SMARTLOCK_VOLUME
-                break
+                command = CommandType.CMD_SMARTLOCK_VOLUME;
+                break;
         }
         return {
             autoLockTime: this.convertAdvancedLockSettingValueT8530(
@@ -12312,77 +12327,77 @@ export class Station extends TypedEmitter<StationEvents> {
                 PropertyName.DeviceWrongTryAttempts,
                 device.getPropertyValue(PropertyName.DeviceWrongTryAttempts)
             ) as number,
-        }
+        };
     }
 
     private getAdvancedLockSettingName(property: PropertyName): string {
         switch (property) {
             case PropertyName.DeviceAutoLock:
-                return 'isAutoLock'
+                return 'isAutoLock';
             case PropertyName.DeviceAutoLockTimer:
-                return 'autoLockTime'
+                return 'autoLockTime';
             case PropertyName.DeviceNotification:
-                return 'isNotification'
+                return 'isNotification';
             case PropertyName.DeviceNotificationLocked:
-                return 'isLockNotification'
+                return 'isLockNotification';
             case PropertyName.DeviceOneTouchLocking:
-                return 'isOneTouchLock'
+                return 'isOneTouchLock';
             case PropertyName.DeviceAutoLockSchedule:
-                return 'isSchedule'
+                return 'isSchedule';
             case PropertyName.DeviceScramblePasscode:
-                return 'isScramblePasscode'
+                return 'isScramblePasscode';
             case PropertyName.DeviceNotificationUnlocked:
-                return 'isUnLockNotification'
+                return 'isUnLockNotification';
             case PropertyName.DeviceWrongTryProtection:
-                return 'isWrongTryProtect'
+                return 'isWrongTryProtect';
             case PropertyName.DeviceWrongTryLockdownTime:
-                return 'lockDownTime'
+                return 'lockDownTime';
             case PropertyName.DeviceSound:
-                return 'lockSound'
+                return 'lockSound';
             case PropertyName.DeviceAutoLockScheduleEndTime:
-                return 'scheduleEnd'
+                return 'scheduleEnd';
             case PropertyName.DeviceAutoLockScheduleStartTime:
-                return 'scheduleStart'
+                return 'scheduleStart';
             case PropertyName.DeviceWrongTryAttempts:
-                return 'wrongTryTime'
+                return 'wrongTryTime';
         }
-        return ''
+        return '';
     }
 
     private getAdvancedLockSettingNameT8530(property: PropertyName): string {
         switch (property) {
             case PropertyName.DeviceAutoLock:
-                return 'isAutoLock'
+                return 'isAutoLock';
             case PropertyName.DeviceAutoLockTimer:
-                return 'autoLockTime'
+                return 'autoLockTime';
             case PropertyName.DeviceNotificationLocked:
-                return 'isLockNotification'
+                return 'isLockNotification';
             case PropertyName.DeviceNotificationUnlocked:
-                return 'isUnLockNotification'
+                return 'isUnLockNotification';
             case PropertyName.DeviceOneTouchLocking:
-                return 'isOneTouchLock'
+                return 'isOneTouchLock';
             case PropertyName.DeviceAutoLockSchedule:
-                return 'isSchedule'
+                return 'isSchedule';
             case PropertyName.DeviceScramblePasscode:
-                return 'isScramblePasscode'
+                return 'isScramblePasscode';
             case PropertyName.DeviceWrongTryProtection:
-                return 'isWrongTryProtect'
+                return 'isWrongTryProtect';
             case PropertyName.DeviceWrongTryLockdownTime:
-                return 'lockDownTime'
+                return 'lockDownTime';
             case PropertyName.DeviceAutoLockScheduleEndTime:
-                return 'scheduleEnd'
+                return 'scheduleEnd';
             case PropertyName.DeviceAutoLockScheduleStartTime:
-                return 'scheduleStart'
+                return 'scheduleStart';
             case PropertyName.DeviceWrongTryAttempts:
-                return 'wrongTryTime'
+                return 'wrongTryTime';
             case PropertyName.DeviceNightvisionOptimizationSide:
-                return 'lockOpenDirection'
+                return 'lockOpenDirection';
             case PropertyName.DeviceBeepVolume:
-                return 'lockVolume'
+                return 'lockVolume';
             case PropertyName.DeviceNightvisionOptimization:
-                return 'nightVisionEnhance'
+                return 'nightVisionEnhance';
         }
-        return ''
+        return '';
     }
 
     public setAdvancedLockParams(
@@ -12393,7 +12408,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: property,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -12405,7 +12420,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -12418,10 +12433,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const propertyMetadata = device.getPropertyMetadata(propertyData.name)
-        validValue(propertyMetadata, value)
+        const propertyMetadata = device.getPropertyMetadata(propertyData.name);
+        validValue(propertyMetadata, value);
 
         rootHTTPLogger.debug(
             `Station set advanced lock params - sending command`,
@@ -12431,18 +12446,18 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: property,
                 value: value,
             }
-        )
+        );
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             const payload = this.getAdvancedLockSettingsPayload(
                 device.getPropertyMetadata(property).key as number,
                 device
-            )
-            const p2pParamName = this.getAdvancedLockSettingName(property)
+            );
+            const p2pParamName = this.getAdvancedLockSettingName(property);
             if (p2pParamName !== '') {
                 payload[p2pParamName] = this.convertAdvancedLockSettingValue(
                     property,
                     value
-                )
+                );
                 const command = getLockP2PCommand(
                     this.rawStation.station_sn,
                     this.rawStation.member.admin_user_id,
@@ -12450,11 +12465,11 @@ export class Station extends TypedEmitter<StationEvents> {
                     device.getChannel(),
                     this.lockPublicKey,
                     payload
-                )
+                );
                 this.p2pSession.setLockAESKey(
                     CommandType.P2P_SET_LOCK_PARAM,
                     command.aesKey
-                )
+                );
                 rootHTTPLogger.debug(
                     'Station set advanced lock params - Set lock param...',
                     {
@@ -12466,16 +12481,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         payload: command,
                         nestedPayload: payload,
                     }
-                )
+                );
 
                 this.p2pSession.sendCommandWithStringPayload(command, {
                     property: propertyData,
-                })
+                });
             } else {
                 rootHTTPLogger.warn(
                     `Internal lock property for property ${property} not identified for ${device.getSerial()}`,
                     { p2pParamName: p2pParamName }
-                )
+                );
                 throw new InvalidPropertyError(
                     'Internal lock property for property not identified for this device',
                     {
@@ -12486,17 +12501,17 @@ export class Station extends TypedEmitter<StationEvents> {
                             propertyValue: propertyData.value,
                         },
                     }
-                )
+                );
             }
         } else if (device.isLockWifiVideo()) {
             const payload = this.getAdvancedLockSettingsPayloadT8530(
                 device.getPropertyMetadata(property).key as number,
                 device
-            )
-            const p2pParamName = this.getAdvancedLockSettingNameT8530(property)
+            );
+            const p2pParamName = this.getAdvancedLockSettingNameT8530(property);
             if (p2pParamName !== '') {
                 payload[p2pParamName] =
-                    this.convertAdvancedLockSettingValueT8530(property, value)
+                    this.convertAdvancedLockSettingValueT8530(property, value);
                 rootHTTPLogger.debug(
                     'Station set advanced lock params - Set lock param...',
                     {
@@ -12507,7 +12522,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         value: value,
                         payload: payload,
                     }
-                )
+                );
                 this.p2pSession.sendCommandWithStringPayload(
                     {
                         commandType: CommandType.CMD_SET_PAYLOAD,
@@ -12523,12 +12538,12 @@ export class Station extends TypedEmitter<StationEvents> {
                     {
                         property: propertyData,
                     }
-                )
+                );
             } else {
                 rootHTTPLogger.warn(
                     `Internal lock property for property ${property} not identified for ${device.getSerial()}`,
                     { p2pParamName: p2pParamName }
-                )
+                );
                 throw new InvalidPropertyError(
                     'Internal lock property for property not identified for this device',
                     {
@@ -12539,7 +12554,7 @@ export class Station extends TypedEmitter<StationEvents> {
                             propertyValue: propertyData.value,
                         },
                     }
-                )
+                );
             }
         } else {
             throw new NotSupportedError(
@@ -12552,7 +12567,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -12560,7 +12575,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLoiteringDetection,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -12572,7 +12587,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -12585,10 +12600,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set loitering detection - sending command`,
@@ -12597,7 +12612,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isBatteryDoorbellDual() || device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -12616,7 +12631,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -12628,7 +12643,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -12636,7 +12651,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLoiteringDetectionRange,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -12648,7 +12663,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -12661,10 +12676,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set loitering detection range - sending command`,
@@ -12673,7 +12688,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isBatteryDoorbellDual() || device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -12692,7 +12707,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -12704,7 +12719,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -12712,7 +12727,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLoiteringDetectionLength,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -12724,7 +12739,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -12737,10 +12752,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set loitering detection length - sending command`,
@@ -12749,7 +12764,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isBatteryDoorbellDual() || device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -12768,7 +12783,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -12780,7 +12795,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -12801,7 +12816,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -12814,10 +12829,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, propertyData.value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, propertyData.value);
 
         rootHTTPLogger.debug(
             `Station set motion detection sensitivty - sending command`,
@@ -12828,7 +12843,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 mode: mode,
                 blocklist: blocklist,
             }
-        )
+        );
         if (device.isBatteryDoorbellDual() || device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -12848,7 +12863,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -12860,7 +12875,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -12892,7 +12907,7 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getPropertyValue(
                 PropertyName.DeviceMotionDetectionSensitivityAdvancedH
             ) as number,
-        ]
+        ];
     }
 
     public setMotionDetectionSensitivityMode(
@@ -12902,8 +12917,8 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionSensitivityMode,
             value: value,
-        }
-        let distances: Array<number>
+        };
+        let distances: Array<number>;
         if (
             device.getPropertyValue(
                 PropertyName.DeviceMotionDetectionSensitivityMode
@@ -12913,16 +12928,16 @@ export class Station extends TypedEmitter<StationEvents> {
                 device.getPropertyValue(
                     PropertyName.DeviceMotionDetectionSensitivityStandard
                 )
-            )
+            );
         } else {
-            distances = this._getMotionDetectionSensitivityAdvanced(device)
+            distances = this._getMotionDetectionSensitivityAdvanced(device);
         }
         this._setMotionDetectionSensitivity(
             device,
             propertyData,
             value,
             getBlocklist(distances)
-        )
+        );
     }
 
     public setMotionDetectionSensitivityStandard(
@@ -12932,13 +12947,13 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionSensitivityStandard,
             value: value,
-        }
+        };
         this._setMotionDetectionSensitivity(
             device,
             propertyData,
             MotionDetectionMode.STANDARD,
             getBlocklist(Array(8).fill(value))
-        )
+        );
     }
 
     public setMotionDetectionSensitivityAdvancedA(
@@ -12948,15 +12963,15 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionSensitivityAdvancedA,
             value: value,
-        }
-        const blocklist = this._getMotionDetectionSensitivityAdvanced(device)
-        blocklist[0] = value
+        };
+        const blocklist = this._getMotionDetectionSensitivityAdvanced(device);
+        blocklist[0] = value;
         this._setMotionDetectionSensitivity(
             device,
             propertyData,
             MotionDetectionMode.ADVANCED,
             getBlocklist(blocklist)
-        )
+        );
     }
 
     public setMotionDetectionSensitivityAdvancedB(
@@ -12966,15 +12981,15 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionSensitivityAdvancedB,
             value: value,
-        }
-        const blocklist = this._getMotionDetectionSensitivityAdvanced(device)
-        blocklist[1] = value
+        };
+        const blocklist = this._getMotionDetectionSensitivityAdvanced(device);
+        blocklist[1] = value;
         this._setMotionDetectionSensitivity(
             device,
             propertyData,
             MotionDetectionMode.ADVANCED,
             getBlocklist(blocklist)
-        )
+        );
     }
 
     public setMotionDetectionSensitivityAdvancedC(
@@ -12984,15 +12999,15 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionSensitivityAdvancedC,
             value: value,
-        }
-        const blocklist = this._getMotionDetectionSensitivityAdvanced(device)
-        blocklist[2] = value
+        };
+        const blocklist = this._getMotionDetectionSensitivityAdvanced(device);
+        blocklist[2] = value;
         this._setMotionDetectionSensitivity(
             device,
             propertyData,
             MotionDetectionMode.ADVANCED,
             getBlocklist(blocklist)
-        )
+        );
     }
 
     public setMotionDetectionSensitivityAdvancedD(
@@ -13002,15 +13017,15 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionSensitivityAdvancedD,
             value: value,
-        }
-        const blocklist = this._getMotionDetectionSensitivityAdvanced(device)
-        blocklist[3] = value
+        };
+        const blocklist = this._getMotionDetectionSensitivityAdvanced(device);
+        blocklist[3] = value;
         this._setMotionDetectionSensitivity(
             device,
             propertyData,
             MotionDetectionMode.ADVANCED,
             getBlocklist(blocklist)
-        )
+        );
     }
 
     public setMotionDetectionSensitivityAdvancedE(
@@ -13020,15 +13035,15 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionSensitivityAdvancedE,
             value: value,
-        }
-        const blocklist = this._getMotionDetectionSensitivityAdvanced(device)
-        blocklist[4] = value
+        };
+        const blocklist = this._getMotionDetectionSensitivityAdvanced(device);
+        blocklist[4] = value;
         this._setMotionDetectionSensitivity(
             device,
             propertyData,
             MotionDetectionMode.ADVANCED,
             getBlocklist(blocklist)
-        )
+        );
     }
 
     public setMotionDetectionSensitivityAdvancedF(
@@ -13038,15 +13053,15 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionSensitivityAdvancedF,
             value: value,
-        }
-        const blocklist = this._getMotionDetectionSensitivityAdvanced(device)
-        blocklist[5] = value
+        };
+        const blocklist = this._getMotionDetectionSensitivityAdvanced(device);
+        blocklist[5] = value;
         this._setMotionDetectionSensitivity(
             device,
             propertyData,
             MotionDetectionMode.ADVANCED,
             getBlocklist(blocklist)
-        )
+        );
     }
 
     public setMotionDetectionSensitivityAdvancedG(
@@ -13056,15 +13071,15 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionSensitivityAdvancedG,
             value: value,
-        }
-        const blocklist = this._getMotionDetectionSensitivityAdvanced(device)
-        blocklist[6] = value
+        };
+        const blocklist = this._getMotionDetectionSensitivityAdvanced(device);
+        blocklist[6] = value;
         this._setMotionDetectionSensitivity(
             device,
             propertyData,
             MotionDetectionMode.ADVANCED,
             getBlocklist(blocklist)
-        )
+        );
     }
 
     public setMotionDetectionSensitivityAdvancedH(
@@ -13074,15 +13089,15 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionSensitivityAdvancedH,
             value: value,
-        }
-        const blocklist = this._getMotionDetectionSensitivityAdvanced(device)
-        blocklist[7] = value
+        };
+        const blocklist = this._getMotionDetectionSensitivityAdvanced(device);
+        blocklist[7] = value;
         this._setMotionDetectionSensitivity(
             device,
             propertyData,
             MotionDetectionMode.ADVANCED,
             getBlocklist(blocklist)
-        )
+        );
     }
 
     private _setLoiteringCustomResponse(
@@ -13106,7 +13121,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -13119,10 +13134,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, propertyData.value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, propertyData.value);
 
         rootHTTPLogger.debug(
             `Station set loitering custom response - sending command`,
@@ -13137,7 +13152,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 startTime: startTime,
                 endTime: endTime,
             }
-        )
+        );
         if (device.isBatteryDoorbellDual() || device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -13176,7 +13191,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -13188,7 +13203,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -13199,7 +13214,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponse,
             value: value,
-        }
+        };
         this._setLoiteringCustomResponse(
             device,
             propertyData,
@@ -13219,7 +13234,7 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getPropertyValue(
                 PropertyName.DeviceLoiteringCustomResponseTimeTo
             ) as string
-        )
+        );
     }
 
     public setLoiteringCustomResponseAutoVoiceResponseVoice(
@@ -13229,7 +13244,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponseVoice,
             value: value,
-        }
+        };
         this._setLoiteringCustomResponse(
             device,
             propertyData,
@@ -13249,7 +13264,7 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getPropertyValue(
                 PropertyName.DeviceLoiteringCustomResponseTimeTo
             ) as string
-        )
+        );
     }
 
     public setLoiteringCustomResponseHomeBaseNotification(
@@ -13259,7 +13274,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLoiteringCustomResponseHomeBaseNotification,
             value: value,
-        }
+        };
         this._setLoiteringCustomResponse(
             device,
             propertyData,
@@ -13279,7 +13294,7 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getPropertyValue(
                 PropertyName.DeviceLoiteringCustomResponseTimeTo
             ) as string
-        )
+        );
     }
 
     public setLoiteringCustomResponsePhoneNotification(
@@ -13289,7 +13304,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLoiteringCustomResponsePhoneNotification,
             value: value,
-        }
+        };
         this._setLoiteringCustomResponse(
             device,
             propertyData,
@@ -13309,7 +13324,7 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getPropertyValue(
                 PropertyName.DeviceLoiteringCustomResponseTimeTo
             ) as string
-        )
+        );
     }
 
     public setLoiteringCustomResponseTimeFrom(
@@ -13319,7 +13334,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLoiteringCustomResponseTimeFrom,
             value: value,
-        }
+        };
         this._setLoiteringCustomResponse(
             device,
             propertyData,
@@ -13339,7 +13354,7 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getPropertyValue(
                 PropertyName.DeviceLoiteringCustomResponseTimeTo
             ) as string
-        )
+        );
     }
 
     public setLoiteringCustomResponseTimeTo(
@@ -13349,7 +13364,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLoiteringCustomResponseTimeTo,
             value: value,
-        }
+        };
         this._setLoiteringCustomResponse(
             device,
             propertyData,
@@ -13369,14 +13384,14 @@ export class Station extends TypedEmitter<StationEvents> {
                 PropertyName.DeviceLoiteringCustomResponseTimeFrom
             ) as string,
             value
-        )
+        );
     }
 
     public setDeliveryGuard(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceDeliveryGuard,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -13388,7 +13403,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -13401,16 +13416,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set delivery guard - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (
             device.isBatteryDoorbellDual() ||
             device.isWiredDoorbellDual() ||
@@ -13434,7 +13449,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -13446,7 +13461,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -13457,7 +13472,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceDeliveryGuardPackageGuarding,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -13469,7 +13484,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -13482,10 +13497,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set delivery guard package guarding - sending command`,
@@ -13494,7 +13509,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isBatteryDoorbellDual() ||
             device.isWiredDoorbellDual() ||
@@ -13517,7 +13532,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -13529,7 +13544,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -13540,7 +13555,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceDeliveryGuardPackageGuardingVoiceResponseVoice,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -13552,7 +13567,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -13565,10 +13580,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, propertyData.value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, propertyData.value);
 
         rootHTTPLogger.debug(
             `Station set delivery guard package guarding voice response voice - sending command`,
@@ -13577,7 +13592,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isBatteryDoorbellDual() ||
             device.isWiredDoorbellDual() ||
@@ -13603,7 +13618,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -13615,7 +13630,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -13636,7 +13651,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -13649,10 +13664,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, propertyData.value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, propertyData.value);
 
         rootHTTPLogger.debug(
             `Station set delivery guard guarding activated time - sending command`,
@@ -13663,7 +13678,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 startTime: start,
                 endTime: endTime,
             }
-        )
+        );
         if (
             device.isBatteryDoorbellDual() ||
             device.isWiredDoorbellDual() ||
@@ -13689,7 +13704,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -13701,7 +13716,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -13712,7 +13727,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceDeliveryGuardPackageGuardingActivatedTimeFrom,
             value: value,
-        }
+        };
         this.setDeliveryGuardPackageGuardingActivatedTime(
             device,
             propertyData,
@@ -13720,7 +13735,7 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getPropertyValue(
                 PropertyName.DeviceDeliveryGuardPackageGuardingActivatedTimeTo
             ) as string
-        )
+        );
     }
 
     public setDeliveryGuardPackageGuardingActivatedTimeTo(
@@ -13730,7 +13745,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceDeliveryGuardPackageGuardingActivatedTimeTo,
             value: value,
-        }
+        };
         this.setDeliveryGuardPackageGuardingActivatedTime(
             device,
             propertyData,
@@ -13738,7 +13753,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 PropertyName.DeviceDeliveryGuardPackageGuardingActivatedTimeFrom
             ) as string,
             value
-        )
+        );
     }
 
     public setDeliveryGuardUncollectedPackageAlert(
@@ -13748,7 +13763,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceDeliveryGuardUncollectedPackageAlert,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -13760,7 +13775,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -13773,10 +13788,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set delivery guard uncollected package alert - sending command`,
@@ -13785,7 +13800,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isBatteryDoorbellDual() ||
             device.isWiredDoorbellDual() ||
@@ -13808,7 +13823,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -13820,7 +13835,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -13831,7 +13846,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceDeliveryGuardUncollectedPackageAlertTimeToCheck,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -13843,7 +13858,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -13856,10 +13871,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, propertyData.value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, propertyData.value);
 
         rootHTTPLogger.debug(
             `Station set delivery guard uncollected package alert time to check - sending command`,
@@ -13868,7 +13883,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isBatteryDoorbellDual() ||
             device.isWiredDoorbellDual() ||
@@ -13892,7 +13907,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -13904,7 +13919,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -13915,7 +13930,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceDeliveryGuardPackageLiveCheckAssistance,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -13927,7 +13942,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -13940,10 +13955,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set delivery guard package live check assistance - sending command`,
@@ -13952,7 +13967,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isBatteryDoorbellDual() ||
             device.isWiredDoorbellDual() ||
@@ -13975,7 +13990,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -13987,7 +14002,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -13995,7 +14010,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceDualCamWatchViewMode,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -14007,7 +14022,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -14020,10 +14035,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, propertyData.value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, propertyData.value);
 
         rootHTTPLogger.debug(
             `Station set dual cam watch view mode - sending command`,
@@ -14032,7 +14047,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isBatteryDoorbellDual() || device.isWiredDoorbellDual()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -14052,7 +14067,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isBatteryDoorbellDualE340() ||
             device.isOutdoorPanAndTiltCamera() ||
@@ -14077,7 +14092,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -14089,7 +14104,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -14113,7 +14128,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -14126,10 +14141,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, propertyData.value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, propertyData.value);
 
         rootHTTPLogger.debug(
             `Station set ring auto response - sending command`,
@@ -14143,7 +14158,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 startTime: startTime,
                 endTime: endTime,
             }
-        )
+        );
         if (
             device.isBatteryDoorbellDual() ||
             device.isWiredDoorbellDual() ||
@@ -14182,7 +14197,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -14194,7 +14209,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -14202,7 +14217,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRingAutoResponse,
             value: value,
-        }
+        };
         this._setRingAutoResponse(
             device,
             propertyData,
@@ -14219,7 +14234,7 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getPropertyValue(
                 PropertyName.DeviceRingAutoResponseTimeTo
             ) as string
-        )
+        );
     }
 
     public setRingAutoResponseVoiceResponse(
@@ -14229,7 +14244,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRingAutoResponseVoiceResponse,
             value: value,
-        }
+        };
         this._setRingAutoResponse(
             device,
             propertyData,
@@ -14246,7 +14261,7 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getPropertyValue(
                 PropertyName.DeviceRingAutoResponseTimeTo
             ) as string
-        )
+        );
     }
 
     public setRingAutoResponseVoiceResponseVoice(
@@ -14256,7 +14271,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRingAutoResponseVoiceResponseVoice,
             value: value,
-        }
+        };
         this._setRingAutoResponse(
             device,
             propertyData,
@@ -14273,14 +14288,14 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getPropertyValue(
                 PropertyName.DeviceRingAutoResponseTimeTo
             ) as string
-        )
+        );
     }
 
     public setRingAutoResponseTimeFrom(device: Device, value: string): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRingAutoResponseTimeFrom,
             value: value,
-        }
+        };
         this._setRingAutoResponse(
             device,
             propertyData,
@@ -14297,14 +14312,14 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getPropertyValue(
                 PropertyName.DeviceRingAutoResponseTimeTo
             ) as string
-        )
+        );
     }
 
     public setRingAutoResponseTimeTo(device: Device, value: string): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceRingAutoResponseTimeTo,
             value: value,
-        }
+        };
         this._setRingAutoResponse(
             device,
             propertyData,
@@ -14321,14 +14336,14 @@ export class Station extends TypedEmitter<StationEvents> {
                 PropertyName.DeviceRingAutoResponseTimeFrom
             ) as string,
             value
-        )
+        );
     }
 
     public setNotificationRadarDetector(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNotificationRadarDetector,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -14340,7 +14355,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -14353,10 +14368,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set notification radar detector - sending command`,
@@ -14365,7 +14380,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isBatteryDoorbellDual()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -14384,7 +14399,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -14396,14 +14411,14 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
     public calibrate(device: Device): void {
         const commandData: CommandData = {
             name: CommandName.DeviceCalibrate,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -14414,7 +14429,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceCalibrate)) {
             throw new NotSupportedError(
@@ -14426,12 +14441,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station calibrate - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
-        })
+        });
         if (device.isPanAndTiltCamera()) {
             if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
                 this.p2pSession.sendCommandWithStringPayload(
@@ -14448,7 +14463,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     {
                         command: commandData,
                     }
-                )
+                );
             } else if (device.isOutdoorPanAndTiltCamera()) {
                 this.p2pSession.sendCommandWithStringPayload(
                     {
@@ -14467,7 +14482,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     {
                         command: commandData,
                     }
-                )
+                );
             } else if (
                 device.isIndoorPanAndTiltCameraS350() ||
                 device.isFloodLightT8425()
@@ -14493,7 +14508,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     {
                         command: commandData,
                     }
-                )
+                );
             } else {
                 this.p2pSession.sendCommandWithStringPayload(
                     {
@@ -14506,7 +14521,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     {
                         command: commandData,
                     }
-                )
+                );
             }
         } else {
             throw new NotSupportedError(
@@ -14518,7 +14533,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -14526,7 +14541,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceContinuousRecording,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -14538,7 +14553,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -14551,10 +14566,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set continuous recording - sending command`,
@@ -14563,7 +14578,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -14585,14 +14600,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setContinuousRecordingType(device: Device, value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceContinuousRecordingType,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -14604,7 +14619,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -14617,10 +14632,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set continuous recording type - sending command`,
@@ -14629,7 +14644,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -14651,14 +14666,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public enableDefaultAngle(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceDefaultAngle,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -14670,7 +14685,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -14683,16 +14698,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station enable default angle - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -14712,14 +14727,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setDefaultAngleIdleTime(device: Device, value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceDefaultAngleIdleTime,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -14731,7 +14746,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -14744,10 +14759,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set default angle idle time - sending command`,
@@ -14756,7 +14771,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -14771,13 +14786,13 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setDefaultAngle(device: Device): void {
         const commandData: CommandData = {
             name: CommandName.DeviceSetDefaultAngle,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -14788,7 +14803,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceSetDefaultAngle)) {
             throw new NotSupportedError(
@@ -14800,12 +14815,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station set default angle - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
-        })
+        });
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -14820,13 +14835,13 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 command: commandData,
             }
-        )
+        );
     }
 
     public setPrivacyAngle(device: Device): void {
         const commandData: CommandData = {
             name: CommandName.DeviceSetPrivacyAngle,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -14837,7 +14852,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceSetPrivacyAngle)) {
             throw new NotSupportedError(
@@ -14849,12 +14864,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station set privacy angle - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
-        })
+        });
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -14869,14 +14884,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 command: commandData,
             }
-        )
+        );
     }
 
     public setNotificationIntervalTime(device: Device, value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNotificationIntervalTime,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -14888,7 +14903,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -14901,10 +14916,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set notification interval time - sending command`,
@@ -14913,7 +14928,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithInt(
             {
                 commandType: CommandType.CMD_DEV_RECORD_INTERVAL,
@@ -14924,14 +14939,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setSoundDetectionRoundLook(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceSoundDetectionRoundLook,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -14943,7 +14958,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -14956,10 +14971,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set sound detection round look - sending command`,
@@ -14968,7 +14983,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isIndoorPanAndTiltCameraS350()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -14987,7 +15002,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -15004,14 +15019,14 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         }
     }
 
     public startTalkback(device: Device): void {
         const commandData: CommandData = {
             name: CommandName.DeviceStartTalkback,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -15022,7 +15037,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceStartTalkback)) {
             throw new NotSupportedError(
@@ -15034,7 +15049,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!this.isLiveStreaming(device)) {
             throw new LivestreamNotRunningError(
@@ -15046,12 +15061,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station start talkback - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
-        })
+        });
         if (
             (device.isIndoorCamera() &&
                 !device.isIndoorPanAndTiltCameraS350()) ||
@@ -15077,7 +15092,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (
             (device.isBatteryDoorbell() &&
                 isGreaterEqualMinVersion(
@@ -15099,9 +15114,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else {
-            this.p2pSession.startTalkback(device.getChannel())
+            this.p2pSession.startTalkback(device.getChannel());
             this.emit('command result', this, {
                 channel: device.getChannel(),
                 command_type: CommandType.CMD_START_TALKBACK,
@@ -15109,14 +15124,14 @@ export class Station extends TypedEmitter<StationEvents> {
                 customData: {
                     command: commandData,
                 },
-            })
+            });
         }
     }
 
     public stopTalkback(device: Device): void {
         const commandData: CommandData = {
             name: CommandName.DeviceStopTalkback,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -15127,7 +15142,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceStopTalkback)) {
             throw new NotSupportedError(
@@ -15139,7 +15154,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!this.isLiveStreaming(device)) {
             throw new LivestreamNotRunningError(
@@ -15151,12 +15166,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station stop talkback - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
-        })
+        });
         if (
             (device.isIndoorCamera() &&
                 !device.isIndoorPanAndTiltCameraS350()) ||
@@ -15182,7 +15197,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (
             (device.isBatteryDoorbell() &&
                 isGreaterEqualMinVersion(
@@ -15204,9 +15219,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else {
-            this.p2pSession.stopTalkback(device.getChannel())
+            this.p2pSession.stopTalkback(device.getChannel());
             this.emit('command result', this, {
                 channel: device.getChannel(),
                 command_type: CommandType.CMD_STOP_TALKBACK,
@@ -15214,7 +15229,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 customData: {
                     command: commandData,
                 },
-            })
+            });
         }
     }
 
@@ -15222,27 +15237,27 @@ export class Station extends TypedEmitter<StationEvents> {
         channel: number,
         talkbackStream: TalkbackStream
     ): void {
-        this.emit('talkback started', this, channel, talkbackStream)
+        this.emit('talkback started', this, channel, talkbackStream);
     }
 
     private onTalkbackStopped(channel: number): void {
-        this.emit('talkback stopped', this, channel)
+        this.emit('talkback stopped', this, channel);
     }
 
     private onTalkbackError(channel: number, error: Error): void {
-        this.emit('talkback error', this, channel, error)
+        this.emit('talkback error', this, channel, error);
     }
 
     public isTalkbackOngoing(device: Device): boolean {
-        if (device.getStationSerial() !== this.getSerial()) return false
-        return this.p2pSession.isTalkbackOngoing(device.getChannel())
+        if (device.getStationSerial() !== this.getSerial()) return false;
+        return this.p2pSession.isTalkbackOngoing(device.getChannel());
     }
 
     public setScramblePasscode(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceScramblePasscode,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -15254,7 +15269,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -15267,7 +15282,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station set scramble passcode - sending command`,
@@ -15276,7 +15291,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isLockWifi() ||
             device.isLockWifiNoFinger() ||
@@ -15286,13 +15301,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceScramblePasscode,
                 value
-            )
+            );
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(
                 device,
                 PropertyName.DeviceScramblePasscode,
                 value
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -15303,13 +15318,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceScramblePasscode,
                 value
-            )
+            );
         } else if (device.isSmartSafe()) {
             this.setSmartSafeParams(
                 device,
                 PropertyName.DeviceScramblePasscode,
                 value
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -15321,7 +15336,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -15329,7 +15344,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceWrongTryProtection,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -15341,7 +15356,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -15354,7 +15369,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station set wrong try protection - sending command`,
@@ -15363,7 +15378,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isLockWifi() ||
             device.isLockWifiNoFinger() ||
@@ -15373,13 +15388,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceWrongTryProtection,
                 value
-            )
+            );
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(
                 device,
                 PropertyName.DeviceWrongTryProtection,
                 value
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -15390,13 +15405,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceWrongTryProtection,
                 value
-            )
+            );
         } else if (device.isSmartSafe()) {
             this.setSmartSafeParams(
                 device,
                 PropertyName.DeviceWrongTryProtection,
                 value
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -15408,7 +15423,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -15416,7 +15431,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceWrongTryAttempts,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -15428,7 +15443,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -15441,7 +15456,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station set wrong try attempts - sending command`,
@@ -15450,7 +15465,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isLockWifi() ||
             device.isLockWifiNoFinger() ||
@@ -15460,13 +15475,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceWrongTryAttempts,
                 value
-            )
+            );
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(
                 device,
                 PropertyName.DeviceWrongTryAttempts,
                 value
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -15477,13 +15492,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceWrongTryAttempts,
                 value
-            )
+            );
         } else if (device.isSmartSafe()) {
             this.setSmartSafeParams(
                 device,
                 PropertyName.DeviceWrongTryAttempts,
                 value
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -15495,7 +15510,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -15503,7 +15518,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceWrongTryLockdownTime,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -15515,7 +15530,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -15528,7 +15543,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station set wrong try lockdown time - sending command`,
@@ -15537,7 +15552,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isLockWifi() ||
             device.isLockWifiNoFinger() ||
@@ -15547,13 +15562,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceWrongTryLockdownTime,
                 value
-            )
+            );
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(
                 device,
                 PropertyName.DeviceWrongTryLockdownTime,
                 value
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -15564,13 +15579,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceWrongTryLockdownTime,
                 value
-            )
+            );
         } else if (device.isSmartSafe()) {
             this.setSmartSafeParams(
                 device,
                 PropertyName.DeviceWrongTryLockdownTime,
                 value
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -15582,7 +15597,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -15600,8 +15615,8 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getChannel(),
             this.p2pSession.incLockSequenceNumber(),
             data
-        )
-        this.p2pSession.sendCommandWithStringPayload(payload, customData)
+        );
+        this.p2pSession.sendCommandWithStringPayload(payload, customData);
     }
 
     public setSmartSafeParams(
@@ -15612,7 +15627,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: property,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -15624,7 +15639,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -15637,10 +15652,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const propertyMetadata = device.getPropertyMetadata(propertyData.name)
-        validValue(propertyMetadata, value)
+        const propertyMetadata = device.getPropertyMetadata(propertyData.name);
+        validValue(propertyMetadata, value);
 
         rootHTTPLogger.debug(
             `Station set smart safe params - sending command`,
@@ -15650,10 +15665,10 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: property,
                 value: value,
             }
-        )
+        );
         if (device.isSmartSafe()) {
-            let payload: Buffer
-            let command: number
+            let payload: Buffer;
+            let command: number;
             switch (property) {
                 case PropertyName.DeviceWrongTryProtection:
                     payload = SmartSafe.encodeCmdWrongTryProtect(
@@ -15665,9 +15680,9 @@ export class Station extends TypedEmitter<StationEvents> {
                         (device.getPropertyValue(
                             PropertyName.DeviceWrongTryLockdownTime
                         ) as number) / 60
-                    )
-                    command = SmartSafeCommandCode.SET_CRACK_PROTECT
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_CRACK_PROTECT;
+                    break;
                 case PropertyName.DeviceWrongTryAttempts:
                     payload = SmartSafe.encodeCmdWrongTryProtect(
                         this.rawStation.member.admin_user_id,
@@ -15678,9 +15693,9 @@ export class Station extends TypedEmitter<StationEvents> {
                         (device.getPropertyValue(
                             PropertyName.DeviceWrongTryLockdownTime
                         ) as number) / 60
-                    )
-                    command = SmartSafeCommandCode.SET_CRACK_PROTECT
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_CRACK_PROTECT;
+                    break;
                 case PropertyName.DeviceWrongTryLockdownTime:
                     payload = SmartSafe.encodeCmdWrongTryProtect(
                         this.rawStation.member.admin_user_id,
@@ -15691,9 +15706,9 @@ export class Station extends TypedEmitter<StationEvents> {
                             PropertyName.DeviceWrongTryAttempts
                         ) as number,
                         (value as number) / 60
-                    )
-                    command = SmartSafeCommandCode.SET_CRACK_PROTECT
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_CRACK_PROTECT;
+                    break;
                 case PropertyName.DeviceLeftOpenAlarm:
                     payload = SmartSafe.encodeCmdLeftOpenAlarm(
                         this.rawStation.member.admin_user_id,
@@ -15701,9 +15716,9 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.getPropertyValue(
                             PropertyName.DeviceLeftOpenAlarmDuration
                         ) as number
-                    )
-                    command = SmartSafeCommandCode.SET_LOCK_ALARM
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_LOCK_ALARM;
+                    break;
                 case PropertyName.DeviceLeftOpenAlarmDuration:
                     payload = SmartSafe.encodeCmdLeftOpenAlarm(
                         this.rawStation.member.admin_user_id,
@@ -15711,23 +15726,23 @@ export class Station extends TypedEmitter<StationEvents> {
                             PropertyName.DeviceLeftOpenAlarm
                         ) as boolean,
                         value as number
-                    )
-                    command = SmartSafeCommandCode.SET_LOCK_ALARM
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_LOCK_ALARM;
+                    break;
                 case PropertyName.DeviceDualUnlock:
                     payload = SmartSafe.encodeCmdDualUnlock(
                         this.rawStation.member.admin_user_id,
                         value as boolean
-                    )
-                    command = SmartSafeCommandCode.SET_DUAL_UNLOCK
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_DUAL_UNLOCK;
+                    break;
                 case PropertyName.DevicePowerSave:
                     payload = SmartSafe.encodeCmdPowerSave(
                         this.rawStation.member.admin_user_id,
                         value as boolean
-                    )
-                    command = SmartSafeCommandCode.SET_POWERSAVE
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_POWERSAVE;
+                    break;
                 case PropertyName.DeviceInteriorBrightness:
                     payload = SmartSafe.encodeCmdInteriorBrightness(
                         this.rawStation.member.admin_user_id,
@@ -15735,9 +15750,9 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.getPropertyValue(
                             PropertyName.DeviceInteriorBrightnessDuration
                         ) as number
-                    )
-                    command = SmartSafeCommandCode.SET_LIGHT
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_LIGHT;
+                    break;
                 case PropertyName.DeviceInteriorBrightnessDuration:
                     payload = SmartSafe.encodeCmdInteriorBrightness(
                         this.rawStation.member.admin_user_id,
@@ -15745,16 +15760,16 @@ export class Station extends TypedEmitter<StationEvents> {
                             PropertyName.DeviceInteriorBrightness
                         ) as number,
                         value as number
-                    )
-                    command = SmartSafeCommandCode.SET_LIGHT
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_LIGHT;
+                    break;
                 case PropertyName.DeviceTamperAlarm:
                     payload = SmartSafe.encodeCmdTamperAlarm(
                         this.rawStation.member.admin_user_id,
                         value as number
-                    )
-                    command = SmartSafeCommandCode.SET_SHAKE
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_SHAKE;
+                    break;
                 case PropertyName.DeviceRemoteUnlock:
                 case PropertyName.DeviceRemoteUnlockMasterPIN: {
                     if (!this.pinVerified && (value as boolean) === true) {
@@ -15768,47 +15783,47 @@ export class Station extends TypedEmitter<StationEvents> {
                                     propertyValue: propertyData.value,
                                 },
                             }
-                        )
+                        );
                     }
-                    let newValue = 2
+                    let newValue = 2;
                     const remoteUnlock =
                         property === PropertyName.DeviceRemoteUnlock
                             ? (value as boolean)
                             : (device.getPropertyValue(
                                   PropertyName.DeviceRemoteUnlock
-                              ) as boolean)
+                              ) as boolean);
                     const remoteUnlockMasterPIN =
                         property === PropertyName.DeviceRemoteUnlockMasterPIN
                             ? (value as boolean)
                             : (device.getPropertyValue(
                                   PropertyName.DeviceRemoteUnlockMasterPIN
-                              ) as boolean)
+                              ) as boolean);
                     if (remoteUnlock && remoteUnlockMasterPIN) {
-                        newValue = 0
+                        newValue = 0;
                     } else if (remoteUnlock) {
-                        newValue = 1
+                        newValue = 1;
                     }
                     payload = SmartSafe.encodeCmdRemoteUnlock(
                         this.rawStation.member.admin_user_id,
                         newValue
-                    )
-                    command = SmartSafeCommandCode.SET_UNLOCK_MODE
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_UNLOCK_MODE;
+                    break;
                 }
                 case PropertyName.DevicePromptVolume:
                     payload = SmartSafe.encodeCmdPromptVolume(
                         this.rawStation.member.admin_user_id,
                         value as number
-                    )
-                    command = SmartSafeCommandCode.SET_VOLUME
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_VOLUME;
+                    break;
                 case PropertyName.DeviceAlarmVolume:
                     payload = SmartSafe.encodeCmdAlertVolume(
                         this.rawStation.member.admin_user_id,
                         value as number
-                    )
-                    command = SmartSafeCommandCode.SET_VOLUME_ALERT
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_VOLUME_ALERT;
+                    break;
                 case PropertyName.DeviceNotificationUnlockByKey:
                 case PropertyName.DeviceNotificationUnlockByPIN:
                 case PropertyName.DeviceNotificationUnlockByFingerprint:
@@ -15860,32 +15875,32 @@ export class Station extends TypedEmitter<StationEvents> {
                             : (device.getPropertyValue(
                                   PropertyName.DeviceNotificationJammed
                               ) as boolean),
-                    ]
+                    ];
 
-                    let modes = 0
+                    let modes = 0;
                     for (let pos = 0; pos < settingsValues.length; pos++) {
                         if (settingsValues[pos]) {
-                            modes = modes | (1 << pos)
+                            modes = modes | (1 << pos);
                         }
                     }
 
                     payload = SmartSafe.encodeCmdPushNotification(
                         this.rawStation.member.admin_user_id,
                         modes
-                    )
-                    command = SmartSafeCommandCode.SET_PUSH
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_PUSH;
+                    break;
                 case PropertyName.DeviceScramblePasscode:
                     payload = SmartSafe.encodeCmdScramblePIN(
                         this.rawStation.member.admin_user_id,
                         value as boolean
-                    )
-                    command = SmartSafeCommandCode.SET_SCRAMBLE_PASSWORD
-                    break
+                    );
+                    command = SmartSafeCommandCode.SET_SCRAMBLE_PASSWORD;
+                    break;
                 default:
-                    payload = Buffer.from([])
-                    command = SmartSafeCommandCode.DEFAULT
-                    break
+                    payload = Buffer.from([]);
+                    command = SmartSafeCommandCode.DEFAULT;
+                    break;
             }
 
             rootHTTPLogger.debug(`Station set smart safe params - payload`, {
@@ -15894,10 +15909,10 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: property,
                 value: value,
                 payload: payload.toString('hex'),
-            })
+            });
             this._sendSmartSafeCommand(device, command, payload, {
                 property: propertyData,
-            })
+            });
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -15909,14 +15924,14 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
     public unlock(device: Device): void {
         const commandData: CommandData = {
             name: CommandName.DeviceUnlock,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -15927,7 +15942,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceUnlock)) {
             throw new NotSupportedError(
@@ -15939,16 +15954,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         const payload = SmartSafe.encodeCmdUnlock(
             this.rawStation.member.admin_user_id
-        )
+        );
         rootHTTPLogger.debug(`Station unlock - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             payload: payload.toString('hex'),
-        })
+        });
         this._sendSmartSafeCommand(
             device,
             SmartSafeCommandCode.UNLOCK,
@@ -15956,13 +15971,13 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 command: commandData,
             }
-        )
+        );
     }
 
     public verifyPIN(device: Device, pin: string): void {
         const commandData: CommandData = {
             name: CommandName.DeviceVerifyPIN,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -15973,7 +15988,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceVerifyPIN)) {
             throw new NotSupportedError(
@@ -15985,7 +16000,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!/^[1-6]{4,8}$/.test(pin)) {
             throw new InvalidCommandValueError(
@@ -15998,32 +16013,32 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         const payload = SmartSafe.encodeCmdVerifyPIN(
             this.rawStation.member.admin_user_id,
             pin
-        )
+        );
         rootHTTPLogger.debug(`Station verify pin - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             payload: payload.toString('hex'),
-        })
+        });
         this._sendSmartSafeCommand(
             device,
             SmartSafeCommandCode.SET_VERIFY_PIN,
             payload,
             { command: commandData }
-        )
+        );
     }
 
     private onDeviceShakeAlarm(
         channel: number,
         event: SmartSafeShakeAlarmEvent
     ): void {
-        const deviceSerial = this._getDeviceSerial(channel)
+        const deviceSerial = this._getDeviceSerial(channel);
         if (deviceSerial !== undefined) {
-            this.emit('device shake alarm', deviceSerial, event)
+            this.emit('device shake alarm', deviceSerial, event);
         }
     }
 
@@ -16031,30 +16046,30 @@ export class Station extends TypedEmitter<StationEvents> {
         channel: number,
         event: SmartSafeAlarm911Event
     ): void {
-        const deviceSerial = this._getDeviceSerial(channel)
+        const deviceSerial = this._getDeviceSerial(channel);
         if (deviceSerial !== undefined) {
-            this.emit('device 911 alarm', deviceSerial, event)
+            this.emit('device 911 alarm', deviceSerial, event);
         }
     }
 
     private onDeviceJammed(channel: number): void {
-        const deviceSerial = this._getDeviceSerial(channel)
+        const deviceSerial = this._getDeviceSerial(channel);
         if (deviceSerial !== undefined) {
-            this.emit('device jammed', deviceSerial)
+            this.emit('device jammed', deviceSerial);
         }
     }
 
     private onDeviceLowBattery(channel: number): void {
-        const deviceSerial = this._getDeviceSerial(channel)
+        const deviceSerial = this._getDeviceSerial(channel);
         if (deviceSerial !== undefined) {
-            this.emit('device low battery', deviceSerial)
+            this.emit('device low battery', deviceSerial);
         }
     }
 
     private onDeviceWrongTryProtectAlarm(channel: number): void {
-        const deviceSerial = this._getDeviceSerial(channel)
+        const deviceSerial = this._getDeviceSerial(channel);
         if (deviceSerial !== undefined) {
-            this.emit('device wrong try-protect alarm', deviceSerial)
+            this.emit('device wrong try-protect alarm', deviceSerial);
         }
     }
 
@@ -16063,7 +16078,13 @@ export class Station extends TypedEmitter<StationEvents> {
         sdCapacity: number,
         sdAvailableCapacity: number
     ): void {
-        this.emit('sd info ex', this, sdStatus, sdCapacity, sdAvailableCapacity)
+        this.emit(
+            'sd info ex',
+            this,
+            sdStatus,
+            sdCapacity,
+            sdAvailableCapacity
+        );
     }
 
     public setVideoTypeStoreToNAS(
@@ -16073,7 +16094,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceVideoTypeStoreToNAS,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -16085,7 +16106,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -16098,17 +16119,17 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         if (
             device.getPropertyValue(PropertyName.DeviceContinuousRecording) !==
                 true &&
             value === VideoTypeStoreToNAS.ContinuousRecording
         ) {
-            this.setContinuousRecording(device, true)
+            this.setContinuousRecording(device, true);
         }
 
         rootHTTPLogger.debug(
@@ -16118,7 +16139,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -16140,14 +16161,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public snooze(device: Device, value: SnoozeDetail): void {
         const commandData: CommandData = {
             name: CommandName.DeviceSnooze,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -16159,7 +16180,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceSnooze)) {
             throw new NotSupportedError(
@@ -16172,13 +16193,13 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station snooze - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isDoorbell() || device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -16208,7 +16229,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -16222,7 +16243,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         }
     }
 
@@ -16242,7 +16263,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 schedule: schedule,
                 deviceSN: device.getSerial(),
             },
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -16254,7 +16275,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceAddUser)) {
             throw new NotSupportedError(
@@ -16267,7 +16288,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!/^\d{4,8}$/.test(passcode)) {
             throw new InvalidCommandValueError(
@@ -16280,7 +16301,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station add user  - sending command`, {
             stationSN: this.getSerial(),
@@ -16288,7 +16309,7 @@ export class Station extends TypedEmitter<StationEvents> {
             username: username,
             shortUserId: shortUserId,
             schedule: schedule,
-        })
+        });
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             // passcode: min 4 max 8
             // passcode: 13579753 =>  3133353739373533
@@ -16325,7 +16346,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         ? hexWeek(schedule)
                         : 'ff',
                 seq_num: this.p2pSession.incLockSequenceNumber(),
-            }
+            };
             const command = getLockP2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,
@@ -16333,22 +16354,22 @@ export class Station extends TypedEmitter<StationEvents> {
                 device.getChannel(),
                 this.lockPublicKey,
                 nestedPayload
-            )
+            );
             this.p2pSession.setLockAESKey(
                 CommandType.P2P_ADD_PW,
                 command.aesKey
-            )
+            );
             rootHTTPLogger.debug('Add user...', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
                 nestedPayload: nestedPayload,
-            })
+            });
 
             this.p2pSession.sendCommandWithStringPayload(command, {
                 command: commandData,
-            })
+            });
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             const command = getLockV12P2PCommand(
                 this.rawStation.station_sn,
@@ -16363,17 +16384,17 @@ export class Station extends TypedEmitter<StationEvents> {
                     username,
                     schedule
                 )
-            )
+            );
             rootHTTPLogger.debug('Add user...', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
-            })
+            });
 
             this._sendLockV12P2PCommand(command, {
                 command: commandData,
-            })
+            });
         } else if (device.isLockWifiVideo()) {
             const command = {
                 account_id: this.rawStation.member.admin_user_id,
@@ -16408,13 +16429,13 @@ export class Station extends TypedEmitter<StationEvents> {
                             ? hexWeek(schedule)
                             : 'ff',
                 },
-            }
+            };
             rootHTTPLogger.debug('Add user...', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
-            })
+            });
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -16424,7 +16445,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -16444,17 +16465,17 @@ export class Station extends TypedEmitter<StationEvents> {
                     username,
                     schedule
                 )
-            )
+            );
             rootHTTPLogger.debug('Station smart lock device - Add user...', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command.payload,
-            })
+            });
 
             this.p2pSession.sendCommandWithStringPayload(command.payload, {
                 command: commandData,
-            })
+            });
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -16466,7 +16487,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -16481,7 +16502,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 username: username,
                 shortUserId: shortUserId,
             },
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -16493,7 +16514,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceDeleteUser)) {
             throw new NotSupportedError(
@@ -16506,19 +16527,19 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station delete user - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             username: username,
             shortUserId: shortUserId,
-        })
+        });
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             const nestedPayload = {
                 userId: shortUserId,
                 seq_num: this.p2pSession.incLockSequenceNumber(),
-            }
+            };
             const command = getLockP2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,
@@ -16526,22 +16547,22 @@ export class Station extends TypedEmitter<StationEvents> {
                 device.getChannel(),
                 this.lockPublicKey,
                 nestedPayload
-            )
+            );
             this.p2pSession.setLockAESKey(
                 CommandType.P2P_DELETE_USER,
                 command.aesKey
-            )
+            );
             rootHTTPLogger.debug('Station delete user - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
                 nestedPayload: nestedPayload,
-            })
+            });
 
             this.p2pSession.sendCommandWithStringPayload(command, {
                 command: commandData,
-            })
+            });
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             const command = getLockV12P2PCommand(
                 this.rawStation.station_sn,
@@ -16551,17 +16572,17 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.lockPublicKey,
                 this.p2pSession.incLockSequenceNumber(),
                 Lock.encodeCmdDeleteUser(shortUserId)
-            )
+            );
             rootHTTPLogger.debug('Station delete user - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
-            })
+            });
 
             this._sendLockV12P2PCommand(command, {
                 command: commandData,
-            })
+            });
         } else if (device.isLockWifiVideo()) {
             const command = {
                 account_id: this.rawStation.member.admin_user_id,
@@ -16571,13 +16592,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 payload: {
                     userId: shortUserId,
                 },
-            }
+            };
             rootHTTPLogger.debug('Station delete user - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
-            })
+            });
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -16587,7 +16608,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -16604,17 +16625,17 @@ export class Station extends TypedEmitter<StationEvents> {
                     this.rawStation.member.admin_user_id,
                     shortUserId
                 )
-            )
+            );
             rootHTTPLogger.debug('Station delete user - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command.payload,
-            })
+            });
 
             this.p2pSession.sendCommandWithStringPayload(command.payload, {
                 command: commandData,
-            })
+            });
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -16626,7 +16647,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -16643,7 +16664,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 shortUserId: shortUserId,
                 schedule: schedule,
             },
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -16655,7 +16676,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceUpdateUserSchedule)) {
             throw new NotSupportedError(
@@ -16668,7 +16689,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station update user schedule - sending command`, {
             stationSN: this.getSerial(),
@@ -16676,7 +16697,7 @@ export class Station extends TypedEmitter<StationEvents> {
             username: username,
             shortUserId: shortUserId,
             schedule: schedule,
-        })
+        });
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             const nestedPayload = {
                 endDay:
@@ -16703,7 +16724,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         ? hexWeek(schedule)
                         : 'ff',
                 seq_num: this.p2pSession.incLockSequenceNumber(),
-            }
+            };
             const command = getLockP2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,
@@ -16711,22 +16732,22 @@ export class Station extends TypedEmitter<StationEvents> {
                 device.getChannel(),
                 this.lockPublicKey,
                 nestedPayload
-            )
+            );
             this.p2pSession.setLockAESKey(
                 CommandType.P2P_UPDATE_USER_TIME,
                 command.aesKey
-            )
+            );
             rootHTTPLogger.debug('Station update user schedule - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
                 nestedPayload: nestedPayload,
-            })
+            });
 
             this.p2pSession.sendCommandWithStringPayload(command, {
                 command: commandData,
-            })
+            });
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             const command = getLockV12P2PCommand(
                 this.rawStation.station_sn,
@@ -16736,17 +16757,17 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.lockPublicKey,
                 this.p2pSession.incLockSequenceNumber(),
                 Lock.encodeCmdUpdateSchedule(shortUserId, schedule)
-            )
+            );
             rootHTTPLogger.debug('Station update user schedule - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
-            })
+            });
 
             this._sendLockV12P2PCommand(command, {
                 command: commandData,
-            })
+            });
         } else if (device.isLockWifiVideo()) {
             const command = {
                 account_id: this.rawStation.member.admin_user_id,
@@ -16780,13 +16801,13 @@ export class Station extends TypedEmitter<StationEvents> {
                             ? hexWeek(schedule)
                             : 'ff',
                 },
-            }
+            };
             rootHTTPLogger.debug('Station update user schedule - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
-            })
+            });
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -16796,7 +16817,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -16815,17 +16836,17 @@ export class Station extends TypedEmitter<StationEvents> {
                     username,
                     schedule
                 )
-            )
+            );
             rootHTTPLogger.debug('Station update user schedule - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command.payload,
-            })
+            });
 
             this.p2pSession.sendCommandWithStringPayload(command.payload, {
                 command: commandData,
-            })
+            });
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -16837,7 +16858,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -16854,7 +16875,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 passwordId: passwordId,
                 passcode: passcode,
             },
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -16866,7 +16887,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceUpdateUserPasscode)) {
             throw new NotSupportedError(
@@ -16879,7 +16900,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commonValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (
             passcode.length < 4 ||
@@ -16896,20 +16917,20 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station update user passcode - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             username: username,
             passwordId: passwordId,
-        })
+        });
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             const nestedPayload = {
                 passcode: encodePasscode(passcode),
                 passwordId: passwordId,
                 seq_num: this.p2pSession.incLockSequenceNumber(),
-            }
+            };
             const command = getLockP2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,
@@ -16917,22 +16938,22 @@ export class Station extends TypedEmitter<StationEvents> {
                 device.getChannel(),
                 this.lockPublicKey,
                 nestedPayload
-            )
+            );
             this.p2pSession.setLockAESKey(
                 CommandType.P2P_UPDATE_PW,
                 command.aesKey
-            )
+            );
             rootHTTPLogger.debug('Station update user passcode - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
                 nestedPayload: nestedPayload,
-            })
+            });
 
             this.p2pSession.sendCommandWithStringPayload(command, {
                 command: commandData,
-            })
+            });
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             const command = getLockV12P2PCommand(
                 this.rawStation.station_sn,
@@ -16945,17 +16966,17 @@ export class Station extends TypedEmitter<StationEvents> {
                     passwordId,
                     encodePasscode(passcode).padEnd(16, '0')
                 )
-            )
+            );
             rootHTTPLogger.debug('Station update user passcode - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
-            })
+            });
 
             this._sendLockV12P2PCommand(command, {
                 command: commandData,
-            })
+            });
         } else if (device.isLockWifiVideo()) {
             const command = {
                 account_id: this.rawStation.member.admin_user_id,
@@ -16966,13 +16987,13 @@ export class Station extends TypedEmitter<StationEvents> {
                     passcode: encodePasscode(passcode).padEnd(16, '0'),
                     passwordId: passwordId,
                 },
-            }
+            };
             rootHTTPLogger.debug('Station update user passcode - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
-            })
+            });
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -16982,7 +17003,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -17000,17 +17021,17 @@ export class Station extends TypedEmitter<StationEvents> {
                     passwordId,
                     encodePasscode(passcode)
                 )
-            )
+            );
             rootHTTPLogger.debug('Station update user passcode - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command.payload,
-            })
+            });
 
             this.p2pSession.sendCommandWithStringPayload(command.payload, {
                 command: commandData,
-            })
+            });
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -17022,7 +17043,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -17034,7 +17055,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: property,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -17046,7 +17067,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -17059,10 +17080,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const propertyMetadata = device.getPropertyMetadata(propertyData.name)
-        validValue(propertyMetadata, value)
+        const propertyMetadata = device.getPropertyMetadata(propertyData.name);
+        validValue(propertyMetadata, value);
 
         rootHTTPLogger.debug(
             `Station set lock v12 settings - sending command`,
@@ -17072,9 +17093,9 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: property,
                 value: value,
             }
-        )
+        );
         if (device.isLockWifiR10() || device.isLockWifiR20()) {
-            let payload: Buffer
+            let payload: Buffer;
             switch (property) {
                 case PropertyName.DeviceWrongTryProtection:
                     payload = Lock.encodeCmdSetLockParamWrongTryProtect(
@@ -17085,8 +17106,8 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.getPropertyValue(
                             PropertyName.DeviceWrongTryAttempts
                         ) as number
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceWrongTryAttempts:
                     payload = Lock.encodeCmdSetLockParamWrongTryProtect(
                         device.getPropertyValue(
@@ -17096,8 +17117,8 @@ export class Station extends TypedEmitter<StationEvents> {
                             PropertyName.DeviceWrongTryLockdownTime
                         ) as number,
                         value as number
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceWrongTryLockdownTime:
                     payload = Lock.encodeCmdSetLockParamWrongTryProtect(
                         device.getPropertyValue(
@@ -17107,24 +17128,24 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.getPropertyValue(
                             PropertyName.DeviceWrongTryAttempts
                         ) as number
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceAutoLock:
                     payload = Lock.encodeCmdSetLockParamAutoLock(
                         value as boolean,
                         device.getPropertyValue(
                             PropertyName.DeviceAutoLockTimer
                         ) as number
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceAutoLockTimer:
                     payload = Lock.encodeCmdSetLockParamAutoLock(
                         device.getPropertyValue(
                             PropertyName.DeviceAutoLock
                         ) as boolean,
                         value as number
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceAutoLockSchedule:
                     payload = Lock.encodeCmdSetLockParamAutoLockSchedule(
                         value as boolean,
@@ -17134,8 +17155,8 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.getPropertyValue(
                             PropertyName.DeviceAutoLockScheduleEndTime
                         ) as string
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceAutoLockScheduleStartTime:
                     payload = Lock.encodeCmdSetLockParamAutoLockSchedule(
                         device.getPropertyValue(
@@ -17145,8 +17166,8 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.getPropertyValue(
                             PropertyName.DeviceAutoLockScheduleEndTime
                         ) as string
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceAutoLockScheduleEndTime:
                     payload = Lock.encodeCmdSetLockParamAutoLockSchedule(
                         device.getPropertyValue(
@@ -17156,24 +17177,24 @@ export class Station extends TypedEmitter<StationEvents> {
                             PropertyName.DeviceAutoLockScheduleStartTime
                         ) as string,
                         value as string
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceOneTouchLocking:
                     payload = Lock.encodeCmdSetLockParamOneTouchLock(
                         value as boolean
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceScramblePasscode:
                     payload = Lock.encodeCmdSetLockParamScramblePasscode(
                         value as boolean
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceSound:
-                    payload = Lock.encodeCmdSetLockParamSound(value as number)
-                    break
+                    payload = Lock.encodeCmdSetLockParamSound(value as number);
+                    break;
                 default:
-                    payload = Buffer.from([])
-                    break
+                    payload = Buffer.from([]);
+                    break;
             }
 
             rootHTTPLogger.debug(`Station set lock v12 settings - payload`, {
@@ -17182,7 +17203,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: property,
                 value: value,
                 payload: payload.toString('hex'),
-            })
+            });
             const lockCommand = getLockV12P2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,
@@ -17191,10 +17212,10 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.lockPublicKey,
                 this.p2pSession.incLockSequenceNumber(),
                 payload
-            )
+            );
             this._sendLockV12P2PCommand(lockCommand, {
                 property: propertyData,
-            })
+            });
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -17206,7 +17227,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -17218,7 +17239,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: property,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -17230,7 +17251,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -17243,10 +17264,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const propertyMetadata = device.getPropertyMetadata(propertyData.name)
-        validValue(propertyMetadata, value)
+        const propertyMetadata = device.getPropertyMetadata(propertyData.name);
+        validValue(propertyMetadata, value);
 
         rootHTTPLogger.debug(
             `Station set smart lock settings - sending command`,
@@ -17256,14 +17277,14 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: property,
                 value: value,
             }
-        )
+        );
         if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
             device.isLockWifiT8510P() ||
             device.isLockWifiT8520P()
         ) {
-            let payload: Buffer
+            let payload: Buffer;
             switch (property) {
                 case PropertyName.DeviceWrongTryProtection:
                     payload = Lock.encodeCmdSetSmartLockParamWrongTryProtect(
@@ -17275,8 +17296,8 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.getPropertyValue(
                             PropertyName.DeviceWrongTryLockdownTime
                         ) as number
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceWrongTryAttempts:
                     payload = Lock.encodeCmdSetSmartLockParamWrongTryProtect(
                         this.rawStation.member.admin_user_id,
@@ -17287,8 +17308,8 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.getPropertyValue(
                             PropertyName.DeviceWrongTryLockdownTime
                         ) as number
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceWrongTryLockdownTime:
                     payload = Lock.encodeCmdSetSmartLockParamWrongTryProtect(
                         this.rawStation.member.admin_user_id,
@@ -17299,8 +17320,8 @@ export class Station extends TypedEmitter<StationEvents> {
                             PropertyName.DeviceWrongTryAttempts
                         ) as number,
                         value as number
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceAutoLock:
                     payload = Lock.encodeCmdSetSmartLockParamAutoLock(
                         this.rawStation.member.admin_user_id,
@@ -17317,8 +17338,8 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.getPropertyValue(
                             PropertyName.DeviceAutoLockScheduleEndTime
                         ) as string
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceAutoLockTimer:
                     payload = Lock.encodeCmdSetSmartLockParamAutoLock(
                         this.rawStation.member.admin_user_id,
@@ -17335,8 +17356,8 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.getPropertyValue(
                             PropertyName.DeviceAutoLockScheduleEndTime
                         ) as string
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceAutoLockSchedule:
                     payload = Lock.encodeCmdSetSmartLockParamAutoLock(
                         this.rawStation.member.admin_user_id,
@@ -17353,8 +17374,8 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.getPropertyValue(
                             PropertyName.DeviceAutoLockScheduleEndTime
                         ) as string
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceAutoLockScheduleStartTime:
                     payload = Lock.encodeCmdSetSmartLockParamAutoLock(
                         this.rawStation.member.admin_user_id,
@@ -17371,8 +17392,8 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.getPropertyValue(
                             PropertyName.DeviceAutoLockScheduleEndTime
                         ) as string
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceAutoLockScheduleEndTime:
                     payload = Lock.encodeCmdSetSmartLockParamAutoLock(
                         this.rawStation.member.admin_user_id,
@@ -17389,29 +17410,29 @@ export class Station extends TypedEmitter<StationEvents> {
                             PropertyName.DeviceAutoLockScheduleStartTime
                         ) as string,
                         value as string
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceOneTouchLocking:
                     payload = Lock.encodeCmdSetSmartLockParamOneTouchLock(
                         this.rawStation.member.admin_user_id,
                         value as boolean
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceScramblePasscode:
                     payload = Lock.encodeCmdSetSmartLockParamScramblePasscode(
                         this.rawStation.member.admin_user_id,
                         value as boolean
-                    )
-                    break
+                    );
+                    break;
                 case PropertyName.DeviceSound:
                     payload = Lock.encodeCmdSetSmartLockParamSound(
                         this.rawStation.member.admin_user_id,
                         value as number
-                    )
-                    break
+                    );
+                    break;
                 default:
-                    payload = Buffer.from([])
-                    break
+                    payload = Buffer.from([]);
+                    break;
             }
 
             rootHTTPLogger.debug(`Station set smart lock settings - payload`, {
@@ -17420,7 +17441,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: property,
                 value: value,
                 payload: payload.toString('hex'),
-            })
+            });
             const command = getSmartLockP2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,
@@ -17428,11 +17449,11 @@ export class Station extends TypedEmitter<StationEvents> {
                 device.getChannel(),
                 this.p2pSession.incLockSequenceNumber(),
                 payload
-            )
+            );
 
             this.p2pSession.sendCommandWithStringPayload(command.payload, {
                 property: propertyData,
-            })
+            });
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -17444,7 +17465,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -17452,7 +17473,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceAutoLock,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -17464,7 +17485,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -17477,13 +17498,13 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station set auto lock - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (
             device.isLockWifi() ||
             device.isLockWifiNoFinger() ||
@@ -17493,16 +17514,16 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceAutoLock,
                 value
-            )
+            );
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
-            this.setLockV12Params(device, PropertyName.DeviceAutoLock, value)
+            this.setLockV12Params(device, PropertyName.DeviceAutoLock, value);
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
             device.isLockWifiT8510P() ||
             device.isLockWifiT8520P()
         ) {
-            this.setSmartLockParams(device, PropertyName.DeviceAutoLock, value)
+            this.setSmartLockParams(device, PropertyName.DeviceAutoLock, value);
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -17514,7 +17535,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -17522,7 +17543,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceAutoLockSchedule,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -17534,7 +17555,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -17547,7 +17568,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station set auto lock schedule - sending command`,
@@ -17556,7 +17577,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isLockWifi() ||
             device.isLockWifiNoFinger() ||
@@ -17566,13 +17587,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceAutoLockSchedule,
                 value
-            )
+            );
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(
                 device,
                 PropertyName.DeviceAutoLockSchedule,
                 value
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -17583,7 +17604,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceAutoLockSchedule,
                 value
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -17595,7 +17616,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -17603,7 +17624,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceAutoLockScheduleStartTime,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -17615,7 +17636,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -17628,7 +17649,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station set auto lock schedule start time - sending command`,
@@ -17637,7 +17658,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isLockWifi() ||
             device.isLockWifiNoFinger() ||
@@ -17647,13 +17668,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceAutoLockScheduleStartTime,
                 value
-            )
+            );
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(
                 device,
                 PropertyName.DeviceAutoLockScheduleStartTime,
                 value
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -17664,7 +17685,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceAutoLockScheduleStartTime,
                 value
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -17676,7 +17697,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -17684,7 +17705,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceAutoLockScheduleEndTime,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -17696,7 +17717,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -17709,7 +17730,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station set auto lock schedule end time - sending command`,
@@ -17718,7 +17739,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isLockWifi() ||
             device.isLockWifiNoFinger() ||
@@ -17728,13 +17749,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceAutoLockScheduleEndTime,
                 value
-            )
+            );
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(
                 device,
                 PropertyName.DeviceAutoLockScheduleEndTime,
                 value
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -17745,7 +17766,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceAutoLockScheduleEndTime,
                 value
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -17757,7 +17778,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -17765,7 +17786,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceAutoLockTimer,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -17777,7 +17798,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -17790,13 +17811,13 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station set auto lock timer - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (
             device.isLockWifi() ||
             device.isLockWifiNoFinger() ||
@@ -17806,13 +17827,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceAutoLockTimer,
                 value
-            )
+            );
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(
                 device,
                 PropertyName.DeviceAutoLockTimer,
                 value
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -17823,7 +17844,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceAutoLockTimer,
                 value
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -17835,7 +17856,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -17843,7 +17864,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceOneTouchLocking,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -17855,7 +17876,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -17868,7 +17889,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station set one touch locking - sending command`,
@@ -17877,7 +17898,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isLockWifi() ||
             device.isLockWifiNoFinger() ||
@@ -17887,13 +17908,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceOneTouchLocking,
                 value
-            )
+            );
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             this.setLockV12Params(
                 device,
                 PropertyName.DeviceOneTouchLocking,
                 value
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -17904,7 +17925,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceOneTouchLocking,
                 value
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -17916,7 +17937,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -17924,7 +17945,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceSound,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -17936,7 +17957,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -17949,24 +17970,24 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station set sound - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
-            this.setAdvancedLockParams(device, PropertyName.DeviceSound, value)
+            this.setAdvancedLockParams(device, PropertyName.DeviceSound, value);
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
-            this.setLockV12Params(device, PropertyName.DeviceSound, value)
+            this.setLockV12Params(device, PropertyName.DeviceSound, value);
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
             device.isLockWifiT8510P() ||
             device.isLockWifiT8520P()
         ) {
-            this.setSmartLockParams(device, PropertyName.DeviceSound, value)
+            this.setSmartLockParams(device, PropertyName.DeviceSound, value);
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -17978,7 +17999,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -17986,7 +18007,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNotification,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -17998,7 +18019,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -18011,19 +18032,19 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station set notification - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             this.setAdvancedLockParams(
                 device,
                 PropertyName.DeviceNotification,
                 value
-            )
+            );
         } else if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -18037,7 +18058,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -18046,20 +18067,20 @@ export class Station extends TypedEmitter<StationEvents> {
             device.isLockWifiR10() ||
             device.isLockWifiR20()
         ) {
-            let oldvalue = 0
+            let oldvalue = 0;
             const rawproperty = device.getRawProperty(
                 CommandType.CMD_DOORLOCK_SET_PUSH_MODE
-            )
+            );
             if (rawproperty !== undefined) {
                 try {
-                    oldvalue = Number.parseInt(rawproperty)
+                    oldvalue = Number.parseInt(rawproperty);
                 } catch (error) {}
             }
             const notification = switchSmartLockNotification(
                 oldvalue,
                 SmartLockNotification.ENABLED,
                 value
-            )
+            );
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -18081,10 +18102,10 @@ export class Station extends TypedEmitter<StationEvents> {
                             CommandType.CMD_DOORLOCK_SET_PUSH_MODE,
                             notification.toString(),
                             'p2p'
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -18096,7 +18117,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -18104,7 +18125,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNotificationLocked,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -18116,7 +18137,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -18129,7 +18150,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station set notification locked - sending command`,
@@ -18138,7 +18159,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isLockWifi() ||
             device.isLockWifiNoFinger() ||
@@ -18148,7 +18169,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceNotificationLocked,
                 value
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -18157,20 +18178,20 @@ export class Station extends TypedEmitter<StationEvents> {
             device.isLockWifiR10() ||
             device.isLockWifiR20()
         ) {
-            let oldvalue = 0
+            let oldvalue = 0;
             const rawproperty = device.getRawProperty(
                 CommandType.CMD_DOORLOCK_SET_PUSH_MODE
-            )
+            );
             if (rawproperty !== undefined) {
                 try {
-                    oldvalue = Number.parseInt(rawproperty)
+                    oldvalue = Number.parseInt(rawproperty);
                 } catch (error) {}
             }
             const notification = switchSmartLockNotification(
                 oldvalue,
                 SmartLockNotification.LOCKED,
                 value
-            )
+            );
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -18192,10 +18213,10 @@ export class Station extends TypedEmitter<StationEvents> {
                             CommandType.CMD_DOORLOCK_SET_PUSH_MODE,
                             notification.toString(),
                             'p2p'
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -18207,7 +18228,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -18215,7 +18236,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNotificationUnlocked,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -18227,7 +18248,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -18240,7 +18261,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station set notification unlocked - sending command`,
@@ -18249,7 +18270,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (
             device.isLockWifi() ||
             device.isLockWifiNoFinger() ||
@@ -18259,7 +18280,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 device,
                 PropertyName.DeviceNotificationUnlocked,
                 value
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -18268,20 +18289,20 @@ export class Station extends TypedEmitter<StationEvents> {
             device.isLockWifiR10() ||
             device.isLockWifiR20()
         ) {
-            let oldvalue = 0
+            let oldvalue = 0;
             const rawproperty = device.getRawProperty(
                 CommandType.CMD_DOORLOCK_SET_PUSH_MODE
-            )
+            );
             if (rawproperty !== undefined) {
                 try {
-                    oldvalue = Number.parseInt(rawproperty)
+                    oldvalue = Number.parseInt(rawproperty);
                 } catch (error) {}
             }
             const notification = switchSmartLockNotification(
                 oldvalue,
                 SmartLockNotification.UNLOCKED,
                 value
-            )
+            );
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -18303,10 +18324,10 @@ export class Station extends TypedEmitter<StationEvents> {
                             CommandType.CMD_DOORLOCK_SET_PUSH_MODE,
                             notification.toString(),
                             'p2p'
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -18318,7 +18339,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -18326,17 +18347,17 @@ export class Station extends TypedEmitter<StationEvents> {
         command: LockV12P2PCommand,
         customData?: CustomData
     ): void {
-        this.p2pSession.setLockAESKey(command.bleCommand, command.aesKey)
+        this.p2pSession.setLockAESKey(command.bleCommand, command.aesKey);
         this.p2pSession.sendCommandWithStringPayload(
             command.payload,
             customData
-        )
+        );
     }
 
     public queryAllUserId(device: Device): void {
         const commandData: CommandData = {
             name: CommandName.DeviceQueryAllUserId,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -18347,7 +18368,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(commandData.name)) {
             throw new NotSupportedError(
@@ -18359,12 +18380,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station query all user id - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
-        })
+        });
         if (device.isLockBleNoFinger() || device.isLockBle()) {
             throw new NotSupportedError(
                 'This functionality is not implemented by this device',
@@ -18375,7 +18396,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
             //TODO: Finish implementation of query all user id for LockBleNoFinger / LockBle
             /*const key = generateBasicLockAESKey(this.rawStation.member.admin_user_id, this.getSerial());
             const iv = getLockVectorBytes(this.getSerial());
@@ -18407,7 +18428,7 @@ export class Station extends TypedEmitter<StationEvents> {
         } else if (device.isLockWifi() || device.isLockWifiNoFinger()) {
             const nestedPayload = {
                 seq_num: this.p2pSession.incLockSequenceNumber(),
-            }
+            };
             const command = getLockP2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,
@@ -18415,22 +18436,22 @@ export class Station extends TypedEmitter<StationEvents> {
                 device.getChannel(),
                 this.lockPublicKey,
                 nestedPayload
-            )
+            );
             this.p2pSession.setLockAESKey(
                 CommandType.P2P_GET_USER_AND_PW_ID,
                 command.aesKey
-            )
+            );
             rootHTTPLogger.debug('Querying all user id...', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
                 nestedPayload: nestedPayload,
-            })
+            });
 
             this.p2pSession.sendCommandWithStringPayload(command, {
                 command: commandData,
-            })
+            });
         } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
             throw new NotSupportedError(
                 'This functionality is not implemented by this device',
@@ -18441,7 +18462,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
             //TODO: Finish implementation of query all user id for r10 / r20
             /*const command = getLockV12P2PCommand(
                 this.rawStation.station_sn,
@@ -18462,7 +18483,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
-            })
+            });
             this.p2pSession.sendCommandWithStringPayload(
                 {
                     commandType: CommandType.CMD_SET_PAYLOAD,
@@ -18478,7 +18499,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else if (
             device.isLockWifiT8506() ||
             device.isLockWifiT8502() ||
@@ -18494,17 +18515,17 @@ export class Station extends TypedEmitter<StationEvents> {
                 Lock.encodeCmdSmartLockGetUserList(
                     this.rawStation.member.admin_user_id
                 )
-            )
+            );
             rootHTTPLogger.debug('Station get user list - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command.payload,
-            })
+            });
 
             this.p2pSession.sendCommandWithStringPayload(command.payload, {
                 command: commandData,
-            })
+            });
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -18515,7 +18536,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -18523,7 +18544,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const commandData: CommandData = {
             name: CommandName.StationChime,
             value: value,
-        }
+        };
         if (!this.hasCommand(commandData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -18533,7 +18554,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
         if (this.rawStation.devices !== undefined) {
             this.rawStation.devices.forEach((device) => {
@@ -18546,14 +18567,14 @@ export class Station extends TypedEmitter<StationEvents> {
                                 station: this.getSerial(),
                             },
                         }
-                    )
+                    );
                 }
-            })
+            });
         }
         rootHTTPLogger.debug(`Station chime homebase - sending command`, {
             stationSN: this.getSerial(),
             value: value,
-        })
+        });
         if (this.isStation()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -18571,7 +18592,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -18582,19 +18603,19 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
     }
 
     private onImageDownload(file: string, image: Buffer): void {
-        this.emit('image download', this, file, image)
+        this.emit('image download', this, file, image);
     }
 
     public downloadImage(cover_path: string): void {
         const commandData: CommandData = {
             name: CommandName.StationDownloadImage,
             value: cover_path,
-        }
+        };
         if (!this.hasCommand(CommandName.StationDownloadImage)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -18605,12 +18626,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station download image - sending command`, {
             stationSN: this.getSerial(),
             value: cover_path,
-        })
+        });
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -18627,7 +18648,7 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 command: commandData,
             }
-        )
+        );
     }
 
     private onTFCardStatus(channel: number, status: TFCardStatus): void {
@@ -18635,13 +18656,13 @@ export class Station extends TypedEmitter<StationEvents> {
             CommandType.CMD_GET_TFCARD_STATUS,
             status.toString(),
             'p2p'
-        )
+        );
     }
 
     public databaseQueryLatestInfo(failureCallback?: () => void): void {
         const commandData: CommandData = {
             name: CommandName.StationDatabaseQueryLatestInfo,
-        }
+        };
         if (!this.hasCommand(commandData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -18651,13 +18672,13 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
 
         rootHTTPLogger.debug(
             `Station database query latest info - sending command`,
             { stationSN: this.getSerial() }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -18678,7 +18699,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 command: commandData,
                 onFailure: failureCallback,
             }
-        )
+        );
     }
 
     public databaseQueryLocal(
@@ -18696,7 +18717,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 eventType: eventType,
                 detectionType: detectionType,
             },
-        }
+        };
         if (!this.hasCommand(commandData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -18707,7 +18728,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
 
         rootHTTPLogger.debug(`Station database query local - sending command`, {
@@ -18718,10 +18739,10 @@ export class Station extends TypedEmitter<StationEvents> {
             eventType: eventType,
             detectionType: detectionType,
             storageType: storageType,
-        })
-        const devices: Array<{ device_sn: string }> = []
+        });
+        const devices: Array<{ device_sn: string }> = [];
         for (const serial of serialNumbers) {
-            devices.push({ device_sn: serial })
+            devices.push({ device_sn: serial });
         }
         this.p2pSession.sendCommandWithStringPayload(
             {
@@ -18760,14 +18781,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 command: commandData,
             }
-        )
+        );
     }
 
     public databaseDelete(ids: Array<number>): void {
         const commandData: CommandData = {
             name: CommandName.StationDatabaseDelete,
             value: ids,
-        }
+        };
         if (!this.hasCommand(commandData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -18778,16 +18799,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
 
         rootHTTPLogger.debug(`Station database delete - sending command`, {
             stationSN: this.getSerial(),
             ids: ids,
-        })
-        const lids: Array<{ id: number }> = []
+        });
+        const lids: Array<{ id: number }> = [];
         for (const id of ids) {
-            lids.push({ id: id })
+            lids.push({ id: id });
         }
         this.p2pSession.sendCommandWithStringPayload(
             {
@@ -18809,7 +18830,7 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 command: commandData,
             }
-        )
+        );
     }
 
     public databaseCountByDate(startDate: Date, endDate: Date): void {
@@ -18819,7 +18840,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 startDate: startDate,
                 endDate: endDate,
             },
-        }
+        };
         if (!this.hasCommand(commandData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported',
@@ -18830,7 +18851,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         station: this.getSerial(),
                     },
                 }
-            )
+            );
         }
 
         rootHTTPLogger.debug(
@@ -18840,7 +18861,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 startDate: startDate,
                 endDate: endDate,
             }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -18864,46 +18885,46 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 command: commandData,
             }
-        )
+        );
     }
 
     private onDatabaseQueryLatest(
         returnCode: DatabaseReturnCode,
         data: Array<DatabaseQueryLatestInfo>
     ): void {
-        this.emit('database query latest', this, returnCode, data)
+        this.emit('database query latest', this, returnCode, data);
     }
 
     private onDatabaseQueryLocal(
         returnCode: DatabaseReturnCode,
         data: Array<DatabaseQueryLocal>
     ): void {
-        this.emit('database query local', this, returnCode, data)
+        this.emit('database query local', this, returnCode, data);
     }
 
     private onDatabaseCountByDate(
         returnCode: DatabaseReturnCode,
         data: Array<DatabaseCountByDate>
     ): void {
-        this.emit('database count by date', this, returnCode, data)
+        this.emit('database count by date', this, returnCode, data);
     }
 
     private onDatabaseDelete(
         returnCode: DatabaseReturnCode,
         failedIds: Array<unknown>
     ): void {
-        this.emit('database delete', this, returnCode, failedIds)
+        this.emit('database delete', this, returnCode, failedIds);
     }
 
     private onSensorStatus(channel: number, status: number): void {
-        this.emit('sensor status', this, channel, status)
+        this.emit('sensor status', this, channel, status);
     }
 
     public setMotionDetectionTypeHuman(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionTypeHuman,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -18915,7 +18936,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -18928,10 +18949,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set motion detection type human - sending command`,
@@ -18940,7 +18961,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -18955,7 +18976,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -18967,7 +18988,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -18978,7 +18999,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionDetectionTypeAllOtherMotions,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -18990,7 +19011,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -19003,10 +19024,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set motion detection type all other motions - sending command`,
@@ -19015,7 +19036,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -19030,7 +19051,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -19042,7 +19063,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -19055,7 +19076,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: propertyName,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -19067,7 +19088,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -19080,10 +19101,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set set light settings lighting active mode - sending command`,
@@ -19094,24 +19115,24 @@ export class Station extends TypedEmitter<StationEvents> {
                 value: value,
                 type: type,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             switch (value) {
                 case LightingActiveMode.DAILY: {
                     let currentProperty =
-                        PropertyName.DeviceLightSettingsManualDailyLighting
+                        PropertyName.DeviceLightSettingsManualDailyLighting;
                     if (type === 'schedule') {
                         currentProperty =
-                            PropertyName.DeviceLightSettingsScheduleDailyLighting
+                            PropertyName.DeviceLightSettingsScheduleDailyLighting;
                     } else if (type === 'motion') {
                         currentProperty =
-                            PropertyName.DeviceLightSettingsMotionDailyLighting
+                            PropertyName.DeviceLightSettingsMotionDailyLighting;
                     }
                     let currentPropertyValue = device.getPropertyValue(
                         currentProperty
-                    ) as number
+                    ) as number;
                     if (!(currentPropertyValue in DailyLightingType)) {
-                        currentPropertyValue = DailyLightingType.COLD
+                        currentPropertyValue = DailyLightingType.COLD;
                     }
                     //TODO: Force cloud api refresh or updateProperty of currentPropertyValue?
                     this.p2pSession.sendCommandWithStringPayload(
@@ -19134,28 +19155,28 @@ export class Station extends TypedEmitter<StationEvents> {
                                 device.updateProperty(
                                     currentProperty,
                                     currentPropertyValue
-                                )
+                                );
                             },
                         }
-                    )
-                    break
+                    );
+                    break;
                 }
                 case LightingActiveMode.COLORED: {
                     let currentProperty =
-                        PropertyName.DeviceLightSettingsManualColoredLighting
+                        PropertyName.DeviceLightSettingsManualColoredLighting;
                     if (type === 'schedule') {
                         currentProperty =
-                            PropertyName.DeviceLightSettingsScheduleColoredLighting
+                            PropertyName.DeviceLightSettingsScheduleColoredLighting;
                     } else if (type === 'motion') {
                         currentProperty =
-                            PropertyName.DeviceLightSettingsMotionColoredLighting
+                            PropertyName.DeviceLightSettingsMotionColoredLighting;
                     }
                     let currentPropertyValue = device.getPropertyValue(
                         currentProperty
-                    ) as RGBColor
+                    ) as RGBColor;
                     const colors: Array<RGBColor> = device.getPropertyValue(
                         PropertyName.DeviceLightSettingsColoredLightingColors
-                    ) as Array<RGBColor>
+                    ) as Array<RGBColor>;
                     if (
                         !colors.some(
                             (color) =>
@@ -19164,7 +19185,7 @@ export class Station extends TypedEmitter<StationEvents> {
                                 color.blue === currentPropertyValue.blue
                         )
                     ) {
-                        currentPropertyValue = colors[0]
+                        currentPropertyValue = colors[0];
                     }
                     //TODO: Force cloud api refresh or updateProperty of currentPropertyValue?
                     this.p2pSession.sendCommandWithStringPayload(
@@ -19190,35 +19211,35 @@ export class Station extends TypedEmitter<StationEvents> {
                                 device.updateProperty(
                                     currentProperty,
                                     currentPropertyValue
-                                )
+                                );
                             },
                         }
-                    )
-                    break
+                    );
+                    break;
                 }
                 case LightingActiveMode.DYNAMIC: {
                     let currentProperty =
-                        PropertyName.DeviceLightSettingsManualDynamicLighting
+                        PropertyName.DeviceLightSettingsManualDynamicLighting;
                     if (type === 'schedule') {
                         currentProperty =
-                            PropertyName.DeviceLightSettingsScheduleDynamicLighting
+                            PropertyName.DeviceLightSettingsScheduleDynamicLighting;
                     } else if (type === 'motion') {
                         currentProperty =
-                            PropertyName.DeviceLightSettingsMotionDynamicLighting
+                            PropertyName.DeviceLightSettingsMotionDynamicLighting;
                     }
                     let currentPropertyValue = device.getPropertyValue(
                         currentProperty
-                    ) as number
+                    ) as number;
                     const range: number = (
                         device.getPropertyValue(
                             PropertyName.DeviceLightSettingsDynamicLightingThemes
                         ) as Array<DynamicLighting>
-                    ).length
+                    ).length;
                     if (
                         currentPropertyValue < 0 ||
                         currentPropertyValue >= range
                     ) {
-                        currentPropertyValue = 0
+                        currentPropertyValue = 0;
                     }
                     //TODO: Force cloud api refresh or updateProperty of currentPropertyValue?
                     this.p2pSession.sendCommandWithStringPayload(
@@ -19241,11 +19262,11 @@ export class Station extends TypedEmitter<StationEvents> {
                                 device.updateProperty(
                                     currentProperty,
                                     currentPropertyValue
-                                )
+                                );
                             },
                         }
-                    )
-                    break
+                    );
+                    break;
                 }
             }
         } else {
@@ -19259,7 +19280,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -19272,7 +19293,7 @@ export class Station extends TypedEmitter<StationEvents> {
             PropertyName.DeviceLightSettingsManualLightingActiveMode,
             value,
             'manual'
-        )
+        );
     }
 
     public setLightSettingsManualDailyLighting(
@@ -19282,7 +19303,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsManualDailyLighting,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -19294,7 +19315,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -19307,10 +19328,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings manual daily lighting - sending command`,
@@ -19319,7 +19340,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -19337,10 +19358,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.updateProperty(
                             PropertyName.DeviceLightSettingsManualLightingActiveMode,
                             LightingActiveMode.DAILY
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -19352,7 +19373,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -19363,7 +19384,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsManualColoredLighting,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -19375,7 +19396,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -19388,14 +19409,14 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         const colors: Array<RGBColor> = device.getPropertyValue(
             PropertyName.DeviceLightSettingsColoredLightingColors
-        ) as Array<RGBColor>
+        ) as Array<RGBColor>;
         if (
             !colors.some(
                 (color) =>
@@ -19414,7 +19435,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
 
         rootHTTPLogger.debug(
@@ -19424,7 +19445,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -19444,10 +19465,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.updateProperty(
                             PropertyName.DeviceLightSettingsManualLightingActiveMode,
                             LightingActiveMode.COLORED
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -19459,7 +19480,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -19470,7 +19491,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsManualDynamicLighting,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -19482,7 +19503,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -19495,10 +19516,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings manual dynamic lighting - sending command`,
@@ -19507,7 +19528,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -19525,10 +19546,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.updateProperty(
                             PropertyName.DeviceLightSettingsManualLightingActiveMode,
                             LightingActiveMode.DYNAMIC
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -19540,7 +19561,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -19553,7 +19574,7 @@ export class Station extends TypedEmitter<StationEvents> {
             PropertyName.DeviceLightSettingsMotionLightingActiveMode,
             value,
             'motion'
-        )
+        );
     }
 
     public setLightSettingsMotionDailyLighting(
@@ -19563,7 +19584,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsMotionDailyLighting,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -19575,7 +19596,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -19588,10 +19609,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings motion daily lighting - sending command`,
@@ -19600,7 +19621,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -19618,10 +19639,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.updateProperty(
                             PropertyName.DeviceLightSettingsMotionActivationMode,
                             LightingActiveMode.DAILY
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -19633,7 +19654,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -19644,7 +19665,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsMotionColoredLighting,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -19656,7 +19677,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -19669,14 +19690,14 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         const colors: Array<RGBColor> = device.getPropertyValue(
             PropertyName.DeviceLightSettingsColoredLightingColors
-        ) as Array<RGBColor>
+        ) as Array<RGBColor>;
         if (
             !colors.some(
                 (color) =>
@@ -19695,7 +19716,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
 
         rootHTTPLogger.debug(
@@ -19705,7 +19726,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -19725,10 +19746,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.updateProperty(
                             PropertyName.DeviceLightSettingsMotionActivationMode,
                             LightingActiveMode.COLORED
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -19740,7 +19761,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -19751,7 +19772,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsMotionDynamicLighting,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -19763,7 +19784,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -19776,10 +19797,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings motion dynamic lighting - sending command`,
@@ -19788,7 +19809,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -19806,10 +19827,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.updateProperty(
                             PropertyName.DeviceLightSettingsMotionActivationMode,
                             LightingActiveMode.DYNAMIC
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -19821,7 +19842,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -19834,7 +19855,7 @@ export class Station extends TypedEmitter<StationEvents> {
             PropertyName.DeviceLightSettingsScheduleLightingActiveMode,
             value,
             'schedule'
-        )
+        );
     }
 
     public setLightSettingsScheduleDailyLighting(
@@ -19844,7 +19865,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsScheduleDailyLighting,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -19856,7 +19877,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -19869,10 +19890,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings schedule daily lighting - sending command`,
@@ -19881,7 +19902,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -19899,10 +19920,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.updateProperty(
                             PropertyName.DeviceLightSettingsScheduleLightingActiveMode,
                             LightingActiveMode.DAILY
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -19914,7 +19935,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -19925,7 +19946,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsScheduleColoredLighting,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -19937,7 +19958,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -19950,14 +19971,14 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         const colors: Array<RGBColor> = device.getPropertyValue(
             PropertyName.DeviceLightSettingsColoredLightingColors
-        ) as Array<RGBColor>
+        ) as Array<RGBColor>;
         if (
             !colors.some(
                 (color) =>
@@ -19976,7 +19997,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
 
         rootHTTPLogger.debug(
@@ -19986,7 +20007,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -20006,10 +20027,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.updateProperty(
                             PropertyName.DeviceLightSettingsScheduleLightingActiveMode,
                             LightingActiveMode.COLORED
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -20021,7 +20042,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -20032,7 +20053,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsScheduleDynamicLighting,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -20044,7 +20065,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -20057,10 +20078,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings schedule dynamic lighting - sending command`,
@@ -20069,7 +20090,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -20087,10 +20108,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         device.updateProperty(
                             PropertyName.DeviceLightSettingsScheduleLightingActiveMode,
                             LightingActiveMode.DYNAMIC
-                        )
+                        );
                     },
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -20102,7 +20123,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -20113,7 +20134,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsColoredLightingColors,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -20125,7 +20146,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -20138,10 +20159,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings colored lighting colors - sending command`,
@@ -20150,7 +20171,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             const colors: Array<InternalColoredLighting> = [
                 { color: 16760832 },
@@ -20163,14 +20184,14 @@ export class Station extends TypedEmitter<StationEvents> {
                 { color: 485368 },
                 { color: 9983 },
                 { color: 4664060 },
-            ]
+            ];
             if (value.length > 0 && value.length <= 15) {
-                let count = 0
+                let count = 0;
                 for (let i = 0; i < colors.length; i++) {
                     if (RGBColorToDecimal(value[i]) === colors[i].color) {
-                        count++
+                        count++;
                     } else {
-                        break
+                        break;
                     }
                 }
                 if (value.length - count + colors.length > 15) {
@@ -20184,10 +20205,10 @@ export class Station extends TypedEmitter<StationEvents> {
                                 propertyValue: propertyData.value,
                             },
                         }
-                    )
+                    );
                 } else {
                     for (let i = count; i < value.length - count + 10; i++) {
-                        colors.push({ color: RGBColorToDecimal(value[i]) })
+                        colors.push({ color: RGBColorToDecimal(value[i]) });
                     }
                 }
             } else {
@@ -20201,7 +20222,7 @@ export class Station extends TypedEmitter<StationEvents> {
                             propertyValue: propertyData.value,
                         },
                     }
-                )
+                );
             }
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -20216,7 +20237,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -20228,7 +20249,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -20239,7 +20260,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLightSettingsDynamicLightingThemes,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -20251,7 +20272,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -20264,10 +20285,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set light settings dynamic lighting themes - sending command`,
@@ -20276,7 +20297,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isWallLightCam()) {
             const themes: Array<InternalDynamicLighting> = [
                 {
@@ -20300,14 +20321,14 @@ export class Station extends TypedEmitter<StationEvents> {
                     speed: 500,
                     colors: [16718080, 16756736, 65298, 40703, 4980991],
                 },
-            ]
+            ];
             if (value.length > 0 && value.length <= 23) {
-                let count = 0
+                let count = 0;
                 for (let i = 0; i < themes.length; i++) {
                     if (value[i].name === themes[i].name) {
-                        count++
+                        count++;
                     } else {
-                        break
+                        break;
                     }
                 }
                 if (value.length - count + themes.length > 23) {
@@ -20321,7 +20342,7 @@ export class Station extends TypedEmitter<StationEvents> {
                                 propertyValue: propertyData.value,
                             },
                         }
-                    )
+                    );
                 } else {
                     for (let i = count; i < value.length - count + 3; i++) {
                         themes.push({
@@ -20332,7 +20353,7 @@ export class Station extends TypedEmitter<StationEvents> {
                             mode: value[i].mode,
                             name: value[i].name,
                             speed: value[i].speed,
-                        })
+                        });
                     }
                 }
             } else {
@@ -20346,7 +20367,7 @@ export class Station extends TypedEmitter<StationEvents> {
                             propertyValue: propertyData.value,
                         },
                     }
-                )
+                );
             }
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -20361,7 +20382,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -20373,7 +20394,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -20381,7 +20402,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceDoorControlWarning,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -20393,7 +20414,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -20406,10 +20427,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set door control warning - sending command`,
@@ -20418,7 +20439,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isGarageCamera()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -20436,7 +20457,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -20448,7 +20469,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -20462,7 +20483,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 value: value,
                 doorId: doorId,
             },
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -20474,7 +20495,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -20487,17 +20508,17 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station open door - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
             doorId: doorId,
-        })
+        });
         if (device.isGarageCamera()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -20524,7 +20545,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -20536,7 +20557,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -20545,7 +20566,7 @@ export class Station extends TypedEmitter<StationEvents> {
         doorId: number,
         status: number
     ): void {
-        this.emit('garage door status', this, channel, doorId, status)
+        this.emit('garage door status', this, channel, doorId, status);
     }
 
     public calibrateGarageDoor(
@@ -20555,7 +20576,7 @@ export class Station extends TypedEmitter<StationEvents> {
     ): void {
         const commandData: CommandData = {
             name: CommandName.DeviceCalibrateGarageDoor,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -20566,7 +20587,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceCalibrateGarageDoor)) {
             throw new NotSupportedError(
@@ -20578,7 +20599,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station calibrate garage door  - sending command`,
@@ -20588,7 +20609,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 doorId: doorId,
                 type: type,
             }
-        )
+        );
         if (device.isGarageCamera()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -20606,7 +20627,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -20617,7 +20638,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -20625,14 +20646,14 @@ export class Station extends TypedEmitter<StationEvents> {
         channel: number,
         storageInfo: StorageInfoBodyHB3
     ): void {
-        this.emit('storage info hb3', this, channel, storageInfo)
+        this.emit('storage info hb3', this, channel, storageInfo);
     }
 
     public setMirrorMode(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceImageMirrored,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -20644,7 +20665,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -20657,16 +20678,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set mirror mode - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         this.p2pSession.sendCommandWithIntString(
             {
                 commandType: CommandType.CMD_SET_MIRRORMODE,
@@ -20678,14 +20699,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setFlickerAdjustment(device: Device, value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceFlickerAdjustment,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -20697,7 +20718,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -20710,10 +20731,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set flicker adjustment - sending command`,
@@ -20722,7 +20743,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -20741,14 +20762,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setCrossCameraTracking(value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.StationCrossCameraTracking,
             value: value,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -20759,15 +20780,15 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set cross camera tracking - sending command`,
             { stationSN: this.getSerial(), value: value }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -20785,14 +20806,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setContinuousTrackingTime(value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.StationContinuousTrackingTime,
             value: value,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -20803,14 +20824,14 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
         rootHTTPLogger.debug(
             `Station set continuous tracking time - sending command`,
             { stationSN: this.getSerial(), value: value }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -20828,14 +20849,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setTrackingAssistance(value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.StationTrackingAssistance,
             value: value,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -20846,10 +20867,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set tracking assistance - sending command`,
@@ -20857,7 +20878,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 stationSN: this.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -20875,14 +20896,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setCrossTrackingCameraList(value: Array<string>): void {
         const propertyData: PropertyData = {
             name: PropertyName.StationCrossTrackingCameraList,
             value: value,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -20893,15 +20914,15 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set cross tracking camera list - sending command`,
             { stationSN: this.getSerial(), value: value }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -20917,7 +20938,7 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setCrossTrackingGroupList(
@@ -20926,7 +20947,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.StationCrossTrackingGroupList,
             value: value,
-        }
+        };
         if (!this.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -20937,15 +20958,15 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = this.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = this.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set cross tracking group list - sending command`,
             { stationSN: this.getSerial(), value: value }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -20961,7 +20982,7 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setNotificationIndoor(
@@ -20981,7 +21002,7 @@ export class Station extends TypedEmitter<StationEvents> {
                           ? PropertyName.DeviceNotificationCrying
                           : PropertyName.DeviceNotificationAllSound,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -20993,7 +21014,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -21006,10 +21027,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set notification type indoor - sending command`,
@@ -21019,7 +21040,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 type: type,
                 value: value,
             }
-        )
+        );
         if (device.isIndoorPanAndTiltCameraS350()) {
             try {
                 const notification =
@@ -21031,14 +21052,14 @@ export class Station extends TypedEmitter<StationEvents> {
                               device.getPropertyMetadata(propertyData.name)
                                   .key as number
                           )!
-                        : '0'
+                        : '0';
                 let newNotification = getIndoorNotification(
                     Number.parseInt(notification),
                     type as IndoorS350NotificationTypes,
                     value
-                )
+                );
                 if (newNotification === 0) {
-                    newNotification = type
+                    newNotification = type;
                 }
                 this.p2pSession.sendCommandWithStringPayload(
                     {
@@ -21061,17 +21082,17 @@ export class Station extends TypedEmitter<StationEvents> {
                                 CommandType.CMD_INDOOR_SET_MOTION_DETECTION_TYPE,
                                 newNotification.toString(),
                                 'p2p'
-                            )
+                            );
                         },
                     }
-                )
+                );
             } catch (err) {
-                const error = ensureError(err)
+                const error = ensureError(err);
                 rootHTTPLogger.error(`setNotificationIndoor Error`, {
                     error: getError(error),
                     stationSN: this.getSerial(),
                     deviceSN: device.getSerial(),
-                })
+                });
             }
         } else {
             throw new NotSupportedError(
@@ -21084,7 +21105,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -21103,7 +21124,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         ? PropertyName.DeviceNotificationPet
                         : PropertyName.DeviceNotificationVehicle,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -21115,7 +21136,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -21128,10 +21149,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set notification type floodlight T8425 - sending command`,
@@ -21141,7 +21162,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 type: type,
                 value: value,
             }
-        )
+        );
         if (device.isFloodLightT8425()) {
             try {
                 const notification =
@@ -21153,14 +21174,14 @@ export class Station extends TypedEmitter<StationEvents> {
                               device.getPropertyMetadata(propertyData.name)
                                   .key as number
                           )!
-                        : '0'
+                        : '0';
                 let newNotification = getFloodLightT8425Notification(
                     Number.parseInt(notification),
                     type as FloodlightT8425NotificationTypes,
                     value
-                )
+                );
                 if (newNotification < 312) {
-                    newNotification = 312
+                    newNotification = 312;
                 }
                 this.p2pSession.sendCommandWithStringPayload(
                     {
@@ -21183,17 +21204,17 @@ export class Station extends TypedEmitter<StationEvents> {
                                 CommandType.CMD_INDOOR_SET_MOTION_DETECTION_TYPE,
                                 newNotification.toString(),
                                 'p2p'
-                            )
+                            );
                         },
                     }
-                )
+                );
             } catch (err) {
-                const error = ensureError(err)
+                const error = ensureError(err);
                 rootHTTPLogger.error(`setNotificationFloodlightT8425 Error`, {
                     error: getError(error),
                     stationSN: this.getSerial(),
                     deviceSN: device.getSerial(),
-                })
+                });
             }
         } else {
             throw new NotSupportedError(
@@ -21206,7 +21227,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -21214,7 +21235,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const commandData: CommandData = {
             name: CommandName.DevicePresetPosition,
             value: position,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -21226,7 +21247,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DevicePresetPosition)) {
             throw new NotSupportedError(
@@ -21239,7 +21260,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!(position in PresetPositionType)) {
             throw new InvalidCommandValueError(
@@ -21252,14 +21273,14 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
 
         rootHTTPLogger.debug(`Station preset position - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             preset: PresetPositionType[position],
-        })
+        });
         if (
             device.isFloodLightT8425() ||
             device.isIndoorPanAndTiltCameraS350() ||
@@ -21281,7 +21302,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         }
     }
 
@@ -21292,7 +21313,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const commandData: CommandData = {
             name: CommandName.DeviceSavePresetPosition,
             value: position,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -21304,7 +21325,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceSavePresetPosition)) {
             throw new NotSupportedError(
@@ -21317,7 +21338,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!(position in PresetPositionType)) {
             throw new InvalidCommandValueError(
@@ -21330,14 +21351,14 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
 
         rootHTTPLogger.debug(`Station save preset position - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             preset: PresetPositionType[position],
-        })
+        });
         if (
             device.isFloodLightT8425() ||
             device.isIndoorPanAndTiltCameraS350() ||
@@ -21359,7 +21380,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         }
     }
 
@@ -21370,7 +21391,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const commandData: CommandData = {
             name: CommandName.DeviceDeletePresetPosition,
             value: position,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -21382,7 +21403,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceDeletePresetPosition)) {
             throw new NotSupportedError(
@@ -21395,7 +21416,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!(position in PresetPositionType)) {
             throw new InvalidCommandValueError(
@@ -21408,7 +21429,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
 
         rootHTTPLogger.debug(
@@ -21418,7 +21439,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 preset: PresetPositionType[position],
             }
-        )
+        );
         if (
             device.isFloodLightT8425() ||
             device.isIndoorPanAndTiltCameraS350() ||
@@ -21440,7 +21461,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         }
     }
 
@@ -21448,7 +21469,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLeavingDetection,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -21460,7 +21481,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -21473,10 +21494,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set leaving detection - sending command`,
@@ -21485,7 +21506,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isGarageCamera() || device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -21504,7 +21525,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -21516,7 +21537,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -21538,7 +21559,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -21551,10 +21572,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, propertyData.value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, propertyData.value);
 
         rootHTTPLogger.debug(
             `Station set leaving reactions - sending command`,
@@ -21566,7 +21587,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 startTime: startTime,
                 endTime: endTime,
             }
-        )
+        );
         if (device.isLockWifiVideo()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -21589,7 +21610,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     property: propertyData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -21601,7 +21622,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -21612,7 +21633,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLeavingReactionNotification,
             value: value,
-        }
+        };
         this._setLeavingReactions(
             device,
             propertyData,
@@ -21623,14 +21644,14 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getPropertyValue(
                 PropertyName.DeviceLeavingReactionEndTime
             ) as string
-        )
+        );
     }
 
     public setLeavingReactionStartTime(device: Device, value: string): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLeavingReactionStartTime,
             value: value,
-        }
+        };
         this._setLeavingReactions(
             device,
             propertyData,
@@ -21641,14 +21662,14 @@ export class Station extends TypedEmitter<StationEvents> {
             device.getPropertyValue(
                 PropertyName.DeviceLeavingReactionEndTime
             ) as string
-        )
+        );
     }
 
     public setLeavingReactionEndTime(device: Device, value: string): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceLeavingReactionEndTime,
             value: value,
-        }
+        };
         this._setLeavingReactions(
             device,
             propertyData,
@@ -21659,14 +21680,14 @@ export class Station extends TypedEmitter<StationEvents> {
                 PropertyName.DeviceLeavingReactionStartTime
             ) as string,
             value
-        )
+        );
     }
 
     public setBeepVolume(device: Device, value: number): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceBeepVolume,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -21678,7 +21699,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -21691,19 +21712,19 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station set beep volume - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         if (device.isLockWifiVideo()) {
             this.setAdvancedLockParams(
                 device,
                 PropertyName.DeviceBeepVolume,
                 value
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -21715,7 +21736,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -21723,7 +21744,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNightvisionOptimization,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -21735,7 +21756,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -21748,7 +21769,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station set nightvision optimization - sending command`,
@@ -21757,13 +21778,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isLockWifiVideo()) {
             this.setAdvancedLockParams(
                 device,
                 PropertyName.DeviceNightvisionOptimization,
                 value
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -21775,7 +21796,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -21783,7 +21804,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceNightvisionOptimizationSide,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -21795,7 +21816,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -21808,7 +21829,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(
             `Station set nightvision optimization - sending command`,
@@ -21817,13 +21838,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         if (device.isLockWifiVideo()) {
             this.setAdvancedLockParams(
                 device,
                 PropertyName.DeviceNightvisionOptimizationSide,
                 value
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -21835,7 +21856,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -21850,7 +21871,7 @@ export class Station extends TypedEmitter<StationEvents> {
             rootHTTPLogger.debug(
                 `Station smart lock send get lock parameters command`,
                 { stationSN: this.getSerial() }
-            )
+            );
             const command = getSmartLockP2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,
@@ -21860,8 +21881,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 Lock.encodeCmdSmartLockGetParams(
                     this.rawStation.member.admin_user_id
                 )
-            )
-            this.p2pSession.sendCommandWithStringPayload(command.payload)
+            );
+            this.p2pSession.sendCommandWithStringPayload(command.payload);
         } else if (
             Device.isLockWifiR10(this.getDeviceType()) ||
             Device.isLockWifiR20(this.getDeviceType())
@@ -21869,7 +21890,7 @@ export class Station extends TypedEmitter<StationEvents> {
             rootHTTPLogger.debug(
                 `Station lock v12 send get lock parameters command`,
                 { stationSN: this.getSerial() }
-            )
+            );
             const command = getLockV12P2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,
@@ -21878,8 +21899,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.lockPublicKey,
                 this.p2pSession.incLockSequenceNumber(),
                 Lock.encodeCmdGetLockParam(this.rawStation.member.admin_user_id)
-            )
-            this._sendLockV12P2PCommand(command)
+            );
+            this._sendLockV12P2PCommand(command);
         }
     }
 
@@ -21896,7 +21917,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     stationSN: this.getSerial(),
                 }
-            )
+            );
             const command = getSmartLockP2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,
@@ -21906,8 +21927,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 Lock.encodeCmdSmartLockStatus(
                     this.rawStation.member.admin_user_id
                 )
-            )
-            this.p2pSession.sendCommandWithStringPayload(command.payload)
+            );
+            this.p2pSession.sendCommandWithStringPayload(command.payload);
         } else if (
             Device.isLockWifiR10(this.getDeviceType()) ||
             Device.isLockWifiR20(this.getDeviceType())
@@ -21917,7 +21938,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     stationSN: this.getSerial(),
                 }
-            )
+            );
             const command = getLockV12P2PCommand(
                 this.rawStation.station_sn,
                 this.rawStation.member.admin_user_id,
@@ -21926,8 +21947,8 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.lockPublicKey,
                 this.p2pSession.incLockSequenceNumber(),
                 Lock.encodeCmdStatus(this.rawStation.member.admin_user_id)
-            )
-            this._sendLockV12P2PCommand(command)
+            );
+            this._sendLockV12P2PCommand(command);
         } else if (
             Device.isLockWifi(this.getDeviceType(), this.getSerial()) ||
             Device.isLockWifiNoFinger(this.getDeviceType())
@@ -21950,7 +21971,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     },
                 }),
                 channel: 0,
-            } as P2PCommand)
+            } as P2PCommand);
         }
     }
 
@@ -21968,7 +21989,7 @@ export class Station extends TypedEmitter<StationEvents> {
             command: command,
             sequence: sequence,
             serialnumber: serialnumber,
-        })
+        });
     }
 
     public updateUsername(
@@ -21982,7 +22003,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 username: username,
                 passwordId: passwordId,
             },
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -21994,7 +22015,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceUpdateUsername)) {
             throw new NotSupportedError(
@@ -22007,14 +22028,14 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station update username - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             username: username,
             passwordId: passwordId,
-        })
+        });
         if (device.isLockWifiR10() || device.isLockWifiR20()) {
             const command = getLockV12P2PCommand(
                 this.rawStation.station_sn,
@@ -22024,17 +22045,17 @@ export class Station extends TypedEmitter<StationEvents> {
                 this.lockPublicKey,
                 this.p2pSession.incLockSequenceNumber(),
                 Lock.encodeCmdModifyUsername(username, passwordId)
-            )
+            );
             rootHTTPLogger.debug('Station update username - payload', {
                 station: this.getSerial(),
                 device: device.getSerial(),
                 admin_user_id: this.rawStation.member.admin_user_id,
                 payload: command,
-            })
+            });
 
             this._sendLockV12P2PCommand(command, {
                 command: commandData,
-            })
+            });
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -22046,7 +22067,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandValue: commandData.value,
                     },
                 }
-            )
+            );
         }
     }
 
@@ -22054,7 +22075,7 @@ export class Station extends TypedEmitter<StationEvents> {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceOpenMethod,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -22066,7 +22087,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -22079,16 +22100,16 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(`Station set open method - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
             value: value,
-        })
+        });
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -22108,14 +22129,14 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public setMotionActivatedPrompt(device: Device, value: boolean): void {
         const propertyData: PropertyData = {
             name: PropertyName.DeviceMotionActivatedPrompt,
             value: value,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -22127,7 +22148,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
         if (!device.hasProperty(propertyData.name)) {
             throw new NotSupportedError(
@@ -22140,10 +22161,10 @@ export class Station extends TypedEmitter<StationEvents> {
                         propertyValue: propertyData.value,
                     },
                 }
-            )
+            );
         }
-        const property = device.getPropertyMetadata(propertyData.name)
-        validValue(property, value)
+        const property = device.getPropertyMetadata(propertyData.name);
+        validValue(property, value);
 
         rootHTTPLogger.debug(
             `Station set motion activated prompt - sending command`,
@@ -22152,7 +22173,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 deviceSN: device.getSerial(),
                 value: value,
             }
-        )
+        );
         this.p2pSession.sendCommandWithStringPayload(
             {
                 commandType: CommandType.CMD_SET_PAYLOAD,
@@ -22171,13 +22192,13 @@ export class Station extends TypedEmitter<StationEvents> {
             {
                 property: propertyData,
             }
-        )
+        );
     }
 
     public open(device: Device): void {
         const commandData: CommandData = {
             name: CommandName.DeviceOpen,
-        }
+        };
         if (device.getStationSerial() !== this.getSerial()) {
             throw new WrongStationError(
                 'Device is not managed by this station',
@@ -22188,7 +22209,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         if (!device.hasCommand(CommandName.DeviceOpen)) {
             throw new NotSupportedError(
@@ -22200,12 +22221,12 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
         rootHTTPLogger.debug(`Station open - sending command`, {
             stationSN: this.getSerial(),
             deviceSN: device.getSerial(),
-        })
+        });
         if (device.isSmartDrop()) {
             this.p2pSession.sendCommandWithStringPayload(
                 {
@@ -22225,7 +22246,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 {
                     command: commandData,
                 }
-            )
+            );
         } else {
             throw new NotSupportedError(
                 'This functionality is not implemented or supported by this device',
@@ -22236,7 +22257,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         commandName: commandData.name,
                     },
                 }
-            )
+            );
         }
     }
 }

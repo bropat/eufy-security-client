@@ -1,4 +1,4 @@
-import { EufyTimezone } from './utils'
+import { EufyTimezone } from './utils';
 
 export const PhoneModels: Array<string> = [
     'ARCHOS 101 CHILDPAD',
@@ -5521,7 +5521,7 @@ export const PhoneModels: Array<string> = [
     'YP-GI2',
     'YP-GP1',
     'YP-GS1',
-]
+];
 
 export const timeZoneData: Array<EufyTimezone> = [
     {
@@ -8543,4 +8543,4 @@ export const timeZoneData: Array<EufyTimezone> = [
         timeSn: '1502',
         timeZoneGMT: 'UTC0',
     },
-]
+];

@@ -1,13 +1,13 @@
-import { BaseError, Jsonable } from '../error'
+import { BaseError, Jsonable } from '../error';
 
 export class InvalidPropertyError extends BaseError {
     constructor(
         message: string,
         options: { cause?: Error; context?: Jsonable } = {}
     ) {
-        super(message, options)
-        Object.setPrototypeOf(this, new.target.prototype)
-        this.name = InvalidPropertyError.name
+        super(message, options);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = InvalidPropertyError.name;
     }
 }
 
@@ -16,9 +16,9 @@ export class LivestreamAlreadyRunningError extends BaseError {
         message: string,
         options: { cause?: Error; context?: Jsonable } = {}
     ) {
-        super(message, options)
-        Object.setPrototypeOf(this, new.target.prototype)
-        this.name = LivestreamAlreadyRunningError.name
+        super(message, options);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = LivestreamAlreadyRunningError.name;
     }
 }
 
@@ -27,9 +27,9 @@ export class LivestreamNotRunningError extends BaseError {
         message: string,
         options: { cause?: Error; context?: Jsonable } = {}
     ) {
-        super(message, options)
-        Object.setPrototypeOf(this, new.target.prototype)
-        this.name = LivestreamNotRunningError.name
+        super(message, options);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = LivestreamNotRunningError.name;
     }
 }
 
@@ -38,9 +38,9 @@ export class PropertyNotSupportedError extends BaseError {
         message: string,
         options: { cause?: Error; context?: Jsonable } = {}
     ) {
-        super(message, options)
-        Object.setPrototypeOf(this, new.target.prototype)
-        this.name = PropertyNotSupportedError.name
+        super(message, options);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = PropertyNotSupportedError.name;
     }
 }
 
@@ -49,9 +49,9 @@ export class ApiResponseCodeError extends BaseError {
         message: string,
         options: { cause?: Error; context?: Jsonable } = {}
     ) {
-        super(message, options)
-        Object.setPrototypeOf(this, new.target.prototype)
-        this.name = ApiResponseCodeError.name
+        super(message, options);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = ApiResponseCodeError.name;
     }
 }
 
@@ -60,9 +60,9 @@ export class ApiInvalidResponseError extends BaseError {
         message: string,
         options: { cause?: Error; context?: Jsonable } = {}
     ) {
-        super(message, options)
-        Object.setPrototypeOf(this, new.target.prototype)
-        this.name = ApiInvalidResponseError.name
+        super(message, options);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = ApiInvalidResponseError.name;
     }
 }
 
@@ -71,9 +71,9 @@ export class ApiHTTPResponseCodeError extends BaseError {
         message: string,
         options: { cause?: Error; context?: Jsonable } = {}
     ) {
-        super(message, options)
-        Object.setPrototypeOf(this, new.target.prototype)
-        this.name = ApiHTTPResponseCodeError.name
+        super(message, options);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = ApiHTTPResponseCodeError.name;
     }
 }
 
@@ -82,9 +82,9 @@ export class ApiGenericError extends BaseError {
         message: string,
         options: { cause?: Error; context?: Jsonable } = {}
     ) {
-        super(message, options)
-        Object.setPrototypeOf(this, new.target.prototype)
-        this.name = ApiGenericError.name
+        super(message, options);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = ApiGenericError.name;
     }
 }
 
@@ -93,9 +93,9 @@ export class ApiBaseLoadError extends BaseError {
         message: string,
         options: { cause?: Error; context?: Jsonable } = {}
     ) {
-        super(message, options)
-        Object.setPrototypeOf(this, new.target.prototype)
-        this.name = ApiBaseLoadError.name
+        super(message, options);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = ApiBaseLoadError.name;
     }
 }
 
@@ -104,9 +104,9 @@ export class ApiRequestError extends BaseError {
         message: string,
         options: { cause?: Error; context?: Jsonable } = {}
     ) {
-        super(message, options)
-        Object.setPrototypeOf(this, new.target.prototype)
-        this.name = ApiRequestError.name
+        super(message, options);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = ApiRequestError.name;
     }
 }
 
@@ -115,9 +115,9 @@ export class ImageBaseCodeError extends BaseError {
         message: string,
         options: { cause?: Error; context?: Jsonable } = {}
     ) {
-        super(message, options)
-        Object.setPrototypeOf(this, new.target.prototype)
-        this.name = ImageBaseCodeError.name
+        super(message, options);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = ImageBaseCodeError.name;
     }
 }
 
@@ -126,8 +126,8 @@ export class ImageSeedError extends BaseError {
         message: string,
         options: { cause?: Error; context?: Jsonable } = {}
     ) {
-        super(message, options)
-        Object.setPrototypeOf(this, new.target.prototype)
-        this.name = ImageSeedError.name
+        super(message, options);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = ImageSeedError.name;
     }
 }

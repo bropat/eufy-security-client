@@ -1,15 +1,15 @@
-import * as crypto from 'crypto'
-import { Category } from 'typescript-logging-category-style'
-import EventEmitter from 'events'
+import * as crypto from 'crypto';
+import { Category } from 'typescript-logging-category-style';
+import EventEmitter from 'events';
 
-import { ErrorObject, EufySecurityPersistentData } from './interfaces'
-import { BaseError, InvalidPropertyValueError, ensureError } from './error'
+import { ErrorObject, EufySecurityPersistentData } from './interfaces';
+import { BaseError, InvalidPropertyValueError, ensureError } from './error';
 import {
     PropertyMetadataAny,
     PropertyMetadataNumeric,
     PropertyMetadataObject,
     PropertyMetadataString,
-} from './http/interfaces'
+} from './http/interfaces';
 
 export const getError = function (error: BaseError): ErrorObject {
     return {
@@ -17,25 +17,25 @@ export const getError = function (error: BaseError): ErrorObject {
         message: `${error.name}: ${error.message}`,
         context: error.context,
         stacktrace: error.stack,
-    }
-}
+    };
+};
 
 export const removeLastChar = function (text: string, char: string): string {
-    const strArr = [...text]
-    strArr.splice(text.lastIndexOf(char), 1)
-    return strArr.join('')
-}
+    const strArr = [...text];
+    strArr.splice(text.lastIndexOf(char), 1);
+    return strArr.join('');
+};
 
 export const generateUDID = function (): string {
-    return crypto.randomBytes(8).readBigUInt64BE().toString(16)
-}
+    return crypto.randomBytes(8).readBigUInt64BE().toString(16);
+};
 
 export const generateSerialnumber = function (length: number): string {
-    return crypto.randomBytes(length / 2).toString('hex')
-}
+    return crypto.randomBytes(length / 2).toString('hex');
+};
 
 export const md5 = (contents: string): string =>
-    crypto.createHash('md5').update(contents).digest('hex')
+    crypto.createHash('md5').update(contents).digest('hex');
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const handleUpdate = function (
@@ -43,19 +43,19 @@ export const handleUpdate = function (
     oldVersion: number
 ): EufySecurityPersistentData {
     if (oldVersion <= 1.24) {
-        config.cloud_token = ''
-        config.cloud_token_expiration = 0
+        config.cloud_token = '';
+        config.cloud_token_expiration = 0;
     }
-    return config
-}
+    return config;
+};
 
 export const isEmpty = function (str: string | null | undefined): boolean {
     if (str) {
-        if (str.length > 0) return false
-        return true
+        if (str.length > 0) return false;
+        return true;
     }
-    return true
-}
+    return true;
+};
 
 export const parseValue = function (
     metadata: PropertyMetadataAny,
@@ -65,10 +65,10 @@ export const parseValue = function (
         if (value !== undefined) {
             switch (typeof value) {
                 case 'boolean':
-                    break
+                    break;
                 case 'number':
                     if (value === 0 || value === 1) {
-                        value = value === 1 ? true : false
+                        value = value === 1 ? true : false;
                     } else {
                         throw new InvalidPropertyValueError(
                             'Property expects a boolean value',
@@ -79,15 +79,15 @@ export const parseValue = function (
                                     metadata: metadata,
                                 },
                             }
-                        )
+                        );
                     }
-                    break
+                    break;
                 case 'string':
                     if (
                         value.toLowerCase() === 'true' ||
                         value.toLowerCase() === 'false'
                     ) {
-                        value = value.toLowerCase() === 'true' ? true : false
+                        value = value.toLowerCase() === 'true' ? true : false;
                     } else {
                         throw new InvalidPropertyValueError(
                             'Property expects a boolean value',
@@ -98,9 +98,9 @@ export const parseValue = function (
                                     metadata: metadata,
                                 },
                             }
-                        )
+                        );
                     }
-                    break
+                    break;
                 default:
                     throw new InvalidPropertyValueError(
                         'Property expects a boolean value',
@@ -111,7 +111,7 @@ export const parseValue = function (
                                 metadata: metadata,
                             },
                         }
-                    )
+                    );
             }
         } else {
             throw new InvalidPropertyValueError(
@@ -123,18 +123,18 @@ export const parseValue = function (
                         metadata: metadata,
                     },
                 }
-            )
+            );
         }
     } else if (metadata.type === 'number') {
         if (value !== undefined) {
             switch (typeof value) {
                 case 'number':
-                    break
+                    break;
                 case 'string':
                     try {
-                        value = Number.parseInt(value)
+                        value = Number.parseInt(value);
                     } catch (err) {
-                        const error = ensureError(err)
+                        const error = ensureError(err);
                         throw new InvalidPropertyValueError(
                             'Property expects a number value',
                             {
@@ -145,9 +145,9 @@ export const parseValue = function (
                                     metadata: metadata,
                                 },
                             }
-                        )
+                        );
                     }
-                    break
+                    break;
                 default:
                     throw new InvalidPropertyValueError(
                         'Property expects a number value',
@@ -158,7 +158,7 @@ export const parseValue = function (
                                 metadata: metadata,
                             },
                         }
-                    )
+                    );
             }
         } else {
             throw new InvalidPropertyValueError(
@@ -170,19 +170,19 @@ export const parseValue = function (
                         metadata: metadata,
                     },
                 }
-            )
+            );
         }
     } else if (metadata.type === 'string') {
         if (value !== undefined) {
             switch (typeof value) {
                 case 'number':
-                    value = value.toString()
-                    break
+                    value = value.toString();
+                    break;
                 case 'string':
-                    break
+                    break;
                 case 'boolean':
-                    value = value === true ? 'true' : 'false'
-                    break
+                    value = value === true ? 'true' : 'false';
+                    break;
                 default:
                     throw new InvalidPropertyValueError(
                         'Property expects a string value',
@@ -193,7 +193,7 @@ export const parseValue = function (
                                 metadata: metadata,
                             },
                         }
-                    )
+                    );
             }
         } else {
             throw new InvalidPropertyValueError(
@@ -205,7 +205,7 @@ export const parseValue = function (
                         metadata: metadata,
                     },
                 }
-            )
+            );
         }
     } else if (metadata.type === 'object') {
         if (value === undefined || value === null) {
@@ -218,7 +218,7 @@ export const parseValue = function (
                         metadata: metadata,
                     },
                 }
-            )
+            );
         }
     } else {
         throw new InvalidPropertyValueError(
@@ -230,28 +230,28 @@ export const parseValue = function (
                     metadata: metadata,
                 },
             }
-        )
+        );
     }
-    return value
-}
+    return value;
+};
 
 export const parseJSON = function (data: string, log: Category): any {
     try {
-        return JSON.parse(data.replace(/[\0]+$/g, ''))
+        return JSON.parse(data.replace(/[\0]+$/g, ''));
     } catch (err) {
-        const error = ensureError(err)
-        log.debug('JSON parse error', { error: getError(error), data: data })
+        const error = ensureError(err);
+        log.debug('JSON parse error', { error: getError(error), data: data });
     }
-    return undefined
-}
+    return undefined;
+};
 
 export const validValue = function (
     metadata: PropertyMetadataAny,
     value: unknown
 ): void {
     if (metadata.type === 'number') {
-        const numberMetadata = metadata as PropertyMetadataNumeric
-        const numericValue = Number(value)
+        const numberMetadata = metadata as PropertyMetadataNumeric;
+        const numericValue = Number(value);
         if (
             (numberMetadata.min !== undefined &&
                 numberMetadata.min > numericValue) ||
@@ -270,11 +270,11 @@ export const validValue = function (
                         metadata: metadata,
                     },
                 }
-            )
+            );
         }
     } else if (metadata.type === 'string') {
-        const stringMetadata = metadata as PropertyMetadataString
-        const stringValue = String(value)
+        const stringMetadata = metadata as PropertyMetadataString;
+        const stringValue = String(value);
         if (
             (stringMetadata.format !== undefined &&
                 stringValue.match(stringMetadata.format) === null) ||
@@ -292,10 +292,10 @@ export const validValue = function (
                         metadata: metadata,
                     },
                 }
-            )
+            );
         }
     } else if (metadata.type === 'boolean') {
-        const str = String(value).toLowerCase().trim()
+        const str = String(value).toLowerCase().trim();
         if (str !== 'true' && str !== 'false' && str !== '1' && str !== '0') {
             throw new InvalidPropertyValueError(
                 'Invalid value for this property according to metadata',
@@ -306,10 +306,10 @@ export const validValue = function (
                         metadata: metadata,
                     },
                 }
-            )
+            );
         }
     } else if (metadata.type === 'object') {
-        const metadataObject = metadata as PropertyMetadataObject
+        const metadataObject = metadata as PropertyMetadataObject;
         if (
             value !== undefined &&
             value !== null &&
@@ -325,7 +325,7 @@ export const validValue = function (
                             metadata: metadata,
                         },
                     }
-                )
+                );
             }
         } else {
             throw new InvalidPropertyValueError(
@@ -337,31 +337,31 @@ export const validValue = function (
                         metadata: metadata,
                     },
                 }
-            )
+            );
         }
     }
-}
+};
 
 export const mergeDeep = function (
     target: Record<string, any> | undefined,
     source: Record<string, any>
 ): Record<string, any> {
-    target = target || {}
+    target = target || {};
     for (const [key, value] of Object.entries(source)) {
         if (!(key in target)) {
-            target[key] = value
+            target[key] = value;
         } else {
             if (typeof value === 'object') {
                 // merge objects
-                target[key] = mergeDeep(target[key], value)
+                target[key] = mergeDeep(target[key], value);
             } else if (typeof target[key] === 'undefined') {
                 // don't override single keys
-                target[key] = value
+                target[key] = value;
             }
         }
     }
-    return target
-}
+    return target;
+};
 
 export function waitForEvent<T>(
     emitter: EventEmitter,
@@ -370,29 +370,29 @@ export function waitForEvent<T>(
     return new Promise((resolve, reject) => {
         const success = (val: T): void => {
             // eslint-disable-next-line @typescript-eslint/no-use-before-define
-            emitter.off('error', fail)
-            resolve(val)
-        }
+            emitter.off('error', fail);
+            resolve(val);
+        };
         const fail = (err: Error): void => {
-            emitter.off(event, success)
-            reject(err)
-        }
-        emitter.once(event, success)
-        emitter.once('error', fail)
-    })
+            emitter.off(event, success);
+            reject(err);
+        };
+        emitter.once(event, success);
+        emitter.once('error', fail);
+    });
 }
 
 export function getShortUrl(url: URL, prefixUrl?: string): string {
     if (url.password) {
-        url = new URL(url.toString()) // prevent original url mutation
-        url.password = '[redacted]'
+        url = new URL(url.toString()); // prevent original url mutation
+        url.password = '[redacted]';
     }
-    let shortUrl = url.toString()
+    let shortUrl = url.toString();
     if (prefixUrl && shortUrl.startsWith(prefixUrl)) {
-        shortUrl = shortUrl.slice(prefixUrl.length)
+        shortUrl = shortUrl.slice(prefixUrl.length);
     }
 
-    return shortUrl
+    return shortUrl;
 }
 
 export function isValidUrl(
@@ -400,15 +400,15 @@ export function isValidUrl(
     protocols: Array<string> = ['http', 'https']
 ): boolean {
     try {
-        const url = new URL(value)
+        const url = new URL(value);
         return protocols
             ? url.protocol
                 ? protocols
                       .map((protocol) => `${protocol.toLowerCase()}:`)
                       .includes(url.protocol)
                 : false
-            : true
+            : true;
     } catch (err) {
-        return false
+        return false;
     }
 }
