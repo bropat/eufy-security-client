@@ -1,79 +1,79 @@
 {
-  "name": "eufy-security-client",
-  "version": "3.5.0",
-  "description": "Client to comunicate with Eufy-Security devices",
-  "author": {
-    "name": "bropat",
-    "email": "patrick.broetto@gmail.com"
-  },
-  "homepage": "https://github.com/bropat/eufy-security-client",
-  "main": "build/index.js",
-  "scripts": {
-    "build:ts": "tsc -p tsconfig.build.json && npm run copy-proto-build",
-    "copy-proto-build": "npx copyfiles -u 1 \"src/**/*.proto\" \"src/**/*.crt\" build",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npm run build:ts",
-    "watch:ts": "tsc -p tsconfig.build.json --watch",
-    "watch": "npm run watch:ts",
-    "lint": "eslint --ext .ts src",
-    "prepublishOnly": "tsc -p tsconfig.build.json && npm run copy-proto-build"
-  },
-  "license": "MIT",
-  "keywords": [
-    "eufy",
-    "eufycam",
-    "cam",
-    "cameras",
-    "security",
-    "eufy-security",
-    "doorbell",
-    "lock",
-    "keypad",
-    "smartlock",
-    "smartsafe"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/bropat/eufy-security-client"
-  },
-  "engines": {
-    "node": ">=20.0.0"
-  },
-  "dependencies": {
-    "@cospired/i18n-iso-languages": "^4.2.0",
-    "crypto-js": "^4.2.0",
-    "date-and-time": "^4.1.1",
-    "fs-extra": "^11.2.0",
-    "got": "^14.4.2",
-    "i18n-iso-countries": "^7.12.0",
-    "image-type": "^5.2.0",
-    "long": "^5.2.3",
-    "mqtt": "^5.10.1",
-    "node-rsa": "^1.1.1",
-    "node-schedule": "^2.1.1",
-    "p-throttle": "^8.1.0",
-    "prettier": "^3.7.4",
-    "protobufjs": "^7.4.0",
-    "qs": "^6.13.0",
-    "sweet-collections": "^1.1.0",
-    "tiny-typed-emitter": "^2.1.0",
-    "typescript-logging": "^2.2.0",
-    "typescript-logging-category-style": "^2.2.0"
-  },
-  "devDependencies": {
-    "@types/crypto-js": "^4.2.2",
-    "@types/node": "^20.16.10",
-    "@types/node-rsa": "^1.1.4",
-    "@types/node-schedule": "^2.1.7",
-    "@types/qs": "^6.9.16",
-    "@typescript-eslint/eslint-plugin": "^8.48.0",
-    "@typescript-eslint/parser": "^8.48.0 ",
-    "eslint": "^9.39.1",
-    "typescript": "^5.9.3",
+    "name": "eufy-security-client",
+    "version": "3.5.0",
+    "description": "Client to comunicate with Eufy-Security devices",
+    "author": {
+        "name": "bropat",
+        "email": "patrick.broetto@gmail.com"
+    },
+    "homepage": "https://github.com/bropat/eufy-security-client",
+    "main": "build/index.js",
+    "scripts": {
+        "build:ts": "tsc -p tsconfig.build.json && npm run copy-proto-build",
+        "copy-proto-build": "npx copyfiles -u 1 \"src/**/*.proto\" \"src/**/*.crt\" build",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "npm run build:ts",
+        "watch:ts": "tsc -p tsconfig.build.json --watch",
+        "watch": "npm run watch:ts",
+        "lint": "eslint --ext .ts src",
+        "prepublishOnly": "tsc -p tsconfig.build.json && npm run copy-proto-build"
+    },
+    "license": "MIT",
+    "keywords": [
+        "eufy",
+        "eufycam",
+        "cam",
+        "cameras",
+        "security",
+        "eufy-security",
+        "doorbell",
+        "lock",
+        "keypad",
+        "smartlock",
+        "smartsafe"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/bropat/eufy-security-client"
+    },
+    "engines": {
+        "node": ">=20.0.0"
+    },
+    "dependencies": {
+        "@cospired/i18n-iso-languages": "^4.2.0",
+        "crypto-js": "^4.2.0",
+        "date-and-time": "^4.1.1",
+        "fs-extra": "^11.2.0",
+        "got": "^14.4.2",
+        "i18n-iso-countries": "^7.12.0",
+        "image-type": "^5.2.0",
+        "long": "^5.2.3",
+        "mqtt": "^5.10.1",
+        "node-rsa": "^1.1.1",
+        "node-schedule": "^2.1.1",
+        "p-throttle": "^8.1.0",
+        "prettier": "^3.7.4",
+        "protobufjs": "^7.4.0",
+        "qs": "^6.13.0",
+        "sweet-collections": "^1.1.0",
+        "tiny-typed-emitter": "^2.1.0",
+        "typescript-logging": "^2.2.0",
+        "typescript-logging-category-style": "^2.2.0"
+    },
+    "devDependencies": {
+        "@types/crypto-js": "^4.2.2",
+        "@types/node": "^20.16.10",
+        "@types/node-rsa": "^1.1.4",
+        "@types/node-schedule": "^2.1.7",
+        "@types/qs": "^6.9.16",
+        "@typescript-eslint/eslint-plugin": "^8.48.0",
+        "@typescript-eslint/parser": "^8.48.0 ",
+        "eslint": "^9.39.1",
+        "typescript": "^5.9.3",
     "typescript-eslint": "^8.49.0"
-  },
-  "bugs": {
-    "url": "https://github.com/bropat/eufy-security-client/issues"
-  },
-  "readmeFilename": "README.md"
+    },
+    "bugs": {
+        "url": "https://github.com/bropat/eufy-security-client/issues"
+    },
+    "readmeFilename": "README.md"
 }
