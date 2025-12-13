@@ -8,6 +8,10 @@
   },
   "homepage": "https://github.com/bropat/eufy-security-client",
   "main": "build/index.js",
+  "exports": {
+    ".": "./build/index.js",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build:ts": "tsc -p tsconfig.build.json && npm run copy-proto-build",
     "copy-proto-build": "npx copyfiles -u 1 \"src/**/*.proto\" \"src/**/*.crt\" build",
@@ -16,7 +20,8 @@
     "watch:ts": "tsc -p tsconfig.build.json --watch",
     "watch": "npm run watch:ts",
     "lint": "eslint --ext .ts src",
-    "prepublishOnly": "tsc -p tsconfig.build.json && npm run copy-proto-build"
+    "prepublishOnly": "tsc -p tsconfig.build.json && npm run copy-proto-build",
+    "prepare": "npm run build"
   },
   "license": "MIT",
   "keywords": [

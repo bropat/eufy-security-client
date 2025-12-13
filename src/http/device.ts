@@ -1008,6 +1008,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_CAMERA_1080 ||
             type == DeviceType.INDOOR_PT_CAMERA_1080 ||
             type == DeviceType.OUTDOOR_PT_CAMERA ||
+            type == DeviceType.EUFYCAM_S4 ||
             type == DeviceType.SOLO_CAMERA ||
             type == DeviceType.SOLO_CAMERA_PRO ||
             type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
@@ -1032,16 +1033,19 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.CAMERA_GARAGE_T8453 ||
             type == DeviceType.CAMERA_GARAGE_T8452 ||
             type == DeviceType.CAMERA_FG ||
+            type == DeviceType.EUFY_S330_4G_LTE ||
             type == DeviceType.INDOOR_PT_CAMERA_S350 ||
             type == DeviceType.INDOOR_PT_CAMERA_E30 ||
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220_V2 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C220_V3 ||
             type == DeviceType.SMART_DROP;
     }
 
     static hasBattery(type: number): boolean {
-        return type == DeviceType.CAMERA ||
+        return (
+            type == DeviceType.CAMERA ||
             type == DeviceType.CAMERA2 ||
             type == DeviceType.CAMERA_E ||
             type == DeviceType.CAMERA2C ||
@@ -1079,9 +1083,12 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SMART_SAFE_7402 ||
             type == DeviceType.SMART_SAFE_7403 ||
             type == DeviceType.CAMERA_FG ||
+            type == DeviceType.EUFY_S330_4G_LTE ||
             type == DeviceType.WALL_LIGHT_CAM_81A0 ||
             type == DeviceType.SMART_DROP ||
-            type == DeviceType.OUTDOOR_PT_CAMERA;
+            type == DeviceType.OUTDOOR_PT_CAMERA ||
+            type == DeviceType.EUFYCAM_S4 //TODO: Add other battery devices
+        );
     }
 
     static isStation(type: number): boolean {
@@ -1150,11 +1157,12 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_2K ||
             type == DeviceType.INDOOR_COST_DOWN_CAMERA ||
-            type == DeviceType.INDOOR_PT_CAMERA_S350 || 
-            type == DeviceType.INDOOR_PT_CAMERA_E30 || 
+            type == DeviceType.INDOOR_PT_CAMERA_S350 ||
+            type == DeviceType.INDOOR_PT_CAMERA_E30 ||
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220 ||
-            type == DeviceType.INDOOR_PT_CAMERA_C220_V2)
+            type == DeviceType.INDOOR_PT_CAMERA_C220_V2 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C220_V3)
             return true;
         return false;
     }
@@ -1167,29 +1175,32 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.FLOODLIGHT_CAMERA_8426 ||
             type == DeviceType.INDOOR_COST_DOWN_CAMERA ||
             type == DeviceType.OUTDOOR_PT_CAMERA ||
+            type == DeviceType.EUFYCAM_S4 ||
             type == DeviceType.INDOOR_PT_CAMERA_S350 ||
-            type == DeviceType.INDOOR_PT_CAMERA_E30 || 
+            type == DeviceType.INDOOR_PT_CAMERA_E30 ||
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220 ||
-            type == DeviceType.INDOOR_PT_CAMERA_C220_V2)
+            type == DeviceType.INDOOR_PT_CAMERA_C220_V2 ||
+            type == DeviceType.INDOOR_PT_CAMERA_C220_V3)
             return true;
         return false;
     }
 
     static isOutdoorPanAndTiltCamera(type: number): boolean {
         if (type == DeviceType.OUTDOOR_PT_CAMERA ||
-	    type == DeviceType.SOLO_CAMERA_E30)
+            type == DeviceType.EUFYCAM_S4 ||
+            type == DeviceType.SOLO_CAMERA_E30)
             return true;
         return false;
     }
 
     static isIndoorPanAndTiltCameraS350(type: number): boolean {
         if (type == DeviceType.INDOOR_PT_CAMERA_S350 ||
-            type == DeviceType.INDOOR_PT_CAMERA_E30 ||   
+            type == DeviceType.INDOOR_PT_CAMERA_E30 ||
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220_V2 ||
-            type == DeviceType.INDOOR_PT_CAMERA)
+            type == DeviceType.INDOOR_PT_CAMERA_C220_V3)
             return true;
         return false;
     }
@@ -1567,7 +1578,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         return sn.startsWith("T8150") ||
             sn.startsWith("T8151") ||
             sn.startsWith("T8152") ||
-            sn.startsWith("T8153");
+            sn.startsWith("T8153") ||
+            sn.startsWith("T86P2");
     }
 
     static isSmartSafeBySn(sn: string): boolean {
