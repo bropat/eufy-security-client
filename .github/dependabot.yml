@@ -1,13 +1,13 @@
 version: 2
 updates:
-    - package-ecosystem: 'npm'
-      directory: '/'
+    - package-ecosystem: "npm"
+      directory: "/"
       schedule:
-          interval: 'daily'
+          interval: "daily"
       labels:
-          - 'npm dependencies'
+          - "npm dependencies"
       allow:
-          - dependency-type: 'production'
+          - dependency-type: "production"
 #    ignore:
 #      - dependency-name: "got"
 #        versions: [">=14.x"]

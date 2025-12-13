@@ -1,4 +1,4 @@
-import { UserPasswordType, UserType } from './types';
+import { UserPasswordType, UserType } from "./types";
 
 export interface ApiResponse {
     status: number;

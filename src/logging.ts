@@ -1,13 +1,13 @@
-import { LogLevel } from 'typescript-logging';
-import { CategoryProvider } from 'typescript-logging-category-style';
+import { LogLevel } from "typescript-logging";
+import { CategoryProvider } from "typescript-logging-category-style";
 
 export type LoggingCategories =
-    | 'all'
-    | 'main'
-    | 'http'
-    | 'p2p'
-    | 'push'
-    | 'mqtt';
+    | "all"
+    | "main"
+    | "http"
+    | "p2p"
+    | "push"
+    | "mqtt";
 
 export { LogLevel };
 
@@ -27,27 +27,27 @@ export class InternalLogger {
 }
 
 const getMethodName = function (): string | undefined {
-    const matches = new Error('').stack
-        ?.split('\n')[6]
+    const matches = new Error("").stack
+        ?.split("\n")[6]
         .match(/ at( new){0,1} ([a-zA-Z0-9_\.]+) /);
     if (
         matches !== null &&
         matches !== undefined &&
         matches[2] !== undefined &&
-        matches[2] !== 'eval'
+        matches[2] !== "eval"
     ) {
         return matches[2];
     }
     return undefined;
 };
 
-const provider = CategoryProvider.createProvider('EufySecurityClientProvider', {
+const provider = CategoryProvider.createProvider("EufySecurityClientProvider", {
     level: LogLevel.Off,
     channel: {
-        type: 'RawLogChannel',
+        type: "RawLogChannel",
         write: (msg, _formatArg) => {
             const methodName = getMethodName();
-            const method = methodName ? `[${methodName}] ` : '';
+            const method = methodName ? `[${methodName}] ` : "";
             switch (msg.level) {
                 case LogLevel.Trace:
                     if (msg.args)
@@ -121,43 +121,43 @@ const provider = CategoryProvider.createProvider('EufySecurityClientProvider', {
     },
 });
 
-export const rootMainLogger = provider.getCategory('main');
-export const rootHTTPLogger = provider.getCategory('http');
-export const rootMQTTLogger = provider.getCategory('mqtt');
-export const rootPushLogger = provider.getCategory('push');
-export const rootP2PLogger = provider.getCategory('p2p');
+export const rootMainLogger = provider.getCategory("main");
+export const rootHTTPLogger = provider.getCategory("http");
+export const rootMQTTLogger = provider.getCategory("mqtt");
+export const rootPushLogger = provider.getCategory("push");
+export const rootP2PLogger = provider.getCategory("p2p");
 
 export const setLoggingLevel = function (
-    category: LoggingCategories = 'all',
+    category: LoggingCategories = "all",
     level: LogLevel = LogLevel.Off
 ): void {
     switch (category) {
-        case 'all':
+        case "all":
             provider.updateRuntimeSettings({
                 level: level,
             });
             break;
-        case 'main':
+        case "main":
             provider.updateRuntimeSettingsCategory(rootMainLogger, {
                 level: level,
             });
             break;
-        case 'http':
+        case "http":
             provider.updateRuntimeSettingsCategory(rootHTTPLogger, {
                 level: level,
             });
             break;
-        case 'mqtt':
+        case "mqtt":
             provider.updateRuntimeSettingsCategory(rootMQTTLogger, {
                 level: level,
             });
             break;
-        case 'p2p':
+        case "p2p":
             provider.updateRuntimeSettingsCategory(rootP2PLogger, {
                 level: level,
             });
             break;
-        case 'push':
+        case "push":
             provider.updateRuntimeSettingsCategory(rootPushLogger, {
                 level: level,
             });
@@ -166,10 +166,10 @@ export const setLoggingLevel = function (
 };
 
 export const getLoggingLevel = function (
-    category: LoggingCategories = 'all'
+    category: LoggingCategories = "all"
 ): number {
     switch (category) {
-        case 'all':
+        case "all":
             return provider.runtimeConfig.level;
         default:
             return provider.getCategory(category).logLevel;

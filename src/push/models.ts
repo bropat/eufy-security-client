@@ -1,5 +1,5 @@
-import { UserType } from '../http/types';
-import { AlarmAction } from './types';
+import { UserType } from "../http/types";
+import { AlarmAction } from "./types";
 
 export interface CusPushData {
     a?: number; // Event type, see enum PushEvent
@@ -68,7 +68,7 @@ export interface EufyPushMessage {
     title: string;
     type: string;
     doorbell?: string;
-    'google.c.sender.id': string;
+    "google.c.sender.id": string;
 }
 
 export interface SmartSafeEventValueDetail {

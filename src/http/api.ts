@@ -4,17 +4,17 @@ import type {
     OptionsOfJSONResponseBody,
     OptionsOfTextResponseBody,
     OptionsOfUnknownResponseBody,
-} from 'got' with {
-    'resolution-mode': 'import',
+} from "got" with {
+    "resolution-mode": "import",
 };
-import type { AnyFunction, ThrottledFunction } from 'p-throttle' with {
-    'resolution-mode': 'import',
+import type { AnyFunction, ThrottledFunction } from "p-throttle" with {
+    "resolution-mode": "import",
 };
-import { TypedEmitter } from 'tiny-typed-emitter';
-import { isValid as isValidCountry } from 'i18n-iso-countries';
-import { isValid as isValidLanguage } from '@cospired/i18n-iso-languages';
-import { createECDH, ECDH } from 'crypto';
-import * as schedule from 'node-schedule';
+import { TypedEmitter } from "tiny-typed-emitter";
+import { isValid as isValidCountry } from "i18n-iso-countries";
+import { isValid as isValidLanguage } from "@cospired/i18n-iso-languages";
+import { createECDH, ECDH } from "crypto";
+import * as schedule from "node-schedule";
 
 import {
     ResultResponse,
@@ -38,7 +38,7 @@ import {
     UsersResponse,
     User,
     AddUserResponse,
-} from './models';
+} from "./models";
 import {
     HTTPApiEvents,
     Ciphers,
@@ -51,7 +51,7 @@ import {
     Houses,
     LoginOptions,
     Schedule,
-} from './interfaces';
+} from "./interfaces";
 import {
     EventFilterType,
     PublicKeyType,
@@ -59,8 +59,8 @@ import {
     StorageType,
     UserPasswordType,
     VerfyCodeTypes,
-} from './types';
-import { ParameterHelper } from './parameter';
+} from "./types";
+import { ParameterHelper } from "./parameter";
 import {
     encryptAPIData,
     decryptAPIData,
@@ -69,13 +69,13 @@ import {
     hexDate,
     hexTime,
     hexWeek,
-} from './utils';
+} from "./utils";
 import {
     InvalidCountryCodeError,
     InvalidLanguageCodeError,
     ensureError,
-} from './../error';
-import { getError, getShortUrl, md5, mergeDeep, parseJSON } from './../utils';
+} from "./../error";
+import { getError, getShortUrl, md5, mergeDeep, parseJSON } from "./../utils";
 import {
     ApiBaseLoadError,
     ApiGenericError,
@@ -83,24 +83,24 @@ import {
     ApiInvalidResponseError,
     ApiRequestError,
     ApiResponseCodeError,
-} from './error';
-import { getNullTerminatedString } from '../p2p/utils';
-import { rootHTTPLogger } from '../logging';
+} from "./error";
+import { getNullTerminatedString } from "../p2p/utils";
+import { rootHTTPLogger } from "../logging";
 
 type pThrottledFunction = <F extends AnyFunction>(
     function_: F
 ) => ThrottledFunction<F>;
 
 export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
-    private static apiDomainBase = 'https://extend.eufylife.com';
+    private static apiDomainBase = "https://extend.eufylife.com";
 
     private readonly SERVER_PUBLIC_KEY =
-        '04c5c00c4f8d1197cc7c3167c52bf7acb054d722f0ef08dcd7e0883236e0d72a3868d9750cb47fa4619248f3d83f0f662671dadc6e2d31c2f41db0161651c7c076';
+        "04c5c00c4f8d1197cc7c3167c52bf7acb054d722f0ef08dcd7e0883236e0d72a3868d9750cb47fa4619248f3d83f0f662671dadc6e2d31c2f41db0161651c7c076";
 
     private apiBase;
     private username: string;
     private password: string;
-    private ecdh: ECDH = createECDH('prime256v1');
+    private ecdh: ECDH = createECDH("prime256v1");
 
     private token: string | null = null;
     private tokenExpiration: Date | null = null;
@@ -116,31 +116,31 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     private houses: Houses = {};
 
     private persistentData: HTTPApiPersistentData = {
-        user_id: '',
-        email: '',
-        nick_name: '',
+        user_id: "",
+        email: "",
+        nick_name: "",
         device_public_keys: {},
-        clientPrivateKey: '',
+        clientPrivateKey: "",
         serverPublicKey: this.SERVER_PUBLIC_KEY,
     };
 
     private headers: Record<string, string | undefined> = {
-        'User-Agent': undefined,
-        App_version: 'v4.6.0_1630',
-        Os_type: 'android',
-        Os_version: '31',
-        Phone_model: 'ONEPLUS A3003',
-        Country: 'DE',
-        Language: 'en',
-        Openudid: '5e4621b0152c0d00',
+        "User-Agent": undefined,
+        App_version: "v4.6.0_1630",
+        Os_type: "android",
+        Os_version: "31",
+        Phone_model: "ONEPLUS A3003",
+        Country: "DE",
+        Language: "en",
+        Openudid: "5e4621b0152c0d00",
         //uid: "",
-        Net_type: 'wifi',
-        Mnc: '02',
-        Mcc: '262',
-        Sn: '75814221ee75',
-        Model_type: 'PHONE',
-        Timezone: 'GMT+01:00',
-        'Cache-Control': 'no-cache',
+        Net_type: "wifi",
+        Mnc: "02",
+        Mcc: "262",
+        Sn: "75814221ee75",
+        Model_type: "PHONE",
+        Timezone: "GMT+01:00",
+        "Cache-Control": "no-cache",
     };
 
     private constructor(
@@ -171,16 +171,16 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         }
         if (
             this.persistentData.clientPrivateKey === undefined ||
-            this.persistentData.clientPrivateKey === ''
+            this.persistentData.clientPrivateKey === ""
         ) {
             this.ecdh.generateKeys();
             this.persistentData.clientPrivateKey = this.ecdh
                 .getPrivateKey()
-                .toString('hex');
+                .toString("hex");
         } else {
             try {
                 this.ecdh.setPrivateKey(
-                    Buffer.from(this.persistentData.clientPrivateKey, 'hex')
+                    Buffer.from(this.persistentData.clientPrivateKey, "hex")
                 );
             } catch (err) {
                 const error = ensureError(err);
@@ -191,18 +191,18 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 this.ecdh.generateKeys();
                 this.persistentData.clientPrivateKey = this.ecdh
                     .getPrivateKey()
-                    .toString('hex');
+                    .toString("hex");
             }
         }
         if (
             this.persistentData.serverPublicKey === undefined ||
-            this.persistentData.serverPublicKey === ''
+            this.persistentData.serverPublicKey === ""
         ) {
             this.persistentData.serverPublicKey = this.SERVER_PUBLIC_KEY;
         } else {
             try {
                 this.ecdh.computeSecret(
-                    Buffer.from(this.persistentData.serverPublicKey, 'hex')
+                    Buffer.from(this.persistentData.serverPublicKey, "hex")
                 );
             } catch (err) {
                 const error = ensureError(err);
@@ -216,14 +216,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
 
     public static async getApiBaseFromCloud(country: string): Promise<string> {
-        const { default: got } = await import('got');
+        const { default: got } = await import("got");
         const response = await got(`domain/${country}`, {
             prefixUrl: this.apiDomainBase,
-            method: 'GET',
-            responseType: 'json',
+            method: "GET",
+            responseType: "json",
             retry: {
                 limit: 1,
-                methods: ['GET'],
+                methods: ["GET"],
             },
         });
 
@@ -231,14 +231,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (result.code == ResponseErrorCode.CODE_OK) {
             return `https://${result.data.domain}`;
         }
-        throw new ApiBaseLoadError('Error identifying API base from cloud', {
+        throw new ApiBaseLoadError("Error identifying API base from cloud", {
             context: { code: result.code, message: result.msg },
         });
     }
 
     private async loadLibraries(): Promise<void> {
-        const { default: pThrottle } = await import('p-throttle');
-        const { default: got } = await import('got');
+        const { default: pThrottle } = await import("p-throttle");
+        const { default: got } = await import("got");
         this.throttle = pThrottle({
             limit: 5,
             interval: 1000,
@@ -246,11 +246,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         this.requestEufyCloud = got.extend({
             prefixUrl: this.apiBase,
             headers: this.headers,
-            responseType: 'json',
+            responseType: "json",
             //throwHttpErrors: false,
             retry: {
                 limit: 3,
-                methods: ['GET', 'POST'],
+                methods: ["GET", "POST"],
                 statusCodes: [
                     404, 408, 413, 423, 429, 500, 502, 503, 504, 521, 522, 524,
                 ],
@@ -266,7 +266,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             const oldToken = this.token;
 
                             rootHTTPLogger.debug(
-                                'Invalidate token an get a new one...',
+                                "Invalidate token an get a new one...",
                                 {
                                     requestUrl: response.requestUrl,
                                     statusCode: response.statusCode,
@@ -281,7 +281,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 // Refresh the access token
                                 const updatedOptions = {
                                     headers: {
-                                        'X-Auth-Token': this.token,
+                                        "X-Auth-Token": this.token,
                                     },
                                 };
 
@@ -305,12 +305,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         const statusCode = error.response?.statusCode || 0;
                         const { method, url, prefixUrl } = error.options;
                         const shortUrl = getShortUrl(
-                            typeof url === 'string'
+                            typeof url === "string"
                                 ? new URL(url)
                                 : url === undefined
-                                  ? new URL('')
+                                  ? new URL("")
                                   : url,
-                            typeof prefixUrl === 'string'
+                            typeof prefixUrl === "string"
                                 ? prefixUrl
                                 : prefixUrl.toString()
                         );
@@ -329,12 +329,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         const statusCode = response?.statusCode || 0;
                         const { method, url, prefixUrl } = options;
                         const shortUrl = getShortUrl(
-                            typeof url === 'string'
+                            typeof url === "string"
                                 ? new URL(url)
                                 : url === undefined
-                                  ? new URL('')
+                                  ? new URL("")
                                   : url,
-                            typeof prefixUrl === 'string'
+                            typeof prefixUrl === "string"
                                 ? prefixUrl
                                 : prefixUrl.toString()
                         );
@@ -342,7 +342,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             ? response.body
                             : error.message;
                         if (response?.body) {
-                            error.name = 'EufyApiError';
+                            error.name = "EufyApiError";
                             error.message = `${statusCode} ${method} ${shortUrl}\n${body}`;
                         }
                         return error;
@@ -379,7 +379,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             return api;
         }
         throw new InvalidCountryCodeError(
-            'Invalid ISO 3166-1 Alpha-2 country code',
+            "Invalid ISO 3166-1 Alpha-2 country code",
             { context: { countryCode: country } }
         );
     }
@@ -398,11 +398,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             );
             if (this.renewAuthTokenJob === undefined) {
                 this.renewAuthTokenJob = schedule.scheduleJob(
-                    'renewAuthToken',
+                    "renewAuthToken",
                     scheduleDate,
                     async () => {
                         rootHTTPLogger.info(
-                            'Authentication token is soon expiring, fetching a new one...'
+                            "Authentication token is soon expiring, fetching a new one..."
                         );
                         await this.login({ force: true });
                     }
@@ -418,13 +418,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         this.token = null;
         this.requestEufyCloud.defaults.options.merge({
             headers: {
-                'X-Auth-Token': undefined,
+                "X-Auth-Token": undefined,
             },
         });
         this.tokenExpiration = null;
         this.persistentData.serverPublicKey = this.SERVER_PUBLIC_KEY;
         this.clearScheduleRenewAuthToken();
-        this.emit('auth token invalidated');
+        this.emit("auth token invalidated");
     }
 
     public setPhoneModel(model: string): void {
@@ -450,7 +450,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             });
         } else
             throw new InvalidLanguageCodeError(
-                'Invalid ISO 639 language code',
+                "Invalid ISO 639 language code",
                 {
                     context: { languageCode: language },
                 }
@@ -465,7 +465,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         options = mergeDeep(options, {
             force: false,
         } as LoginOptions) as LoginOptions;
-        rootHTTPLogger.debug('Login and get an access token', {
+        rootHTTPLogger.debug("Login and get an access token", {
             token: this.token,
             tokenExpiration: this.tokenExpiration,
             options: options,
@@ -482,14 +482,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 const data: LoginRequest = {
                     ab: this.headers.country!,
                     client_secret_info: {
-                        public_key: this.ecdh.getPublicKey('hex'),
+                        public_key: this.ecdh.getPublicKey("hex"),
                     },
                     enc: 0,
                     email: this.username,
                     password: encryptAPIData(
                         this.password,
                         this.ecdh.computeSecret(
-                            Buffer.from(this.SERVER_PUBLIC_KEY, 'hex')
+                            Buffer.from(this.SERVER_PUBLIC_KEY, "hex")
                         )
                     ),
                     time_zone:
@@ -505,8 +505,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     data.answer = options.captcha.captchaCode;
                 }
                 const response: ApiResponse = await this.request({
-                    method: 'post',
-                    endpoint: 'v2/passport/login_sec',
+                    method: "post",
+                    endpoint: "v2/passport/login_sec",
                     data: data,
                 });
                 if (response.status == 200) {
@@ -535,7 +535,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 ...this.headers,
                                 gtoken: md5(dataresult.user_id),
                             };
-                            rootHTTPLogger.debug('Login - Token data', {
+                            rootHTTPLogger.debug("Login - Token data", {
                                 token: this.token,
                                 tokenExpiration: this.tokenExpiration,
                                 serverPublicKey:
@@ -543,7 +543,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             });
                             if (!this.connected) {
                                 this.connected = true;
-                                this.emit('connect');
+                                this.emit("connect");
                             }
                             this.scheduleRenewAuthToken();
                         } else if (
@@ -560,7 +560,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 dataresult.token_expires_at * 1000
                             );
 
-                            rootHTTPLogger.debug('Token data', {
+                            rootHTTPLogger.debug("Token data", {
                                 token: this.token,
                                 tokenExpiration: this.tokenExpiration,
                             });
@@ -568,9 +568,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 VerfyCodeTypes.TYPE_EMAIL
                             );
                             rootHTTPLogger.info(
-                                'Please send required verification code to proceed with authentication'
+                                "Please send required verification code to proceed with authentication"
                             );
-                            this.emit('tfa request');
+                            this.emit("tfa request");
                         } else if (
                             result.code ==
                                 ResponseErrorCode.LOGIN_NEED_CAPTCHA ||
@@ -578,23 +578,23 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         ) {
                             const dataresult: CaptchaResponse = result.data;
                             rootHTTPLogger.debug(
-                                'Login - Captcha verification received',
+                                "Login - Captcha verification received",
                                 {
                                     captchaId: dataresult.captcha_id,
                                     item: dataresult.item,
                                 }
                             );
                             rootHTTPLogger.info(
-                                'Please send requested captcha to proceed with authentication'
+                                "Please send requested captcha to proceed with authentication"
                             );
                             this.emit(
-                                'captcha request',
+                                "captcha request",
                                 dataresult.captcha_id,
                                 dataresult.item
                             );
                         } else {
                             rootHTTPLogger.error(
-                                'Login - Response code not ok',
+                                "Login - Response code not ok",
                                 {
                                     code: result.code,
                                     msg: result.msg,
@@ -602,9 +602,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 }
                             );
                             this.emit(
-                                'connection error',
+                                "connection error",
                                 new ApiResponseCodeError(
-                                    'API response code not ok',
+                                    "API response code not ok",
                                     {
                                         context: {
                                             code: result.code,
@@ -616,7 +616,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         }
                     } else {
                         rootHTTPLogger.error(
-                            'Login - Response data is missing',
+                            "Login - Response data is missing",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -624,9 +624,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             }
                         );
                         this.emit(
-                            'connection error',
+                            "connection error",
                             new ApiInvalidResponseError(
-                                'API response data is missing',
+                                "API response data is missing",
                                 {
                                     context: {
                                         code: result.code,
@@ -638,15 +638,15 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         );
                     }
                 } else {
-                    rootHTTPLogger.error('Login - Status return code not 200', {
+                    rootHTTPLogger.error("Login - Status return code not 200", {
                         status: response.status,
                         statusText: response.statusText,
                         data: response.data,
                     });
                     this.emit(
-                        'connection error',
+                        "connection error",
                         new ApiHTTPResponseCodeError(
-                            'API HTTP response code not ok',
+                            "API HTTP response code not ok",
                             {
                                 context: {
                                     status: response.status,
@@ -658,12 +658,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Login - Generic Error:', {
+                rootHTTPLogger.error("Login - Generic Error:", {
                     error: getError(error),
                 });
                 this.emit(
-                    'connection error',
-                    new ApiGenericError('Generic API error', { cause: error })
+                    "connection error",
+                    new ApiGenericError("Generic API error", { cause: error })
                 );
             }
         } else if (!this.connected) {
@@ -672,12 +672,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 if (profile !== null) {
                     if (!this.connected) {
                         this.connected = true;
-                        this.emit('connect');
+                        this.emit("connect");
                         this.scheduleRenewAuthToken();
                     }
                 } else {
                     this.emit(
-                        'connection error',
+                        "connection error",
                         new ApiInvalidResponseError(
                             `Invalid passport profile response`
                         )
@@ -685,12 +685,12 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Login - getPassportProfile Error', {
+                rootHTTPLogger.error("Login - getPassportProfile Error", {
                     error: getError(error),
                 });
                 this.emit(
-                    'connection error',
-                    new ApiGenericError('API get passport profile error', {
+                    "connection error",
+                    new ApiGenericError("API get passport profile error", {
                         cause: error,
                     })
                 );
@@ -703,8 +703,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             if (!type) type = VerfyCodeTypes.TYPE_EMAIL;
 
             const response = await this.request({
-                method: 'post',
-                endpoint: 'v1/sms/send/verify_code',
+                method: "post",
+                endpoint: "v1/sms/send/verify_code",
                 data: {
                     message_type: type,
                     transaction: `${new Date().getTime()}`,
@@ -717,7 +717,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     return true;
                 } else {
                     rootHTTPLogger.error(
-                        'Send verify code - Response code not ok',
+                        "Send verify code - Response code not ok",
                         {
                             code: result.code,
                             msg: result.msg,
@@ -727,7 +727,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } else {
                 rootHTTPLogger.error(
-                    'Send verify code - Status return code not 200',
+                    "Send verify code - Status return code not 200",
                     {
                         status: response.status,
                         statusText: response.statusText,
@@ -737,7 +737,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('Send verify code - Generic Error', {
+            rootHTTPLogger.error("Send verify code - Generic Error", {
                 error: getError(error),
             });
         }
@@ -748,8 +748,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'get',
-                    endpoint: 'v1/app/trust_device/list',
+                    method: "get",
+                    endpoint: "v1/app/trust_device/list",
                 });
                 if (response.status == 200) {
                     const result: ResultResponse = response.data;
@@ -759,7 +759,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         }
                     } else {
                         rootHTTPLogger.error(
-                            'List trust device - Response code not ok',
+                            "List trust device - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -769,7 +769,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'List trust device - Status return code not 200',
+                        "List trust device - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -779,7 +779,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('List trust device - Generic Error', {
+                rootHTTPLogger.error("List trust device - Generic Error", {
                     error: getError(error),
                 });
             }
@@ -791,15 +791,15 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v1/app/trust_device/add',
+                    method: "post",
+                    endpoint: "v1/app/trust_device/add",
                     data: {
                         verify_code: verifyCode,
                         transaction: `${new Date().getTime()}`,
                     },
                 });
                 rootHTTPLogger.debug(
-                    'Add trust device - Response trust device',
+                    "Add trust device - Response trust device",
                     {
                         verifyCode: verifyCode,
                         data: response.data,
@@ -817,7 +817,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             (trusted_device: TrustDevice) => {
                                 if (trusted_device.is_current_device === 1) {
                                     rootHTTPLogger.debug(
-                                        'Add trust device - This device is trusted. Token expiration extended:',
+                                        "Add trust device - This device is trusted. Token expiration extended:",
                                         {
                                             trustDevice: {
                                                 phoneModel:
@@ -835,7 +835,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         return true;
                     } else {
                         rootHTTPLogger.error(
-                            'Add trust device - Response code not ok',
+                            "Add trust device - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -846,7 +846,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Add trust device - Status return code not 200',
+                        "Add trust device - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -857,7 +857,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Add trust device - Generic Error', {
+                rootHTTPLogger.error("Add trust device - Generic Error", {
                     error: getError(error),
                 });
             }
@@ -869,14 +869,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v2/house/station_list',
+                    method: "post",
+                    endpoint: "v2/house/station_list",
                     data: {
-                        device_sn: '',
+                        device_sn: "",
                         num: 1000,
-                        orderby: '',
+                        orderby: "",
                         page: 0,
-                        station_sn: '',
+                        station_sn: "",
                         time_zone:
                             new Date().getTimezoneOffset() !== 0
                                 ? -new Date().getTimezoneOffset() * 60 * 1000
@@ -892,14 +892,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 result.data
                             ) as Array<StationListResponse>;
                             rootHTTPLogger.debug(
-                                'Decrypted station list data',
+                                "Decrypted station list data",
                                 stationList
                             );
                             return stationList;
                         }
                     } else {
                         rootHTTPLogger.error(
-                            'Station list - Response code not ok',
+                            "Station list - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -909,7 +909,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Station list - Status return code not 200',
+                        "Station list - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -919,7 +919,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Station list - Generic Error', {
+                rootHTTPLogger.error("Station list - Generic Error", {
                     error: getError(error),
                 });
             }
@@ -931,14 +931,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v2/house/device_list',
+                    method: "post",
+                    endpoint: "v2/house/device_list",
                     data: {
-                        device_sn: '',
+                        device_sn: "",
                         num: 1000,
-                        orderby: '',
+                        orderby: "",
                         page: 0,
-                        station_sn: '',
+                        station_sn: "",
                         time_zone:
                             new Date().getTimezoneOffset() !== 0
                                 ? -new Date().getTimezoneOffset() * 60 * 1000
@@ -954,14 +954,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 result.data
                             ) as Array<DeviceListResponse>;
                             rootHTTPLogger.debug(
-                                'Decrypted device list data',
+                                "Decrypted device list data",
                                 deviceList
                             );
                             return deviceList;
                         }
                     } else {
                         rootHTTPLogger.error(
-                            'Device list - Response code not ok',
+                            "Device list - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -971,7 +971,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Device list - Status return code not 200',
+                        "Device list - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -981,7 +981,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Device list - Generic Error', {
+                rootHTTPLogger.error("Device list - Generic Error", {
                     error: getError(error),
                 });
             }
@@ -997,9 +997,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 this.houses[element.house_id] = element;
             });
         } else {
-            rootHTTPLogger.info('No houses found.');
+            rootHTTPLogger.info("No houses found.");
         }
-        this.emit('houses', this.houses);
+        this.emit("houses", this.houses);
     }
 
     public async refreshStationData(): Promise<void> {
@@ -1010,9 +1010,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 this.hubs[element.station_sn] = element;
             });
         } else {
-            rootHTTPLogger.info('No stations found.');
+            rootHTTPLogger.info("No stations found.");
         }
-        this.emit('hubs', this.hubs);
+        this.emit("hubs", this.hubs);
     }
 
     public async refreshDeviceData(): Promise<void> {
@@ -1023,9 +1023,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 this.devices[element.device_sn] = element;
             });
         } else {
-            rootHTTPLogger.info('No devices found.');
+            rootHTTPLogger.info("No devices found.");
         }
-        this.emit('devices', this.devices);
+        this.emit("devices", this.devices);
     }
 
     public async refreshAllData(): Promise<void> {
@@ -1046,7 +1046,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         request: HTTPApiRequest,
         withoutUrlPrefix = false
     ): Promise<ApiResponse> {
-        rootHTTPLogger.debug('Api request', {
+        rootHTTPLogger.debug("Api request", {
             method: request.method,
             endpoint: request.endpoint,
             responseType: request.responseType,
@@ -1060,21 +1060,21 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 | OptionsOfJSONResponseBody;
             switch (request.responseType) {
                 case undefined:
-                case 'json':
+                case "json":
                     options = {
                         method: request.method,
                         json: request.data,
-                        responseType: 'json',
+                        responseType: "json",
                     } as OptionsOfJSONResponseBody;
                     break;
-                case 'text':
+                case "text":
                     options = {
                         method: request.method,
                         json: request.data,
                         responseType: request.responseType,
                     } as OptionsOfTextResponseBody;
                     break;
-                case 'buffer':
+                case "buffer":
                     options = {
                         method: request.method,
                         json: request.data,
@@ -1082,7 +1082,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     } as OptionsOfBufferResponseBody;
                     break;
             }
-            if (withoutUrlPrefix) options.prefixUrl = '';
+            if (withoutUrlPrefix) options.prefixUrl = "";
             const internalResponse = await this.requestEufyCloud(
                 request.endpoint,
                 options
@@ -1091,11 +1091,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 status: internalResponse.statusCode,
                 statusText: internalResponse.statusMessage
                     ? internalResponse.statusMessage
-                    : '',
+                    : "",
                 headers: internalResponse.headers,
                 data: internalResponse.body,
             };
-            rootHTTPLogger.debug('Api request - Response', {
+            rootHTTPLogger.debug("Api request - Response", {
                 token: this.token,
                 request: request,
                 response: response.data,
@@ -1104,20 +1104,20 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             return response;
         } catch (err) {
             const error = ensureError(err);
-            if (error instanceof (await import('got')).HTTPError) {
+            if (error instanceof (await import("got")).HTTPError) {
                 if (error.response.statusCode === 401) {
                     this.invalidateToken();
                     rootHTTPLogger.error(
-                        'Status return code 401, invalidate token',
+                        "Status return code 401, invalidate token",
                         {
                             status: error.response.statusCode,
                             statusText: error.response.statusMessage,
                         }
                     );
-                    this.emit('close');
+                    this.emit("close");
                 }
             }
-            throw new ApiRequestError('API request error', {
+            throw new ApiRequestError("API request error", {
                 cause: error,
                 context: {
                     method: request.method,
@@ -1135,10 +1135,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v1/app/review/app_push_check',
+                    method: "post",
+                    endpoint: "v1/app/review/app_push_check",
                     data: {
-                        app_type: 'eufySecurity',
+                        app_type: "eufySecurity",
                         transaction: `${new Date().getTime()}`,
                     },
                 });
@@ -1151,7 +1151,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         return true;
                     } else {
                         rootHTTPLogger.error(
-                            'Check push token - Response code not ok',
+                            "Check push token - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -1161,7 +1161,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Check push token - Status return code not 200',
+                        "Check push token - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -1171,7 +1171,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Check push token - Generic Error', {
+                rootHTTPLogger.error("Check push token - Generic Error", {
                     error: getError(error),
                 });
             }
@@ -1184,8 +1184,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v1/apppush/register_push_token',
+                    method: "post",
+                    endpoint: "v1/apppush/register_push_token",
                     data: {
                         is_notification_enable: true,
                         token: token,
@@ -1201,7 +1201,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         return true;
                     } else {
                         rootHTTPLogger.error(
-                            'Register push token - Response code not ok',
+                            "Register push token - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -1212,7 +1212,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Register push token - Status return code not 200',
+                        "Register push token - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -1223,7 +1223,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Register push token - Generic Error', {
+                rootHTTPLogger.error("Register push token - Generic Error", {
                     error: getError(error),
                     token: token,
                 });
@@ -1251,8 +1251,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v1/app/upload_devs_params',
+                    method: "post",
+                    endpoint: "v1/app/upload_devs_params",
                     data: {
                         device_sn: deviceSN,
                         station_sn: stationSN,
@@ -1260,7 +1260,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         transaction: `${new Date().getTime().toString()}`,
                     },
                 });
-                rootHTTPLogger.debug('Set parameter - Response:', {
+                rootHTTPLogger.debug("Set parameter - Response:", {
                     stationSN: stationSN,
                     deviceSN: deviceSN,
                     params: tmp_params,
@@ -1272,7 +1272,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (result.code == 0) {
                         const dataresult = result.data;
                         rootHTTPLogger.debug(
-                            'Set parameter - New parameters set',
+                            "Set parameter - New parameters set",
                             {
                                 params: tmp_params,
                                 response: dataresult,
@@ -1281,7 +1281,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         return true;
                     } else {
                         rootHTTPLogger.error(
-                            'Set parameter - Response code not ok',
+                            "Set parameter - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -1294,7 +1294,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Set parameter - Status return code not 200',
+                        "Set parameter - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -1307,7 +1307,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Set parameter - Generic Error', {
+                rootHTTPLogger.error("Set parameter - Generic Error", {
                     error: getError(error),
                     stationSN: stationSN,
                     deviceSN: deviceSN,
@@ -1325,8 +1325,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v2/app/cipher/get_ciphers',
+                    method: "post",
+                    endpoint: "v2/app/cipher/get_ciphers",
                     data: {
                         cipher_ids: cipherIDs,
                         user_id: userID,
@@ -1341,7 +1341,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             const ciphers: Ciphers = {};
                             const decrypted = this.decryptAPIData(result.data);
                             rootHTTPLogger.debug(
-                                'Get ciphers - Decrypted ciphers data',
+                                "Get ciphers - Decrypted ciphers data",
                                 {
                                     ciphers: decrypted,
                                 }
@@ -1355,7 +1355,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         }
                     } else {
                         rootHTTPLogger.error(
-                            'Get ciphers - Response code not ok',
+                            "Get ciphers - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -1367,7 +1367,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Get ciphers - Status return code not 200',
+                        "Get ciphers - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -1379,7 +1379,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Get ciphers - Generic Error', {
+                rootHTTPLogger.error("Get ciphers - Generic Error", {
                     error: getError(error),
                     cipherIDs: cipherIDs,
                     userID: userID,
@@ -1393,7 +1393,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'get',
+                    method: "get",
                     endpoint: `v1/voice/response/lists/${deviceSN}`,
                 });
                 if (response.status == 200) {
@@ -1408,7 +1408,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         }
                     } else {
                         rootHTTPLogger.error(
-                            'Get Voices - Response code not ok',
+                            "Get Voices - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -1419,7 +1419,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Get Voices - Status return code not 200',
+                        "Get Voices - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -1430,7 +1430,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Get Voices - Generic Error', {
+                rootHTTPLogger.error("Get Voices - Generic Error", {
                     error: getError(error),
                     deviceSN: deviceSN,
                 });
@@ -1468,7 +1468,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         this.token = token;
         this.requestEufyCloud.defaults.options.merge({
             headers: {
-                'X-Auth-Token': token,
+                "X-Auth-Token": token,
             },
         });
     }
@@ -1479,7 +1479,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
     public getAPIBase(): string {
         return typeof this.requestEufyCloud.defaults.options.prefixUrl ===
-            'string'
+            "string"
             ? this.requestEufyCloud.defaults.options.prefixUrl
             : this.requestEufyCloud.defaults.options.prefixUrl.toString();
     }
@@ -1511,23 +1511,23 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             try {
                 if (filter === undefined)
                     filter = {
-                        deviceSN: '',
-                        stationSN: '',
+                        deviceSN: "",
+                        stationSN: "",
                         storageType: StorageType.NONE,
                     };
                 if (maxResults === undefined) maxResults = 1000;
 
                 const response = await this.request({
-                    method: 'post',
+                    method: "post",
                     endpoint: endpoint,
                     data: {
                         device_sn:
                             filter.deviceSN !== undefined
                                 ? filter.deviceSN
-                                : '',
+                                : "",
                         end_time: Math.trunc(endTime.getTime() / 1000),
                         exclude_guest: false,
-                        house_id: 'HOUSEID_ALL_DEVICE',
+                        house_id: "HOUSEID_ALL_DEVICE",
                         id: 0,
                         id_type: 1,
                         is_favorite: false,
@@ -1538,7 +1538,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         station_sn:
                             filter.stationSN !== undefined
                                 ? filter.stationSN
-                                : '',
+                                : "",
                         storage:
                             filter.storageType !== undefined
                                 ? filter.storageType
@@ -1637,8 +1637,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         maxResults?: number
     ): Promise<Array<EventRecordResponse>> {
         return this._getEvents(
-            'getVideoEvents',
-            'v2/event/app/get_all_video_record',
+            "getVideoEvents",
+            "v2/event/app/get_all_video_record",
             startTime,
             endTime,
             filter,
@@ -1653,8 +1653,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         maxResults?: number
     ): Promise<Array<EventRecordResponse>> {
         return this._getEvents(
-            'getAlarmEvents',
-            'v2/event/app/get_all_alarm_record',
+            "getAlarmEvents",
+            "v2/event/app/get_all_alarm_record",
             startTime,
             endTime,
             filter,
@@ -1669,8 +1669,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         maxResults?: number
     ): Promise<Array<EventRecordResponse>> {
         return this._getEvents(
-            'getHistoryEvents',
-            'v2/event/app/get_all_history_record',
+            "getHistoryEvents",
+            "v2/event/app/get_all_history_record",
             startTime,
             endTime,
             filter,
@@ -1725,11 +1725,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v2/family/get_invites',
+                    method: "post",
+                    endpoint: "v2/family/get_invites",
                     data: {
                         num: 100,
-                        orderby: '',
+                        orderby: "",
                         own: false,
                         page: 0,
                         transaction: `${new Date().getTime().toString()}`,
@@ -1742,7 +1742,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             const invites: Invites = {};
                             const decrypted = this.decryptAPIData(result.data);
                             rootHTTPLogger.debug(
-                                'Get invites - Decrypted invites data',
+                                "Get invites - Decrypted invites data",
                                 {
                                     invites: decrypted,
                                 }
@@ -1763,7 +1763,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         }
                     } else {
                         rootHTTPLogger.error(
-                            'Get invites - Response code not ok',
+                            "Get invites - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -1773,7 +1773,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Get invites - Status return code not 200',
+                        "Get invites - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -1783,7 +1783,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Get invites - Generic Error', {
+                rootHTTPLogger.error("Get invites - Generic Error", {
                     error: getError(error),
                 });
             }
@@ -1797,8 +1797,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v1/family/confirm_invite',
+                    method: "post",
+                    endpoint: "v1/family/confirm_invite",
                     data: {
                         invites: confirmInvites,
                         transaction: `${new Date().getTime().toString()}`,
@@ -1810,7 +1810,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         return true;
                     } else {
                         rootHTTPLogger.error(
-                            'Confirm invites - Response code not ok',
+                            "Confirm invites - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -1821,7 +1821,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Confirm invites - Status return code not 200',
+                        "Confirm invites - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -1832,7 +1832,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Confirm invites - Generic Error', {
+                rootHTTPLogger.error("Confirm invites - Generic Error", {
                     error: getError(error),
                     confirmInvites: confirmInvites,
                 });
@@ -1853,13 +1853,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     type === PublicKeyType.LOCK
                 ) {
                     rootHTTPLogger.debug(
-                        'return cached public key',
+                        "return cached public key",
                         this.persistentData.device_public_keys[deviceSN]
                     );
                     return this.persistentData.device_public_keys[deviceSN];
                 } else {
                     const response = await this.request({
-                        method: 'get',
+                        method: "get",
                         endpoint: `v1/app/public_key/query?device_sn=${deviceSN}&type=${type}`,
                     });
                     if (response.status == 200) {
@@ -1874,7 +1874,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             }
                         } else {
                             rootHTTPLogger.error(
-                                'Get public key - Response code not ok',
+                                "Get public key - Response code not ok",
                                 {
                                     code: result.code,
                                     msg: result.msg,
@@ -1886,7 +1886,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         }
                     } else {
                         rootHTTPLogger.error(
-                            'Get public key - Status return code not 200',
+                            "Get public key - Status return code not 200",
                             {
                                 status: response.status,
                                 statusText: response.statusText,
@@ -1899,14 +1899,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Get public key - Generic Error', {
+                rootHTTPLogger.error("Get public key - Generic Error", {
                     error: getError(error),
                     deviceSN: deviceSN,
                     type: type,
                 });
             }
         }
-        return '';
+        return "";
     }
 
     public decryptAPIData(data?: string, json = true): any {
@@ -1916,13 +1916,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 decryptedData = decryptAPIData(
                     data,
                     this.ecdh.computeSecret(
-                        Buffer.from(this.persistentData.serverPublicKey, 'hex')
+                        Buffer.from(this.persistentData.serverPublicKey, "hex")
                     )
                 );
             } catch (err) {
                 const error = ensureError(err);
                 rootHTTPLogger.error(
-                    'Data decryption error, invalidating session data and reconnecting...',
+                    "Data decryption error, invalidating session data and reconnecting...",
                     {
                         error: getError(error),
                         serverPublicKey: this.persistentData.serverPublicKey,
@@ -1930,10 +1930,10 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 );
                 this.persistentData.serverPublicKey = this.SERVER_PUBLIC_KEY;
                 this.invalidateToken();
-                this.emit('close');
+                this.emit("close");
             }
             if (decryptedData) {
-                const str = getNullTerminatedString(decryptedData, 'utf-8');
+                const str = getNullTerminatedString(decryptedData, "utf-8");
                 if (json) return parseJSON(str, rootHTTPLogger);
                 return str;
             }
@@ -1949,8 +1949,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v1/app/get_sensor_history',
+                    method: "post",
+                    endpoint: "v1/app/get_sensor_history",
                     data: {
                         devicse_sn: deviceSN,
                         max_time: 0, //TODO: Finish implementation
@@ -1970,7 +1970,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         }
                     } else {
                         rootHTTPLogger.error(
-                            'Get sensor history - Response code not ok',
+                            "Get sensor history - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -1982,7 +1982,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Get sensor history - Status return code not 200',
+                        "Get sensor history - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -1994,7 +1994,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Get sensor history - Generic Error', {
+                rootHTTPLogger.error("Get sensor history - Generic Error", {
                     error: getError(error),
                     stationSN: stationSN,
                     deviceSN: deviceSN,
@@ -2008,8 +2008,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v2/house/detail',
+                    method: "post",
+                    endpoint: "v2/house/detail",
                     data: {
                         house_id: houseID,
                         transaction: `${new Date().getTime().toString()}`,
@@ -2023,14 +2023,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                 result.data
                             ) as HouseDetail;
                             rootHTTPLogger.debug(
-                                'Get house detail - Decrypted house detail data',
+                                "Get house detail - Decrypted house detail data",
                                 { details: houseDetail }
                             );
                             return houseDetail;
                         }
                     } else {
                         rootHTTPLogger.error(
-                            'Get house detail - Response code not ok',
+                            "Get house detail - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -2041,7 +2041,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Get house detail - Status return code not 200',
+                        "Get house detail - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -2052,7 +2052,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Get house detail - Generic Error', {
+                rootHTTPLogger.error("Get house detail - Generic Error", {
                     error: getError(error),
                     houseID: houseID,
                 });
@@ -2065,8 +2065,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v1/house/list',
+                    method: "post",
+                    endpoint: "v1/house/list",
                     data: {
                         transaction: `${new Date().getTime().toString()}`,
                     },
@@ -2075,14 +2075,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     const result: ResultResponse = response.data;
                     if (result.code == ResponseErrorCode.CODE_OK) {
                         if (result.data) {
-                            rootHTTPLogger.debug('Get house list - houses', {
+                            rootHTTPLogger.debug("Get house list - houses", {
                                 houses: result.data,
                             });
                             return result.data as Array<HouseListResponse>;
                         }
                     } else {
                         rootHTTPLogger.error(
-                            'Get house list - Response code not ok',
+                            "Get house list - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -2092,7 +2092,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Get house list - Status return code not 200',
+                        "Get house list - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -2102,7 +2102,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Get house list - Generic Error', {
+                rootHTTPLogger.error("Get house list - Generic Error", {
                     error: getError(error),
                 });
             }
@@ -2117,8 +2117,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v1/house/invite_list',
+                    method: "post",
+                    endpoint: "v1/house/invite_list",
                     data: {
                         is_inviter: isInviter,
                         transaction: `${new Date().getTime().toString()}`,
@@ -2133,14 +2133,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             const houseInviteList =
                                 result.data as Array<HouseInviteListResponse>;
                             rootHTTPLogger.debug(
-                                'Get house invite list - House invite list data',
+                                "Get house invite list - House invite list data",
                                 houseInviteList
                             );
                             return houseInviteList;
                         }
                     } else {
                         rootHTTPLogger.error(
-                            'Get house invite list - Response code not ok',
+                            "Get house invite list - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -2151,7 +2151,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Get house invite list - Status return code not 200',
+                        "Get house invite list - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -2162,7 +2162,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Get house invite list - Generic Error', {
+                rootHTTPLogger.error("Get house invite list - Generic Error", {
                     error: getError(error),
                     isInviter: isInviter,
                 });
@@ -2178,8 +2178,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v1/house/confirm_invite',
+                    method: "post",
+                    endpoint: "v1/house/confirm_invite",
                     data: {
                         house_id: houseID,
                         invite_id: inviteID,
@@ -2194,7 +2194,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         return true;
                     } else {
                         rootHTTPLogger.error(
-                            'Confirm house invite - Response code not ok',
+                            "Confirm house invite - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -2206,7 +2206,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Confirm house invite - Status return code not 200',
+                        "Confirm house invite - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -2218,7 +2218,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Confirm house invite - Generic Error', {
+                rootHTTPLogger.error("Confirm house invite - Generic Error", {
                     error: getError(error),
                     houseID: houseID,
                     inviteID: inviteID,
@@ -2235,8 +2235,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     public async getPassportProfile(): Promise<PassportProfileResponse | null> {
         try {
             const response = await this.request({
-                method: 'get',
-                endpoint: 'v2/passport/profile',
+                method: "get",
+                endpoint: "v2/passport/profile",
             });
             if (response.status == 200) {
                 const result: ResultResponse = response.data;
@@ -2246,7 +2246,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             result.data
                         ) as PassportProfileResponse;
                         rootHTTPLogger.debug(
-                            'Get passport profile - Decrypted passport profile data',
+                            "Get passport profile - Decrypted passport profile data",
                             { profile: profile }
                         );
                         this.persistentData.user_id = profile.user_id;
@@ -2256,7 +2256,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Get passport profile - Response code not ok',
+                        "Get passport profile - Response code not ok",
                         {
                             code: result.code,
                             msg: result.msg,
@@ -2266,7 +2266,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } else {
                 rootHTTPLogger.error(
-                    'Get passport profile - Status return code not 200',
+                    "Get passport profile - Status return code not 200",
                     {
                         status: response.status,
                         statusText: response.statusText,
@@ -2276,7 +2276,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('Get passport profile - Generic Error', {
+            rootHTTPLogger.error("Get passport profile - Generic Error", {
                 error: getError(error),
             });
         }
@@ -2286,17 +2286,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     public async addUser(
         deviceSN: string,
         nickname: string,
-        stationSN = ''
+        stationSN = ""
     ): Promise<AddUserResponse | null> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v1/app/device/local_user/add',
+                    method: "post",
+                    endpoint: "v1/app/device/local_user/add",
                     data: {
                         device_sn: deviceSN,
                         nick_name: nickname,
-                        station_sn: stationSN === deviceSN ? '' : stationSN,
+                        station_sn: stationSN === deviceSN ? "" : stationSN,
                         transaction: `${new Date().getTime().toString()}`,
                     },
                 });
@@ -2306,7 +2306,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         if (result.data) return result.data as AddUserResponse;
                     } else {
                         rootHTTPLogger.error(
-                            'Add user - Response code not ok',
+                            "Add user - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -2319,7 +2319,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Add user - Status return code not 200',
+                        "Add user - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -2332,7 +2332,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Add user - Generic Error', {
+                rootHTTPLogger.error("Add user - Generic Error", {
                     error: getError(error),
                     deviceSN: deviceSN,
                     nickname: nickname,
@@ -2346,17 +2346,17 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     public async deleteUser(
         deviceSN: string,
         shortUserId: string,
-        stationSN = ''
+        stationSN = ""
     ): Promise<boolean> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v1/app/device/user/delete',
+                    method: "post",
+                    endpoint: "v1/app/device/user/delete",
                     data: {
                         device_sn: deviceSN,
                         short_user_ids: [shortUserId],
-                        station_sn: stationSN === deviceSN ? '' : stationSN,
+                        station_sn: stationSN === deviceSN ? "" : stationSN,
                         transaction: `${new Date().getTime().toString()}`,
                     },
                 });
@@ -2366,7 +2366,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         return true;
                     } else {
                         rootHTTPLogger.error(
-                            'Delete user - Response code not ok',
+                            "Delete user - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -2379,7 +2379,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Delete user - Status return code not 200',
+                        "Delete user - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -2392,7 +2392,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Delete user - Generic Error', {
+                rootHTTPLogger.error("Delete user - Generic Error", {
                     error: getError(error),
                     deviceSN: deviceSN,
                     shortUserId: shortUserId,
@@ -2409,7 +2409,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     ): Promise<Array<User> | null> {
         try {
             const response = await this.request({
-                method: 'get',
+                method: "get",
                 endpoint: `v1/app/device/user/list?device_sn=${deviceSN}&station_sn=${stationSN}`,
             });
             if (response.status == 200) {
@@ -2420,7 +2420,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         return usersResponse.user_list;
                     }
                 } else {
-                    rootHTTPLogger.error('Get users - Response code not ok', {
+                    rootHTTPLogger.error("Get users - Response code not ok", {
                         code: result.code,
                         msg: result.msg,
                         data: response.data,
@@ -2429,7 +2429,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     });
                 }
             } else {
-                rootHTTPLogger.error('Get users - Status return code not 200', {
+                rootHTTPLogger.error("Get users - Status return code not 200", {
                     status: response.status,
                     statusText: response.statusText,
                     data: response.data,
@@ -2439,7 +2439,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('Get users - Generic Error', {
+            rootHTTPLogger.error("Get users - Generic Error", {
                 error: getError(error),
                 deviceSN: deviceSN,
                 stationSN: stationSN,
@@ -2464,7 +2464,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
             }
         } catch (err) {
             const error = ensureError(err);
-            rootHTTPLogger.error('Get user - Generic Error', {
+            rootHTTPLogger.error("Get user - Generic Error", {
                 error: getError(error),
                 deviceSN: deviceSN,
                 stationSN: stationSN,
@@ -2489,14 +2489,14 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 );
                 if (user !== null) {
                     const response = await this.request({
-                        method: 'post',
-                        endpoint: 'v1/app/device/local_user/update',
+                        method: "post",
+                        endpoint: "v1/app/device/local_user/update",
                         data: {
                             device_sn: deviceSN,
                             nick_name: nickname,
                             password_list: user.password_list,
                             short_user_id: shortUserId,
-                            station_sn: stationSN === deviceSN ? '' : stationSN,
+                            station_sn: stationSN === deviceSN ? "" : stationSN,
                             user_type: user.user_type,
                             transaction: `${new Date().getTime().toString()}`,
                         },
@@ -2507,7 +2507,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             return true;
                         } else {
                             rootHTTPLogger.error(
-                                'Update user - Response code not ok',
+                                "Update user - Response code not ok",
                                 {
                                     code: result.code,
                                     msg: result.msg,
@@ -2521,7 +2521,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         }
                     } else {
                         rootHTTPLogger.error(
-                            'Update user - Status return code not 200',
+                            "Update user - Status return code not 200",
                             {
                                 status: response.status,
                                 statusText: response.statusText,
@@ -2536,7 +2536,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Update user - Generic Error', {
+                rootHTTPLogger.error("Update user - Generic Error", {
                     error: getError(error),
                     deviceSN: deviceSN,
                     stationSN: stationSN,
@@ -2557,9 +2557,9 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (station) {
                         const response = await this.request(
                             {
-                                method: 'GET',
+                                method: "GET",
                                 endpoint: url,
-                                responseType: 'buffer',
+                                responseType: "buffer",
                             },
                             true
                         );
@@ -2570,7 +2570,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                             );
                         } else {
                             rootHTTPLogger.error(
-                                'Get Image - Status return code not 200',
+                                "Get Image - Status return code not 200",
                                 {
                                     status: response.status,
                                     statusText: response.statusText,
@@ -2584,7 +2584,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Get Image - Generic Error', {
+                rootHTTPLogger.error("Get Image - Generic Error", {
                     error: getError(error),
                     deviceSN: deviceSN,
                     url: url,
@@ -2599,13 +2599,13 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         shortUserId: string,
         passwordId: string,
         schedule: Schedule,
-        stationSN = ''
+        stationSN = ""
     ): Promise<boolean> {
         if (this.connected) {
             try {
                 const response = await this.request({
-                    method: 'post',
-                    endpoint: 'v1/app/device/password/save_or_update',
+                    method: "post",
+                    endpoint: "v1/app/device/password/save_or_update",
                     data: {
                         device_sn: deviceSN,
                         password_list: [
@@ -2617,32 +2617,32 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                                         schedule !== undefined &&
                                         schedule.endDateTime !== undefined
                                             ? hexDate(schedule.endDateTime)
-                                            : 'ffffffff',
+                                            : "ffffffff",
                                     endTime:
                                         schedule !== undefined &&
                                         schedule.endDateTime !== undefined
                                             ? hexTime(schedule.endDateTime)
-                                            : 'ffff',
+                                            : "ffff",
                                     startDay:
                                         schedule !== undefined &&
                                         schedule.startDateTime !== undefined
                                             ? hexDate(schedule.startDateTime)
-                                            : '00000000',
+                                            : "00000000",
                                     startTime:
                                         schedule !== undefined &&
                                         schedule.startDateTime !== undefined
                                             ? hexTime(schedule.startDateTime)
-                                            : '0000',
+                                            : "0000",
                                     week:
                                         schedule !== undefined &&
                                         schedule.week !== undefined
                                             ? hexWeek(schedule)
-                                            : 'ff',
+                                            : "ff",
                                 }),
                             },
                         ],
                         short_user_id: shortUserId,
-                        station_sn: stationSN === deviceSN ? '' : stationSN,
+                        station_sn: stationSN === deviceSN ? "" : stationSN,
                         transaction: `${new Date().getTime().toString()}`,
                     },
                 });
@@ -2652,7 +2652,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                         return true;
                     } else {
                         rootHTTPLogger.error(
-                            'Add user - Response code not ok',
+                            "Add user - Response code not ok",
                             {
                                 code: result.code,
                                 msg: result.msg,
@@ -2666,7 +2666,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     }
                 } else {
                     rootHTTPLogger.error(
-                        'Add user - Status return code not 200',
+                        "Add user - Status return code not 200",
                         {
                             status: response.status,
                             statusText: response.statusText,
@@ -2680,7 +2680,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                 }
             } catch (err) {
                 const error = ensureError(err);
-                rootHTTPLogger.error('Add user - Generic Error', {
+                rootHTTPLogger.error("Add user - Generic Error", {
                     error: getError(error),
                     deviceSN: deviceSN,
                     shortUserId: shortUserId,

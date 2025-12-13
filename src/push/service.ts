@@ -1,8 +1,8 @@
-import type { Got } from 'got' with {
-    'resolution-mode': 'import',
+import type { Got } from "got" with {
+    "resolution-mode": "import",
 };
-import * as qs from 'qs';
-import { TypedEmitter } from 'tiny-typed-emitter';
+import * as qs from "qs";
+import { TypedEmitter } from "tiny-typed-emitter";
 
 import {
     buildCheckinRequest,
@@ -10,7 +10,7 @@ import {
     generateFid,
     parseCheckinResponse,
     sleep,
-} from './utils';
+} from "./utils";
 import {
     CheckinResponse,
     Credentials,
@@ -29,33 +29,33 @@ import {
     GarageDoorPushData,
     ServerPushData,
     AlarmPushData,
-} from './models';
-import { PushClient } from './client';
-import { PushNotificationServiceEvents } from './interfaces';
-import { Device } from '../http/device';
-import { DeviceType } from '../http/types';
-import { getAbsoluteFilePath } from '../http/utils';
-import { getError, getShortUrl, isEmpty, parseJSON } from '../utils';
+} from "./models";
+import { PushClient } from "./client";
+import { PushNotificationServiceEvents } from "./interfaces";
+import { Device } from "../http/device";
+import { DeviceType } from "../http/types";
+import { getAbsoluteFilePath } from "../http/utils";
+import { getError, getShortUrl, isEmpty, parseJSON } from "../utils";
 import {
     ExecuteCheckInError,
     FidRegistrationFailedError,
     RegisterGcmError,
     RenewFidTokenFailedError,
     UnknownExpiryFormaError,
-} from './error';
-import { ensureError } from '../error';
-import { rootPushLogger } from '../logging';
-import { ServerPushEvent } from '.';
-import { Station } from '../http/station';
+} from "./error";
+import { ensureError } from "../error";
+import { rootPushLogger } from "../logging";
+import { ServerPushEvent } from ".";
+import { Station } from "../http/station";
 
 export class PushNotificationService extends TypedEmitter<PushNotificationServiceEvents> {
-    private readonly APP_PACKAGE = 'com.oceanwing.battery.cam';
-    private readonly APP_ID = '1:348804314802:android:440a6773b3620da7';
-    private readonly APP_SENDER_ID = '348804314802';
-    private readonly APP_CERT_SHA1 = 'F051262F9F99B638F3C76DE349830638555B4A0A';
-    private readonly FCM_PROJECT_ID = 'batterycam-3250a';
-    private readonly GOOGLE_API_KEY = 'AIzaSyCSz1uxGrHXsEktm7O3_wv-uLGpC9BvXR8';
-    private readonly AUTH_VERSION = 'FIS_v2';
+    private readonly APP_PACKAGE = "com.oceanwing.battery.cam";
+    private readonly APP_ID = "1:348804314802:android:440a6773b3620da7";
+    private readonly APP_SENDER_ID = "348804314802";
+    private readonly APP_CERT_SHA1 = "F051262F9F99B638F3C76DE349830638555B4A0A";
+    private readonly FCM_PROJECT_ID = "batterycam-3250a";
+    private readonly GOOGLE_API_KEY = "AIzaSyCSz1uxGrHXsEktm7O3_wv-uLGpC9BvXR8";
+    private readonly AUTH_VERSION = "FIS_v2";
 
     private pushClient?: PushClient;
     private credentialsTimeout?: NodeJS.Timeout;
@@ -74,7 +74,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
     }
 
     private async loadLibraries(): Promise<void> {
-        const { default: got } = await import('got');
+        const { default: got } = await import("got");
         this.got = got;
     }
 
@@ -85,19 +85,19 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
     }
 
     private buildExpiresAt(expiresIn: string): number {
-        if (expiresIn.endsWith('ms')) {
+        if (expiresIn.endsWith("ms")) {
             return (
                 new Date().getTime() +
                 Number.parseInt(expiresIn.substring(0, expiresIn.length - 2))
             );
-        } else if (expiresIn.endsWith('s')) {
+        } else if (expiresIn.endsWith("s")) {
             return (
                 new Date().getTime() +
                 Number.parseInt(expiresIn.substring(0, expiresIn.length - 1)) *
                     1000
             );
         }
-        throw new UnknownExpiryFormaError('Unknown expiresIn-format', {
+        throw new UnknownExpiryFormaError("Unknown expiresIn-format", {
             context: { format: expiresIn },
         });
     }
@@ -107,24 +107,24 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
         try {
             const response = await this.got(url, {
-                method: 'post',
+                method: "post",
                 json: {
                     fid: fid,
                     appId: `${this.APP_ID}`,
                     authVersion: `${this.AUTH_VERSION}`,
-                    sdkVersion: 'a:16.3.1',
+                    sdkVersion: "a:16.3.1",
                 },
                 headers: {
-                    'X-Android-Package': `${this.APP_PACKAGE}`,
-                    'X-Android-Cert': `${this.APP_CERT_SHA1}`,
-                    'x-goog-api-key': `${this.GOOGLE_API_KEY}`,
+                    "X-Android-Package": `${this.APP_PACKAGE}`,
+                    "X-Android-Cert": `${this.APP_CERT_SHA1}`,
+                    "x-goog-api-key": `${this.GOOGLE_API_KEY}`,
                 },
-                responseType: 'json',
+                responseType: "json",
                 http2: false,
                 throwHttpErrors: false,
                 retry: {
                     limit: 3,
-                    methods: ['POST'],
+                    methods: ["POST"],
                 },
                 hooks: {
                     beforeError: [
@@ -133,12 +133,12 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                             const statusCode = response?.statusCode || 0;
                             const { method, url, prefixUrl } = options;
                             const shortUrl = getShortUrl(
-                                typeof url === 'string'
+                                typeof url === "string"
                                     ? new URL(url)
                                     : url === undefined
-                                      ? new URL('')
+                                      ? new URL("")
                                       : url,
-                                typeof prefixUrl === 'string'
+                                typeof prefixUrl === "string"
                                     ? prefixUrl
                                     : prefixUrl.toString()
                             );
@@ -146,7 +146,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                                 ? response.body
                                 : error.message;
                             if (response?.body) {
-                                error.name = 'RegisterFidError';
+                                error.name = "RegisterFidError";
                                 error.message = `${statusCode} ${method} ${shortUrl}\n${body}`;
                             }
                             return error;
@@ -169,7 +169,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 };
             } else {
                 rootPushLogger.error(
-                    'Register FID - Status return code not 200',
+                    "Register FID - Status return code not 200",
                     {
                         status: response.statusCode,
                         statusText: response.statusMessage,
@@ -177,7 +177,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     }
                 );
                 throw new FidRegistrationFailedError(
-                    'FID registration failed',
+                    "FID registration failed",
                     {
                         context: {
                             status: response.statusCode,
@@ -189,10 +189,10 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             }
         } catch (err) {
             const error = ensureError(err);
-            rootPushLogger.error('Register FID - Generic Error', {
+            rootPushLogger.error("Register FID - Generic Error", {
                 error: getError(error),
             });
-            throw new FidRegistrationFailedError('FID registration failed', {
+            throw new FidRegistrationFailedError("FID registration failed", {
                 cause: error,
                 context: { fid: fid },
             });
@@ -207,25 +207,25 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
         try {
             const response = await this.got(url, {
-                method: 'post',
+                method: "post",
                 json: {
                     installation: {
                         appId: `${this.APP_ID}`,
-                        sdkVersion: 'a:16.3.1',
+                        sdkVersion: "a:16.3.1",
                     },
                 },
                 headers: {
-                    'X-Android-Package': `${this.APP_PACKAGE}`,
-                    'X-Android-Cert': `${this.APP_CERT_SHA1}`,
-                    'x-goog-api-key': `${this.GOOGLE_API_KEY}`,
+                    "X-Android-Package": `${this.APP_PACKAGE}`,
+                    "X-Android-Cert": `${this.APP_CERT_SHA1}`,
+                    "x-goog-api-key": `${this.GOOGLE_API_KEY}`,
                     Authorization: `${this.AUTH_VERSION} ${refreshToken}`,
                 },
-                responseType: 'json',
+                responseType: "json",
                 http2: false,
                 throwHttpErrors: false,
                 retry: {
                     limit: 3,
-                    methods: ['POST'],
+                    methods: ["POST"],
                 },
                 hooks: {
                     beforeError: [
@@ -234,12 +234,12 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                             const statusCode = response?.statusCode || 0;
                             const { method, url, prefixUrl } = options;
                             const shortUrl = getShortUrl(
-                                typeof url === 'string'
+                                typeof url === "string"
                                     ? new URL(url)
                                     : url === undefined
-                                      ? new URL('')
+                                      ? new URL("")
                                       : url,
-                                typeof prefixUrl === 'string'
+                                typeof prefixUrl === "string"
                                     ? prefixUrl
                                     : prefixUrl.toString()
                             );
@@ -247,7 +247,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                                 ? response.body
                                 : error.message;
                             if (response?.body) {
-                                error.name = 'RenewFidTokenError';
+                                error.name = "RenewFidTokenError";
                                 error.message = `${statusCode} ${method} ${shortUrl}\n${body}`;
                             }
                             return error;
@@ -265,14 +265,14 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 };
             } else {
                 rootPushLogger.error(
-                    'Renew FID Token - Status return code not 200',
+                    "Renew FID Token - Status return code not 200",
                     {
                         status: response.statusCode,
                         statusText: response.statusMessage,
                         data: response.body,
                     }
                 );
-                throw new RenewFidTokenFailedError('FID Token renewal failed', {
+                throw new RenewFidTokenFailedError("FID Token renewal failed", {
                     context: {
                         status: response.statusCode,
                         statusText: response.statusMessage,
@@ -282,10 +282,10 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             }
         } catch (err) {
             const error = ensureError(err);
-            rootPushLogger.error('Renew FID Token - Generic Error', {
+            rootPushLogger.error("Renew FID Token - Generic Error", {
                 error: getError(error),
             });
-            throw new RenewFidTokenFailedError('FID Token renewal failed', {
+            throw new RenewFidTokenFailedError("FID Token renewal failed", {
                 cause: error,
                 context: { fid: fid, refreshToken: refreshToken },
             });
@@ -349,7 +349,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
     private async loginPushCredentials(
         credentials: Credentials
     ): Promise<Credentials> {
-        rootPushLogger.info('fidresponse', credentials.fidResponse);
+        rootPushLogger.info("fidresponse", credentials.fidResponse);
         return await this.executeCheckin()
             .then(async (response) => {
                 const registerGcmResponse = await this.registerGcm(
@@ -368,22 +368,22 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
     }
 
     private async executeCheckin(): Promise<CheckinResponse> {
-        const url = 'https://android.clients.google.com/checkin';
+        const url = "https://android.clients.google.com/checkin";
 
         try {
             const buffer = await buildCheckinRequest();
             const response = await this.got(url, {
-                method: 'post',
+                method: "post",
                 body: Buffer.from(buffer),
                 headers: {
-                    'Content-Type': 'application/x-protobuf',
+                    "Content-Type": "application/x-protobuf",
                 },
-                responseType: 'buffer',
+                responseType: "buffer",
                 http2: false,
                 throwHttpErrors: false,
                 retry: {
                     limit: 3,
-                    methods: ['POST'],
+                    methods: ["POST"],
                 },
                 hooks: {
                     beforeError: [
@@ -392,12 +392,12 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                             const statusCode = response?.statusCode || 0;
                             const { method, url, prefixUrl } = options;
                             const shortUrl = getShortUrl(
-                                typeof url === 'string'
+                                typeof url === "string"
                                     ? new URL(url)
                                     : url === undefined
-                                      ? new URL('')
+                                      ? new URL("")
                                       : url,
-                                typeof prefixUrl === 'string'
+                                typeof prefixUrl === "string"
                                     ? prefixUrl
                                     : prefixUrl.toString()
                             );
@@ -405,7 +405,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                                 ? response.body
                                 : error.message;
                             if (response?.body) {
-                                error.name = 'ExecuteCheckInError';
+                                error.name = "ExecuteCheckInError";
                                 error.message = `${statusCode} ${method} ${shortUrl}\n${body}`;
                             }
                             return error;
@@ -417,12 +417,12 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             if (response.statusCode == 200) {
                 return await parseCheckinResponse(response.body);
             } else {
-                rootPushLogger.error('Check in - Status return code not 200', {
+                rootPushLogger.error("Check in - Status return code not 200", {
                     status: response.statusCode,
                     statusText: response.statusMessage,
                     data: response.body,
                 });
-                throw new ExecuteCheckInError('Google checkin failed', {
+                throw new ExecuteCheckInError("Google checkin failed", {
                     context: {
                         status: response.statusCode,
                         statusText: response.statusMessage,
@@ -432,10 +432,10 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             }
         } catch (err) {
             const error = ensureError(err);
-            rootPushLogger.error('Check in - Generic Error', {
+            rootPushLogger.error("Check in - Generic Error", {
                 error: getError(error),
             });
-            throw new ExecuteCheckInError('Google checkin failed', {
+            throw new ExecuteCheckInError("Google checkin failed", {
                 cause: error,
             });
         }
@@ -445,7 +445,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
         fidInstallationResponse: FidInstallationResponse,
         checkinResponse: CheckinResponse
     ): Promise<GcmRegisterResponse> {
-        const url = 'https://android.clients.google.com/c2dm/register3';
+        const url = "https://android.clients.google.com/c2dm/register3";
 
         const androidId = checkinResponse.androidId;
         const fid = fidInstallationResponse.fid;
@@ -465,45 +465,45 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 );
 
                 const response = await this.got(url, {
-                    method: 'post',
+                    method: "post",
                     body: qs.stringify({
-                        'X-subtype': `${this.APP_SENDER_ID}`,
+                        "X-subtype": `${this.APP_SENDER_ID}`,
                         sender: `${this.APP_SENDER_ID}`,
-                        'X-app_ver': '741',
-                        'X-osv': '25',
-                        'X-cliv': 'fiid-20.2.0',
-                        'X-gmsv': '201216023',
-                        'X-appid': `${fid}`,
-                        'X-scope': '*',
-                        'X-Goog-Firebase-Installations-Auth': `${fidInstallationResponse.authToken.token}`,
-                        'X-gmp_app_id': `${this.APP_ID}`,
-                        'X-Firebase-Client':
-                            'fire-abt/17.1.1+fire-installations/16.3.1+fire-android/+fire-analytics/17.4.2+fire-iid/20.2.0+fire-rc/17.0.0+fire-fcm/20.2.0+fire-cls/17.0.0+fire-cls-ndk/17.0.0+fire-core/19.3.0',
-                        'X-firebase-app-name-hash':
-                            'R1dAH9Ui7M-ynoznwBdw01tLxhI',
-                        'X-Firebase-Client-Log-Type': '1',
-                        'X-app_ver_name': 'v2.2.2_741',
+                        "X-app_ver": "741",
+                        "X-osv": "25",
+                        "X-cliv": "fiid-20.2.0",
+                        "X-gmsv": "201216023",
+                        "X-appid": `${fid}`,
+                        "X-scope": "*",
+                        "X-Goog-Firebase-Installations-Auth": `${fidInstallationResponse.authToken.token}`,
+                        "X-gmp_app_id": `${this.APP_ID}`,
+                        "X-Firebase-Client":
+                            "fire-abt/17.1.1+fire-installations/16.3.1+fire-android/+fire-analytics/17.4.2+fire-iid/20.2.0+fire-rc/17.0.0+fire-fcm/20.2.0+fire-cls/17.0.0+fire-cls-ndk/17.0.0+fire-core/19.3.0",
+                        "X-firebase-app-name-hash":
+                            "R1dAH9Ui7M-ynoznwBdw01tLxhI",
+                        "X-Firebase-Client-Log-Type": "1",
+                        "X-app_ver_name": "v2.2.2_741",
                         app: `${this.APP_PACKAGE}`,
                         device: `${androidId}`,
-                        app_ver: '741',
-                        info: 'g3EMJXXElLwaQEb1aBJ6XhxiHjPTUxc',
-                        gcm_ver: '201216023',
-                        plat: '0',
+                        app_ver: "741",
+                        info: "g3EMJXXElLwaQEb1aBJ6XhxiHjPTUxc",
+                        gcm_ver: "201216023",
+                        plat: "0",
                         cert: `${this.APP_CERT_SHA1}`,
-                        target_ver: '28',
+                        target_ver: "28",
                     }),
                     headers: {
                         Authorization: `AidLogin ${androidId}:${securityToken}`,
                         app: `${this.APP_PACKAGE}`,
-                        gcm_ver: '201216023',
-                        'User-Agent': 'Android-GCM/1.5',
-                        'content-type': 'application/x-www-form-urlencoded',
+                        gcm_ver: "201216023",
+                        "User-Agent": "Android-GCM/1.5",
+                        "content-type": "application/x-www-form-urlencoded",
                     },
                     http2: false,
                     throwHttpErrors: false,
                     retry: {
                         limit: 3,
-                        methods: ['POST'],
+                        methods: ["POST"],
                     },
                     hooks: {
                         beforeError: [
@@ -512,12 +512,12 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                                 const statusCode = response?.statusCode || 0;
                                 const { method, url, prefixUrl } = options;
                                 const shortUrl = getShortUrl(
-                                    typeof url === 'string'
+                                    typeof url === "string"
                                         ? new URL(url)
                                         : url === undefined
-                                          ? new URL('')
+                                          ? new URL("")
                                           : url,
-                                    typeof prefixUrl === 'string'
+                                    typeof prefixUrl === "string"
                                         ? prefixUrl
                                         : prefixUrl.toString()
                                 );
@@ -525,7 +525,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                                     ? response.body
                                     : error.message;
                                 if (response?.body) {
-                                    error.name = 'RegisterGcmError';
+                                    error.name = "RegisterGcmError";
                                     error.message = `${statusCode} ${method} ${shortUrl}\n${body}`;
                                 }
                                 return error;
@@ -535,16 +535,16 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 });
 
                 if (response.statusCode == 200) {
-                    const result = response.body.split('=');
-                    if (result[0] == 'Error') {
-                        rootPushLogger.debug('GCM register error, retry...', {
+                    const result = response.body.split("=");
+                    if (result[0] == "Error") {
+                        rootPushLogger.debug("GCM register error, retry...", {
                             retry: retry,
                             retryCount: retry_count,
                             response: response.body,
                         });
                         if (retry_count == retry)
                             throw new RegisterGcmError(
-                                'Max GCM registration retries reached',
+                                "Max GCM registration retries reached",
                                 {
                                     context: {
                                         message: result[1],
@@ -560,7 +560,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     }
                 } else {
                     rootPushLogger.error(
-                        'Register GCM - Status return code not 200',
+                        "Register GCM - Status return code not 200",
                         {
                             status: response.statusCode,
                             statusText: response.statusMessage,
@@ -568,7 +568,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         }
                     );
                     throw new RegisterGcmError(
-                        'Google register to GCM failed',
+                        "Google register to GCM failed",
                         {
                             context: {
                                 status: response.statusCode,
@@ -580,13 +580,13 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 }
                 await sleep(10000 * retry_count);
             }
-            throw new RegisterGcmError('Max GCM registration retries reached');
+            throw new RegisterGcmError("Max GCM registration retries reached");
         } catch (err) {
             const error = ensureError(err);
-            rootPushLogger.error('Register GCM - Generic Error', {
+            rootPushLogger.error("Register GCM - Generic Error", {
                 error: getError(error),
             });
-            throw new RegisterGcmError('Google register to GCM failed', {
+            throw new RegisterGcmError("Google register to GCM failed", {
                 cause: error,
                 context: {
                     fidInstallationResponse: fidInstallationResponse,
@@ -598,11 +598,11 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
     private _normalizePushMessage(message: RawPushMessage): PushMessage {
         const normalizedMessage: PushMessage = {
-            name: '',
+            name: "",
             event_time: 0,
             type: -1,
-            station_sn: '',
-            device_sn: '',
+            station_sn: "",
+            device_sn: "",
         };
         if (message.payload.payload) {
             const payload = message.payload;
@@ -705,14 +705,14 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
 
                 if (
                     Station.isStationHomeBase3(normalizedMessage.type) ||
-                    (normalizedMessage.station_sn.startsWith('T8030') &&
+                    (normalizedMessage.station_sn.startsWith("T8030") &&
                         Device.isCamera(normalizedMessage.type))
                 ) {
                     const platformPushData =
                         payload.payload as PlatformPushMode;
                     normalizedMessage.name = platformPushData.name
                         ? platformPushData.name
-                        : '';
+                        : "";
                     normalizedMessage.channel =
                         platformPushData.channel !== undefined
                             ? platformPushData.channel
@@ -724,7 +724,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.event_session =
                         platformPushData.session_id !== undefined
                             ? platformPushData.session_id
-                            : '';
+                            : "";
                     normalizedMessage.event_type =
                         platformPushData.a !== undefined
                             ? platformPushData.a
@@ -732,11 +732,11 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.file_path =
                         platformPushData.file_path !== undefined
                             ? platformPushData.file_path
-                            : '';
+                            : "";
                     normalizedMessage.pic_url =
                         platformPushData.pic_url !== undefined
                             ? platformPushData.pic_url
-                            : '';
+                            : "";
                     normalizedMessage.push_count =
                         platformPushData.push_count !== undefined
                             ? platformPushData.push_count
@@ -774,19 +774,19 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         payload.payload as BatteryDoorbellPushData;
                     normalizedMessage.name = batteryDoorbellPushData.name
                         ? batteryDoorbellPushData.name
-                        : '';
+                        : "";
 
                     //Get family face names from Doorbell Dual "Family Recognition" event
                     if (batteryDoorbellPushData.objects !== undefined) {
                         normalizedMessage.person_name =
                             batteryDoorbellPushData.objects.names !== undefined
                                 ? batteryDoorbellPushData.objects.names.join(
-                                      ','
+                                      ","
                                   )
-                                : '';
+                                : "";
                     }
 
-                    if (normalizedMessage.person_name === '') {
+                    if (normalizedMessage.person_name === "") {
                         normalizedMessage.person_name =
                             batteryDoorbellPushData.nick_name;
                     }
@@ -802,23 +802,23 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.event_session =
                         batteryDoorbellPushData.session_id !== undefined
                             ? batteryDoorbellPushData.session_id
-                            : '';
+                            : "";
                     normalizedMessage.event_type =
                         batteryDoorbellPushData.event_type;
                     normalizedMessage.file_path =
                         batteryDoorbellPushData.file_path !== undefined &&
-                        batteryDoorbellPushData.file_path !== '' &&
+                        batteryDoorbellPushData.file_path !== "" &&
                         batteryDoorbellPushData.channel !== undefined
                             ? getAbsoluteFilePath(
                                   normalizedMessage.type,
                                   batteryDoorbellPushData.channel,
                                   batteryDoorbellPushData.file_path
                               )
-                            : '';
+                            : "";
                     normalizedMessage.pic_url =
                         batteryDoorbellPushData.pic_url !== undefined
                             ? batteryDoorbellPushData.pic_url
-                            : '';
+                            : "";
                     normalizedMessage.push_count =
                         batteryDoorbellPushData.push_count !== undefined
                             ? batteryDoorbellPushData.push_count
@@ -840,7 +840,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     const indoorPushData = payload.payload as IndoorPushData;
                     normalizedMessage.name = indoorPushData.name
                         ? indoorPushData.name
-                        : '';
+                        : "";
                     normalizedMessage.channel = indoorPushData.channel;
                     normalizedMessage.cipher = indoorPushData.cipher;
                     normalizedMessage.event_session = indoorPushData.session_id;
@@ -850,7 +850,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.pic_url =
                         indoorPushData.pic_url !== undefined
                             ? indoorPushData.pic_url
-                            : '';
+                            : "";
                     normalizedMessage.push_count =
                         indoorPushData.push_count !== undefined
                             ? indoorPushData.push_count
@@ -883,7 +883,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.name =
                         smartSafePushData.dev_name !== undefined
                             ? smartSafePushData.dev_name
-                            : '';
+                            : "";
                     /*normalizedMessage.short_user_id = smartSafePushData.short_user_id !== undefined ? smartSafePushData.short_user_id : "";
                     normalizedMessage.user_id = smartSafePushData.user_id !== undefined ? smartSafePushData.user_id : "";*/
                 } else if (
@@ -895,19 +895,19 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.short_user_id =
                         lockPushData.short_user_id !== undefined
                             ? lockPushData.short_user_id
-                            : '';
+                            : "";
                     normalizedMessage.user_id =
                         lockPushData.user_id !== undefined
                             ? lockPushData.user_id
-                            : '';
+                            : "";
                     normalizedMessage.name =
                         lockPushData.device_name !== undefined
                             ? lockPushData.device_name
-                            : '';
+                            : "";
                     normalizedMessage.person_name =
                         lockPushData.nick_name !== undefined
                             ? lockPushData.nick_name
-                            : '';
+                            : "";
                 } else if (Device.isGarageCamera(normalizedMessage.type)) {
                     const garageDoorPushData =
                         payload.payload as GarageDoorPushData;
@@ -916,7 +916,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.user_name =
                         garageDoorPushData.user_name !== undefined
                             ? garageDoorPushData.user_name
-                            : '';
+                            : "";
                     normalizedMessage.door_id =
                         garageDoorPushData.door_id !== undefined
                             ? garageDoorPushData.door_id
@@ -924,15 +924,15 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.name =
                         garageDoorPushData.door_name !== undefined
                             ? garageDoorPushData.door_name
-                            : '';
+                            : "";
                     normalizedMessage.pic_url =
                         garageDoorPushData.pic_url !== undefined
                             ? garageDoorPushData.pic_url
-                            : '';
+                            : "";
                     normalizedMessage.file_path =
                         garageDoorPushData.file_path !== undefined
                             ? garageDoorPushData.file_path
-                            : '';
+                            : "";
                     normalizedMessage.storage_type =
                         garageDoorPushData.storage_type !== undefined
                             ? garageDoorPushData.storage_type
@@ -946,13 +946,13 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.name =
                         cusPushData.device_name &&
                         cusPushData.device_name !== null &&
-                        cusPushData.device_name !== ''
+                        cusPushData.device_name !== ""
                             ? cusPushData.device_name
                             : cusPushData.n
                               ? cusPushData.n
                               : cusPushData.name
                                 ? cusPushData.name
-                                : '';
+                                : "";
                     normalizedMessage.channel = cusPushData.c
                         ? cusPushData.c
                         : cusPushData.channel;
@@ -966,7 +966,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.file_path =
                         cusPushData.c !== undefined &&
                         cusPushData.p !== undefined &&
-                        cusPushData.p !== ''
+                        cusPushData.p !== ""
                             ? getAbsoluteFilePath(
                                   normalizedMessage.type,
                                   cusPushData.c,
@@ -974,11 +974,11 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                               )
                             : cusPushData.file_path
                               ? cusPushData.file_path
-                              : '';
+                              : "";
                     normalizedMessage.pic_url =
                         cusPushData.pic_url !== undefined
                             ? cusPushData.pic_url
-                            : '';
+                            : "";
                     normalizedMessage.push_count =
                         cusPushData.push_count !== undefined
                             ? cusPushData.push_count
@@ -1002,14 +1002,14 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                     normalizedMessage.station_guard_mode = cusPushData.arming;
                     normalizedMessage.station_current_mode = cusPushData.mode;
                     normalizedMessage.person_name =
-                        cusPushData.f && cusPushData.f !== ''
+                        cusPushData.f && cusPushData.f !== ""
                             ? cusPushData.f
                             : cusPushData.nick_name && cusPushData.nick_name
                               ? cusPushData.nick_name
-                              : '';
+                              : "";
                     normalizedMessage.sensor_open =
                         cusPushData.e !== undefined
-                            ? cusPushData.e == '1'
+                            ? cusPushData.e == "1"
                                 ? true
                                 : false
                             : undefined;
@@ -1129,11 +1129,11 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                         normalizedMessage.event_session =
                             cusPushData.session_id !== undefined
                                 ? cusPushData.session_id
-                                : '';
+                                : "";
                         normalizedMessage.file_path =
                             cusPushData.file_path !== undefined
                                 ? cusPushData.file_path
-                                : '';
+                                : "";
                     }
                 }
             }
@@ -1143,7 +1143,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 rootPushLogger
             ) as DoorbellPushData;
             if (doorbellPushData !== undefined) {
-                normalizedMessage.name = 'Doorbell';
+                normalizedMessage.name = "Doorbell";
                 normalizedMessage.type = 5;
                 normalizedMessage.event_time =
                     doorbellPushData.create_time !== undefined
@@ -1178,14 +1178,14 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
     }
 
     private onMessage(message: RawPushMessage): void {
-        rootPushLogger.debug('Raw push message received', { message: message });
-        this.emit('raw message', message);
+        rootPushLogger.debug("Raw push message received", { message: message });
+        this.emit("raw message", message);
 
         const normalizedMessage = this._normalizePushMessage(message);
-        rootPushLogger.debug('Normalized push message received', {
+        rootPushLogger.debug("Normalized push message received", {
             message: normalizedMessage,
         });
-        this.emit('message', normalizedMessage);
+        this.emit("message", normalizedMessage);
     }
 
     private getCurrentPushRetryDelay(): number {
@@ -1232,7 +1232,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             this.credentials = await this.createPushCredentials().catch(
                 (err) => {
                     const error = ensureError(err);
-                    rootPushLogger.error('Create push credentials Error', {
+                    rootPushLogger.error("Create push credentials Error", {
                         error: getError(error),
                         credentials: this.credentials,
                         renew: renew,
@@ -1249,7 +1249,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 this.credentials
             ).catch((err) => {
                 const error = ensureError(err);
-                rootPushLogger.error('Push credentials renew Error', {
+                rootPushLogger.error("Push credentials renew Error", {
                     error: getError(error),
                     credentials: this.credentials,
                     renew: renew,
@@ -1264,7 +1264,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 this.credentials
             ).catch((err) => {
                 const error = ensureError(err);
-                rootPushLogger.error('Push credentials login Error', {
+                rootPushLogger.error("Push credentials login Error", {
                     error: getError(error),
                     credentials: this.credentials,
                     renew: renew,
@@ -1274,8 +1274,8 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
         }
 
         if (this.credentials) {
-            this.emit('credential', this.credentials);
-            rootPushLogger.debug('Push notification token received', {
+            this.emit("credential", this.credentials);
+            rootPushLogger.debug("Push notification token received", {
                 token: this.credentials.gcmResponse.token,
                 credentials: this.credentials,
             });
@@ -1284,7 +1284,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             this.credentialsTimeout = setTimeout(
                 async () => {
                     rootPushLogger.info(
-                        'Push notification token is expiring, renew it.'
+                        "Push notification token is expiring, renew it."
                     );
                     await this._open(true);
                 },
@@ -1296,7 +1296,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
             if (this.pushClient) {
                 this.pushClient.removeAllListeners();
             }
-            rootPushLogger.debug('Init PushClient with credentials', {
+            rootPushLogger.debug("Init PushClient with credentials", {
                 credentials: this.credentials,
             });
 
@@ -1309,26 +1309,26 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 this.pushClient.setPersistentIds(this.persistentIds);
 
             const token = this.credentials.gcmResponse.token;
-            this.pushClient.on('connect', () => {
-                this.emit('connect', token);
+            this.pushClient.on("connect", () => {
+                this.emit("connect", token);
                 this.connected = true;
                 this.connecting = false;
             });
-            this.pushClient.on('close', () => {
-                this.emit('close');
+            this.pushClient.on("close", () => {
+                this.emit("close");
                 this.connected = false;
                 this.connecting = false;
             });
-            this.pushClient.on('message', (msg: RawPushMessage) =>
+            this.pushClient.on("message", (msg: RawPushMessage) =>
                 this.onMessage(msg)
             );
             this.pushClient.connect();
         } else {
-            this.emit('close');
+            this.emit("close");
             this.connected = false;
             this.connecting = false;
             rootPushLogger.error(
-                'Push notifications are disabled, because the registration failed!',
+                "Push notifications are disabled, because the registration failed!",
                 { credentials: this.credentials, renew: renew }
             );
         }
@@ -1360,7 +1360,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
                 }, delay);
             } else {
                 this.resetRetryTimeout();
-                this.emit('credential', this.credentials);
+                this.emit("credential", this.credentials);
             }
         }
         return this.credentials;

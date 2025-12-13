@@ -1,6 +1,6 @@
-import * as NodeRSA from 'node-rsa';
-import { Readable } from 'stream';
-import { SortedMap } from 'sweet-collections';
+import * as NodeRSA from "node-rsa";
+import { Readable } from "stream";
+import { SortedMap } from "sweet-collections";
 
 import {
     AlarmMode,
@@ -9,15 +9,15 @@ import {
     ParamType,
     TriggerType,
     VideoType,
-} from '../http/types';
+} from "../http/types";
 import {
     Address,
     CmdCameraInfoResponse,
     CommandResult,
     CustomData,
     StorageInfoBodyHB3,
-} from './models';
-import { TalkbackStream } from './talkback';
+} from "./models";
+import { TalkbackStream } from "./talkback";
 import {
     AlarmEvent,
     AudioCodec,
@@ -31,95 +31,95 @@ import {
     TFCardStatus,
     VideoCodec,
     InternalP2PCommandType,
-} from './types';
+} from "./types";
 
 export interface P2PClientProtocolEvents {
-    'alarm mode': (mode: AlarmMode) => void;
-    'camera info': (cameraInfo: CmdCameraInfoResponse) => void;
+    "alarm mode": (mode: AlarmMode) => void;
+    "camera info": (cameraInfo: CmdCameraInfoResponse) => void;
     connect: (address: Address) => void;
     close: () => void;
     command: (result: CommandResult) => void;
-    'download started': (
+    "download started": (
         channel: number,
         metadata: StreamMetadata,
         videoStream: Readable,
         audioStream: Readable
     ) => void;
-    'download finished': (channel: number) => void;
-    'livestream started': (
+    "download finished": (channel: number) => void;
+    "livestream started": (
         channel: number,
         metadata: StreamMetadata,
         videoStream: Readable,
         audioStream: Readable
     ) => void;
-    'livestream stopped': (channel: number) => void;
-    'livestream error': (channel: number, error: Error) => void;
-    'wifi rssi': (channel: number, rssi: number) => void;
-    'rtsp url': (channel: number, rtspUrl: string) => void;
+    "livestream stopped": (channel: number) => void;
+    "livestream error": (channel: number, error: Error) => void;
+    "wifi rssi": (channel: number, rssi: number) => void;
+    "rtsp url": (channel: number, rtspUrl: string) => void;
     parameter: (channel: number, param: number, value: string) => void;
     timeout: () => void;
-    'runtime state': (
+    "runtime state": (
         channel: number,
         batteryLevel: number,
         temperature: number
     ) => void;
-    'charging state': (
+    "charging state": (
         channel: number,
         chargeType: number,
         batteryLevel: number
     ) => void;
-    'rtsp livestream started': (channel: number) => void;
-    'rtsp livestream stopped': (channel: number) => void;
-    'floodlight manual switch': (channel: number, enabled: boolean) => void;
-    'alarm delay': (alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
-    'alarm armed': () => void;
-    'alarm event': (alarmEvent: AlarmEvent) => void;
-    'talkback started': (
+    "rtsp livestream started": (channel: number) => void;
+    "rtsp livestream stopped": (channel: number) => void;
+    "floodlight manual switch": (channel: number, enabled: boolean) => void;
+    "alarm delay": (alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
+    "alarm armed": () => void;
+    "alarm event": (alarmEvent: AlarmEvent) => void;
+    "talkback started": (
         channel: number,
         talkbackStream: TalkbackStream
     ) => void;
-    'talkback stopped': (channel: number) => void;
-    'talkback error': (channel: number, error: Error) => void;
-    'secondary command': (result: CommandResult) => void;
+    "talkback stopped": (channel: number) => void;
+    "talkback error": (channel: number, error: Error) => void;
+    "secondary command": (result: CommandResult) => void;
     jammed: (channel: number) => void;
-    'low battery': (channel: number) => void;
-    'shake alarm': (channel: number, detail: SmartSafeShakeAlarmEvent) => void;
-    '911 alarm': (channel: number, detail: SmartSafeAlarm911Event) => void;
-    'wrong try-protect alarm': (channel: number) => void;
-    'sd info ex': (
+    "low battery": (channel: number) => void;
+    "shake alarm": (channel: number, detail: SmartSafeShakeAlarmEvent) => void;
+    "911 alarm": (channel: number, detail: SmartSafeAlarm911Event) => void;
+    "wrong try-protect alarm": (channel: number) => void;
+    "sd info ex": (
         sdStatus: TFCardStatus,
         sdCapacity: number,
         sdCapacityAvailable: number
     ) => void;
-    'image download': (file: string, image: Buffer) => void;
-    'tfcard status': (channel: number, status: TFCardStatus) => void;
-    'database query latest': (
+    "image download": (file: string, image: Buffer) => void;
+    "tfcard status": (channel: number, status: TFCardStatus) => void;
+    "database query latest": (
         returnCode: DatabaseReturnCode,
         data: Array<DatabaseQueryLatestInfo>
     ) => void;
-    'database query local': (
+    "database query local": (
         returnCode: DatabaseReturnCode,
         data: Array<DatabaseQueryLocal>
     ) => void;
-    'database count by date': (
+    "database count by date": (
         returnCode: DatabaseReturnCode,
         data: Array<DatabaseCountByDate>
     ) => void;
-    'database delete': (
+    "database delete": (
         returnCode: DatabaseReturnCode,
         failedIds: Array<unknown>
     ) => void;
-    'sensor status': (channel: number, status: number) => void;
-    'garage door status': (
+    "sensor status": (channel: number, status: number) => void;
+    "garage door status": (
         channel: number,
         doorId: number,
         status: number
     ) => void;
-    'storage info hb3': (
+    "storage info hb3": (
         channel: number,
         storageInfo: StorageInfoBodyHB3
     ) => void;
-    'sequence error': (
+    "sequence error": (
         channel: number,
         command: number,
         sequence: number,

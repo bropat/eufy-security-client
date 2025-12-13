@@ -1,7 +1,7 @@
-import { PropertyValue } from '../http';
-import { CommandName, PropertyName } from '../http/types';
-import { SmartSafeEventValueDetail } from '../push/models';
-import { CommandType } from './types';
+import { PropertyValue } from "../http";
+import { CommandName, PropertyName } from "../http/types";
+import { SmartSafeEventValueDetail } from "../push/models";
+import { CommandType } from "./types";
 
 export interface Address {
     host: string;

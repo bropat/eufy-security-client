@@ -1,24 +1,24 @@
-import Long from 'long';
-import * as path from 'path';
-import { load, Root } from 'protobufjs';
-import * as tls from 'tls';
-import { TypedEmitter } from 'tiny-typed-emitter';
+import Long from "long";
+import * as path from "path";
+import { load, Root } from "protobufjs";
+import * as tls from "tls";
+import { TypedEmitter } from "tiny-typed-emitter";
 
-import { Message, MessageTag, RawPushMessage } from './models';
-import { PushClientParser } from './parser';
-import { PushClientEvents } from './interfaces';
-import { getError, parseJSON } from '../utils';
+import { Message, MessageTag, RawPushMessage } from "./models";
+import { PushClientParser } from "./parser";
+import { PushClientEvents } from "./interfaces";
+import { getError, parseJSON } from "../utils";
 import {
     BuildHeartbeatAckRequestError,
     BuildHeartbeatPingRequestError,
     BuildLoginRequestError,
-} from './error';
-import { ensureError } from '../error';
-import { getNullTerminatedString } from '../p2p/utils';
-import { rootPushLogger } from '../logging';
+} from "./error";
+import { ensureError } from "../error";
+import { getNullTerminatedString } from "../p2p/utils";
+import { rootPushLogger } from "../logging";
 
 export class PushClient extends TypedEmitter<PushClientEvents> {
-    private readonly HOST = 'mtalk.google.com';
+    private readonly HOST = "mtalk.google.com";
     private readonly PORT = 5228;
     private readonly MCS_VERSION = 41;
 
@@ -55,7 +55,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
         androidId: string;
         securityToken: string;
     }): Promise<PushClient> {
-        this.proto = await load(path.join(__dirname, './proto/mcs.proto'));
+        this.proto = await load(path.join(__dirname, "./proto/mcs.proto"));
         const pushClientParser = await PushClientParser.init();
         return new PushClient(pushClientParser, auth);
     }
@@ -89,7 +89,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
     public connect(): void {
         this.initialize();
 
-        this.pushClientParser.on('message', (message) =>
+        this.pushClientParser.on("message", (message) =>
             this.handleParsedMessage(message)
         );
 
@@ -100,10 +100,10 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
         // For debugging purposes
         //this.client.enableTrace();
 
-        this.client.on('connect', () => this.onSocketConnect());
-        this.client.on('close', () => this.onSocketClose());
-        this.client.on('error', (error: any) => this.onSocketError(error));
-        this.client.on('data', (newData: any) => this.onSocketData(newData));
+        this.client.on("connect", () => this.onSocketConnect());
+        this.client.on("close", () => this.onSocketClose());
+        this.client.on("error", (error: any) => this.onSocketError(error));
+        this.client.on("data", (newData: any) => this.onSocketData(newData));
 
         this.client.write(this.buildLoginRequest());
     }
@@ -113,21 +113,21 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
         const securityToken = this.auth.securityToken;
 
         const LoginRequestType = PushClient.proto!.lookupType(
-            'mcs_proto.LoginRequest'
+            "mcs_proto.LoginRequest"
         );
         const hexAndroidId = Long.fromString(androidId).toString(16);
         const loginRequest = {
             adaptiveHeartbeat: false,
             authService: 2,
             authToken: securityToken,
-            id: 'chrome-63.0.3234.0',
-            domain: 'mcs.android.com',
+            id: "chrome-63.0.3234.0",
+            domain: "mcs.android.com",
             deviceId: `android-${hexAndroidId}`,
             networkType: 1,
             resource: androidId,
             user: androidId,
             useRmq2: true,
-            setting: [{ name: 'new_vc', value: '1' }],
+            setting: [{ name: "new_vc", value: "1" }],
             clientEvent: [] as any[],
             receivedPersistentId: this.persistentIds,
         };
@@ -158,7 +158,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
             request: JSON.stringify(heartbeatPingRequest),
         });
         const HeartbeatPingRequestType = PushClient.proto!.lookupType(
-            'mcs_proto.HeartbeatPing'
+            "mcs_proto.HeartbeatPing"
         );
         const errorMessage =
             HeartbeatPingRequestType.verify(heartbeatPingRequest);
@@ -196,7 +196,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
         });
 
         const HeartbeatAckRequestType = PushClient.proto!.lookupType(
-            'mcs_proto.HeartbeatAck'
+            "mcs_proto.HeartbeatAck"
         );
         const errorMessage =
             HeartbeatAckRequestType.verify(heartbeatAckRequest);
@@ -228,7 +228,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
             this.heartbeatTimeout = undefined;
         }
 
-        this.emit('close');
+        this.emit("close");
         this.scheduleReconnect();
     }
 
@@ -249,7 +249,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
                 if (message.object && message.object.persistentId)
                     this.persistentIds.push(message.object.persistentId);
 
-                this.emit('message', this.convertPayloadMessage(message));
+                this.emit("message", this.convertPayloadMessage(message));
                 break;
             case MessageTag.HeartbeatPing:
                 this.handleHeartbeatPing(message);
@@ -267,13 +267,13 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
                 break;
             case MessageTag.LoginResponse:
                 rootPushLogger.debug(
-                    'Push client - Login response: GCM -> logged in -> waiting for push messages...',
+                    "Push client - Login response: GCM -> logged in -> waiting for push messages...",
                     { message: JSON.stringify(message) }
                 );
                 this.loggedIn = true;
                 this.persistentIds = [];
 
-                this.emit('connect');
+                this.emit("connect");
 
                 this.heartbeatTimeout = setTimeout(() => {
                     this.scheduleHeartbeat(this);
@@ -327,11 +327,11 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
         const { appData, ...otherData } = message.object;
         const messageData: Record<string, any> = {};
         appData.forEach((kv: { key: string; value: any }) => {
-            if (kv.key === 'payload') {
+            if (kv.key === "payload") {
                 const payload = parseJSON(
                     getNullTerminatedString(
-                        Buffer.from(kv.value, 'base64'),
-                        'utf8'
+                        Buffer.from(kv.value, "base64"),
+                        "utf8"
                     ),
                     rootPushLogger
                 );
@@ -362,7 +362,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
                 this.scheduleHeartbeat(client);
             }, client.getHeartbeatInterval());
         } else {
-            rootPushLogger.debug('Push client - Heartbeat disabled!');
+            rootPushLogger.debug("Push client - Heartbeat disabled!");
         }
     }
 
@@ -380,7 +380,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
             return true;
         } else {
             rootPushLogger.debug(
-                'Push client - No more connected, reconnect...'
+                "Push client - No more connected, reconnect..."
             );
             this.scheduleReconnect();
         }
@@ -412,7 +412,7 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
 
     private scheduleReconnect(): void {
         const delay = this.getCurrentDelay();
-        rootPushLogger.debug('Push client - Schedule reconnect...', {
+        rootPushLogger.debug("Push client - Schedule reconnect...", {
             delay: delay,
         });
         if (!this.reconnectTimeout)
@@ -424,6 +424,6 @@ export class PushClient extends TypedEmitter<PushClientEvents> {
     public close(): void {
         const wasConnected = this.isConnected();
         this.initialize();
-        if (wasConnected) this.emit('close');
+        if (wasConnected) this.emit("close");
     }
 }

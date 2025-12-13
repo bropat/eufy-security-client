@@ -1,15 +1,15 @@
-import { TypedEmitter } from 'tiny-typed-emitter';
-import { existsSync, readFileSync, statSync, writeFileSync } from 'fs';
-import * as path from 'path';
-import { Readable } from 'stream';
-import EventEmitter from 'events';
+import { TypedEmitter } from "tiny-typed-emitter";
+import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
+import * as path from "path";
+import { Readable } from "stream";
+import EventEmitter from "events";
 
 import {
     EufySecurityEvents,
     EufySecurityConfig,
     EufySecurityPersistentData,
-} from './interfaces';
-import { HTTPApi } from './http/api';
+} from "./interfaces";
+import { HTTPApi } from "./http/api";
 import {
     Devices,
     FullDevices,
@@ -22,15 +22,15 @@ import {
     Schedule,
     Picture,
     DeviceConfig,
-} from './http/interfaces';
-import { Station } from './http/station';
+} from "./http/interfaces";
+import { Station } from "./http/station";
 import {
     ConfirmInvite,
     DeviceListResponse,
     HouseInviteListResponse,
     Invite,
     StationListResponse,
-} from './http/models';
+} from "./http/models";
 import {
     CommandName,
     DeviceType,
@@ -44,9 +44,9 @@ import {
     SoloCameraDetectionTypes,
     T8170DetectionTypes,
     UserPasswordType,
-} from './http/types';
-import { PushNotificationService } from './push/service';
-import { Credentials, PushMessage } from './push/models';
+} from "./http/types";
+import { PushNotificationService } from "./push/service";
+import { Credentials, PushMessage } from "./push/models";
 import {
     BatteryDoorbellCamera,
     Camera,
@@ -67,7 +67,7 @@ import {
     DoorbellLock,
     LockKeypad,
     SmartDrop,
-} from './http/device';
+} from "./http/device";
 import {
     AlarmEvent,
     CommandType,
@@ -76,7 +76,7 @@ import {
     SmartSafeAlarm911Event,
     SmartSafeShakeAlarmEvent,
     TFCardStatus,
-} from './p2p/types';
+} from "./p2p/types";
 import {
     DatabaseCountByDate,
     DatabaseQueryLatestInfo,
@@ -88,8 +88,8 @@ import {
     DynamicLighting,
     MotionZone,
     CrossTrackingGroupEntry,
-} from './p2p/interfaces';
-import { CommandResult, StorageInfoBodyHB3 } from './p2p/models';
+} from "./p2p/interfaces";
+import { CommandResult, StorageInfoBodyHB3 } from "./p2p/models";
 import {
     generateSerialnumber,
     generateUDID,
@@ -100,7 +100,7 @@ import {
     parseValue,
     removeLastChar,
     waitForEvent,
-} from './utils';
+} from "./utils";
 import {
     DeviceNotFoundError,
     StationNotFoundError,
@@ -112,14 +112,14 @@ import {
     UpdateUserPasscodeError,
     UpdateUserScheduleError,
     ensureError,
-} from './error';
-import { libVersion } from '.';
-import { InvalidPropertyError } from './http/error';
-import { ServerPushEvent } from './push/types';
-import { MQTTService } from './mqtt/service';
-import { TalkbackStream } from './p2p/talkback';
-import { PhoneModels } from './http/const';
-import { hexStringScheduleToSchedule, randomNumber } from './http/utils';
+} from "./error";
+import { libVersion } from ".";
+import { InvalidPropertyError } from "./http/error";
+import { ServerPushEvent } from "./push/types";
+import { MQTTService } from "./mqtt/service";
+import { TalkbackStream } from "./p2p/talkback";
+import { PhoneModels } from "./http/const";
+import { hexStringScheduleToSchedule, randomNumber } from "./http/utils";
 import {
     Logger,
     dummyLogger,
@@ -128,9 +128,9 @@ import {
     setLoggingLevel,
     LoggingCategories,
     getLoggingLevel,
-} from './logging';
-import { LogLevel } from 'typescript-logging';
-import { isCharging } from './p2p/utils';
+} from "./logging";
+import { LogLevel } from "typescript-logging";
+import { isCharging } from "./p2p/utils";
 
 export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private config: EufySecurityConfig;
@@ -153,13 +153,13 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private pushCloudChecked = false;
     private persistentFile!: string;
     private persistentData: EufySecurityPersistentData = {
-        country: '',
-        openudid: '',
-        serial_number: '',
+        country: "",
+        openudid: "",
+        serial_number: "",
         push_credentials: undefined,
         push_persistentIds: [],
-        login_hash: '',
-        version: '',
+        login_hash: "",
+        version: "",
         httpApi: undefined,
     };
     private connected = false;
@@ -176,11 +176,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private loadingEmitter = new EventEmitter();
     private stationsLoaded?: Promise<void> = waitForEvent<void>(
         this.loadingEmitter,
-        'stations loaded'
+        "stations loaded"
     );
     private devicesLoaded?: Promise<void> = waitForEvent<void>(
         this.loadingEmitter,
-        'devices loaded'
+        "devices loaded"
     );
 
     private constructor(config: EufySecurityConfig, log: Logger = dummyLogger) {
@@ -203,23 +203,23 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (this.config.logging) {
             if (
                 this.config.logging.level !== undefined &&
-                typeof this.config.logging.level === 'number' &&
+                typeof this.config.logging.level === "number" &&
                 Object.values(LogLevel).includes(this.config.logging.level)
             )
-                setLoggingLevel('all', this.config.logging.level);
+                setLoggingLevel("all", this.config.logging.level);
             if (
                 this.config.logging.categories !== undefined &&
                 Array.isArray(this.config.logging.categories)
             ) {
                 for (const category of this.config.logging.categories) {
                     if (
-                        typeof category === 'object' &&
-                        'category' in category &&
-                        'level' in category &&
-                        typeof category.level === 'number' &&
+                        typeof category === "object" &&
+                        "category" in category &&
+                        "level" in category &&
+                        typeof category.level === "number" &&
                         Object.values(LogLevel).includes(category.level) &&
-                        typeof category.category === 'string' &&
-                        ['main', 'http', 'p2p', 'push', 'mqtt'].includes(
+                        typeof category.category === "string" &&
+                        ["main", "http", "p2p", "push", "mqtt"].includes(
                             category.category.toLowerCase()
                         )
                     ) {
@@ -233,12 +233,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
 
         if (this.config.country === undefined) {
-            this.config.country = 'US';
+            this.config.country = "US";
         } else {
             this.config.country = this.config.country.toUpperCase();
         }
         if (this.config.language === undefined) {
-            this.config.language = 'en';
+            this.config.language = "en";
         }
         if (this.config.eventDurationSeconds === undefined) {
             this.config.eventDurationSeconds = 10;
@@ -267,9 +267,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             };
         }
         if (this.config.persistentDir === undefined) {
-            this.config.persistentDir = path.resolve(__dirname, '../../..');
+            this.config.persistentDir = path.resolve(__dirname, "../../..");
         } else if (!existsSync(this.config.persistentDir)) {
-            this.config.persistentDir = path.resolve(__dirname, '../../..');
+            this.config.persistentDir = path.resolve(__dirname, "../../..");
         }
 
         if (this.config.persistentData) {
@@ -279,7 +279,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         } else {
             this.persistentFile = path.join(
                 this.config.persistentDir,
-                'persistent.json'
+                "persistent.json"
             );
         }
 
@@ -288,34 +288,34 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 !this.config.persistentData &&
                 statSync(this.persistentFile).isFile()
             ) {
-                const fileContent = readFileSync(this.persistentFile, 'utf8');
+                const fileContent = readFileSync(this.persistentFile, "utf8");
                 this.persistentData = JSON.parse(
                     fileContent
                 ) as EufySecurityPersistentData;
             }
         } catch (err) {
             const error = ensureError(err);
-            rootMainLogger.debug('No stored data from last exit found', {
+            rootMainLogger.debug("No stored data from last exit found", {
                 error: getError(error),
             });
         }
 
-        rootMainLogger.debug('Loaded persistent data', {
+        rootMainLogger.debug("Loaded persistent data", {
             persistentData: this.persistentData,
         });
         try {
             if (this.persistentData.version !== libVersion) {
                 const currentVersion = Number.parseFloat(
-                    removeLastChar(libVersion, '.')
+                    removeLastChar(libVersion, ".")
                 );
                 const previousVersion =
-                    this.persistentData.version !== '' &&
+                    this.persistentData.version !== "" &&
                     this.persistentData.version !== undefined
                         ? Number.parseFloat(
-                              removeLastChar(this.persistentData.version, '.')
+                              removeLastChar(this.persistentData.version, ".")
                           )
                         : 0;
-                rootMainLogger.debug('Handling of driver update', {
+                rootMainLogger.debug("Handling of driver update", {
                     currentVersion: currentVersion,
                     previousVersion: previousVersion,
                 });
@@ -330,14 +330,14 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             }
         } catch (err) {
             const error = ensureError(err);
-            rootMainLogger.error('Handling update - Error', {
+            rootMainLogger.error("Handling update - Error", {
                 error: getError(error),
             });
         }
 
         if (
             this.config.trustedDeviceName === undefined ||
-            this.config.trustedDeviceName === ''
+            this.config.trustedDeviceName === ""
         ) {
             if (this.persistentData.fallbackTrustedDeviceName !== undefined) {
                 this.config.trustedDeviceName =
@@ -353,9 +353,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         if (
             this.persistentData.login_hash &&
-            this.persistentData.login_hash != ''
+            this.persistentData.login_hash != ""
         ) {
-            rootMainLogger.debug('Load previous login_hash', {
+            rootMainLogger.debug("Load previous login_hash", {
                 login_hash: this.persistentData.login_hash,
             });
             if (
@@ -363,40 +363,40 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 this.persistentData.login_hash
             ) {
                 rootMainLogger.info(
-                    'Authentication properties changed, invalidate saved cloud token.'
+                    "Authentication properties changed, invalidate saved cloud token."
                 );
-                this.persistentData.cloud_token = '';
+                this.persistentData.cloud_token = "";
                 this.persistentData.cloud_token_expiration = 0;
                 this.persistentData.httpApi = undefined;
             }
         } else {
-            this.persistentData.cloud_token = '';
+            this.persistentData.cloud_token = "";
             this.persistentData.cloud_token_expiration = 0;
             this.persistentData.httpApi = undefined;
         }
         if (
             this.persistentData.country !== undefined &&
-            this.persistentData.country !== '' &&
+            this.persistentData.country !== "" &&
             this.persistentData.country !== this.config.country
         ) {
             rootMainLogger.info(
-                'Country property changed, invalidate saved cloud token.'
+                "Country property changed, invalidate saved cloud token."
             );
-            this.persistentData.cloud_token = '';
+            this.persistentData.cloud_token = "";
             this.persistentData.cloud_token_expiration = 0;
             this.persistentData.httpApi = undefined;
         }
         if (
             this.persistentData.httpApi !== undefined &&
             (this.persistentData.httpApi.clientPrivateKey === undefined ||
-                this.persistentData.httpApi.clientPrivateKey === '' ||
+                this.persistentData.httpApi.clientPrivateKey === "" ||
                 this.persistentData.httpApi.serverPublicKey === undefined ||
-                this.persistentData.httpApi.serverPublicKey === '')
+                this.persistentData.httpApi.serverPublicKey === "")
         ) {
             rootMainLogger.debug(
-                'Incomplete persistent data for v2 encrypted cloud api communication. Invalidate authenticated session data.'
+                "Incomplete persistent data for v2 encrypted cloud api communication. Invalidate authenticated session data."
             );
-            this.persistentData.cloud_token = '';
+            this.persistentData.cloud_token = "";
             this.persistentData.cloud_token_expiration = 0;
             this.persistentData.httpApi = undefined;
         }
@@ -410,30 +410,30 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.api.setLanguage(this.config.language);
         this.api.setPhoneModel(this.config.trustedDeviceName);
 
-        this.api.on('houses', (houses: Houses) => this.handleHouses(houses));
-        this.api.on('hubs', (hubs: Hubs) => this.handleHubs(hubs));
-        this.api.on('devices', (devices: FullDevices) =>
+        this.api.on("houses", (houses: Houses) => this.handleHouses(houses));
+        this.api.on("hubs", (hubs: Hubs) => this.handleHubs(hubs));
+        this.api.on("devices", (devices: FullDevices) =>
             this.handleDevices(devices)
         );
-        this.api.on('close', () => this.onAPIClose());
-        this.api.on('connect', () => this.onAPIConnect());
-        this.api.on('captcha request', (id: string, captcha: string) =>
+        this.api.on("close", () => this.onAPIClose());
+        this.api.on("connect", () => this.onAPIConnect());
+        this.api.on("captcha request", (id: string, captcha: string) =>
             this.onCaptchaRequest(id, captcha)
         );
-        this.api.on('auth token invalidated', () =>
+        this.api.on("auth token invalidated", () =>
             this.onAuthTokenInvalidated()
         );
-        this.api.on('tfa request', () => this.onTfaRequest());
-        this.api.on('connection error', (error: Error) =>
+        this.api.on("tfa request", () => this.onTfaRequest());
+        this.api.on("connection error", (error: Error) =>
             this.onAPIConnectionError(error)
         );
 
         if (
             this.persistentData.cloud_token &&
-            this.persistentData.cloud_token != '' &&
+            this.persistentData.cloud_token != "" &&
             this.persistentData.cloud_token_expiration
         ) {
-            rootMainLogger.debug('Load previous token', {
+            rootMainLogger.debug("Load previous token", {
                 token: this.persistentData.cloud_token,
                 tokenExpiration: this.persistentData.cloud_token_expiration,
                 persistentHttpApi: this.persistentData.httpApi,
@@ -445,50 +445,50 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
         if (
             !this.persistentData.openudid ||
-            this.persistentData.openudid == ''
+            this.persistentData.openudid == ""
         ) {
             this.persistentData.openudid = generateUDID();
-            rootMainLogger.debug('Generated new openudid', {
+            rootMainLogger.debug("Generated new openudid", {
                 openudid: this.persistentData.openudid,
             });
         }
         this.api.setOpenUDID(this.persistentData.openudid);
         if (
             !this.persistentData.serial_number ||
-            this.persistentData.serial_number == ''
+            this.persistentData.serial_number == ""
         ) {
             this.persistentData.serial_number = generateSerialnumber(12);
-            rootMainLogger.debug('Generated new serial_number', {
+            rootMainLogger.debug("Generated new serial_number", {
                 serialnumber: this.persistentData.serial_number,
             });
         }
         this.api.setSerialNumber(this.persistentData.serial_number);
 
         this.pushService = await PushNotificationService.initialize();
-        this.pushService.on('connect', async (token: string) => {
+        this.pushService.on("connect", async (token: string) => {
             this.pushCloudRegistered = await this.api.registerPushToken(token);
             this.pushCloudChecked = await this.api.checkPushToken();
             //TODO: Retry if failed with max retry to not lock account
 
             if (this.pushCloudRegistered && this.pushCloudChecked) {
                 rootMainLogger.info(
-                    'Push notification connection successfully established'
+                    "Push notification connection successfully established"
                 );
-                this.emit('push connect');
+                this.emit("push connect");
             } else {
-                rootMainLogger.info('Push notification connection closed');
-                this.emit('push close');
+                rootMainLogger.info("Push notification connection closed");
+                this.emit("push close");
             }
         });
-        this.pushService.on('credential', (credentials: Credentials) => {
+        this.pushService.on("credential", (credentials: Credentials) => {
             this.savePushCredentials(credentials);
         });
-        this.pushService.on('message', (message: PushMessage) =>
+        this.pushService.on("message", (message: PushMessage) =>
             this.onPushMessage(message)
         );
-        this.pushService.on('close', () => {
-            rootMainLogger.info('Push notification connection closed');
-            this.emit('push close');
+        this.pushService.on("close", () => {
+            rootMainLogger.info("Push notification connection closed");
+            this.emit("push close");
         });
 
         await this.initMQTT();
@@ -496,15 +496,15 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     private async initMQTT(): Promise<void> {
         this.mqttService = await MQTTService.init();
-        this.mqttService.on('connect', () => {
-            rootMainLogger.info('MQTT connection successfully established');
-            this.emit('mqtt connect');
+        this.mqttService.on("connect", () => {
+            rootMainLogger.info("MQTT connection successfully established");
+            this.emit("mqtt connect");
         });
-        this.mqttService.on('close', () => {
-            rootMainLogger.info('MQTT connection closed');
-            this.emit('mqtt close');
+        this.mqttService.on("close", () => {
+            rootMainLogger.info("MQTT connection closed");
+            this.emit("mqtt close");
         });
-        this.mqttService.on('lock message', (message) => {
+        this.mqttService.on("lock message", (message) => {
             this.getDevice(message.data.data.deviceSn)
                 .then((device: Device) => {
                     (device as Lock).processMQTTNotification(
@@ -515,23 +515,23 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 .catch((err) => {
                     const error = ensureError(err);
                     if (!(error instanceof DeviceNotFoundError)) {
-                        rootMainLogger.error('Lock MQTT Message Error', {
+                        rootMainLogger.error("Lock MQTT Message Error", {
                             error: getError(error),
                         });
                     }
                 })
                 .finally(() => {
-                    this.emit('mqtt lock message', message);
+                    this.emit("mqtt lock message", message);
                 });
         });
     }
 
     public setLoggingLevel(category: LoggingCategories, level: LogLevel): void {
         if (
-            typeof level === 'number' &&
+            typeof level === "number" &&
             Object.values(LogLevel).includes(level) &&
-            typeof category === 'string' &&
-            ['all', 'main', 'http', 'p2p', 'push', 'mqtt'].includes(
+            typeof category === "string" &&
+            ["all", "main", "http", "p2p", "push", "mqtt"].includes(
                 category.toLowerCase()
             )
         ) {
@@ -541,8 +541,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     public getLoggingLevel(category: LoggingCategories): number {
         if (
-            typeof category === 'string' &&
-            ['all', 'main', 'http', 'p2p', 'push', 'mqtt'].includes(
+            typeof category === "string" &&
+            ["all", "main", "http", "p2p", "push", "mqtt"].includes(
                 category.toLowerCase()
             )
         ) {
@@ -567,7 +567,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         const serial = station.getSerial();
         if (serial && !Object.keys(this.stations).includes(serial)) {
             this.stations[serial] = station;
-            this.emit('station added', station);
+            this.emit("station added", station);
         } else {
             rootMainLogger.debug(
                 `Station with this serial ${station.getSerial()} exists already and couldn't be added again!`
@@ -581,7 +581,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             delete this.stations[serial];
             station.removeAllListeners();
             if (station.isConnected()) station.close();
-            this.emit('station removed', station);
+            this.emit("station removed", station);
         } else {
             rootMainLogger.debug(
                 `Station with this serial ${station.getSerial()} doesn't exists and couldn't be removed!`
@@ -618,7 +618,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         const serial = device.getSerial();
         if (serial && !Object.keys(this.devices).includes(serial)) {
             this.devices[serial] = device;
-            this.emit('device added', device);
+            this.emit("device added", device);
 
             if (device.isLock())
                 this.mqttService.subscribeLock(device.getSerial());
@@ -634,7 +634,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (serial && Object.keys(this.devices).includes(serial)) {
             delete this.devices[serial];
             device.removeAllListeners();
-            this.emit('device removed', device);
+            this.emit("device removed", device);
         } else {
             rootMainLogger.debug(
                 `Device with this serial ${device.getSerial()} doesn't exists and couldn't be removed!`
@@ -698,7 +698,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             }
         }
         throw new DeviceNotFoundError(
-            'No device with passed channel found on station',
+            "No device with passed channel found on station",
             { context: { station: stationSN, channel: channel } }
         );
     }
@@ -753,13 +753,13 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private handleHouses(houses: Houses): void {
-        rootMainLogger.debug('Got houses', { houses: houses });
+        rootMainLogger.debug("Got houses", { houses: houses });
         //TODO: Finish implementation
         this.houses = houses;
     }
 
     private handleHubs(hubs: Hubs): void {
-        rootMainLogger.debug('Got hubs', { hubs: hubs });
+        rootMainLogger.debug("Got hubs", { hubs: hubs });
         const stationsSNs: string[] = Object.keys(this.stations);
         const newStationsSNs = Object.keys(hubs);
         const promises: Array<Promise<Station>> = [];
@@ -770,7 +770,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 if (this.stationsLoaded === undefined)
                     this.stationsLoaded = waitForEvent<void>(
                         this.loadingEmitter,
-                        'stations loaded'
+                        "stations loaded"
                     );
                 let ipAddress: string | undefined;
                 if (this.config.stationIPAddresses !== undefined) {
@@ -786,22 +786,22 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 promises.push(
                     station.then((station: Station) => {
                         try {
-                            station.on('connect', (station: Station) =>
+                            station.on("connect", (station: Station) =>
                                 this.onStationConnect(station)
                             );
                             station.on(
-                                'connection error',
+                                "connection error",
                                 (station: Station, error: Error) =>
                                     this.onStationConnectionError(
                                         station,
                                         error
                                     )
                             );
-                            station.on('close', (station: Station) =>
+                            station.on("close", (station: Station) =>
                                 this.onStationClose(station)
                             );
                             station.on(
-                                'raw device property changed',
+                                "raw device property changed",
                                 (deviceSN: string, params: RawValues) =>
                                     this.updateDeviceProperties(
                                         deviceSN,
@@ -809,7 +809,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'livestream start',
+                                "livestream start",
                                 (
                                     station: Station,
                                     channel: number,
@@ -826,7 +826,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'livestream stop',
+                                "livestream stop",
                                 (station: Station, channel: number) =>
                                     this.onStopStationLivestream(
                                         station,
@@ -834,7 +834,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'livestream error',
+                                "livestream error",
                                 (
                                     station: Station,
                                     channel: number,
@@ -847,7 +847,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'download start',
+                                "download start",
                                 (
                                     station: Station,
                                     channel: number,
@@ -864,7 +864,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'download finish',
+                                "download finish",
                                 (station: Station, channel: number) =>
                                     this.onStationFinishDownload(
                                         station,
@@ -872,17 +872,17 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'command result',
+                                "command result",
                                 (station: Station, result: CommandResult) =>
                                     this.onStationCommandResult(station, result)
                             );
                             station.on(
-                                'guard mode',
+                                "guard mode",
                                 (station: Station, guardMode: number) =>
                                     this.onStationGuardMode(station, guardMode)
                             );
                             station.on(
-                                'current mode',
+                                "current mode",
                                 (station: Station, currentMode: number) =>
                                     this.onStationCurrentMode(
                                         station,
@@ -890,7 +890,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'rtsp livestream start',
+                                "rtsp livestream start",
                                 (station: Station, channel: number) =>
                                     this.onStartStationRTSPLivestream(
                                         station,
@@ -898,7 +898,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'rtsp livestream stop',
+                                "rtsp livestream stop",
                                 (station: Station, channel: number) =>
                                     this.onStopStationRTSPLivestream(
                                         station,
@@ -906,7 +906,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'rtsp url',
+                                "rtsp url",
                                 (
                                     station: Station,
                                     channel: number,
@@ -919,7 +919,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'property changed',
+                                "property changed",
                                 (
                                     station: Station,
                                     name: string,
@@ -934,7 +934,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'raw property changed',
+                                "raw property changed",
                                 (
                                     station: Station,
                                     type: number,
@@ -947,7 +947,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'alarm event',
+                                "alarm event",
                                 (station: Station, alarmEvent: AlarmEvent) =>
                                     this.onStationAlarmEvent(
                                         station,
@@ -955,7 +955,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'runtime state',
+                                "runtime state",
                                 (
                                     station: Station,
                                     channel: number,
@@ -970,7 +970,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'charging state',
+                                "charging state",
                                 (
                                     station: Station,
                                     channel: number,
@@ -985,7 +985,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'wifi rssi',
+                                "wifi rssi",
                                 (
                                     station: Station,
                                     channel: number,
@@ -998,7 +998,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'floodlight manual switch',
+                                "floodlight manual switch",
                                 (
                                     station: Station,
                                     channel: number,
@@ -1011,7 +1011,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'alarm delay event',
+                                "alarm delay event",
                                 (
                                     station: Station,
                                     alarmDelayEvent: AlarmEvent,
@@ -1024,7 +1024,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'talkback started',
+                                "talkback started",
                                 (
                                     station: Station,
                                     channel: number,
@@ -1037,12 +1037,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'talkback stopped',
+                                "talkback stopped",
                                 (station: Station, channel: number) =>
                                     this.onStationTalkbackStop(station, channel)
                             );
                             station.on(
-                                'talkback error',
+                                "talkback error",
                                 (
                                     station: Station,
                                     channel: number,
@@ -1055,12 +1055,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'alarm armed event',
+                                "alarm armed event",
                                 (station: Station) =>
                                     this.onStationAlarmArmedEvent(station)
                             );
                             station.on(
-                                'alarm arm delay event',
+                                "alarm arm delay event",
                                 (station: Station, armDelay: number) =>
                                     this.onStationArmDelayEvent(
                                         station,
@@ -1068,7 +1068,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'secondary command result',
+                                "secondary command result",
                                 (station: Station, result: CommandResult) =>
                                     this.onStationSecondaryCommandResult(
                                         station,
@@ -1076,7 +1076,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'device shake alarm',
+                                "device shake alarm",
                                 (
                                     deviceSN: string,
                                     event: SmartSafeShakeAlarmEvent
@@ -1087,7 +1087,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'device 911 alarm',
+                                "device 911 alarm",
                                 (
                                     deviceSN: string,
                                     event: SmartSafeAlarm911Event
@@ -1097,23 +1097,23 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                         event
                                     )
                             );
-                            station.on('device jammed', (deviceSN: string) =>
+                            station.on("device jammed", (deviceSN: string) =>
                                 this.onStationDeviceJammed(deviceSN)
                             );
                             station.on(
-                                'device low battery',
+                                "device low battery",
                                 (deviceSN: string) =>
                                     this.onStationDeviceLowBattery(deviceSN)
                             );
                             station.on(
-                                'device wrong try-protect alarm',
+                                "device wrong try-protect alarm",
                                 (deviceSN: string) =>
                                     this.onStationDeviceWrongTryProtectAlarm(
                                         deviceSN
                                     )
                             );
                             station.on(
-                                'device pin verified',
+                                "device pin verified",
                                 (deviceSN: string, successfull: boolean) =>
                                     this.onStationDevicePinVerified(
                                         deviceSN,
@@ -1121,7 +1121,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'sd info ex',
+                                "sd info ex",
                                 (
                                     station: Station,
                                     sdStatus: TFCardStatus,
@@ -1136,7 +1136,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'image download',
+                                "image download",
                                 (
                                     station: Station,
                                     file: string,
@@ -1149,7 +1149,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'database query latest',
+                                "database query latest",
                                 (
                                     station: Station,
                                     returnCode: DatabaseReturnCode,
@@ -1162,7 +1162,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'database query local',
+                                "database query local",
                                 (
                                     station: Station,
                                     returnCode: DatabaseReturnCode,
@@ -1175,7 +1175,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'database count by date',
+                                "database count by date",
                                 (
                                     station: Station,
                                     returnCode: DatabaseReturnCode,
@@ -1188,7 +1188,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'database delete',
+                                "database delete",
                                 (
                                     station: Station,
                                     returnCode: DatabaseReturnCode,
@@ -1201,7 +1201,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'sensor status',
+                                "sensor status",
                                 (
                                     station: Station,
                                     channel: number,
@@ -1214,7 +1214,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'garage door status',
+                                "garage door status",
                                 (
                                     station: Station,
                                     channel: number,
@@ -1229,7 +1229,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             station.on(
-                                'storage info hb3',
+                                "storage info hb3",
                                 (
                                     station: Station,
                                     channel: number,
@@ -1245,7 +1245,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                             station.initialize();
                         } catch (err) {
                             const error = ensureError(err);
-                            rootMainLogger.error('HandleHubs Error', {
+                            rootMainLogger.error("HandleHubs Error", {
                                 error: getError(error),
                                 stationSN: station.getSerial(),
                             });
@@ -1256,11 +1256,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             }
         }
         Promise.all(promises).then(() => {
-            this.loadingEmitter.emit('stations loaded');
+            this.loadingEmitter.emit("stations loaded");
             this.stationsLoaded = undefined;
         });
         if (promises.length === 0) {
-            this.loadingEmitter.emit('stations loaded');
+            this.loadingEmitter.emit("stations loaded");
             this.stationsLoaded = undefined;
         }
         for (const stationSN of stationsSNs) {
@@ -1271,7 +1271,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     })
                     .catch((err) => {
                         const error = ensureError(err);
-                        rootMainLogger.error('Error removing station', {
+                        rootMainLogger.error("Error removing station", {
                             error: getError(error),
                             stationSN: stationSN,
                         });
@@ -1304,7 +1304,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private onStationConnect(station: Station): void {
-        this.emit('station connect', station);
+        this.emit("station connect", station);
         this.refreshP2PData(station);
         if (
             this.refreshEufySecurityP2PTimeout[station.getSerial()] !==
@@ -1324,11 +1324,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private onStationConnectionError(station: Station, error: Error): void {
-        this.emit('station connection error', station, error);
+        this.emit("station connection error", station, error);
     }
 
     private onStationClose(station: Station): void {
-        this.emit('station close', station);
+        this.emit("station close", station);
         for (const device_sn of this.cameraStationLivestreamTimeout.keys()) {
             this.getDevice(device_sn)
                 .then((device: Device) => {
@@ -1353,7 +1353,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private handleDevices(devices: FullDevices): void {
-        rootMainLogger.debug('Got devices', { devices: devices });
+        rootMainLogger.debug("Got devices", { devices: devices });
         const deviceSNs: string[] = Object.keys(this.devices);
         const newDeviceSNs = Object.keys(devices);
         const promises: Array<Promise<Device>> = [];
@@ -1366,7 +1366,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 if (this.devicesLoaded === undefined)
                     this.devicesLoaded = waitForEvent<void>(
                         this.loadingEmitter,
-                        'devices loaded'
+                        "devices loaded"
                     );
                 let new_device: Promise<Device>;
 
@@ -1487,7 +1487,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     new_device.then((device: Device) => {
                         try {
                             device.on(
-                                'property changed',
+                                "property changed",
                                 (
                                     device: Device,
                                     name: string,
@@ -1502,7 +1502,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             device.on(
-                                'raw property changed',
+                                "raw property changed",
                                 (device: Device, type: number, value: string) =>
                                     this.onDeviceRawPropertyChanged(
                                         device,
@@ -1511,32 +1511,32 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             device.on(
-                                'crying detected',
+                                "crying detected",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceCryingDetected(device, state)
                             );
                             device.on(
-                                'sound detected',
+                                "sound detected",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceSoundDetected(device, state)
                             );
                             device.on(
-                                'pet detected',
+                                "pet detected",
                                 (device: Device, state: boolean) =>
                                     this.onDevicePetDetected(device, state)
                             );
                             device.on(
-                                'vehicle detected',
+                                "vehicle detected",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceVehicleDetected(device, state)
                             );
                             device.on(
-                                'motion detected',
+                                "motion detected",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceMotionDetected(device, state)
                             );
                             device.on(
-                                'person detected',
+                                "person detected",
                                 (
                                     device: Device,
                                     state: boolean,
@@ -1549,45 +1549,45 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             device.on(
-                                'rings',
+                                "rings",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceRings(device, state)
                             );
                             device.on(
-                                'locked',
+                                "locked",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceLocked(device, state)
                             );
                             device.on(
-                                'open',
+                                "open",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceOpen(device, state)
                             );
-                            device.on('ready', (device: Device) =>
+                            device.on("ready", (device: Device) =>
                                 this.onDeviceReady(device)
                             );
                             device.on(
-                                'package delivered',
+                                "package delivered",
                                 (device: Device, state: boolean) =>
                                     this.onDevicePackageDelivered(device, state)
                             );
                             device.on(
-                                'package stranded',
+                                "package stranded",
                                 (device: Device, state: boolean) =>
                                     this.onDevicePackageStranded(device, state)
                             );
                             device.on(
-                                'package taken',
+                                "package taken",
                                 (device: Device, state: boolean) =>
                                     this.onDevicePackageTaken(device, state)
                             );
                             device.on(
-                                'someone loitering',
+                                "someone loitering",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceSomeoneLoitering(device, state)
                             );
                             device.on(
-                                'radar motion detected',
+                                "radar motion detected",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceRadarMotionDetected(
                                         device,
@@ -1595,7 +1595,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             device.on(
-                                '911 alarm',
+                                "911 alarm",
                                 (
                                     device: Device,
                                     state: boolean,
@@ -1604,7 +1604,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     this.onDevice911Alarm(device, state, detail)
                             );
                             device.on(
-                                'shake alarm',
+                                "shake alarm",
                                 (
                                     device: Device,
                                     state: boolean,
@@ -1617,7 +1617,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             device.on(
-                                'wrong try-protect alarm',
+                                "wrong try-protect alarm",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceWrongTryProtectAlarm(
                                         device,
@@ -1625,22 +1625,22 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             device.on(
-                                'long time not close',
+                                "long time not close",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceLongTimeNotClose(device, state)
                             );
                             device.on(
-                                'low battery',
+                                "low battery",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceLowBattery(device, state)
                             );
                             device.on(
-                                'jammed',
+                                "jammed",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceJammed(device, state)
                             );
                             device.on(
-                                'stranger person detected',
+                                "stranger person detected",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceStrangerPersonDetected(
                                         device,
@@ -1648,47 +1648,47 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     )
                             );
                             device.on(
-                                'dog detected',
+                                "dog detected",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceDogDetected(device, state)
                             );
                             device.on(
-                                'dog lick detected',
+                                "dog lick detected",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceDogLickDetected(device, state)
                             );
                             device.on(
-                                'dog poop detected',
+                                "dog poop detected",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceDogPoopDetected(device, state)
                             );
                             device.on(
-                                'tampering',
+                                "tampering",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceTampering(device, state)
                             );
                             device.on(
-                                'low temperature',
+                                "low temperature",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceLowTemperature(device, state)
                             );
                             device.on(
-                                'high temperature',
+                                "high temperature",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceHighTemperature(device, state)
                             );
                             device.on(
-                                'pin incorrect',
+                                "pin incorrect",
                                 (device: Device, state: boolean) =>
                                     this.onDevicePinIncorrect(device, state)
                             );
                             device.on(
-                                'lid stuck',
+                                "lid stuck",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceLidStuck(device, state)
                             );
                             device.on(
-                                'battery fully charged',
+                                "battery fully charged",
                                 (device: Device, state: boolean) =>
                                     this.onDeviceBatteryFullyCharged(
                                         device,
@@ -1699,7 +1699,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                             device.initialize();
                         } catch (err) {
                             const error = ensureError(err);
-                            rootMainLogger.error('HandleDevices Error', {
+                            rootMainLogger.error("HandleDevices Error", {
                                 error: getError(error),
                                 deviceSN: device.getSerial(),
                             });
@@ -1730,7 +1730,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     .catch((err) => {
                         const error = ensureError(err);
                         rootMainLogger.error(
-                            'Error trying to connect to station afte device loaded',
+                            "Error trying to connect to station afte device loaded",
                             {
                                 error: getError(error),
                                 deviceSN: device.getSerial(),
@@ -1738,11 +1738,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         );
                     });
             });
-            this.loadingEmitter.emit('devices loaded');
+            this.loadingEmitter.emit("devices loaded");
             this.devicesLoaded = undefined;
         });
         if (promises.length === 0) {
-            this.loadingEmitter.emit('devices loaded');
+            this.loadingEmitter.emit("devices loaded");
             this.devicesLoaded = undefined;
         }
         for (const deviceSN of deviceSNs) {
@@ -1753,7 +1753,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     })
                     .catch((err) => {
                         const error = ensureError(err);
-                        rootMainLogger.error('Error removing device', {
+                        rootMainLogger.error("Error removing device", {
                             error: getError(error),
                             deviceSN: deviceSN,
                         });
@@ -1766,14 +1766,14 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (this.config.acceptInvitations) {
             await this.processInvitations().catch((err) => {
                 const error = ensureError(err);
-                rootMainLogger.error('Error in processing invitations', {
+                rootMainLogger.error("Error in processing invitations", {
                     error: getError(error),
                 });
             });
         }
         await this.api.refreshAllData().catch((err) => {
             const error = ensureError(err);
-            rootMainLogger.error('Error during API data refreshing', {
+            rootMainLogger.error("Error during API data refreshing", {
                 error: getError(error),
             });
         });
@@ -1825,7 +1825,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             device.destroy();
         });
 
-        if (this.connected) this.emit('close');
+        if (this.connected) this.emit("close");
 
         this.connected = false;
     }
@@ -1868,7 +1868,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             })
             .catch((err) => {
                 const error = ensureError(err);
-                rootMainLogger.error('Connect Error', {
+                rootMainLogger.error("Connect Error", {
                     error: getError(error),
                     options: options,
                 });
@@ -1886,7 +1886,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             })
             .catch((err) => {
                 const error = ensureError(err);
-                rootMainLogger.error('Update device properties error', {
+                rootMainLogger.error("Update device properties error", {
                     error: getError(error),
                     deviceSN: deviceSN,
                     values: values,
@@ -1899,7 +1899,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             clearTimeout(this.refreshEufySecurityCloudTimeout);
 
         this.connected = false;
-        this.emit('close');
+        this.emit("close");
 
         if (this.retries < 3) {
             this.retries++;
@@ -1918,7 +1918,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.saveCloudToken();
         await this.refreshCloudData();
 
-        this.emit('connect');
+        this.emit("connect");
 
         this.registerPushNotifications(
             this.persistentData.push_credentials,
@@ -1935,13 +1935,13 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             );
         } else {
             rootMainLogger.warn(
-                'No login data recevied to initialize MQTT connection...'
+                "No login data recevied to initialize MQTT connection..."
             );
         }
     }
 
     private onAPIConnectionError(error: Error): void {
-        this.emit('connection error', error);
+        this.emit("connection error", error);
     }
 
     public async startStationLivestream(deviceSN: string): Promise<void> {
@@ -1950,7 +1950,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         if (!device.hasCommand(CommandName.DeviceStartLivestream))
             throw new NotSupportedError(
-                'This functionality is not implemented or supported by this device',
+                "This functionality is not implemented or supported by this device",
                 {
                     context: {
                         device: deviceSN,
@@ -1987,7 +1987,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         if (!device.hasCommand(CommandName.DeviceStopLivestream))
             throw new NotSupportedError(
-                'This functionality is not implemented or supported by this device',
+                "This functionality is not implemented or supported by this device",
                 {
                     context: {
                         device: deviceSN,
@@ -2022,7 +2022,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         try {
             if (this.config.persistentData) {
                 this.emit(
-                    'persistent data',
+                    "persistent data",
                     JSON.stringify(this.persistentData)
                 );
             } else {
@@ -2033,7 +2033,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             }
         } catch (err) {
             const error = ensureError(err);
-            rootMainLogger.error('WritePersistentData Error', {
+            rootMainLogger.error("WritePersistentData Error", {
                 error: getError(error),
             });
         }
@@ -2044,7 +2044,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         const token_expiration = this.api.getTokenExpiration();
 
         if (!!token && !!token_expiration) {
-            rootMainLogger.debug('Save cloud token and token expiration', {
+            rootMainLogger.debug("Save cloud token and token expiration", {
                 token: token,
                 tokenExpiration: token_expiration,
             });
@@ -2086,7 +2086,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         const invites = await this.api.getInvites().catch((err) => {
             const error = ensureError(err);
-            rootMainLogger.error('Error getting invites from cloud', {
+            rootMainLogger.error("Error getting invites from cloud", {
                 error: getError(error),
             });
             return error;
@@ -2112,7 +2112,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     .catch((err) => {
                         const error = ensureError(err);
                         rootMainLogger.error(
-                            'Error in confirmation of invitations',
+                            "Error in confirmation of invitations",
                             {
                                 error: getError(error),
                                 confirmInvites: confirmInvites,
@@ -2134,7 +2134,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             .getHouseInviteList()
             .catch((err) => {
                 const error = ensureError(err);
-                rootMainLogger.error('Error getting house invites from cloud', {
+                rootMainLogger.error("Error getting house invites from cloud", {
                     error: getError(error),
                 });
                 return error;
@@ -2148,7 +2148,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     .catch((err) => {
                         const error = ensureError(err);
                         rootMainLogger.error(
-                            'Error in confirmation of house invitations',
+                            "Error in confirmation of house invitations",
                             {
                                 error: getError(error),
                             }
@@ -2168,10 +2168,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private onPushMessage(message: PushMessage): void {
-        this.emit('push message', message);
+        this.emit("push message", message);
 
         try {
-            rootMainLogger.debug('Received push message', { message: message });
+            rootMainLogger.debug("Received push message", { message: message });
             try {
                 if (
                     (message.type === ServerPushEvent.INVITE_DEVICE ||
@@ -2223,7 +2223,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 .catch((err) => {
                     const error = ensureError(err);
                     rootMainLogger.error(
-                        'Process push notification for stations',
+                        "Process push notification for stations",
                         {
                             error: getError(error),
                             message: message,
@@ -2256,7 +2256,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                             .catch((err) => {
                                 const error = ensureError(err);
                                 rootMainLogger.error(
-                                    'Process push notification for devices loading station',
+                                    "Process push notification for devices loading station",
                                     { error: getError(error), message: message }
                                 );
                             });
@@ -2265,7 +2265,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 .catch((err) => {
                     const error = ensureError(err);
                     rootMainLogger.error(
-                        'Process push notification for devices',
+                        "Process push notification for devices",
                         {
                             error: getError(error),
                             message: message,
@@ -2274,7 +2274,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 });
         } catch (err) {
             const error = ensureError(err);
-            rootMainLogger.error('OnPushMessage Generic Error', {
+            rootMainLogger.error("OnPushMessage Generic Error", {
                 error: getError(error),
                 message: message,
             });
@@ -2291,7 +2291,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         if (!device.hasCommand(CommandName.DeviceStartDownload))
             throw new NotSupportedError(
-                'This functionality is not implemented or supported by this device',
+                "This functionality is not implemented or supported by this device",
                 {
                     context: {
                         device: deviceSN,
@@ -2317,7 +2317,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         if (!device.hasCommand(CommandName.DeviceCancelDownload))
             throw new NotSupportedError(
-                'This functionality is not implemented or supported by this device',
+                "This functionality is not implemented or supported by this device",
                 {
                     context: {
                         device: deviceSN,
@@ -2580,7 +2580,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     );
                 } else {
                     throw new InvalidPropertyError(
-                        'Station has no writable property',
+                        "Station has no writable property",
                         {
                             context: {
                                 station: station.getSerial(),
@@ -3222,7 +3222,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
-                    throw new ReadOnlyPropertyError('Property is read only', {
+                    throw new ReadOnlyPropertyError("Property is read only", {
                         context: {
                             device: deviceSN,
                             propertyName: name,
@@ -3230,7 +3230,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         },
                     });
                 throw new InvalidPropertyError(
-                    'Device has no writable property',
+                    "Device has no writable property",
                     {
                         context: {
                             device: deviceSN,
@@ -3322,7 +3322,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 break;
             default:
                 if (!Object.values(PropertyName).includes(name as PropertyName))
-                    throw new ReadOnlyPropertyError('Property is read only', {
+                    throw new ReadOnlyPropertyError("Property is read only", {
                         context: {
                             station: stationSN,
                             propertyName: name,
@@ -3330,7 +3330,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         },
                     });
                 throw new InvalidPropertyError(
-                    'Station has no writable property',
+                    "Station has no writable property",
                     {
                         context: {
                             station: stationSN,
@@ -3352,7 +3352,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.getStationDevice(station.getSerial(), channel)
             .then((device: Device) => {
                 this.emit(
-                    'station livestream start',
+                    "station livestream start",
                     station,
                     device,
                     metadata,
@@ -3374,7 +3374,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private onStopStationLivestream(station: Station, channel: number): void {
         this.getStationDevice(station.getSerial(), channel)
             .then((device: Device) => {
-                this.emit('station livestream stop', station, device);
+                this.emit("station livestream stop", station, device);
             })
             .catch((err) => {
                 const error = ensureError(err);
@@ -3412,7 +3412,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     ): void {
         this.getStationDevice(station.getSerial(), channel)
             .then((device: Device) => {
-                this.emit('station rtsp livestream start', station, device);
+                this.emit("station rtsp livestream start", station, device);
             })
             .catch((err) => {
                 const error = ensureError(err);
@@ -3430,7 +3430,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     ): void {
         this.getStationDevice(station.getSerial(), channel)
             .then((device: Device) => {
-                this.emit('station rtsp livestream stop', station, device);
+                this.emit("station rtsp livestream stop", station, device);
             })
             .catch((err) => {
                 const error = ensureError(err);
@@ -3452,7 +3452,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.getStationDevice(station.getSerial(), channel)
             .then((device: Device) => {
                 this.emit(
-                    'station download start',
+                    "station download start",
                     station,
                     device,
                     metadata,
@@ -3474,7 +3474,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private onStationFinishDownload(station: Station, channel: number): void {
         this.getStationDevice(station.getSerial(), channel)
             .then((device: Device) => {
-                this.emit('station download finish', station, device);
+                this.emit("station download finish", station, device);
             })
             .catch((err) => {
                 const error = ensureError(err);
@@ -3490,7 +3490,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         station: Station,
         result: CommandResult
     ): void {
-        this.emit('station command result', station, result);
+        this.emit("station command result", station, result);
         if (result.return_code === 0) {
             if (
                 result.customData !== undefined &&
@@ -3544,8 +3544,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                             );
                             if (
                                 typeof result.customData.property.value !==
-                                    'object' ||
-                                metadata.type === 'object'
+                                    "object" ||
+                                metadata.type === "object"
                             ) {
                                 device.updateProperty(
                                     result.customData.property.name,
@@ -3560,8 +3560,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                             );
                             if (
                                 typeof result.customData.property.value !==
-                                    'object' ||
-                                metadata.type === 'object'
+                                    "object" ||
+                                metadata.type === "object"
                             ) {
                                 station.updateProperty(
                                     result.customData.property.name,
@@ -3666,7 +3666,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                             .catch((err) => {
                                 const error = ensureError(err);
                                 rootMainLogger.error(
-                                    'Error during API data refreshing',
+                                    "Error during API data refreshing",
                                     {
                                         error: getError(error),
                                     }
@@ -3736,7 +3736,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         switch (result.return_code) {
                             case 0:
                                 this.emit(
-                                    'user added',
+                                    "user added",
                                     device,
                                     customValue.username,
                                     customValue.schedule
@@ -3744,11 +3744,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                 break;
                             case 4:
                                 this.emit(
-                                    'user error',
+                                    "user error",
                                     device,
                                     customValue.username,
                                     new AddUserError(
-                                        'Passcode already used by another user, please choose a different one',
+                                        "Passcode already used by another user, please choose a different one",
                                         {
                                             context: {
                                                 device: device.getSerial(),
@@ -3761,10 +3761,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                 break;
                             default:
                                 this.emit(
-                                    'user error',
+                                    "user error",
                                     device,
                                     customValue.username,
-                                    new AddUserError('Error creating user', {
+                                    new AddUserError("Error creating user", {
                                         context: {
                                             device: device.getSerial(),
                                             username: customValue.username,
@@ -3793,17 +3793,17 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     .then((result) => {
                                         if (result) {
                                             this.emit(
-                                                'user deleted',
+                                                "user deleted",
                                                 device,
                                                 customValue.username
                                             );
                                         } else {
                                             this.emit(
-                                                'user error',
+                                                "user error",
                                                 device,
                                                 customValue.username,
                                                 new DeleteUserError(
-                                                    'Error in deleting user through cloud api call',
+                                                    "Error in deleting user through cloud api call",
                                                     {
                                                         context: {
                                                             device: device.getSerial(),
@@ -3821,10 +3821,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                 break;
                             default:
                                 this.emit(
-                                    'user error',
+                                    "user error",
                                     device,
                                     customValue.username,
-                                    new DeleteUserError('Error deleting user', {
+                                    new DeleteUserError("Error deleting user", {
                                         context: {
                                             device: device.getSerial(),
                                             username: customValue.username,
@@ -3846,18 +3846,18 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         switch (result.return_code) {
                             case 0:
                                 this.emit(
-                                    'user passcode updated',
+                                    "user passcode updated",
                                     device,
                                     customValue.username
                                 );
                                 break;
                             default:
                                 this.emit(
-                                    'user error',
+                                    "user error",
                                     device,
                                     customValue.username,
                                     new UpdateUserPasscodeError(
-                                        'Error updating user passcode',
+                                        "Error updating user passcode",
                                         {
                                             context: {
                                                 device: device.getSerial(),
@@ -3879,7 +3879,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         switch (result.return_code) {
                             case 0:
                                 this.emit(
-                                    'user schedule updated',
+                                    "user schedule updated",
                                     device,
                                     customValue.username,
                                     customValue.schedule
@@ -3887,11 +3887,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                 break;
                             default:
                                 this.emit(
-                                    'user error',
+                                    "user error",
                                     device,
                                     customValue.username,
                                     new UpdateUserScheduleError(
-                                        'Error updating user schedule',
+                                        "Error updating user schedule",
                                         {
                                             context: {
                                                 device: device.getSerial(),
@@ -3969,7 +3969,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     ): void {
         this.getStationDevice(station.getSerial(), channel)
             .then((device: Device) => {
-                this.emit('station rtsp url', station, device, value);
+                this.emit("station rtsp url", station, device, value);
                 device.setCustomPropertyValue(
                     PropertyName.DeviceRTSPStreamUrl,
                     value
@@ -3987,11 +3987,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private onStationGuardMode(station: Station, guardMode: number): void {
-        this.emit('station guard mode', station, guardMode);
+        this.emit("station guard mode", station, guardMode);
     }
 
     private onStationCurrentMode(station: Station, currentMode: number): void {
-        this.emit('station current mode', station, currentMode);
+        this.emit("station current mode", station, currentMode);
     }
 
     private onStationPropertyChanged(
@@ -4000,8 +4000,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         value: PropertyValue,
         ready: boolean
     ): void {
-        if (ready && !name.startsWith('hidden-')) {
-            this.emit('station property changed', station, name, value);
+        if (ready && !name.startsWith("hidden-")) {
+            this.emit("station property changed", station, name, value);
         }
     }
 
@@ -4010,14 +4010,14 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         type: number,
         value: string
     ): void {
-        this.emit('station raw property changed', station, type, value);
+        this.emit("station raw property changed", station, type, value);
     }
 
     private onStationAlarmEvent(
         station: Station,
         alarmEvent: AlarmEvent
     ): void {
-        this.emit('station alarm event', station, alarmEvent);
+        this.emit("station alarm event", station, alarmEvent);
     }
 
     private onStationAlarmDelayEvent(
@@ -4026,7 +4026,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         alarmDelay: number
     ): void {
         this.emit(
-            'station alarm delay event',
+            "station alarm delay event",
             station,
             alarmDelayEvent,
             alarmDelay
@@ -4034,11 +4034,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private onStationArmDelayEvent(station: Station, armDelay: number): void {
-        this.emit('station alarm arm delay event', station, armDelay);
+        this.emit("station alarm arm delay event", station, armDelay);
     }
 
     private onStationAlarmArmedEvent(station: Station): void {
-        this.emit('station alarm armed', station);
+        this.emit("station alarm armed", station);
     }
 
     private onDevicePropertyChanged(
@@ -4048,8 +4048,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         ready: boolean
     ): void {
         try {
-            if (ready && !name.startsWith('hidden-')) {
-                this.emit('device property changed', device, name, value);
+            if (ready && !name.startsWith("hidden-")) {
+                this.emit("device property changed", device, name, value);
             }
             if (
                 name === PropertyName.DeviceRTSPStream &&
@@ -4061,7 +4061,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     ) !== undefined &&
                         (device.getPropertyValue(
                             PropertyName.DeviceRTSPStreamUrl
-                        ) as string) === ''))
+                        ) as string) === ""))
             ) {
                 this.getStation(device.getStationSerial())
                     .then((station: Station) => {
@@ -4087,9 +4087,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             ) {
                 device.setCustomPropertyValue(
                     PropertyName.DeviceRTSPStreamUrl,
-                    ''
+                    ""
                 );
-            } else if (name === PropertyName.DevicePictureUrl && value !== '') {
+            } else if (name === PropertyName.DevicePictureUrl && value !== "") {
                 if (!isValidUrl(value as string)) {
                     this.getStation(device.getStationSerial())
                         .then((station: Station) => {
@@ -4135,27 +4135,27 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         type: number,
         value: string
     ): void {
-        this.emit('device raw property changed', device, type, value);
+        this.emit("device raw property changed", device, type, value);
     }
 
     private onDeviceCryingDetected(device: Device, state: boolean): void {
-        this.emit('device crying detected', device, state);
+        this.emit("device crying detected", device, state);
     }
 
     private onDeviceSoundDetected(device: Device, state: boolean): void {
-        this.emit('device sound detected', device, state);
+        this.emit("device sound detected", device, state);
     }
 
     private onDevicePetDetected(device: Device, state: boolean): void {
-        this.emit('device pet detected', device, state);
+        this.emit("device pet detected", device, state);
     }
 
     private onDeviceVehicleDetected(device: Device, state: boolean): void {
-        this.emit('device vehicle detected', device, state);
+        this.emit("device vehicle detected", device, state);
     }
 
     private onDeviceMotionDetected(device: Device, state: boolean): void {
-        this.emit('device motion detected', device, state);
+        this.emit("device motion detected", device, state);
     }
 
     private onDevicePersonDetected(
@@ -4163,39 +4163,39 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         state: boolean,
         person: string
     ): void {
-        this.emit('device person detected', device, state, person);
+        this.emit("device person detected", device, state, person);
     }
 
     private onDeviceRings(device: Device, state: boolean): void {
-        this.emit('device rings', device, state);
+        this.emit("device rings", device, state);
     }
 
     private onDeviceLocked(device: Device, state: boolean): void {
-        this.emit('device locked', device, state);
+        this.emit("device locked", device, state);
     }
 
     private onDeviceOpen(device: Device, state: boolean): void {
-        this.emit('device open', device, state);
+        this.emit("device open", device, state);
     }
 
     private onDevicePackageDelivered(device: Device, state: boolean): void {
-        this.emit('device package delivered', device, state);
+        this.emit("device package delivered", device, state);
     }
 
     private onDevicePackageStranded(device: Device, state: boolean): void {
-        this.emit('device package stranded', device, state);
+        this.emit("device package stranded", device, state);
     }
 
     private onDevicePackageTaken(device: Device, state: boolean): void {
-        this.emit('device package taken', device, state);
+        this.emit("device package taken", device, state);
     }
 
     private onDeviceSomeoneLoitering(device: Device, state: boolean): void {
-        this.emit('device someone loitering', device, state);
+        this.emit("device someone loitering", device, state);
     }
 
     private onDeviceRadarMotionDetected(device: Device, state: boolean): void {
-        this.emit('device radar motion detected', device, state);
+        this.emit("device radar motion detected", device, state);
     }
 
     private onDevice911Alarm(
@@ -4203,7 +4203,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         state: boolean,
         detail: SmartSafeAlarm911Event
     ): void {
-        this.emit('device 911 alarm', device, state, detail);
+        this.emit("device 911 alarm", device, state, detail);
     }
 
     private onDeviceShakeAlarm(
@@ -4211,42 +4211,42 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         state: boolean,
         detail: SmartSafeShakeAlarmEvent
     ): void {
-        this.emit('device shake alarm', device, state, detail);
+        this.emit("device shake alarm", device, state, detail);
     }
 
     private onDeviceWrongTryProtectAlarm(device: Device, state: boolean): void {
-        this.emit('device wrong try-protect alarm', device, state);
+        this.emit("device wrong try-protect alarm", device, state);
     }
 
     private onDeviceLongTimeNotClose(device: Device, state: boolean): void {
-        this.emit('device long time not close', device, state);
+        this.emit("device long time not close", device, state);
     }
 
     private onDeviceLowBattery(device: Device, state: boolean): void {
-        this.emit('device low battery', device, state);
+        this.emit("device low battery", device, state);
     }
 
     private onDeviceJammed(device: Device, state: boolean): void {
-        this.emit('device jammed', device, state);
+        this.emit("device jammed", device, state);
     }
 
     private onDeviceStrangerPersonDetected(
         device: Device,
         state: boolean
     ): void {
-        this.emit('device stranger person detected', device, state);
+        this.emit("device stranger person detected", device, state);
     }
 
     private onDeviceDogDetected(device: Device, state: boolean): void {
-        this.emit('device dog detected', device, state);
+        this.emit("device dog detected", device, state);
     }
 
     private onDeviceDogLickDetected(device: Device, state: boolean): void {
-        this.emit('device dog lick detected', device, state);
+        this.emit("device dog lick detected", device, state);
     }
 
     private onDeviceDogPoopDetected(device: Device, state: boolean): void {
-        this.emit('device dog poop detected', device, state);
+        this.emit("device dog poop detected", device, state);
     }
 
     private onDeviceReady(device: Device): void {
@@ -4299,7 +4299,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     device.updateRawProperty(
                         metadataBattery.key as number,
                         batteryLevel.toString(),
-                        'p2p'
+                        "p2p"
                     );
                 }
                 if (device.hasProperty(PropertyName.DeviceBatteryTemp)) {
@@ -4310,7 +4310,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     device.updateRawProperty(
                         metadataBatteryTemperature.key as number,
                         temperature.toString(),
-                        'p2p'
+                        "p2p"
                     );
                 }
             })
@@ -4342,7 +4342,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         device.updateRawProperty(
                             metadataBattery.key as number,
                             batteryLevel.toString(),
-                            'p2p'
+                            "p2p"
                         );
                 }
                 if (device.hasProperty(PropertyName.DeviceChargingStatus)) {
@@ -4352,7 +4352,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     device.updateRawProperty(
                         metadataChargingStatus.key as number,
                         chargeType.toString(),
-                        'p2p'
+                        "p2p"
                     );
                 }
             })
@@ -4383,7 +4383,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     device.updateRawProperty(
                         metadataWifiRssi.key as number,
                         rssi.toString(),
-                        'p2p'
+                        "p2p"
                     );
                 }
             })
@@ -4399,7 +4399,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private onCaptchaRequest(id: string, captcha: string): void {
-        this.emit('captcha request', id, captcha);
+        this.emit("captcha request", id, captcha);
     }
 
     private onFloodlightManualSwitch(
@@ -4415,8 +4415,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     );
                     device.updateRawProperty(
                         metadataLight.key as number,
-                        enabled ? '1' : '0',
-                        'p2p'
+                        enabled ? "1" : "0",
+                        "p2p"
                     );
                 }
             })
@@ -4438,7 +4438,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private onTfaRequest(): void {
-        this.emit('tfa request');
+        this.emit("tfa request");
     }
 
     private onStationTalkbackStart(
@@ -4449,7 +4449,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.getStationDevice(station.getSerial(), channel)
             .then((device: Device) => {
                 this.emit(
-                    'station talkback start',
+                    "station talkback start",
                     station,
                     device,
                     talkbackStream
@@ -4468,7 +4468,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     private onStationTalkbackStop(station: Station, channel: number): void {
         this.getStationDevice(station.getSerial(), channel)
             .then((device: Device) => {
-                this.emit('station talkback stop', station, device);
+                this.emit("station talkback stop", station, device);
             })
             .catch((err) => {
                 const error = ensureError(err);
@@ -4506,7 +4506,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         if (!device.hasCommand(CommandName.DeviceStartTalkback))
             throw new NotSupportedError(
-                'This functionality is not implemented or supported by this device',
+                "This functionality is not implemented or supported by this device",
                 {
                     context: {
                         device: deviceSN,
@@ -4536,7 +4536,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         if (!device.hasCommand(CommandName.DeviceStopTalkback))
             throw new NotSupportedError(
-                'This functionality is not implemented or supported by this device',
+                "This functionality is not implemented or supported by this device",
                 {
                     context: {
                         device: deviceSN,
@@ -4670,13 +4670,13 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         try {
             if (!device.hasCommand(CommandName.DeviceAddUser))
                 throw new NotSupportedError(
-                    'This functionality is not implemented or supported by this device',
+                    "This functionality is not implemented or supported by this device",
                     {
                         context: {
                             device: deviceSN,
                             commandName: CommandName.DeviceAddUser,
                             username: username,
-                            passcode: '[redacted]',
+                            passcode: "[redacted]",
                             schedule: schedule,
                         },
                     }
@@ -4697,16 +4697,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 );
             } else {
                 this.emit(
-                    'user error',
+                    "user error",
                     device,
                     username,
                     new AddUserError(
-                        'Error on creating user through cloud api call',
+                        "Error on creating user through cloud api call",
                         {
                             context: {
                                 deivce: deviceSN,
                                 username: username,
-                                passcode: '[redacted]',
+                                passcode: "[redacted]",
                                 schedule: schedule,
                             },
                         }
@@ -4722,15 +4722,15 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 schedule: schedule,
             });
             this.emit(
-                'user error',
+                "user error",
                 device,
                 username,
-                new AddUserError('Generic error', {
+                new AddUserError("Generic error", {
                     cause: error,
                     context: {
                         device: deviceSN,
                         username: username,
-                        passcode: '[redacted]',
+                        passcode: "[redacted]",
                         schedule: schedule,
                     },
                 })
@@ -4744,7 +4744,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         if (!device.hasCommand(CommandName.DeviceDeleteUser))
             throw new NotSupportedError(
-                'This functionality is not implemented or supported by this device',
+                "This functionality is not implemented or supported by this device",
                 {
                     context: {
                         device: deviceSN,
@@ -4774,21 +4774,21 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
                 if (!found) {
                     this.emit(
-                        'user error',
+                        "user error",
                         device,
                         username,
-                        new DeleteUserError('User not found', {
+                        new DeleteUserError("User not found", {
                             context: { device: deviceSN, username: username },
                         })
                     );
                 }
             } else {
                 this.emit(
-                    'user error',
+                    "user error",
                     device,
                     username,
                     new DeleteUserError(
-                        'Error on getting user list through cloud api call',
+                        "Error on getting user list through cloud api call",
                         { context: { device: deviceSN, username: username } }
                     )
                 );
@@ -4801,10 +4801,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 username: username,
             });
             this.emit(
-                'user error',
+                "user error",
                 device,
                 username,
-                new DeleteUserError('Generic error', {
+                new DeleteUserError("Generic error", {
                     cause: error,
                     context: { device: deviceSN, username: username },
                 })
@@ -4822,7 +4822,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         if (!device.hasCommand(CommandName.DeviceUpdateUsername))
             throw new NotSupportedError(
-                'This functionality is not implemented or supported by this device',
+                "This functionality is not implemented or supported by this device",
                 {
                     context: {
                         device: deviceSN,
@@ -4856,7 +4856,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                     let schedule = entry.schedule;
                                     if (
                                         schedule !== undefined &&
-                                        typeof schedule == 'string'
+                                        typeof schedule == "string"
                                     ) {
                                         schedule = JSON.parse(schedule);
                                     }
@@ -4907,17 +4907,17 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         );
                         if (result) {
                             this.emit(
-                                'user username updated',
+                                "user username updated",
                                 device,
                                 username
                             );
                         } else {
                             this.emit(
-                                'user error',
+                                "user error",
                                 device,
                                 username,
                                 new UpdateUserUsernameError(
-                                    'Error in changing username through cloud api call',
+                                    "Error in changing username through cloud api call",
                                     {
                                         context: {
                                             device: deviceSN,
@@ -4934,10 +4934,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
                 if (!found) {
                     this.emit(
-                        'user error',
+                        "user error",
                         device,
                         username,
-                        new UpdateUserUsernameError('User not found', {
+                        new UpdateUserUsernameError("User not found", {
                             context: {
                                 device: deviceSN,
                                 username: username,
@@ -4948,11 +4948,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
             } else {
                 this.emit(
-                    'user error',
+                    "user error",
                     device,
                     username,
                     new UpdateUserUsernameError(
-                        'Error on getting user list through cloud api call',
+                        "Error on getting user list through cloud api call",
                         {
                             context: {
                                 device: deviceSN,
@@ -4972,10 +4972,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 newUsername: newUsername,
             });
             this.emit(
-                'user error',
+                "user error",
                 device,
                 username,
-                new UpdateUserUsernameError('Generic error', {
+                new UpdateUserUsernameError("Generic error", {
                     cause: error,
                     context: {
                         device: deviceSN,
@@ -4997,13 +4997,13 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         if (!device.hasCommand(CommandName.DeviceUpdateUserPasscode))
             throw new NotSupportedError(
-                'This functionality is not implemented or supported by this device',
+                "This functionality is not implemented or supported by this device",
                 {
                     context: {
                         device: deviceSN,
                         commandName: CommandName.DeviceUpdateUserPasscode,
                         username: username,
-                        passcode: '[redacted]',
+                        passcode: "[redacted]",
                     },
                 }
             );
@@ -5032,30 +5032,30 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
                 if (!found) {
                     this.emit(
-                        'user error',
+                        "user error",
                         device,
                         username,
-                        new UpdateUserPasscodeError('User not found', {
+                        new UpdateUserPasscodeError("User not found", {
                             context: {
                                 device: deviceSN,
                                 username: username,
-                                passcode: '[redacted]',
+                                passcode: "[redacted]",
                             },
                         })
                     );
                 }
             } else {
                 this.emit(
-                    'user error',
+                    "user error",
                     device,
                     username,
                     new UpdateUserPasscodeError(
-                        'Error on getting user list through cloud api call',
+                        "Error on getting user list through cloud api call",
                         {
                             context: {
                                 device: deviceSN,
                                 username: username,
-                                passcode: '[redacted]',
+                                passcode: "[redacted]",
                             },
                         }
                     )
@@ -5069,15 +5069,15 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 username: username,
             });
             this.emit(
-                'user error',
+                "user error",
                 device,
                 username,
-                new UpdateUserPasscodeError('Generic error', {
+                new UpdateUserPasscodeError("Generic error", {
                     cause: error,
                     context: {
                         device: deviceSN,
                         username: username,
-                        passcode: '[redacted]',
+                        passcode: "[redacted]",
                     },
                 })
             );
@@ -5094,7 +5094,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
         if (!device.hasCommand(CommandName.DeviceUpdateUserSchedule))
             throw new NotSupportedError(
-                'This functionality is not implemented or supported by this device',
+                "This functionality is not implemented or supported by this device",
                 {
                     context: {
                         device: deviceSN,
@@ -5125,10 +5125,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
                 if (!found) {
                     this.emit(
-                        'user error',
+                        "user error",
                         device,
                         username,
-                        new UpdateUserScheduleError('User not found', {
+                        new UpdateUserScheduleError("User not found", {
                             context: {
                                 device: deviceSN,
                                 username: username,
@@ -5139,11 +5139,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
             } else {
                 this.emit(
-                    'user error',
+                    "user error",
                     device,
                     username,
                     new UpdateUserScheduleError(
-                        'Error on getting user list through cloud api call',
+                        "Error on getting user list through cloud api call",
                         {
                             context: {
                                 device: deviceSN,
@@ -5163,10 +5163,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 schedule: schedule,
             });
             this.emit(
-                'user error',
+                "user error",
                 device,
                 username,
-                new UpdateUserScheduleError('Generic error', {
+                new UpdateUserScheduleError("Generic error", {
                     cause: error,
                     context: {
                         device: deviceSN,
@@ -5184,7 +5184,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     ): void {
         this.getDevice(deviceSN)
             .then((device: Device) => {
-                this.emit('device pin verified', device, successfull);
+                this.emit("device pin verified", device, successfull);
             })
             .catch((err) => {
                 const error = ensureError(err);
@@ -5221,7 +5221,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         file: string,
         picture: Picture
     ): void {
-        this.emit('station image download', station, file, picture);
+        this.emit("station image download", station, file, picture);
 
         this.getDevicesFromStation(station.getSerial())
             .then((devices: Device[]) => {
@@ -5260,7 +5260,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         file: string,
         image: Buffer
     ): void {
-        import('image-type')
+        import("image-type")
             .then(({ default: imageType }) => {
                 imageType(image)
                     .then((type) => {
@@ -5270,8 +5270,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                                 type !== null && type !== undefined
                                     ? type
                                     : {
-                                          ext: 'unknown',
-                                          mime: 'application/octet-stream',
+                                          ext: "unknown",
+                                          mime: "application/octet-stream",
                                       },
                         };
                         this._emitStationImageDownload(station, file, picture);
@@ -5280,8 +5280,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                         this._emitStationImageDownload(station, file, {
                             data: image,
                             type: {
-                                ext: 'unknown',
-                                mime: 'application/octet-stream',
+                                ext: "unknown",
+                                mime: "application/octet-stream",
                             },
                         });
                     });
@@ -5289,7 +5289,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             .catch(() => {
                 this._emitStationImageDownload(station, file, {
                     data: image,
-                    type: { ext: 'unknown', mime: 'application/octet-stream' },
+                    type: { ext: "unknown", mime: "application/octet-stream" },
                 });
             });
     }
@@ -5302,18 +5302,18 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         if (returnCode === DatabaseReturnCode.SUCCESSFUL) {
             for (const element of data) {
                 if (
-                    (element.device_sn !== '' && !station.isStation()) ||
+                    (element.device_sn !== "" && !station.isStation()) ||
                     (station.isStation() &&
                         element.device_sn !== station.getSerial())
                 ) {
                     this.getDevice(element.device_sn)
                         .then((device) => {
                             const raw = device.getRawDevice();
-                            if ('crop_local_path' in element) {
+                            if ("crop_local_path" in element) {
                                 raw.cover_path = (
                                     element as DatabaseQueryLatestInfoLocal
                                 ).crop_local_path;
-                            } else if ('crop_cloud_path' in element) {
+                            } else if ("crop_cloud_path" in element) {
                                 raw.cover_path = (
                                     element as DatabaseQueryLatestInfoCloud
                                 ).crop_cloud_path;
@@ -5324,7 +5324,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                             const error = ensureError(err);
                             if (!(error instanceof DeviceNotFoundError)) {
                                 rootMainLogger.error(
-                                    'onStationDatabaseQueryLatest Error',
+                                    "onStationDatabaseQueryLatest Error",
                                     {
                                         error: getError(error),
                                         stationSN: station.getSerial(),
@@ -5336,7 +5336,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 }
             }
         }
-        this.emit('station database query latest', station, returnCode, data);
+        this.emit("station database query latest", station, returnCode, data);
     }
 
     private onStationDatabaseQueryLocal(
@@ -5344,7 +5344,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         returnCode: DatabaseReturnCode,
         data: Array<DatabaseQueryLocal>
     ): void {
-        this.emit('station database query local', station, returnCode, data);
+        this.emit("station database query local", station, returnCode, data);
     }
 
     private onStationDatabaseCountByDate(
@@ -5352,7 +5352,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         returnCode: DatabaseReturnCode,
         data: Array<DatabaseCountByDate>
     ): void {
-        this.emit('station database count by date', station, returnCode, data);
+        this.emit("station database count by date", station, returnCode, data);
     }
 
     private onStationDatabaseDelete(
@@ -5360,7 +5360,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         returnCode: DatabaseReturnCode,
         failedIds: Array<unknown>
     ): void {
-        this.emit('station database delete', station, returnCode, failedIds);
+        this.emit("station database delete", station, returnCode, failedIds);
     }
 
     private onStationSensorStatus(
@@ -5377,7 +5377,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                     device.updateRawProperty(
                         metadataSensorOpen.key as number,
                         status.toString(),
-                        'p2p'
+                        "p2p"
                     );
                 }
             })
@@ -5402,7 +5402,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 device.updateRawProperty(
                     CommandType.CMD_CAMERA_GARAGE_DOOR_STATUS,
                     status.toString(),
-                    'p2p'
+                    "p2p"
                 );
             })
             .catch((err) => {
@@ -5435,26 +5435,26 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
 
     private onDeviceTampering(device: Device, state: boolean): void {
-        this.emit('device tampering', device, state);
+        this.emit("device tampering", device, state);
     }
 
     private onDeviceLowTemperature(device: Device, state: boolean): void {
-        this.emit('device low temperature', device, state);
+        this.emit("device low temperature", device, state);
     }
 
     private onDeviceHighTemperature(device: Device, state: boolean): void {
-        this.emit('device high temperature', device, state);
+        this.emit("device high temperature", device, state);
     }
 
     private onDevicePinIncorrect(device: Device, state: boolean): void {
-        this.emit('device pin incorrect', device, state);
+        this.emit("device pin incorrect", device, state);
     }
 
     private onDeviceLidStuck(device: Device, state: boolean): void {
-        this.emit('device lid stuck', device, state);
+        this.emit("device lid stuck", device, state);
     }
 
     private onDeviceBatteryFullyCharged(device: Device, state: boolean): void {
-        this.emit('device battery fully charged', device, state);
+        this.emit("device battery fully charged", device, state);
     }
 }

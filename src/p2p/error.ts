@@ -1,4 +1,4 @@
-import { BaseError, Jsonable } from '../error';
+import { BaseError, Jsonable } from "../error";
 export class BleVersionCodeError extends BaseError {
     constructor(
         message: string,
