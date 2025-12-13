@@ -2435,7 +2435,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.currentMessageState[datatype].audioStream = null;
 
         this.currentMessageState[datatype].videoStream = new Readable({ autoDestroy: true,
-            // eslint-disable-next-line @typescript-eslint/no-empty-function
+
             read() {}/*,
 
             destroy(this, error, _callback) {
@@ -2447,7 +2447,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             }*/
         });
         this.currentMessageState[datatype].audioStream = new Readable({ autoDestroy: true,
-            // eslint-disable-next-line @typescript-eslint/no-empty-function
+
             read() {}/*,
 
             destroy(this, error, _callback) {
