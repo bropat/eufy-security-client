@@ -186,7 +186,7 @@ export class Station extends TypedEmitter<StationEvents> {
         });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
         if (metadata.name === PropertyName.StationCurrentMode) {
             //TODO: Finish implementation!
@@ -11119,7 +11119,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     private onSequenceError(channel: number, command: number, sequence: number, serialnumber: string): void {
         //TODO: Implement command retry for lock devices in case von sequence mismatch error
         rootHTTPLogger.debug(`Station lock sequence error`, { stationSN: this.getSerial(), channel: channel, command: command, sequence: sequence, serialnumber: serialnumber });
