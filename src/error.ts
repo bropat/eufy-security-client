@@ -1,3 +1,9 @@
+/**
+ *
+ * Error class and utils
+ *
+ */
+
 export type Jsonable =
   | string
   | number
@@ -25,19 +31,26 @@ export class BaseError extends Error {
   }
 }
 
+/**
+ *
+ * Ensure the value pass is an error and returns an Error class
+ *
+ * @param value
+ */
 export function ensureError(value: Error | string | unknown): BaseError {
   if (value instanceof Error) return value;
   let stringified = "[Unable to stringify the thrown value]";
   try {
     stringified = JSON.stringify(value);
   } catch (error) {
-    console.log("Error ensure error ", error);
+    console.log("Error parsing value to ensure error ", error);
   }
 
   return new Error(
     `This value was thrown as is, not through an Error: ${stringified}`,
   );
 }
+
 
 export class InvalidCountryCodeError extends BaseError {
   constructor(

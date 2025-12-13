@@ -1,3 +1,7 @@
+/**
+ *  Logging utils
+ */
+
 import { LogLevel } from "typescript-logging";
 import { CategoryProvider } from "typescript-logging-category-style";
 
@@ -26,6 +30,12 @@ export class InternalLogger {
   public static logger: Logger | undefined;
 }
 
+/**
+ *
+ * Get method name
+ *
+ *
+ */
 const getMethodName = function (): string | undefined {
   const matches = new Error("").stack
     ?.split("\n")[6]
@@ -41,6 +51,7 @@ const getMethodName = function (): string | undefined {
   return undefined;
 };
 
+
 const provider = CategoryProvider.createProvider("EufySecurityClientProvider", {
   level: LogLevel.Off,
   channel: {
@@ -48,73 +59,45 @@ const provider = CategoryProvider.createProvider("EufySecurityClientProvider", {
     write: (msg) => {
       const methodName = getMethodName();
       const method = methodName ? `[${methodName}] ` : "";
+      const logMessage = `[${msg.logNames}] ${method}${msg.message}`;
+
       switch (msg.level) {
         case LogLevel.Trace:
-          if (msg.args)
-            InternalLogger.logger?.trace(
-              `[${msg.logNames}] ${method}${msg.message}`,
-              ...msg.args,
-            );
-          else
-            InternalLogger.logger?.trace(
-              `[${msg.logNames}] ${method}${msg.message}`,
-            );
+          InternalLogger.logger?.trace(
+              logMessage,
+            ...msg.args ?? [],
+          );
           break;
         case LogLevel.Debug:
-          if (msg.args)
-            InternalLogger.logger?.debug(
-              `[${msg.logNames}] ${method}${msg.message}`,
-              ...msg.args,
-            );
-          else
-            InternalLogger.logger?.debug(
-              `[${msg.logNames}] ${method}${msg.message}`,
-            );
+          InternalLogger.logger?.debug(
+              logMessage,
+            ...msg.args ?? [],
+          );
           break;
         case LogLevel.Info:
-          if (msg.args)
-            InternalLogger.logger?.info(
-              `[${msg.logNames}] ${method}${msg.message}`,
-              ...msg.args,
-            );
-          else
-            InternalLogger.logger?.info(
-              `[${msg.logNames}] ${method}${msg.message}`,
-            );
+          InternalLogger.logger?.info(
+              logMessage,
+            ...msg.args ?? [],
+          );
           break;
         case LogLevel.Warn:
-          if (msg.args)
-            InternalLogger.logger?.warn(
-              `[${msg.logNames}] ${method}${msg.message}`,
-              ...msg.args,
-            );
-          else
-            InternalLogger.logger?.warn(
-              `[${msg.logNames}] ${method}${msg.message}`,
-            );
+          InternalLogger.logger?.warn(
+              logMessage,
+            ...msg.args ?? [],
+          );
           break;
         case LogLevel.Error:
-          if (msg.args)
-            InternalLogger.logger?.error(
-              `[${msg.logNames}] ${method}${msg.message}`,
-              ...msg.args,
-            );
-          else
-            InternalLogger.logger?.error(
-              `[${msg.logNames}] ${method}${msg.message}`,
-            );
+          InternalLogger.logger?.error(
+              logMessage,
+            ...msg.args ?? [],
+          );
           break;
         case LogLevel.Fatal:
           if (InternalLogger.logger && InternalLogger.logger.fatal)
-            if (msg.args)
-              InternalLogger.logger.fatal(
-                `[${msg.logNames}] ${method}${msg.message}`,
-                ...msg.args,
-              );
-            else
-              InternalLogger.logger.fatal(
-                `[${msg.logNames}] ${method}${msg.message}`,
-              );
+            InternalLogger.logger.fatal(
+                logMessage,
+              ...msg.args ?? [],
+            );
           break;
       }
     },
@@ -127,6 +110,12 @@ export const rootMQTTLogger = provider.getCategory("mqtt");
 export const rootPushLogger = provider.getCategory("push");
 export const rootP2PLogger = provider.getCategory("p2p");
 
+/**
+ *  Set logging level
+ *
+ * @param category
+ * @param level
+ */
 export const setLoggingLevel = function (
   category: LoggingCategories = "all",
   level: LogLevel = LogLevel.Off,
@@ -165,6 +154,11 @@ export const setLoggingLevel = function (
   }
 };
 
+/**
+ *  Get the logging level
+ *
+ * @param category
+ */
 export const getLoggingLevel = function (
   category: LoggingCategories = "all",
 ): number {
