@@ -1,0 +1,1 @@
+export type DateFormatOptions = "YYYYMMDD" | "YYYY-MM-DD HH:mm:ss";
