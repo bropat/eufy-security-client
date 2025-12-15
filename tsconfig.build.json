@@ -5,12 +5,13 @@
         "allowJs": false,
         "checkJs": false,
         "noEmit": false,
-        "declaration": true
+        "declaration": true,
+
     },
     "include": [
         "src/**/*.ts"
     ],
     "exclude": [
         "src/**/*.test.ts"
-    ]
+    ],
 }

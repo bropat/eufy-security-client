@@ -11,7 +11,7 @@
         "checkJs": true,
 
         "skipLibCheck": true, // Don't report errors in 3rd party definitions
-        "noEmitOnError": true,
+        "noEmitOnError": false,
         "outDir": "./build/",
         "removeComments": false,
         "module": "Node16",
@@ -43,8 +43,10 @@
 
         "paths": {
             "got": ["./node_modules/got/dist/source"]
-        }
+        },
+
     },
     "include": ["src/**/*.ts"],
-    "exclude": ["build/**", "node_modules/**"]
+    "exclude": ["build/**", "node_modules/**"],
+
 }
