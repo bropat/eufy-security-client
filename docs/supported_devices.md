@@ -1,6 +1,5 @@
 # Supported devices
 
-
 |  | Device | Support status | Tested version |
 | - | - | - | - |
 | ![T8001 image](_media/homebase_small.jpg) | HomeBase (T8001) | :heavy_check_mark: |  |
