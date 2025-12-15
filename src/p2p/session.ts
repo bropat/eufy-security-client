@@ -1219,41 +1219,29 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         this.currentMessageBuilder[message.type].messages[message.seqNo] = payload;
                         this.currentMessageBuilder[message.type].bytesRead = payload.byteLength;
 
-            data = data.subarray(header.bytesToRead);
-            if (data.length <= this.P2P_DATA_HEADER_BYTES) {
-              this.currentMessageState[message.type].leftoverData = data;
-              data = Buffer.from([]);
-            }
-          } else {
-            if (data.length <= this.P2P_DATA_HEADER_BYTES) {
-              this.currentMessageState[message.type].leftoverData = data;
-            } else {
-              this.currentMessageBuilder[message.type].messages[message.seqNo] =
-                data;
-              this.currentMessageBuilder[message.type].bytesRead =
-                data.byteLength;
-            }
-            data = Buffer.from([]);
-          }
-        } else {
-          // finish message and print
-          if (
-            this.currentMessageBuilder[message.type].header.bytesToRead -
-              this.currentMessageBuilder[message.type].bytesRead === 0 && data.length > this.P2P_DATA_HEADER_BYTES) {
+                        data = data.subarray(header.bytesToRead);
+                        if (data.length <= this.P2P_DATA_HEADER_BYTES) {
+                            this.currentMessageState[message.type].leftoverData = data;
+                            data = Buffer.from([]);
+                        }
+                    } else {
+                        if (data.length <= this.P2P_DATA_HEADER_BYTES) {
+                            this.currentMessageState[message.type].leftoverData = data;
+                        } else {
+                            this.currentMessageBuilder[message.type].messages[message.seqNo] = data;
+                            this.currentMessageBuilder[message.type].bytesRead = data.byteLength;
+                        }
+                        data = Buffer.from([]);
+                    }
+                } else {
+                    // finish message and print
+                    if (this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead === 0 && data.length > this.P2P_DATA_HEADER_BYTES) {
                         rootP2PLogger.debug(`Parsing message - DATA ${P2PDataType[message.type]} - Discarding unexpected data (infinite loop prevention)`, { stationSN: this.rawStation.station_sn, seqNo: message.seqNo, dataSize: data.length, data: data.toString("hex") });
                         data = Buffer.from([]);
-                    } else if (this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead <=
-            data.length
-          ) {
-            const payload = data.subarray(
-              0,
-              this.currentMessageBuilder[message.type].header.bytesToRead -
-                this.currentMessageBuilder[message.type].bytesRead,
-            );
-            this.currentMessageBuilder[message.type].messages[message.seqNo] =
-              payload;
-            this.currentMessageBuilder[message.type].bytesRead +=
-              payload.byteLength;
+                    } else if (this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead <= data.length) {
+                        const payload = data.subarray(0, this.currentMessageBuilder[message.type].header.bytesToRead - this.currentMessageBuilder[message.type].bytesRead);
+                        this.currentMessageBuilder[message.type].messages[message.seqNo] = payload;
+                        this.currentMessageBuilder[message.type].bytesRead += payload.byteLength;
 
                         data = data.subarray(payload.byteLength);
                         if (data.length <= this.P2P_DATA_HEADER_BYTES) {

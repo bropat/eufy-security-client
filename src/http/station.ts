@@ -1072,7 +1072,7 @@ export class Station extends TypedEmitter<StationEvents> {
         validValue(property, value);
 
         rootHTTPLogger.debug(`Station set status led - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
-        if (device.isCamera2Product() || device.isCamera3Product() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E || device.isCameraProfessional247()) {
+        if (device.isCamera2Product() || device.isCamera3Product() || device.getDeviceType() === DeviceType.CAMERA || device.getDeviceType() === DeviceType.CAMERA_E || device.isCameraProfessional247() || device.isCameraC35()) {
             this.p2pSession.sendCommandWithIntString({
                 commandType: CommandType.CMD_DEV_LED_SWITCH,
                 value: value === true ? 1 : 0,
@@ -1723,107 +1723,66 @@ export class Station extends TypedEmitter<StationEvents> {
         const property = device.getPropertyMetadata(propertyData.name);
         validValue(property, value);
 
-    rootHTTPLogger.debug(`Station switch light - sending command`, {
-      stationSN: this.getSerial(),
-      deviceSN: device.getSerial(),
-      value: value,
-    });
-    if (
-      (device.isFloodLight() && !device.isFloodLightT8425()) ||
-      device.isSoloCameraSpotlight1080() ||
-      device.isSoloCameraSpotlight2k() ||
-      device.isSoloCameraSpotlightSolar() ||
-      device.isCamera2C() ||
-      device.isCamera2CPro() ||
-      device.isIndoorOutdoorCamera1080p() ||
-      device.isIndoorOutdoorCamera2k() ||
-      device.isCamera3() ||
-      device.isCamera3C() ||
-      device.isCameraProfessional247() ||
-      device.isCamera3Pro()
-    ) {
-      this.p2pSession.sendCommandWithIntString(
-        {
-          commandType: CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
-          value: value ? 1 : 0,
-          valueSub: device.getChannel(),
-          strValue: this.rawStation.member.admin_user_id,
-          channel: device.getChannel(),
-        },
-        {
-          property: propertyData,
-        },
-      );
-    } else if (
-      device.isBatteryDoorbellDualE340() ||
-      device.isOutdoorPanAndTiltCamera() ||
-      device.isFloodLightT8425()
-    ) {
-      this.p2pSession.sendCommandWithStringPayload(
-        {
-          commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
-          value: JSON.stringify({
-            commandType: CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
-            data: {
-              time: 0,
-              type: 2,
-              value: value === true ? 1 : 0,
-            },
-          }),
-          channel: device.getChannel(),
-        },
-        {
-          property: propertyData,
-        },
-      );
-    } else if (device.isStarlight4GLTE()) {
-      this.p2pSession.sendCommandWithStringPayload(
-        {
-          commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
-          value: JSON.stringify({
-            commandType: CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
-            data: {
-              time: 60,
-              type: 2,
-              value: value === true ? 1 : 0,
-            },
-          }),
-          channel: device.getChannel(),
-        },
-        {
-          property: propertyData,
-        },
-      );
-    } else if (device.isWallLightCam()) {
-      this.p2pSession.sendCommandWithStringPayload(
-        {
-          commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
-          value: JSON.stringify({
-            commandType: CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
-            data: {
-              value: value === true ? 1 : 0,
-            },
-          }),
-          channel: device.getChannel(),
-        },
-        {
-          property: propertyData,
-        },
-      );
-    } else {
-      throw new NotSupportedError(
-        "This functionality is not implemented or supported by this device",
-        {
-          context: {
-            device: device.getSerial(),
-            station: this.getSerial(),
-            propertyName: propertyData.name,
-            propertyValue: propertyData.value,
-          },
-        },
-      );
+        rootHTTPLogger.debug(`Station switch light - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
+        if ((device.isFloodLight() && !device.isFloodLightT8425()) || device.isSoloCameraSpotlight1080() || device.isSoloCameraSpotlight2k() ||
+            device.isSoloCameraSpotlightSolar() || device.isCamera2C() || device.isCamera2CPro() ||
+            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k() || device.isCamera3() || device.isCamera3C() || device.isCameraProfessional247() || device.isCamera3Pro() || device.isCameraC35()) {
+            this.p2pSession.sendCommandWithIntString({
+                commandType: CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
+                value: value === true ? 1 : 0,
+                valueSub: device.getChannel(),
+                strValue: this.rawStation.member.admin_user_id,
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else if (device.isBatteryDoorbellDualE340() || device.isOutdoorPanAndTiltCamera() || device.isFloodLightT8425()) {
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
+                    "data": {
+                        "time": 0,
+                        "type": 2,
+                        "value": value === true ? 1 : 0,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else if (device.isStarlight4GLTE()) {
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
+                    "data": {
+                        "time": 60,
+                        "type": 2,
+                        "value": value === true ? 1 : 0,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else if (device.isWallLightCam()) {
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_SET_FLOODLIGHT_MANUAL_SWITCH,
+                    "data": {
+                        "value": value === true ? 1 : 0,
+                    }
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
+        }
     }
-  }
 
     public setMotionDetectionSensitivity(device: Device, value: number): void {
         const propertyData: PropertyData = {
@@ -3828,72 +3787,37 @@ export class Station extends TypedEmitter<StationEvents> {
         const property = device.getPropertyMetadata(propertyData.name);
         validValue(property, value);
 
-    rootHTTPLogger.debug(
-      `Station set light settings brightness manual - sending command`,
-      {
-        stationSN: this.getSerial(),
-        deviceSN: device.getSerial(),
-        value: value,
-      },
-    );
-    if (
-      device.isFloodLight() ||
-      device.isSoloCameraSpotlight1080() ||
-      device.isSoloCameraSpotlight2k() ||
-      device.isSoloCameraSpotlightSolar() ||
-      device.isCamera2C() ||
-      device.isCamera2CPro() ||
-      device.isIndoorOutdoorCamera1080p() ||
-      device.isIndoorOutdoorCamera2k() ||
-      device.isCamera3() ||
-      device.isCamera3C() ||
-      device.isCamera3Pro() ||
-      device.isOutdoorPanAndTiltCamera() ||
-      device.isCameraProfessional247()
-    ) {
-      this.p2pSession.sendCommandWithIntString(
-        {
-          commandType: CommandType.CMD_SET_FLOODLIGHT_BRIGHT_VALUE,
-          value: value,
-          valueSub: device.getChannel(),
-          strValue: this.rawStation.member.admin_user_id,
-          channel: device.getChannel(),
-        },
-        {
-          property: propertyData,
-        },
-      );
-    } else if (device.isWallLightCam()) {
-      this.p2pSession.sendCommandWithStringPayload(
-        {
-          commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
-          value: JSON.stringify({
-            commandType: CommandType.CMD_SET_FLOODLIGHT_BRIGHT_VALUE,
-            data: {
-              type: 0,
-              value: value,
-            },
-          }),
-          channel: device.getChannel(),
-        },
-        {
-          property: propertyData,
-        },
-      );
-    } else {
-      throw new NotSupportedError(
-        "This functionality is not implemented or supported by this device",
-        {
-          context: {
-            device: device.getSerial(),
-            station: this.getSerial(),
-            propertyName: propertyData.name,
-            propertyValue: propertyData.value,
-          },
-        },
-      );
+        rootHTTPLogger.debug(`Station set light settings brightness manual - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
+        if (device.isFloodLight() || device.isSoloCameraSpotlight1080() || device.isSoloCameraSpotlight2k() ||
+            device.isSoloCameraSpotlightSolar() || device.isCamera2C() || device.isCamera2CPro() ||
+            device.isIndoorOutdoorCamera1080p() || device.isIndoorOutdoorCamera2k() || device.isCamera3() || device.isCamera3C() || device.isCamera3Pro() || device.isOutdoorPanAndTiltCamera() || device.isCameraProfessional247() || device.isCameraC35()) {
+            this.p2pSession.sendCommandWithIntString({
+                commandType: CommandType.CMD_SET_FLOODLIGHT_BRIGHT_VALUE,
+                value: value,
+                valueSub: device.getChannel(),
+                strValue: this.rawStation.member.admin_user_id,
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else if (device.isWallLightCam()) {
+            this.p2pSession.sendCommandWithStringPayload({
+                commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                value: JSON.stringify({
+                    "commandType": CommandType.CMD_SET_FLOODLIGHT_BRIGHT_VALUE,
+                    "data": {
+                        "type": 0,
+                        "value": value,
+                    },
+                }),
+                channel: device.getChannel()
+            }, {
+                property: propertyData
+            });
+        } else {
+            throw new NotSupportedError("This functionality is not implemented or supported by this device", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
+        }
     }
-  }
 
     public setFloodlightLightSettingsBrightnessMotion(device: Device, value: number): void {
         const propertyData: PropertyData = {
