@@ -33,36 +33,36 @@ export default defineConfig([
             "no-empty": "off",
             "no-useless-escape": "off",
             "no-fallthrough": "off",
-            "indent": [
+            indent: [
                 "error",
                 4,
                 {
-                    "SwitchCase": 1
-                }
+                    SwitchCase: 1,
+                },
             ],
-            "quotes": [
+            quotes: [
                 "error",
                 "double",
                 {
-                    "avoidEscape": true,
-                    "allowTemplateLiterals": true
-                }
+                    avoidEscape: true,
+                    allowTemplateLiterals: true,
+                },
             ],
             "no-var": "error",
             "prefer-const": "error",
             "no-trailing-spaces": "error",
         },
-        languageOptions : {
+        languageOptions: {
             ecmaVersion: 5,
-        }
+        },
     },
     {
         files: ["*.test.ts"],
         rules: {
-            "@typescript-eslint/explicit-function-return-type": "off"
+            "@typescript-eslint/explicit-function-return-type": "off",
         },
     },
     {
         ignores: ["./build/**"],
-    }
+    },
 ]);

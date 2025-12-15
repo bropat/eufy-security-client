@@ -69,7 +69,7 @@
         "@typescript-eslint/parser": "^8.48.0 ",
         "eslint": "^9.39.1",
         "typescript": "^5.9.3",
-    "typescript-eslint": "^8.49.0"
+        "typescript-eslint": "^8.49.0"
     },
     "bugs": {
         "url": "https://github.com/bropat/eufy-security-client/issues"

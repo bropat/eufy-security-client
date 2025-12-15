@@ -6,5 +6,4 @@ export * from "./eufysecurity";
 export * from "./error";
 export { LoggingCategories, LogLevel, Logger, dummyLogger } from "./logging";
 
-
 export const libVersion: string = require("../package.json").version;
