@@ -7,4 +7,4 @@ export * from "./parameter";
 export * from "./station";
 export * from "./types";
 export * from "./error";
-export { isGreaterEqualMinVersion, getAbsoluteFilePath } from "./utils";
+export { isGreaterEqualMinVersion, getAbsoluteFilePath} from "./utils";

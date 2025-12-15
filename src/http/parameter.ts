@@ -83,18 +83,17 @@ export class ParameterHelper {
         return value;
     }
 
-  public static writeValue(type: number, value: string): string {
-    if (value) {
-      if (
-        type === ParamType.SNOOZE_MODE ||
-        type === ParamType.CAMERA_MOTION_ZONES ||
-        type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN_DELAY ||
-        type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN
-      ) {
-        return Buffer.from(JSON.stringify(value)).toString("base64");
-      }
-      return value;
+    public static writeValue(type: number, value: string): string {
+        if (value) {
+            if (type === ParamType.SNOOZE_MODE ||
+                type === ParamType.CAMERA_MOTION_ZONES ||
+                type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN_DELAY ||
+                type === CommandType.CMD_SET_DOORSENSOR_ALWAYS_OPEN) {
+                return Buffer.from(JSON.stringify(value)).toString("base64");
+            }
+            return value;
+        }
+        return "";
     }
-    return "";
-  }
+
 }
