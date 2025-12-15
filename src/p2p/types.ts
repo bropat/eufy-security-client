@@ -1,57 +1,57 @@
 import { LockV12P2PCommandType, SmartLockP2PCommandType } from "./models";
 
 export const RequestMessageType = {
-    STUN: Buffer.from([0xf1, 0x00]),
-    LOOKUP: Buffer.from([0xf1, 0x20]),
-    LOOKUP_WITH_KEY: Buffer.from([0xf1, 0x26]),
-    LOOKUP_WITH_KEY2: Buffer.from([0xf1, 0x6a]),
-    TURN_LOOKUP_WITH_KEY: Buffer.from([0xf1, 0x80]),
-    TURN_SERVER_INIT: Buffer.from([0xf1, 0x70]),
-    TURN_CLIENT_OK: Buffer.from([0xf1, 0x72]),
-    CHECK_CAM2: Buffer.from([0xf1, 0x83]),
-    LOCAL_LOOKUP: Buffer.from([0xf1, 0x30]),
-    PING: Buffer.from([0xf1, 0xe0]),
-    PONG: Buffer.from([0xf1, 0xe1]),
-    CHECK_CAM: Buffer.from([0xf1, 0x41]),
-    DATA: Buffer.from([0xf1, 0xd0]),
-    ACK: Buffer.from([0xf1, 0xd1]),
-    END: Buffer.from([0xf1, 0xf0]),
-};
+    STUN:                   Buffer.from([0xF1, 0x00]),
+    LOOKUP:                 Buffer.from([0xF1, 0x20]),
+    LOOKUP_WITH_KEY:        Buffer.from([0xF1, 0x26]),
+    LOOKUP_WITH_KEY2:       Buffer.from([0xF1, 0x6a]),
+    TURN_LOOKUP_WITH_KEY:   Buffer.from([0xF1, 0x80]),
+    TURN_SERVER_INIT:       Buffer.from([0xF1, 0x70]),
+    TURN_CLIENT_OK:         Buffer.from([0xF1, 0x72]),
+    CHECK_CAM2:             Buffer.from([0xF1, 0x83]),
+    LOCAL_LOOKUP:           Buffer.from([0xF1, 0x30]),
+    PING:                   Buffer.from([0xF1, 0xE0]),
+    PONG:                   Buffer.from([0xF1, 0xE1]),
+    CHECK_CAM:              Buffer.from([0xF1, 0x41]),
+    DATA:                   Buffer.from([0xF1, 0xD0]),
+    ACK:                    Buffer.from([0xF1, 0xD1]),
+    END:                    Buffer.from([0xF1, 0xF0])
+}
 
 export const ResponseMessageType = {
-    STUN: Buffer.from([0xf1, 0x01]),
-    LOOKUP_RESP: Buffer.from([0xf1, 0x21]),
-    LOOKUP_ADDR: Buffer.from([0xf1, 0x40]),
-    LOCAL_LOOKUP_RESP: Buffer.from([0xf1, 0x41]),
-    TURN_SERVER_LIST: Buffer.from([0xf1, 0x69]),
-    TURN_SERVER_OK: Buffer.from([0xf1, 0x71]),
-    TURN_SERVER_TOKEN: Buffer.from([0xf1, 0x73]),
-    TURN_SERVER_LOOKUP_OK: Buffer.from([0xf1, 0x81]),
-    LOOKUP_ADDR2: Buffer.from([0xf1, 0x82]),
-    UNKNOWN_83: Buffer.from([0xf1, 0x83]),
-    TURN_SERVER_CAM_ID: Buffer.from([0xf1, 0x84]),
-    END: Buffer.from([0xf1, 0xf0]),
-    PONG: Buffer.from([0xf1, 0xe1]),
-    PING: Buffer.from([0xf1, 0xe0]),
-    CAM_ID: Buffer.from([0xf1, 0x42]),
-    ACK: Buffer.from([0xf1, 0xd1]),
-    DATA: Buffer.from([0xf1, 0xd0]),
-};
+    STUN:                   Buffer.from([0xF1, 0x01]),
+    LOOKUP_RESP:            Buffer.from([0xF1, 0x21]),
+    LOOKUP_ADDR:            Buffer.from([0xF1, 0x40]),
+    LOCAL_LOOKUP_RESP:      Buffer.from([0xF1, 0x41]),
+    TURN_SERVER_LIST:       Buffer.from([0xF1, 0x69]),
+    TURN_SERVER_OK:         Buffer.from([0xF1, 0x71]),
+    TURN_SERVER_TOKEN:      Buffer.from([0xF1, 0x73]),
+    TURN_SERVER_LOOKUP_OK:  Buffer.from([0xF1, 0x81]),
+    LOOKUP_ADDR2:           Buffer.from([0xF1, 0x82]),
+    UNKNOWN_83:             Buffer.from([0xF1, 0x83]),
+    TURN_SERVER_CAM_ID:     Buffer.from([0xF1, 0x84]),
+    END:                    Buffer.from([0xF1, 0xF0]),
+    PONG:                   Buffer.from([0xF1, 0xE1]),
+    PING:                   Buffer.from([0xF1, 0xE0]),
+    CAM_ID:                 Buffer.from([0xF1, 0x42]),
+    ACK:                    Buffer.from([0xF1, 0xD1]),
+    DATA:                   Buffer.from([0xF1, 0xD0])
+}
 
 export enum P2PDataType {
     UNKNOWN = -1,
     DATA = 0,
     VIDEO = 1,
     CONTROL = 2,
-    BINARY = 3,
+    BINARY = 3
 }
 
 export const P2PDataTypeHeader = {
-    DATA: Buffer.from([0xd1, P2PDataType.DATA]),
-    VIDEO: Buffer.from([0xd1, P2PDataType.VIDEO]),
-    CONTROL: Buffer.from([0xd1, P2PDataType.CONTROL]),
-    BINARY: Buffer.from([0xd1, P2PDataType.BINARY]),
-};
+    DATA:               Buffer.from([0xD1, P2PDataType.DATA]),
+    VIDEO:              Buffer.from([0xD1, P2PDataType.VIDEO]),
+    CONTROL:            Buffer.from([0xD1, P2PDataType.CONTROL]),
+    BINARY:             Buffer.from([0xD1, P2PDataType.BINARY])
+}
 
 export enum CommandType {
     //com.oceanwing.battery.cam.zmedia.model.CommandType
@@ -557,8 +557,8 @@ export enum CommandType {
     CMD_WALL_LIGHT_NOTIFICATION_TYPE_HUMAN = 6335,
     CMD_WALL_LIGHT_NOTIFICATION_TYPE_ALL = 6337,
     CMD_WALL_LIGHT_NOTIFICATION_TYPE = 6338,
-    CMD_WALL_LIGHT_SETTINGS_COLORED_LIGHTING_COLORS = 6379, // [{"color":16760832},{"color":16744448},{"color":16728320},{"color":16720384},{"color":16711696},{"color":3927961},{"color":1568995},{"color":485368},{"color":9983},{"color":4664060},{"color":16769280}]
-    CMD_WALL_LIGHT_SETTINGS_DYNAMIC_LIGHTING_THEMES = 6380, // [{"name":"Aurora","mode":1,"id":0,"speed":4000,"colors":[65321,65468,28671,9215,42239]},{"name":"Warmth","mode":1,"id":1,"speed":4000,"colors":[16758528,16744448,16732160,16719360,16742144]},{"name":"Let's Party","mode":2,"id":2,"speed":500,"colors":[16718080,16756736,65298,40703,4980991]}]
+    CMD_WALL_LIGHT_SETTINGS_COLORED_LIGHTING_COLORS = 6379,         // [{"color":16760832},{"color":16744448},{"color":16728320},{"color":16720384},{"color":16711696},{"color":3927961},{"color":1568995},{"color":485368},{"color":9983},{"color":4664060},{"color":16769280}]
+    CMD_WALL_LIGHT_SETTINGS_DYNAMIC_LIGHTING_THEMES = 6380,         // [{"name":"Aurora","mode":1,"id":0,"speed":4000,"colors":[65321,65468,28671,9215,42239]},{"name":"Warmth","mode":1,"id":1,"speed":4000,"colors":[16758528,16744448,16732160,16719360,16742144]},{"name":"Let's Party","mode":2,"id":2,"speed":500,"colors":[16718080,16756736,65298,40703,4980991]}]
     CMD_WALL_LIGHT_SETTINGS_MANUAL_LIGHTING_ACTIVE_MODE = 6381,
     CMD_WALL_LIGHT_SETTINGS_SCHEDULE_LIGHTING_ACTIVE_MODE = 6382,
     CMD_WALL_LIGHT_SETTINGS_MOTION_LIGHTING_ACTIVE_MODE = 6383,
@@ -626,7 +626,7 @@ export enum MessageType {
     CHECK_HUB_STATE = 15,
     SET_COMMAND_WITH_2STR_INT = 16,
     BIND_HUB_TYPE = 17,
-    P2P_BIND_HUB_TYPE = 18,
+    P2P_BIND_HUB_TYPE = 18
 }
 
 export enum ErrorCode {
@@ -740,7 +740,7 @@ export enum TFCardStatus {
     MOUNT_RERR_E2FSCK_TIMEOUT = 21,
     UNNORMAL_IO_ERROR = 22,
     RISK = 23,
-    MOUNTING = 24,
+    MOUNTING = 24
 }
 
 export enum AlarmEvent {
@@ -770,33 +770,34 @@ export enum AlarmEvent {
 // Doorbell, Solo cameras
 export enum WatermarkSetting1 {
     OFF = 0,
-    ON = 1,
+    ON = 1
 }
 
 // Battery doorbells, eufycam 1/e
 export enum WatermarkSetting2 {
     OFF = 1,
-    ON = 2,
+    ON = 2
 }
 
 // cameras 2x
 export enum WatermarkSetting3 {
     OFF = 0,
     TIMESTAMP = 1,
-    TIMESTAMP_AND_LOGO = 2,
+    TIMESTAMP_AND_LOGO = 2
 }
+
 
 // Floodlight, Indoor cameras
 export enum WatermarkSetting4 {
     TIMESTAMP = 0,
     TIMESTAMP_AND_LOGO = 1,
-    OFF = 2,
+    OFF = 2
 }
 
 // Garage cameras
 export enum WatermarkSetting5 {
     LOGO = 1,
-    OFF = 2,
+    OFF = 2
 }
 
 export enum PanTiltDirection {
@@ -810,15 +811,15 @@ export enum PanTiltDirection {
 export enum VideoCodec {
     UNKNOWN = -1,
     H264 = 0,
-    H265 = 1,
+    H265 = 1
 }
 
 export enum AudioCodec {
     UNKNOWN = -1,
     NONE = 0,
-    AAC = 1, // 0
-    AAC_LC = 2, // 1
-    AAC_ELD = 3, // 7
+    AAC = 1,        // 0
+    AAC_LC = 2,     // 1
+    AAC_ELD = 3,    // 7
 }
 
 export enum ESLCommand {
@@ -912,7 +913,7 @@ export enum ESLBleCommand {
     SEND_OTA_PACKAGE = 32,
     GET_LOCK_PARAM = 33,
     SET_LOCK_PARAM = 34,
-    SHUT_DOWN_BLE = 36,
+    SHUT_DOWN_BLE = 36
 }
 
 export enum ESLAnkerBleConstant {
@@ -925,12 +926,12 @@ export enum ESLAnkerBleConstant {
     g = -89,
     h = -88,
     i = -87,
-    j = -86,
+    j = -86
 }
 
 export enum P2PConnectionType {
     ONLY_LOCAL = 1,
-    QUICKEST = 2,
+    QUICKEST = 2
 }
 
 export enum IndoorSoloSmartdropCommandType {
@@ -1022,7 +1023,7 @@ export enum SmartSafeCommandCode {
     SET_POWERSAVE,
     QUERY_POWERSAVE,
     SEND_WIFI_OTA,
-    QUERY_IS_SET_PANIC_FINGERPRINT,
+    QUERY_IS_SET_PANIC_FINGERPRINT
 }
 
 export enum SmartSafeAlarm911Event {
@@ -1182,6 +1183,7 @@ export enum TrackerCommandType {
     LOCATION_ADDRESS = 1006,
     LOCATION_NEW_ADDRESS = 1009,
     TYPE_ICON_INDEX = 1005,
+
 }
 
 export enum SmartLockCommand {
@@ -1217,12 +1219,12 @@ export enum SmartLockCommand {
     UNBIND = 124,
     HEARTBEAT = 6001,
     RESET = 6019,
-    BIND_SUCCESS = 102,
+    BIND_SUCCESS = 102
 }
 
 export enum SmartLockFunctionType {
     TYPE_1 = 1,
-    TYPE_2 = 2,
+    TYPE_2 = 2
 }
 
 export enum SmartLockBleCommandFunctionType1 {
@@ -1239,7 +1241,7 @@ export enum SmartLockBleCommandFunctionType1 {
     OTA_OPERATION = 45,
     OTA_DATA_SENDING = 46,
     RESET = 47,
-    BIND_SUCCESS = 48,
+    BIND_SUCCESS = 48
 }
 
 export enum SmartLockBleCommandFunctionType2 {

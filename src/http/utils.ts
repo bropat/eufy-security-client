@@ -6,21 +6,7 @@ import sha256 from "crypto-js/sha256";
 
 import { Device } from "./device";
 import { Picture, Schedule } from "./interfaces";
-import {
-    NotificationSwitchMode,
-    DeviceType,
-    SignalLevel,
-    HB3DetectionTypes,
-    SourceType,
-    T8170DetectionTypes,
-    IndoorS350NotificationTypes,
-    FloodlightT8425NotificationTypes,
-    SmartLockNotification,
-    PropertyName,
-    CommandName,
-    NotificationType,
-    IndoorS350DetectionTypes,
-} from "./types";
+import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes, FloodlightT8425NotificationTypes, SmartLockNotification, PropertyName, CommandName, NotificationType, IndoorS350DetectionTypes } from "./types";
 import { HTTPApi } from "./api";
 import { ensureError } from "../error";
 import { ImageBaseCodeError } from "./error";
@@ -31,12 +17,13 @@ import { getError, isEmpty } from "../utils";
 import { PushMessage } from "../push/models";
 
 const normalizeVersionString = function (version: string): number[] {
-    const trimmed = version
-        ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, "$1")
-        : "";
+    const trimmed = version ? version.replace(/^\s*(\S*(\s+\S+)*)\s*$/, "$1") : "";
     const pieces = trimmed.split(RegExp("\\."));
     const parts = [];
-    let value, piece, num, i;
+    let value,
+        piece,
+        num,
+        i;
     for (i = 0; i < pieces.length; i += 1) {
         piece = pieces[i].replace(RegExp("\\D"), "");
         num = parseInt(piece, 10);
@@ -58,10 +45,8 @@ const normalizeVersionString = function (version: string): number[] {
     return parts;
 };
 
-export const isGreaterEqualMinVersion = function (
-    minimal_version: string,
-    current_version: string
-): boolean {
+export const isGreaterEqualMinVersion = function (minimal_version: string, current_version: string): boolean {
+
     const x = normalizeVersionString(minimal_version);
     const y = normalizeVersionString(current_version);
 
@@ -76,55 +61,41 @@ export const isGreaterEqualMinVersion = function (
     if (x.length === y.length) {
         return true;
     }
-    return x.length < y.length ? true : false;
+    return (x.length < y.length) ? true : false;
 };
 
-export const pad = function (num: number): string {
+export const pad = function(num: number): string {
     const norm = Math.floor(Math.abs(num));
     return (norm < 10 ? "0" : "") + norm;
 };
 
-export const getTimezoneGMTString = function (): string {
+export const getTimezoneGMTString = function(): string {
     const tzo = -new Date().getTimezoneOffset();
     const dif = tzo >= 0 ? "+" : "-";
-    return `GMT${dif}${pad(tzo / 60)}:${pad(tzo % 60)}`;
-};
+    return `GMT${dif}${pad(tzo / 60)}:${pad(tzo % 60)}`
+}
 
-export const getAbsoluteFilePath = function (
-    device_type: number,
-    channel: number,
-    filename: string
-): string {
+export const getAbsoluteFilePath = function(device_type:number, channel: number, filename: string): string {
     if (device_type === DeviceType.FLOODLIGHT) {
-        return `/mnt/data/Camera${String(channel).padStart(2, "0")}/${filename}.dat`;
+        return `/mnt/data/Camera${String(channel).padStart(2,"0")}/${filename}.dat`;
     }
-    return `/media/mmcblk0p1/Camera${String(channel).padStart(2, "0")}/${filename}.dat`;
-};
+    return `/media/mmcblk0p1/Camera${String(channel).padStart(2,"0")}/${filename}.dat`;
+}
 
-export const getImageFilePath = function (
-    device_type: number,
-    channel: number,
-    filename: string
-): string {
+export const getImageFilePath = function(device_type:number, channel: number, filename: string): string {
     if (device_type === DeviceType.FLOODLIGHT) {
-        return `/mnt/data/video/${filename}_c${String(channel).padStart(2, "0")}.jpg`;
+        return `/mnt/data/video/${filename}_c${String(channel).padStart(2,"0")}.jpg`;
     }
-    return `/media/mmcblk0p1/video/${filename}_c${String(channel).padStart(2, "0")}.jpg`;
-};
+    return `/media/mmcblk0p1/video/${filename}_c${String(channel).padStart(2,"0")}.jpg`;
+}
 
-export const isNotificationSwitchMode = function (
-    value: number,
-    mode: NotificationSwitchMode
-): boolean {
-    if (value === 1) value = 240;
+export const isNotificationSwitchMode = function(value: number, mode: NotificationSwitchMode): boolean {
+    if (value === 1)
+        value = 240;
     return (value & mode) !== 0;
-};
+}
 
-export const switchNotificationMode = function (
-    currentValue: number,
-    mode: NotificationSwitchMode,
-    enable: boolean
-): number {
+export const switchNotificationMode = function(currentValue: number, mode: NotificationSwitchMode, enable: boolean): number {
     let result = 0;
     if (!enable && currentValue === 1 /* ALL */) {
         currentValue = 240;
@@ -134,21 +105,13 @@ export const switchNotificationMode = function (
     } else {
         result = ~mode & currentValue;
     }
-    if (
-        isNotificationSwitchMode(result, NotificationSwitchMode.SCHEDULE) &&
-        isNotificationSwitchMode(result, NotificationSwitchMode.APP) &&
-        isNotificationSwitchMode(result, NotificationSwitchMode.GEOFENCE) &&
-        isNotificationSwitchMode(result, NotificationSwitchMode.KEYPAD)
-    ) {
+    if (isNotificationSwitchMode(result, NotificationSwitchMode.SCHEDULE) && isNotificationSwitchMode(result, NotificationSwitchMode.APP) && isNotificationSwitchMode(result, NotificationSwitchMode.GEOFENCE) && isNotificationSwitchMode(result, NotificationSwitchMode.KEYPAD)) {
         result = 1; /* ALL */
     }
     return result;
-};
+}
 
-export const calculateWifiSignalLevel = function (
-    device: Device,
-    rssi: number
-): SignalLevel {
+export const calculateWifiSignalLevel = function(device: Device, rssi: number): SignalLevel {
     if (device.isWiredDoorbell()) {
         if (rssi >= -65) {
             return SignalLevel.FULL;
@@ -168,6 +131,7 @@ export const calculateWifiSignalLevel = function (
             return SignalLevel.STRONG;
         }
         return rssi >= -85 ? SignalLevel.NORMAL : SignalLevel.WEAK;
+
     } else if (device.isFloodLight()) {
         if (rssi >= 0) {
             return SignalLevel.NO_SIGNAL;
@@ -179,6 +143,7 @@ export const calculateWifiSignalLevel = function (
             return SignalLevel.STRONG;
         }
         return rssi >= -80 ? SignalLevel.NORMAL : SignalLevel.WEAK;
+
     } else if (device.isBatteryDoorbell()) {
         if (rssi >= -65) {
             return SignalLevel.FULL;
@@ -199,11 +164,9 @@ export const calculateWifiSignalLevel = function (
         }
         return rssi >= -85 ? SignalLevel.NORMAL : SignalLevel.WEAK;
     }
-};
+}
 
-export const calculateCellularSignalLevel = function (
-    rssi: number
-): SignalLevel {
+export const calculateCellularSignalLevel = function(rssi: number): SignalLevel {
     if (rssi >= 0) {
         return SignalLevel.NO_SIGNAL;
     }
@@ -214,21 +177,25 @@ export const calculateCellularSignalLevel = function (
         return SignalLevel.STRONG;
     }
     return rssi >= -105 ? SignalLevel.NORMAL : SignalLevel.WEAK;
-};
+}
 
 export const encryptAPIData = (data: string, key: Buffer): string => {
     const cipher = createCipheriv("aes-256-cbc", key, key.subarray(0, 16));
-    return cipher.update(data, "utf8", "base64") + cipher.final("base64");
-};
+    return (
+        cipher.update(data, "utf8", "base64") +
+        cipher.final("base64")
+    );
+}
 
 export const decryptAPIData = (data: string, key: Buffer): Buffer => {
     const cipher = createDecipheriv("aes-256-cbc", key, key.subarray(0, 16));
-    return Buffer.concat([cipher.update(data, "base64"), cipher.final()]);
-};
+    return Buffer.concat([
+        cipher.update(data, "base64"),
+        cipher.final()]
+    );
+}
 
-export const getBlocklist = function (
-    directions: Array<number>
-): Array<number> {
+export const getBlocklist = function(directions: Array<number>): Array<number> {
     const result = [];
     for (let distance = 1; distance <= 5; distance++) {
         let i = 0;
@@ -248,9 +215,10 @@ export const getBlocklist = function (
         result.push(65535 & i);
     }
     return result;
-};
+}
 
-export const getDistances = function (blocklist: Array<number>): Array<number> {
+
+export const getDistances = function(blocklist: Array<number>): Array<number> {
     const result = [3, 3, 3, 3, 3, 3, 3, 3];
     let calcDistance = 0;
     for (const blockElement of blocklist) {
@@ -267,25 +235,18 @@ export const getDistances = function (blocklist: Array<number>): Array<number> {
         }
     }
     return result;
-};
+}
 
-export const isHB3DetectionModeEnabled = function (
-    value: number,
-    type: HB3DetectionTypes
-): boolean {
+export const isHB3DetectionModeEnabled = function(value: number, type: HB3DetectionTypes): boolean {
     if (type === HB3DetectionTypes.HUMAN_RECOGNITION) {
         return (type & value) == type && (value & 65536) == 65536;
     } else if (type === HB3DetectionTypes.HUMAN_DETECTION) {
         return (type & value) == type && (value & 1) == 1;
     }
     return (type & value) == type;
-};
+}
 
-export const getHB3DetectionMode = function (
-    value: number,
-    type: HB3DetectionTypes,
-    enable: boolean
-): number {
+export const getHB3DetectionMode = function(value: number, type: HB3DetectionTypes, enable: boolean): number {
     let result = 0;
     if (!enable) {
         if (type === HB3DetectionTypes.HUMAN_RECOGNITION) {
@@ -299,15 +260,15 @@ export const getHB3DetectionMode = function (
         }
     } else {
         if (type === HB3DetectionTypes.HUMAN_RECOGNITION) {
-            result = type | value | 65536;
+            result =  type | value | 65536;
         } else if (type === HB3DetectionTypes.HUMAN_DETECTION) {
-            result = type | value | 1;
+            result =  type | value | 1;
         } else {
             result = type | value;
         }
     }
     return result;
-};
+}
 
 export interface EufyTimezone {
     timeZoneName: string;
@@ -316,51 +277,45 @@ export interface EufyTimezone {
     timeZoneGMT: string;
 }
 
-export const getEufyTimezone = function (): EufyTimezone | undefined {
+export const getEufyTimezone = function(): EufyTimezone | undefined {
     for (const timezone of timeZoneData) {
-        if (
-            timezone.timeId === Intl.DateTimeFormat().resolvedOptions().timeZone
-        ) {
-            return timezone;
+        if (timezone.timeId === Intl.DateTimeFormat().resolvedOptions().timeZone) {
+            return timezone
         }
     }
     return undefined;
 };
 
-export const getAdvancedLockTimezone = function (stationSN: string): string {
+export const getAdvancedLockTimezone = function(stationSN: string): string {
     const timezone = getEufyTimezone();
     if (timezone !== undefined) {
-        if (
-            stationSN.startsWith("T8520") &&
-            isGreaterEqualMinVersion("1.2.8.6", stationSN)
-        )
-            return `${timezone.timeZoneGMT}|1.${timezone.timeSn}`;
-        else return timezone.timeZoneGMT;
+        if (stationSN.startsWith("T8520") && isGreaterEqualMinVersion("1.2.8.6", stationSN))
+            return `${timezone.timeZoneGMT}|1.${timezone.timeSn}`
+        else
+            return timezone.timeZoneGMT;
     }
     return "";
 };
 
 export class WritePayload {
+
     private split_byte = -95;
     private data = Buffer.from([]);
 
     public write(bytes: Buffer): void {
         const tmp_data = Buffer.from(bytes);
-        this.data = Buffer.concat([
-            this.data,
-            Buffer.from([this.split_byte]),
-            Buffer.from([tmp_data.length & 255]),
-            tmp_data,
-        ]);
+        this.data = Buffer.concat([ this.data, Buffer.from([this.split_byte]), Buffer.from([tmp_data.length & 255]), tmp_data]);
         this.split_byte += 1;
     }
 
     public getData(): Buffer {
         return this.data;
     }
+
 }
 
 export class ParsePayload {
+
     private data;
 
     constructor(data: Buffer) {
@@ -422,18 +377,12 @@ export class ParsePayload {
         if (dataPosition + nextStep + tmp > this.data.length) {
             return Buffer.from("");
         }
-        return this.data.subarray(
-            dataPosition + nextStep,
-            dataPosition + nextStep + tmp
-        );
+        return this.data.subarray(dataPosition + nextStep, dataPosition + nextStep + tmp);
     }
 
     private getDataPosition(indexValue: number): number {
         if (this.data && this.data.length >= 1) {
-            for (
-                let currentPosition = 0;
-                currentPosition < this.data.length;
-            ) {
+            for (let currentPosition = 0; currentPosition < this.data.length;) {
                 if (this.data.readInt8(currentPosition) == indexValue) {
                     return currentPosition;
                 } else {
@@ -442,24 +391,14 @@ export class ParsePayload {
                     if (currentPosition >= this.data.length) {
                         break;
                     }
-                    const nextStep = this.getNextStep(
-                        value,
-                        currentPosition,
-                        this.data
-                    );
-                    if (currentPosition + nextStep >= this.data.length) {
+                    const nextStep = this.getNextStep(value, currentPosition, this.data);
+                    if ((currentPosition + nextStep) >= this.data.length) {
                         break;
                     }
                     if (nextStep == 1) {
-                        currentPosition =
-                            this.data.readInt8(currentPosition) +
-                            currentPosition +
-                            nextStep;
+                        currentPosition = this.data.readInt8(currentPosition) + currentPosition + nextStep;
                     } else {
-                        currentPosition =
-                            this.data.readUint16LE(currentPosition) +
-                            currentPosition +
-                            nextStep;
+                        currentPosition = this.data.readUint16LE(currentPosition) + currentPosition + nextStep;
                     }
                 }
             }
@@ -467,18 +406,11 @@ export class ParsePayload {
         return -1;
     }
 
-    private getNextStep(
-        indexValue: number,
-        position: number,
-        data: Buffer
-    ): number {
+    private getNextStep(indexValue: number, position: number, data: Buffer): number {
         const newPosition = position + 1 + data.readUInt8(position);
-        return newPosition == data.length ||
-            newPosition > data.length ||
-            data.readInt8(newPosition) == indexValue + 1
-            ? 1
-            : 2;
+        return (newPosition == data.length || newPosition > data.length || data.readInt8(newPosition) == indexValue + 1) ? 1 : 2;
     }
+
 }
 
 /*export const generateHash = function(data: Buffer): number {
@@ -502,36 +434,36 @@ export const encodeSmartSafeData = function(command: number, payload: Buffer): B
     return Buffer.concat([data, Buffer.from([hash])]);
 }*/
 
-export const encodePasscode = function (pass: string): string {
+export const encodePasscode = function(pass: string): string {
     let result = "";
     for (let i = 0; i < pass.length; i++)
         result += pass.charCodeAt(i).toString(16);
     return result;
-};
+}
 
-export const hexDate = function (date: Date): string {
+export const hexDate = function(date: Date): string {
     const buf = Buffer.allocUnsafe(4);
     buf.writeUint8(date.getDate());
     buf.writeUint8(date.getMonth() + 1, 1);
     buf.writeUint16BE(date.getFullYear(), 2);
     return buf.readUInt32LE().toString(16).padStart(8, "0");
-};
+}
 
-export const hexTime = function (date: Date): string {
+export const hexTime = function(date: Date): string {
     const buf = Buffer.allocUnsafe(2);
     buf.writeUint8(date.getHours());
     buf.writeUint8(date.getMinutes(), 1);
     return buf.readUInt16BE().toString(16).padStart(4, "0");
-};
+}
 
-export const hexWeek = function (schedule: Schedule): string {
-    const SUNDAY = 1;
-    const MONDAY = 2;
-    const TUESDAY = 4;
+export const hexWeek = function(schedule: Schedule): string {
+    const SUNDAY    = 1;
+    const MONDAY    = 2;
+    const TUESDAY   = 4;
     const WEDNESDAY = 8;
     const THUERSDAY = 16;
-    const FRIDAY = 32;
-    const SATURDAY = 64;
+    const FRIDAY    = 32;
+    const SATURDAY  = 64;
 
     let result = 0;
 
@@ -560,51 +492,21 @@ export const hexWeek = function (schedule: Schedule): string {
         return result.toString(16);
     }
     return "ff";
-};
+}
 
-export const hexStringScheduleToSchedule = function (
-    startDay: string,
-    startTime: string,
-    endDay: string,
-    endTime: string,
-    week: string
-): Schedule {
-    const SUNDAY = 1;
-    const MONDAY = 2;
-    const TUESDAY = 4;
+export const hexStringScheduleToSchedule = function(startDay: string, startTime: string, endDay:string, endTime: string, week: string): Schedule {
+    const SUNDAY    = 1;
+    const MONDAY    = 2;
+    const TUESDAY   = 4;
     const WEDNESDAY = 8;
     const THUERSDAY = 16;
-    const FRIDAY = 32;
-    const SATURDAY = 64;
+    const FRIDAY    = 32;
+    const SATURDAY  = 64;
 
     const weekNumber = Number.parseInt(week, 16);
     return {
-        startDateTime:
-            startDay === "00000000"
-                ? undefined
-                : new Date(
-                      Number.parseInt(
-                          `${startDay.substring(2, 4)}${startDay.substring(0, 2)}`,
-                          16
-                      ),
-                      Number.parseInt(startDay.substring(4, 6), 16) - 1,
-                      Number.parseInt(startDay.substring(6, 8), 16),
-                      Number.parseInt(startTime.substring(0, 2), 16),
-                      Number.parseInt(startTime.substring(2, 4), 16)
-                  ),
-        endDateTime:
-            endDay === "ffffffff"
-                ? undefined
-                : new Date(
-                      Number.parseInt(
-                          `${endDay.substring(2, 4)}${endDay.substring(0, 2)}`,
-                          16
-                      ),
-                      Number.parseInt(endDay.substring(4, 6), 16) - 1,
-                      Number.parseInt(endDay.substring(6, 8), 16),
-                      Number.parseInt(endTime.substring(0, 2), 16),
-                      Number.parseInt(endTime.substring(2, 4), 16)
-                  ),
+        startDateTime: startDay === "00000000" ? undefined : new Date(Number.parseInt(`${startDay.substring(2,4)}${startDay.substring(0,2)}`, 16), Number.parseInt(startDay.substring(4,6), 16) - 1, Number.parseInt(startDay.substring(6,8), 16), Number.parseInt(startTime.substring(0,2), 16), Number.parseInt(startTime.substring(2,4), 16)),
+        endDateTime: endDay === "ffffffff" ? undefined : new Date(Number.parseInt(`${endDay.substring(2,4)}${endDay.substring(0,2)}`, 16), Number.parseInt(endDay.substring(4,6), 16) - 1, Number.parseInt(endDay.substring(6,8), 16), Number.parseInt(endTime.substring(0,2), 16), Number.parseInt(endTime.substring(2,4), 16)),
         week: {
             monday: (weekNumber & MONDAY) == MONDAY,
             tuesday: (weekNumber & TUESDAY) == TUESDAY,
@@ -615,13 +517,13 @@ export const hexStringScheduleToSchedule = function (
             sunday: (weekNumber & SUNDAY) == SUNDAY,
         },
     };
-};
+}
 
-export const randomNumber = function (min: number, max: number): number {
+export const randomNumber = function(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min + 1)) + min;
-};
+}
 
-export const getIdSuffix = function (p2pDid: string): number {
+export const getIdSuffix = function(p2pDid: string): number {
     let result = 0;
     const match = p2pDid.match(/^[A-Z]+-(\d+)-[A-Z]+$/);
     if (match?.length == 2) {
@@ -639,73 +541,60 @@ export const getIdSuffix = function (p2pDid: string): number {
     return result;
 };
 
-export const getImageBaseCode = function (
-    serialnumber: string,
-    p2pDid: string
-): string {
+export const getImageBaseCode = function(serialnumber: string, p2pDid: string): string {
     let nr = 0;
     try {
         nr = Number.parseInt(`0x${serialnumber[serialnumber.length - 1]}`);
     } catch (err) {
         const error = ensureError(err);
-        throw new ImageBaseCodeError("Error generating image base code", {
-            cause: error,
-            context: { serialnumber: serialnumber, p2pDid: p2pDid },
-        });
+        throw new ImageBaseCodeError("Error generating image base code", { cause: error, context: { serialnumber: serialnumber, p2pDid: p2pDid } });
     }
     nr = (nr + 10) % 10;
     const base = serialnumber.substring(nr);
     return `${base}${getIdSuffix(p2pDid)}`;
 };
 
-export const getImageSeed = function (p2pDid: string, code: string): string {
+export const getImageSeed = function(p2pDid: string, code: string): string {
     try {
         const ncode = Number.parseInt(code.substring(2));
         const prefix = 1000 - getIdSuffix(p2pDid);
         return md5(`${prefix}${ncode}`).toString(enc_hex).toUpperCase();
-    } catch (err) {
+    } catch(err) {
         const error = ensureError(err);
-        throw new ImageBaseCodeError("Error generating image seed", {
-            cause: error,
-            context: { p2pDid: p2pDid, code: code },
-        });
+        throw new ImageBaseCodeError("Error generating image seed", { cause: error, context: { p2pDid: p2pDid, code: code } });
     }
 };
 
-export const getImageKey = function (
-    serialnumber: string,
-    p2pDid: string,
-    code: string
-): string {
+export const getImageKey = function(serialnumber: string, p2pDid: string, code: string): string {
     const basecode = getImageBaseCode(serialnumber, p2pDid);
     const seed = getImageSeed(p2pDid, code);
     const data = `01${basecode}${seed}`;
     const hash = sha256(data);
     const hashBytes = [...Buffer.from(hash.toString(enc_hex), "hex")];
     const startByte = hashBytes[10];
-    for (let i = 0; i < 32; i++) {
+    for(let i = 0; i < 32; i++) {
         const byte = hashBytes[i];
         let fixed_byte = startByte;
         if (i < 31) {
             fixed_byte = hashBytes[i + 1];
         }
-        if (i == 31 || (i & 1) != 0) {
+        if ((i == 31) || ((i & 1) != 0)) {
             hashBytes[10] = fixed_byte;
-            if (126 < byte || 126 < hashBytes[10]) {
-                if (byte < hashBytes[10] || byte - hashBytes[10] == 0) {
+            if ((126 < byte) || (126 < hashBytes[10])) {
+                if (byte < hashBytes[10] || (byte - hashBytes[10]) == 0) {
                     hashBytes[i] = hashBytes[10] - byte;
                 } else {
                     hashBytes[i] = byte - hashBytes[10];
                 }
             }
-        } else if (byte < 125 || fixed_byte < 125) {
+        } else if ((byte < 125) || (fixed_byte < 125)) {
             hashBytes[i] = fixed_byte + byte;
         }
     }
     return `${Buffer.from(hashBytes.slice(16)).toString("hex").toUpperCase()}`;
 };
 
-export const decodeImage = function (p2pDid: string, data: Buffer): Buffer {
+export const decodeImage = function(p2pDid: string, data: Buffer): Buffer {
     if (data.length >= 12) {
         const header = data.subarray(0, 12).toString();
         if (header === "eufysecurity") {
@@ -714,16 +603,12 @@ export const decodeImage = function (p2pDid: string, data: Buffer): Buffer {
             const imageKey = getImageKey(serialnumber, p2pDid, code);
             const otherData = data.subarray(41);
             const encryptedData = otherData.subarray(0, 256);
-            const cipher = createDecipheriv(
-                "aes-128-ecb",
-                Buffer.from(imageKey, "utf-8").subarray(0, 16),
-                null
-            );
+            const cipher = createDecipheriv("aes-128-ecb", Buffer.from(imageKey, "utf-8").subarray(0, 16), null);
             cipher.setAutoPadding(false);
-            const decryptedData = Buffer.concat([
+            const decryptedData =  Buffer.concat([
                 cipher.update(encryptedData),
-                cipher.final(),
-            ]);
+                cipher.final()]
+            );
             decryptedData.copy(otherData);
             return otherData;
         }
@@ -731,7 +616,7 @@ export const decodeImage = function (p2pDid: string, data: Buffer): Buffer {
     return data;
 };
 
-export const getImagePath = function (path: string): string {
+export const getImagePath = function(path: string): string {
     const splittedPath = path.split("~");
     if (splittedPath.length === 2) {
         return splittedPath[1];
@@ -739,65 +624,40 @@ export const getImagePath = function (path: string): string {
     return path;
 };
 
-export const getImage = async function (
-    api: HTTPApi,
-    serial: string,
-    url: string
-): Promise<Picture> {
+export const getImage = async function(api: HTTPApi, serial: string, url: string): Promise<Picture> {
     const { default: imageType } = await import("image-type");
     const image = await api.getImage(serial, url);
     const type = await imageType(image);
     return {
         data: image,
-        type:
-            type !== null && type !== undefined
-                ? type
-                : { ext: "unknown", mime: "application/octet-stream" },
+        type: type !== null && type !== undefined ? type : { ext: "unknown", mime: "application/octet-stream" }
     };
 };
 
-export const isPrioritySourceType = function (
-    current: SourceType | undefined,
-    update: SourceType
-): boolean {
-    if (
-        ((current === "http" ||
-            current === "p2p" ||
-            current === "push" ||
-            current === "mqtt" ||
-            current === undefined) &&
-            (update === "p2p" || update === "push" || update === "mqtt")) ||
-        ((current === "http" || current === undefined) && update === "http")
-    ) {
+export const isPrioritySourceType = function(current: SourceType | undefined, update: SourceType): boolean {
+    if (((current === "http" || current === "p2p" || current === "push" || current === "mqtt" || current === undefined) && (update === "p2p" || update === "push" || update === "mqtt")) ||
+        ((current === "http" || current === undefined) && update === "http")) {
         return true;
     }
     return false;
-};
+}
 
 export const decryptTrackerData = (data: Buffer, key: Buffer): Buffer => {
     const decipher = createDecipheriv("aes-128-ecb", key, null);
     decipher.setAutoPadding(false);
-    return Buffer.concat([decipher.update(data), decipher.final()]);
-};
+    return Buffer.concat([
+        decipher.update(data),
+        decipher.final()]
+    );
+}
 
-export const isT8170DetectionModeEnabled = function (
-    value: number,
-    type: T8170DetectionTypes
-): boolean {
+export const isT8170DetectionModeEnabled = function(value: number, type: T8170DetectionTypes): boolean {
     return (type & value) == type;
-};
+}
 
-export const getT8170DetectionMode = function (
-    value: number,
-    type: T8170DetectionTypes,
-    enable: boolean
-): number {
+export const getT8170DetectionMode = function(value: number, type: T8170DetectionTypes, enable: boolean): number {
     let result = 0;
-    if (
-        Object.values(T8170DetectionTypes).includes(type) &&
-        Object.values(T8170DetectionTypes).includes(value) &&
-        !enable
-    )
+    if ((Object.values(T8170DetectionTypes).includes(type) && Object.values(T8170DetectionTypes).includes(value)) && !enable)
         return value;
     if (!enable) {
         result = type ^ value;
@@ -805,26 +665,15 @@ export const getT8170DetectionMode = function (
         result = type | value;
     }
     return result;
-};
+}
 
-export const isIndoorS350DetectionModeEnabled = function (
-    value: number,
-    type: IndoorS350DetectionTypes
-): boolean {
+export const isIndoorS350DetectionModeEnabled = function(value: number, type: IndoorS350DetectionTypes): boolean {
     return (type & value) == type;
-};
+}
 
-export const getIndoorS350DetectionMode = function (
-    value: number,
-    type: IndoorS350DetectionTypes,
-    enable: boolean
-): number {
+export const getIndoorS350DetectionMode = function(value: number, type: IndoorS350DetectionTypes, enable: boolean): number {
     let result = 0;
-    if (
-        Object.values(IndoorS350DetectionTypes).includes(type) &&
-        Object.values(IndoorS350DetectionTypes).includes(value) &&
-        !enable
-    )
+    if ((Object.values(IndoorS350DetectionTypes).includes(type) && Object.values(IndoorS350DetectionTypes).includes(value)) && !enable)
         return value;
     if (!enable) {
         result = type ^ value;
@@ -832,20 +681,13 @@ export const getIndoorS350DetectionMode = function (
         result = type | value;
     }
     return result;
-};
+}
 
-export const isIndoorNotitficationEnabled = function (
-    value: number,
-    type: IndoorS350NotificationTypes
-): boolean {
+export const isIndoorNotitficationEnabled = function(value: number, type: IndoorS350NotificationTypes): boolean {
     return (type & value) == type;
-};
+}
 
-export const getIndoorNotification = function (
-    value: number,
-    type: IndoorS350NotificationTypes,
-    enable: boolean
-): number {
+export const getIndoorNotification = function(value: number, type: IndoorS350NotificationTypes, enable: boolean): number {
     let result = 0;
     if (!enable) {
         result = (type ^ value) + 800;
@@ -853,31 +695,24 @@ export const getIndoorNotification = function (
         result = type | value;
     }
     return result;
-};
+}
 
-export const isFloodlightT8425NotitficationEnabled = function (
-    value: number,
-    type: FloodlightT8425NotificationTypes
-): boolean {
+export const isFloodlightT8425NotitficationEnabled = function(value: number, type: FloodlightT8425NotificationTypes): boolean {
     return (type & value) == type;
-};
+}
 
-export const getFloodLightT8425Notification = function (
-    value: number,
-    type: FloodlightT8425NotificationTypes,
-    enable: boolean
-): number {
+export const getFloodLightT8425Notification = function(value: number, type: FloodlightT8425NotificationTypes, enable: boolean): number {
     let result = 0;
     if (!enable) {
-        result = type ^ value;
+        result = (type ^ value);
     } else {
         result = type | value;
     }
     return result;
-};
+}
 
-export const getLockEventType = function (event: LockPushEvent): number {
-    switch (event) {
+export const getLockEventType = function(event: LockPushEvent): number {
+    switch(event) {
         case LockPushEvent.AUTO_LOCK:
         case LockPushEvent.AUTO_UNLOCK:
             return 1;
@@ -900,13 +735,9 @@ export const getLockEventType = function (event: LockPushEvent): number {
             return 7;
     }
     return 0;
-};
+}
 
-export const switchSmartLockNotification = function (
-    currentValue: number,
-    mode: SmartLockNotification,
-    enable: boolean
-): number {
+export const switchSmartLockNotification = function(currentValue: number, mode: SmartLockNotification, enable: boolean): number {
     let result = 0;
     if (enable) {
         result = mode | currentValue;
@@ -914,24 +745,17 @@ export const switchSmartLockNotification = function (
         result = ~mode & currentValue;
     }
     return result;
-};
+}
 
-export const isSmartLockNotification = function (
-    value: number,
-    mode: SmartLockNotification
-): boolean {
+export const isSmartLockNotification = function(value: number, mode: SmartLockNotification): boolean {
     return (value & mode) !== 0;
-};
+}
 
 export const getWaitSeconds = (device: Device): number => {
     let seconds = 60;
-    const workingMode = device.getPropertyValue(
-        PropertyName.DevicePowerWorkingMode
-    );
+    const workingMode = device.getPropertyValue(PropertyName.DevicePowerWorkingMode);
     if (workingMode !== undefined && workingMode === 2) {
-        const customValue = device.getPropertyValue(
-            PropertyName.DeviceRecordingClipLength
-        );
+        const customValue = device.getPropertyValue(PropertyName.DeviceRecordingClipLength);
         if (customValue !== undefined) {
             seconds = customValue as number;
         }
@@ -939,81 +763,40 @@ export const getWaitSeconds = (device: Device): number => {
     return seconds;
 };
 
-export const loadImageOverP2P = function (
-    station: Station,
-    device: Device,
-    id: string,
-    p2pTimeouts: Map<string, NodeJS.Timeout>
-): void {
-    if (
-        station.hasCommand(CommandName.StationDatabaseQueryLatestInfo) &&
-        p2pTimeouts.get(id) === undefined
-    ) {
+export const loadImageOverP2P = function (station: Station, device: Device, id: string, p2pTimeouts: Map<string, NodeJS.Timeout>): void {
+    if (station.hasCommand(CommandName.StationDatabaseQueryLatestInfo) && p2pTimeouts.get(id) === undefined) {
         const seconds = getWaitSeconds(device);
-        p2pTimeouts.set(
-            id,
-            setTimeout(async () => {
-                station.databaseQueryLatestInfo();
-                p2pTimeouts.delete(id);
-            }, seconds * 1000)
-        );
+        p2pTimeouts.set(id, setTimeout(async () => {
+            station.databaseQueryLatestInfo();
+            p2pTimeouts.delete(id);
+        }, seconds * 1000));
     }
-};
+}
 
-export const loadEventImage = function (
-    station: Station,
-    api: HTTPApi,
-    device: Device,
-    message: PushMessage,
-    p2pTimeouts: Map<string, NodeJS.Timeout>
-): void {
+export const loadEventImage = function(station: Station, api: HTTPApi, device: Device, message: PushMessage, p2pTimeouts: Map<string, NodeJS.Timeout>): void {
     if (message.notification_style === NotificationType.MOST_EFFICIENT) {
         loadImageOverP2P(station, device, device.getSerial(), p2pTimeouts);
     } else {
         if (!isEmpty(message.pic_url)) {
-            getImage(api, device.getSerial(), message.pic_url!)
-                .then((image) => {
-                    if (image.data.length > 0) {
-                        if (p2pTimeouts.get(device.getSerial()) !== undefined) {
-                            clearTimeout(p2pTimeouts.get(device.getSerial()));
-                            p2pTimeouts.delete(device.getSerial());
-                        }
-                        device.updateProperty(
-                            PropertyName.DevicePicture,
-                            image,
-                            true
-                        );
-                    } else {
-                        //fallback
-                        loadImageOverP2P(
-                            station,
-                            device,
-                            device.getSerial(),
-                            p2pTimeouts
-                        );
+            getImage(api, device.getSerial(), message.pic_url!).then((image) => {
+                if (image.data.length > 0) {
+                    if (p2pTimeouts.get(device.getSerial()) !== undefined) {
+                        clearTimeout(p2pTimeouts.get(device.getSerial()));
+                        p2pTimeouts.delete(device.getSerial())
                     }
-                })
-                .catch((err) => {
-                    const error = ensureError(err);
-                    rootHTTPLogger.debug(
-                        `Device load event image - Fallback Error`,
-                        {
-                            error: getError(error),
-                            stationSN: station.getSerial(),
-                            deviceSN: device.getSerial(),
-                            message: JSON.stringify(message),
-                        }
-                    );
-                    loadImageOverP2P(
-                        station,
-                        device,
-                        device.getSerial(),
-                        p2pTimeouts
-                    );
-                });
+                    device.updateProperty(PropertyName.DevicePicture, image, true);
+                } else {
+                    //fallback
+                    loadImageOverP2P(station, device, device.getSerial(), p2pTimeouts);
+                }
+            }).catch((err) => {
+                const error = ensureError(err);
+                rootHTTPLogger.debug(`Device load event image - Fallback Error`, { error: getError(error), stationSN: station.getSerial(), deviceSN: device.getSerial(), message: JSON.stringify(message) });
+                loadImageOverP2P(station, device, device.getSerial(), p2pTimeouts);
+            });
         } else {
             //fallback
             loadImageOverP2P(station, device, device.getSerial(), p2pTimeouts);
         }
     }
-};
+}

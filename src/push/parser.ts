@@ -5,14 +5,11 @@ import { TypedEmitter } from "tiny-typed-emitter";
 import { MessageTag, ProcessingState } from "./models";
 import { PushClientParserEvents } from "./interfaces";
 import { ensureError } from "../error";
-import {
-    MCSProtocolMessageTagError,
-    MCSProtocolProcessingStateError,
-    MCSProtocolVersionError,
-} from "./error";
+import { MCSProtocolMessageTagError, MCSProtocolProcessingStateError, MCSProtocolVersionError } from "./error";
 import { rootPushLogger } from "../logging";
 
 export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
+
     private static proto: Root | null = null;
     private state: ProcessingState = ProcessingState.MCS_VERSION_TAG_AND_SIZE;
     private data: Buffer = Buffer.alloc(0);
@@ -77,9 +74,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
                 this.onGotMessageBytes();
                 break;
             default:
-                rootPushLogger.warn("Push Parser - Unknown state", {
-                    state: this.state,
-                });
+                rootPushLogger.warn("Push Parser - Unknown state", { state: this.state });
                 break;
         }
     }
@@ -88,9 +83,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
         const version = this.data.readInt8(0);
         this.data = this.data.subarray(1);
         if (version < 41 && version !== 38) {
-            throw new MCSProtocolVersionError("Got wrong protocol version", {
-                context: { version: version },
-            });
+            throw new MCSProtocolVersionError("Got wrong protocol version", { context: { version: version } });
         }
 
         // Process the LoginResponse message tag.
@@ -111,10 +104,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
             this.messageSize = reader.int32();
         } catch (err) {
             const error = ensureError(err);
-            if (
-                error instanceof Error &&
-                error.message.startsWith("index out of range:")
-            ) {
+            if (error instanceof Error && error.message.startsWith("index out of range:")) {
                 incompleteSizePacket = true;
             } else {
                 throw error;
@@ -167,9 +157,7 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
 
         if (this.messageTag === MessageTag.LoginResponse) {
             if (this.handshakeComplete) {
-                rootPushLogger.error(
-                    "Push Parser - Unexpected login response!"
-                );
+                rootPushLogger.error("Push Parser - Unexpected login response!");
             } else {
                 this.handshakeComplete = true;
             }
@@ -196,50 +184,30 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
             case ProcessingState.MCS_PROTO_BYTES:
                 return this.messageSize;
             default:
-                throw new MCSProtocolProcessingStateError(
-                    "Unknown protocol processing state",
-                    { context: { state: this.state } }
-                );
+                throw new MCSProtocolProcessingStateError("Unknown protocol processing state", { context: { state: this.state } });
         }
     }
 
     private buildProtobufFromTag(messageTag: number): any {
         switch (messageTag) {
             case MessageTag.HeartbeatPing:
-                return PushClientParser.proto!.lookupType(
-                    "mcs_proto.HeartbeatPing"
-                );
+                return PushClientParser.proto!.lookupType("mcs_proto.HeartbeatPing");
             case MessageTag.HeartbeatAck:
-                return PushClientParser.proto!.lookupType(
-                    "mcs_proto.HeartbeatAck"
-                );
+                return PushClientParser.proto!.lookupType("mcs_proto.HeartbeatAck");
             case MessageTag.LoginRequest:
-                return PushClientParser.proto!.lookupType(
-                    "mcs_proto.LoginRequest"
-                );
+                return PushClientParser.proto!.lookupType("mcs_proto.LoginRequest");
             case MessageTag.LoginResponse:
-                return PushClientParser.proto!.lookupType(
-                    "mcs_proto.LoginResponse"
-                );
+                return PushClientParser.proto!.lookupType("mcs_proto.LoginResponse");
             case MessageTag.Close:
                 return PushClientParser.proto!.lookupType("mcs_proto.Close");
             case MessageTag.IqStanza:
                 return PushClientParser.proto!.lookupType("mcs_proto.IqStanza");
             case MessageTag.DataMessageStanza:
-                return PushClientParser.proto!.lookupType(
-                    "mcs_proto.DataMessageStanza"
-                );
+                return PushClientParser.proto!.lookupType("mcs_proto.DataMessageStanza");
             case MessageTag.StreamErrorStanza:
-                return PushClientParser.proto!.lookupType(
-                    "mcs_proto.StreamErrorStanza"
-                );
+                return PushClientParser.proto!.lookupType("mcs_proto.StreamErrorStanza");
             default:
-                throw new MCSProtocolMessageTagError(
-                    "Unknown protocol message tag",
-                    {
-                        context: { messageTag: this.messageTag },
-                    }
-                );
+                throw new MCSProtocolMessageTagError("Unknown protocol message tag", { context: { messageTag: this.messageTag } });
         }
     }
 }

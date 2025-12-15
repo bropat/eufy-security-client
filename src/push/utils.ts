@@ -19,13 +19,12 @@ export function generateFid(): string {
     const b64_safe = b64.replace(/\+/g, "-").replace(/\//g, "_");
     const fid = b64_safe.substr(0, 22);
 
+
     if (VALID_FID_PATTERN.test(fid)) {
-        rootPushLogger.info("generateFid", fid);
+        rootPushLogger.info("generateFid", fid)
         return fid;
     }
-    throw new FidGenerationError("Generated invalid FID", {
-        context: { fid: fid },
-    });
+    throw new FidGenerationError("Generated invalid FID", { context: { fid: fid } });
 }
 
 export const buildCheckinRequest = async (): Promise<Uint8Array> => {
@@ -37,8 +36,7 @@ export const buildCheckinRequest = async (): Promise<Uint8Array> => {
         androidId: 0,
         checkin: {
             build: {
-                fingerprint:
-                    "google/razor/flo:5.0.1/LRX22C/1602158:user/release-keys",
+                fingerprint: "google/razor/flo:5.0.1/LRX22C/1602158:user/release-keys",
                 hardware: "flo",
                 brand: "google",
                 radio: "FLO-04.04",
@@ -64,9 +62,7 @@ export const buildCheckinRequest = async (): Promise<Uint8Array> => {
     return CheckinRequestModel.encode(message).finish();
 };
 
-export const parseCheckinResponse = async (
-    data: Buffer
-): Promise<CheckinResponse> => {
+export const parseCheckinResponse = async (data: Buffer): Promise<CheckinResponse> => {
     const root = await load(path.join(__dirname, "./proto/checkin.proto"));
     const CheckinResponseModel = root.lookupType("CheckinResponse");
     const message = CheckinResponseModel.decode(data);
