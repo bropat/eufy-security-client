@@ -622,13 +622,10 @@ export const buildTalkbackAudioFrameHeader = (audioData: Buffer, channel = 0): B
 }
 
 export const decodeP2PCloudIPs = (data: string): Array<Address> => {
-  const lookupTable = Buffer.from(
-    "4959433db5bf6da347534f6165e371e9677f02030badb3892b2f35c16b8b959711e5a70deff1050783fb9d3bc5c713171d1f2529d3df",
-    "hex",
-  );
+    const lookupTable = Buffer.from("4959433db5bf6da347534f6165e371e9677f02030badb3892b2f35c16b8b959711e5a70deff1050783fb9d3bc5c713171d1f2529d3df", "hex");
 
-  const [encoded, name = "name not included"] = data.split(":");
-  const output = Buffer.alloc(encoded.length / 2);
+    const [encoded, name = "name not included"] = data.split(":");
+    const output = Buffer.alloc(encoded.length / 2);
 
     for (let i = 0; i <= data.length / 2; i++) {
         let z = 0x39; // 57 // '9'
