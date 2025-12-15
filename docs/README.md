@@ -13,9 +13,9 @@
 
 The development of this shared library was inspired by the work of the following people:
 
-- FuzzyMistborn (<https://github.com/FuzzyMistborn/python-eufy-security>)
-- keshavdv (<https://github.com/keshavdv/python-eufy-security>)
-- JanLoebel (<https://github.com/JanLoebel/eufy-node-client>)
+* FuzzyMistborn (<https://github.com/FuzzyMistborn/python-eufy-security>)
+* keshavdv (<https://github.com/keshavdv/python-eufy-security>)
+* JanLoebel (<https://github.com/JanLoebel/eufy-node-client>)
 
 Credits go to them as well.
 
