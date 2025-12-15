@@ -1,7 +1,6 @@
 import { Transform } from "stream";
 
 export class TalkbackStream extends Transform {
-
     private isStreaming = false;
 
     constructor() {
@@ -9,8 +8,7 @@ export class TalkbackStream extends Transform {
     }
 
     _transform(data: Buffer, _encoding: string, callback: (err?: Error | null) => void): void {
-        if(this.isStreaming)
-            this.push(data);
+        if (this.isStreaming) this.push(data);
         callback();
     }
 

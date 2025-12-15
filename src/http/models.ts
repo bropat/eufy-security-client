@@ -32,8 +32,8 @@ export interface LoginResultResponse {
     phone: string;
     phone_code: string;
     server_secret_info: {
-        public_key: string
-    } | null,
+        public_key: string;
+    } | null;
     params: Array<{
         param_type: number;
         param_value: string;
@@ -50,14 +50,14 @@ export interface LoginRequest {
     ab: string;
     client_secret_info: {
         public_key: string;
-    },
+    };
     enc: number;
     email: string;
     password: string;
     time_zone: number;
     verify_code?: string;
     captcha_id?: string;
-    answer?: string
+    answer?: string;
     transaction: string;
 }
 
@@ -485,7 +485,7 @@ export interface HouseListResponse {
     is_default: number;
     geofence_id: number;
     address: string;
-    latitude: number
+    latitude: number;
     longitude: number;
     radius_range: number;
     location_msg: number;
@@ -526,7 +526,7 @@ export interface PassportProfileResponse {
         id: number;
         name: string;
         code: string;
-    }
+    };
 }
 
 export interface StationSecuritySettings {
@@ -555,20 +555,20 @@ export interface SnoozeDetail {
 }
 
 export interface RawSchedule {
-    endDay: string;             // "FFFFFFFF"
-    week: string;               // "FF"
-    startDay: string;           // "00000000"
-    startTime: string;          // "0000"
-    endTime: string;            // "FFFF"
+    endDay: string; // "FFFFFFFF"
+    week: string; // "FF"
+    startDay: string; // "00000000"
+    startTime: string; // "0000"
+    endTime: string; // "FFFF"
 }
 
 export interface UserPassword {
-    expiration_time: number;            // 0
-    is_permanent: number;               // 0
-    password: string;                   // ""
-    password_id: string;                // "0000"
-    password_type: UserPasswordType;    // 2
-    name: string;                       // "Fingerprint 1"
+    expiration_time: number; // 0
+    is_permanent: number; // 0
+    password: string; // ""
+    password_id: string; // "0000"
+    password_type: UserPasswordType; // 2
+    name: string; // "Fingerprint 1"
     schedule: RawSchedule;
 }
 
@@ -604,7 +604,7 @@ export interface GarageDoorSensorsProperty {
             playalarm: number;
             ota: number;
             needota: number;
-        },
+        };
         door_2: {
             power: number;
             mac_address: string;
@@ -614,22 +614,22 @@ export interface GarageDoorSensorsProperty {
             playalarm: number;
             ota: number;
             needota: number;
-        }
+        };
     };
 }
 
 export interface FloodlightDetectionRangeT8425Property {
     cur_mode: number;
     test_mode: number;
-    mode0:Array<{
+    mode0: Array<{
         id: number;
         sst: number;
     }>;
-    mode1:Array<{
+    mode1: Array<{
         id: number;
         sst: number;
     }>;
-    mode2:Array<{
+    mode2: Array<{
         id: number;
         sst: number;
     }>;

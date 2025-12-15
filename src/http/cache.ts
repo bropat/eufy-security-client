@@ -1,12 +1,10 @@
 export class Cache extends Map {
-
     private ttl = 60000;
-    private schedules  = new Map();
+    private schedules = new Map();
 
     constructor(ttl?: number) {
         super();
-        if (ttl !== undefined)
-            this.ttl = ttl;
+        if (ttl !== undefined) this.ttl = ttl;
     }
 
     public delete(key: any): boolean {

@@ -1,4 +1,4 @@
-import * as mqtt from "mqtt"
+import * as mqtt from "mqtt";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { readFileSync } from "fs";
 import * as path from "path";
@@ -11,7 +11,6 @@ import { rootMainLogger, rootMQTTLogger } from "../logging";
 import { ensureError } from "../error";
 
 export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
-
     private readonly CLIENT_ID_FORMAT = "android_EufySecurity_<user_id>_<android_id>";
     private readonly USERNAME_FORMAT = "eufy_<user_id>";
     private readonly SUBSCRIBE_NOTICE_FORMAT = "/phone/<user_id>/notice";
@@ -59,7 +58,7 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
     }
 
     private getMQTTBrokerUrl(apiBase: string): string {
-        switch(apiBase) {
+        switch (apiBase) {
             case "https://security-app.eufylife.com":
                 return "mqtts://security-mqtt.eufylife.com";
             case "https://security-app-ci.eufylife.com":
@@ -81,7 +80,15 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
         this.androidID = androidID;
         this.apiBase = apiBase;
         this.email = email;
-        if (!this.connected && !this.connecting && this.clientID && this.androidID && this.apiBase && this.email && this.subscribeLocks.length > 0) {
+        if (
+            !this.connected &&
+            !this.connecting &&
+            this.clientID &&
+            this.androidID &&
+            this.apiBase &&
+            this.email &&
+            this.subscribeLocks.length > 0
+        ) {
             this.connecting = true;
             this.client = mqtt.connect(this.getMQTTBrokerUrl(apiBase), {
                 keepalive: 60,
@@ -93,7 +100,7 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
                 password: email,
                 ca: readFileSync(path.join(__dirname, "./mqtt-eufy.crt")),
                 clientId: this.CLIENT_ID_FORMAT.replace("<user_id>", clientID).replace("<android_id>", androidID),
-                rejectUnauthorized: false  // Some eufy mqtt servers have an expired certificate :(
+                rejectUnauthorized: false, // Some eufy mqtt servers have an expired certificate :(
             });
             this.client.on("connect", (_connack) => {
                 this.connected = true;
@@ -115,7 +122,12 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
             this.client.on("error", (error) => {
                 this.connecting = false;
                 rootMQTTLogger.error("MQTT Error", { error: getError(error) });
-                if ((error as any).code === 1 || (error as any).code === 2 || (error as any).code === 4 || (error as any).code === 5)
+                if (
+                    (error as any).code === 1 ||
+                    (error as any).code === 2 ||
+                    (error as any).code === 4 ||
+                    (error as any).code === 5
+                )
                     this.client?.end();
             });
             this.client.on("message", (topic, message, _packet) => {
@@ -131,14 +143,21 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
     }
 
     private _subscribeLock(deviceSN: string): void {
-        this.client?.subscribe(this.SUBSCRIBE_LOCK_FORMAT.replace("<device_sn>", deviceSN), { qos: 1 }, (error, granted) => {
-            if (error) {
-                rootMQTTLogger.error(`Subscribe error for lock ${deviceSN}`, { error: getError(error), deviceSN: deviceSN });
+        this.client?.subscribe(
+            this.SUBSCRIBE_LOCK_FORMAT.replace("<device_sn>", deviceSN),
+            { qos: 1 },
+            (error, granted) => {
+                if (error) {
+                    rootMQTTLogger.error(`Subscribe error for lock ${deviceSN}`, {
+                        error: getError(error),
+                        deviceSN: deviceSN,
+                    });
+                }
+                if (granted) {
+                    rootMQTTLogger.info(`Successfully registered to MQTT notifications for lock ${deviceSN}`);
+                }
             }
-            if (granted) {
-                rootMQTTLogger.info(`Successfully registered to MQTT notifications for lock ${deviceSN}`);
-            }
-        });
+        );
     }
 
     public subscribeLock(deviceSN: string): void {
@@ -164,5 +183,4 @@ export class MQTTService extends TypedEmitter<MQTTServiceEvents> {
             this.connecting = false;
         }
     }
-
 }
