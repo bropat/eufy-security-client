@@ -623,7 +623,7 @@ export const buildTalkbackAudioFrameHeader = (audioData: Buffer, channel = 0): B
 
 export const decodeP2PCloudIPs = (data: string): Array<Address> => {
     const lookupTable = Buffer.from("4959433db5bf6da347534f6165e371e9677f02030badb3892b2f35c16b8b959711e5a70deff1050783fb9d3bc5c713171d1f2529d3df", "hex");
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const [encoded, name = "name not included"] = data.split(":");
     const output = Buffer.alloc(encoded.length / 2);
 
@@ -830,7 +830,7 @@ export const getSmartLockP2PCommand = function(deviceSN: string, user_id: string
 
 export const readNullTerminatedBuffer = (input: Buffer): Buffer => {
     const index = input.indexOf(new Uint8Array([0]));
-    
+
     if (index === -1) {
         const result = Buffer.alloc(input.length)
         input.copy(result);
