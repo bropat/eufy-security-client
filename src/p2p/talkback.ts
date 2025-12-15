@@ -1,26 +1,24 @@
 import { Transform } from "stream";
 
 export class TalkbackStream extends Transform {
-  private isStreaming = false;
 
-  constructor() {
-    super();
-  }
+    private isStreaming = false;
 
-  _transform(
-    data: Buffer,
-    _encoding: string,
-    callback: (err?: Error | null) => void,
-  ): void {
-    if (this.isStreaming) this.push(data);
-    callback();
-  }
+    constructor() {
+        super();
+    }
 
-  public startTalkback(): void {
-    this.isStreaming = true;
-  }
+    _transform(data: Buffer, _encoding: string, callback: (err?: Error | null) => void): void {
+        if(this.isStreaming)
+            this.push(data);
+        callback();
+    }
 
-  public stopTalkback(): void {
-    this.isStreaming = false;
-  }
+    public startTalkback(): void {
+        this.isStreaming = true;
+    }
+
+    public stopTalkback(): void {
+        this.isStreaming = false;
+    }
 }
