@@ -45,6 +45,11 @@
             "got": ["./node_modules/got/dist/source"]
         },
 
+        "types": ["node", "jest"],
+      //  "typeRoots": ["./@types"]
+        "isolatedModules": true
+
+
     },
     "include": ["src/**/*.ts"],
     "exclude": ["build/**", "node_modules/**"],
