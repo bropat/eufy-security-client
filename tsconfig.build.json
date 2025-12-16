@@ -6,6 +6,7 @@
         "checkJs": false,
         "noEmit": false,
         "declaration": true,
+        "isolatedModules": false
 
     },
     "include": [
