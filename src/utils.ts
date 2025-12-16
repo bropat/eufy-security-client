@@ -141,7 +141,7 @@ export const parseValueBoolean = (metadata: PropertyMetadataAny, value: unknown,
  */
 export const parseValueNumber = (metadata: PropertyMetadataAny, value: unknown) : Number => {
   let successParsing : boolean = false;
-  let parsedValue: Number = 0;
+  let parsedValue: number = 0;
   let causeError: undefined | Error = undefined;
   switch (typeof value) {
     case "number":
@@ -226,7 +226,7 @@ export const parseValueString= (metadata: PropertyMetadataAny, value: unknown): 
  * @param metadata
  * @param value
  */
-export const parseValueObject =  (metadata: PropertyMetadataAny, value: unknown): Any => {
+export const parseValueObject =  (metadata: PropertyMetadataAny, value: unknown): any => {
   if (value === null) {
     throw new InvalidPropertyValueError("Property expects an object value", {
       context: {
@@ -290,7 +290,7 @@ export const parseValue = function (
  * @param data
  * @param log
  */
-export const parseJSON = function (data: string, log: Category): T | undefined {
+export const parseJSON = function (data: string, log: Category): any {
   try {
     return JSON.parse(data.replace(/[\0]+$/g, ""));
   } catch (err) {
