@@ -11,7 +11,7 @@
   "scripts": {
     "build:ts": "tsc -p tsconfig.build.json && npm run copy-proto-build",
     "copy-proto-build": "npx copyfiles -u 1 \"src/**/*.proto\" \"src/**/*.crt\" build",
-    "test": "jest",
+    "test": "jest --coverage",
     "build": "npm run build:ts",
     "watch:ts": "tsc -p tsconfig.build.json --watch",
     "watch": "npm run watch:ts",
