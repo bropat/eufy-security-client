@@ -150,8 +150,10 @@ export const parseValueNumber = (metadata: PropertyMetadataAny, value: unknown) 
       break;
     case "string":
       try {
-        successParsing = true;
         parsedValue = Number.parseInt(value);
+        // Ensure the value is not an invalid number
+        if (!isNaN(parsedValue))
+          successParsing = true;
       } catch (err) {
         causeError = ensureError(err);
       }
@@ -196,6 +198,7 @@ export const parseValueString= (metadata: PropertyMetadataAny, value: unknown): 
       parsedValue = value;
       break;
     case "boolean":
+      successParsing = true;
       parsedValue = value ? "true" : "false";
       break;
     default:
@@ -277,7 +280,7 @@ export const parseValue = function (
       },
     );
   }
-  return value;
+  return parsedValue;
 };
 
 
