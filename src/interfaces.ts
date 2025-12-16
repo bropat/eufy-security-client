@@ -1,3 +1,9 @@
+/**
+ *  Collection of interfaces
+ *
+ */
+
+
 import { Readable } from "stream";
 
 import { Device } from "./http/device";
