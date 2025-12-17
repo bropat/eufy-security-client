@@ -1235,7 +1235,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isFloodLightT8426(type: number): boolean {
-      return (type == DeviceType.FLOODLIGHT_CAMERA_8426);
+        return (type == DeviceType.FLOODLIGHT_CAMERA_8426);
     }
 
     static isWallLightCam(type: number): boolean {
@@ -2360,7 +2360,7 @@ export class SoloCamera extends Camera {
 
     public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(station, message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
+        if (message.type !== undefined && message.event_type !== undefined) { // HB3 check removed
             if (message.device_sn === this.getSerial()) {
                 try {
                     loadEventImage(station, this.api, this, message, this.pictureEventTimeouts);
@@ -2450,7 +2450,7 @@ export class IndoorCamera extends Camera {
 
     public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(station, message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
+        if (message.type !== undefined && message.event_type !== undefined) { // HB3 check removed
             if (message.device_sn === this.getSerial()) {
                 try {
                     loadEventImage(station, this.api, this, message, this.pictureEventTimeouts);
@@ -2608,7 +2608,7 @@ export class DoorbellCamera extends Camera {
 
     public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(station, message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
+        if (message.type !== undefined && message.event_type !== undefined) { // HB3 check removed
             if (message.device_sn === this.getSerial()) {
                 try {
                     loadEventImage(station, this.api, this, message, this.pictureEventTimeouts);
@@ -2829,7 +2829,7 @@ export class FloodlightCamera extends Camera {
 
     public processPushNotification(station: Station, message: PushMessage, eventDurationSeconds: number): void {
         super.processPushNotification(station, message, eventDurationSeconds);
-        if (message.type !== undefined && message.event_type !== undefined && message.msg_type !== DeviceType.HB3) {
+        if (message.type !== undefined && message.event_type !== undefined) { // HB3 check removed
             if (message.device_sn === this.getSerial()) {
                 try {
                     loadEventImage(station, this.api, this, message, this.pictureEventTimeouts);
