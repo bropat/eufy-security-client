@@ -243,12 +243,13 @@ export interface StorageInfoBodyHB3 {
     con_video_hours: number;
     format_transaction: string;
     format_errcode: number;
-    hdd_info: StorageInfoHddHB3;
-    move_disk_info: StorageInfoMoveDiskInfoHB3;
-    emmc_info: StorageInfoEmmcHB3;
+    hdd_info: StorageInfoHdd;
+    move_disk_info: StorageInfoMoveDiskInfo;
+    emmc_info: StorageInfoEmmc;
+    sd_card_info?: StorageInfoSdCard;
 }
 
-export interface StorageInfoHddHB3 {
+export interface StorageInfoHdd {
     serial_number: string;
     disk_path: string;
     disk_size: number;
@@ -265,7 +266,7 @@ export interface StorageInfoHddHB3 {
     hdd_type: number;
 }
 
-export interface StorageInfoMoveDiskInfoHB3 {
+export interface StorageInfoMoveDiskInfo {
     disk_path: string;
     disk_size: number;
     disk_used: number;
@@ -273,7 +274,7 @@ export interface StorageInfoMoveDiskInfoHB3 {
     data: string[];
 }
 
-export interface StorageInfoEmmcHB3 {
+export interface StorageInfoEmmc {
     disk_nominal: number;
     disk_size: number;
     system_size: number;
@@ -286,6 +287,17 @@ export interface StorageInfoEmmcHB3 {
     eol_percent: number;
     work_status: number;
     health: number;
+}
+
+export interface StorageInfoSdCard {
+    serial_number: string;
+    disk_path: string;
+    disk_size: number;
+    system_size: number;
+    disk_used: number;
+    video_used: number;
+    video_size: number;
+    parted_status: number;
 }
 
 export interface SmartLockP2PCommandPayloadType {

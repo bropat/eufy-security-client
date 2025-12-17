@@ -32,7 +32,7 @@ export const generateSerialnumber = function(length: number): string {
 
 export const md5 = (contents: string): string => crypto.createHash("md5").update(contents).digest("hex");
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 export const handleUpdate = function(config: EufySecurityPersistentData, oldVersion: number): EufySecurityPersistentData {
     if (oldVersion <= 1.24) {
         config.cloud_token = "";
@@ -182,6 +182,7 @@ export const mergeDeep = function (target: Record<string, any> | undefined,	sour
 
 export function waitForEvent<T>(emitter: EventEmitter, event: string): Promise<T> {
     return new Promise((resolve, reject) => {
+
         const success = (val: T): void => {
             // eslint-disable-next-line @typescript-eslint/no-use-before-define
             emitter.off("error", fail);

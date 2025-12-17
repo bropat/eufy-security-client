@@ -104,7 +104,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
         try {
             if ((metadata.key === ParamType.DETECT_MOTION_SENSITIVE || metadata.key === ParamType.DETECT_MODE) && this.isWiredDoorbell()) {
@@ -1150,8 +1150,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_2K ||
             type == DeviceType.INDOOR_COST_DOWN_CAMERA ||
-            type == DeviceType.INDOOR_PT_CAMERA_S350 || 
-            type == DeviceType.INDOOR_PT_CAMERA_E30 || 
+            type == DeviceType.INDOOR_PT_CAMERA_S350 ||
+            type == DeviceType.INDOOR_PT_CAMERA_E30 ||
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220_V2)
@@ -1168,7 +1168,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_COST_DOWN_CAMERA ||
             type == DeviceType.OUTDOOR_PT_CAMERA ||
             type == DeviceType.INDOOR_PT_CAMERA_S350 ||
-            type == DeviceType.INDOOR_PT_CAMERA_E30 || 
+            type == DeviceType.INDOOR_PT_CAMERA_E30 ||
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220_V2)
@@ -1185,7 +1185,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     static isIndoorPanAndTiltCameraS350(type: number): boolean {
         if (type == DeviceType.INDOOR_PT_CAMERA_S350 ||
-            type == DeviceType.INDOOR_PT_CAMERA_E30 ||   
+            type == DeviceType.INDOOR_PT_CAMERA_E30 ||
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220_V2 ||
@@ -1224,7 +1224,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isFloodLightT8426(type: number): boolean {
-      return (type == DeviceType.FLOODLIGHT_CAMERA_8426);
+        return (type == DeviceType.FLOODLIGHT_CAMERA_8426);
     }
 
     static isWallLightCam(type: number): boolean {
@@ -2887,15 +2887,15 @@ export class WallLightCam extends Camera {
                 case CommandType.CMD_WALL_LIGHT_SETTINGS_MANUAL_COLORED_LIGHTING:
                 case CommandType.CMD_WALL_LIGHT_SETTINGS_MOTION_COLORED_LIGHTING:
                 case CommandType.CMD_WALL_LIGHT_SETTINGS_SCHEDULE_COLORED_LIGHTING:
-                    {
-                        const defaultColor: RGBColor = {
-                            red: 0,
-                            green: 0,
-                            blue: 0
-                        };
-                        const internal = value as unknown as { rgb_color: number; };
-                        return internal !== undefined ? (internal.rgb_color !== undefined ? DecimalToRGBColor(internal.rgb_color) : defaultColor) : defaultColor;
-                    }
+                {
+                    const defaultColor: RGBColor = {
+                        red: 0,
+                        green: 0,
+                        blue: 0
+                    };
+                    const internal = value as unknown as { rgb_color: number; };
+                    return internal !== undefined ? (internal.rgb_color !== undefined ? DecimalToRGBColor(internal.rgb_color) : defaultColor) : defaultColor;
+                }
                 case CommandType.CMD_WALL_LIGHT_SETTINGS_COLORED_LIGHTING_COLORS: {
                     const result: Array<RGBColor> = [];
                     for (const color of value as unknown as Array<InternalColoredLighting>) {
@@ -3341,53 +3341,53 @@ export class Lock extends Device {
                     case LockPushEvent.MANUAL_LOCK:
                     case LockPushEvent.PW_LOCK:
                     case LockPushEvent.TEMPORARY_PW_LOCK:
-                        {
-                            const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                            this.updateRawProperty(cmdType, "4", source);
+                    {
+                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        this.updateRawProperty(cmdType, "4", source);
 
-                            if (!isEmpty(personName)) {
-                                this.updateProperty(PropertyName.DevicePersonName, personName);
-                                this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(eventType));
-                                this.clearEventTimeout(DeviceEvent.Lock);
-                                this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DevicePersonName, "");
-                                    this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
-                                    this.eventTimeouts.delete(DeviceEvent.Lock);
-                                }, eventDurationSeconds * 1000));
-                            }
-                            break;
+                        if (!isEmpty(personName)) {
+                            this.updateProperty(PropertyName.DevicePersonName, personName);
+                            this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(eventType));
+                            this.clearEventTimeout(DeviceEvent.Lock);
+                            this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePersonName, "");
+                                this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
+                                this.eventTimeouts.delete(DeviceEvent.Lock);
+                            }, eventDurationSeconds * 1000));
                         }
+                        break;
+                    }
                     case LockPushEvent.APP_UNLOCK:
                     case LockPushEvent.AUTO_UNLOCK:
                     case LockPushEvent.FINGERPRINT_UNLOCK:
                     case LockPushEvent.MANUAL_UNLOCK:
                     case LockPushEvent.PW_UNLOCK:
                     case LockPushEvent.TEMPORARY_PW_UNLOCK:
-                        {
-                            const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                            this.updateRawProperty(cmdType, "3", source);
+                    {
+                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        this.updateRawProperty(cmdType, "3", source);
 
-                            if (!isEmpty(personName)) {
-                                this.updateProperty(PropertyName.DevicePersonName, personName);
-                                this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(eventType));
-                                this.clearEventTimeout(DeviceEvent.Lock);
-                                this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DevicePersonName, "");
-                                    this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
-                                    this.eventTimeouts.delete(DeviceEvent.Lock);
-                                }, eventDurationSeconds * 1000));
-                            }
-                            break;
+                        if (!isEmpty(personName)) {
+                            this.updateProperty(PropertyName.DevicePersonName, personName);
+                            this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(eventType));
+                            this.clearEventTimeout(DeviceEvent.Lock);
+                            this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePersonName, "");
+                                this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
+                                this.eventTimeouts.delete(DeviceEvent.Lock);
+                            }, eventDurationSeconds * 1000));
                         }
+                        break;
+                    }
                     case LockPushEvent.LOCK_MECHANICAL_ANOMALY:
                     case LockPushEvent.MECHANICAL_ANOMALY:
                     case LockPushEvent.VIOLENT_DESTRUCTION:
                     case LockPushEvent.MULTIPLE_ERRORS:
-                        {
-                            const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                            this.updateRawProperty(cmdType, "5", source);
-                            break;
-                        }
+                    {
+                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        this.updateRawProperty(cmdType, "5", source);
+                        break;
+                    }
                     case LockPushEvent.LOW_POWER:
                     case LockPushEvent.VERY_LOW_POWER:
                         this.updateProperty(PropertyName.DeviceLowBatteryAlert, true);
@@ -4001,15 +4001,15 @@ export class SmartSafe extends Device {
             if (property.key === CommandType.CMD_SMARTSAFE_REMOTE_OPEN_TYPE) {
                 switch (property.name) {
                     case PropertyName.DeviceRemoteUnlock:
-                        {
-                            const booleanProperty = property as PropertyMetadataBoolean;
-                            return value !== undefined ? (value === "0" || value === "1" ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
-                        }
+                    {
+                        const booleanProperty = property as PropertyMetadataBoolean;
+                        return value !== undefined ? (value === "0" || value === "1" ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                    }
                     case PropertyName.DeviceRemoteUnlockMasterPIN:
-                        {
-                            const booleanProperty = property as PropertyMetadataBoolean;
-                            return value !== undefined ? (value === "0" ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
-                        }
+                    {
+                        const booleanProperty = property as PropertyMetadataBoolean;
+                        return value !== undefined ? (value === "0" ? true : false) : booleanProperty.default !== undefined ? booleanProperty.default : false;
+                    }
                 }
             } else if (property.key === CommandType.CMD_SMARTSAFE_NOTIF) {
                 const booleanProperty = property as PropertyMetadataBoolean;
@@ -4077,12 +4077,12 @@ export class SmartSafe extends Device {
                     switch (message.event_type) {
                         //TODO: Finish smart safe push notification handling implementation
                         case SmartSafeEvent.LOCK_STATUS:
-                            {
-                                const eventValues = message.event_value as SmartSafeEventValueDetail;
+                        {
+                            const eventValues = message.event_value as SmartSafeEventValueDetail;
 
-                                if (eventValues.action === 0) {
-                                    this.updateRawProperty(CommandType.CMD_SMARTSAFE_LOCK_STATUS, "0", "push");
-                                    /*
+                            if (eventValues.action === 0) {
+                                this.updateRawProperty(CommandType.CMD_SMARTSAFE_LOCK_STATUS, "0", "push");
+                                /*
                                         type values:
                                             1: Unlocked by PIN
                                             2: Unlocked by User
@@ -4090,50 +4090,50 @@ export class SmartSafe extends Device {
                                             4: Unlocked by App
                                             5: Unlocked by Dual Unlock
                                     */
-                                } else if (eventValues.action === 1) {
-                                    this.updateRawProperty(CommandType.CMD_SMARTSAFE_LOCK_STATUS, "1", "push");
-                                } else if (eventValues.action === 2) {
-                                    this.jammedEvent(eventDurationSeconds);
-                                } else if (eventValues.action === 3) {
-                                    this.lowBatteryEvent(eventDurationSeconds);
-                                }
-                                break;
-                            }
-                        case SmartSafeEvent.ALARM_911:
-                            {
-                                const eventValue = message.event_value as number;
-                                this.alarm911Event(eventValue, eventDurationSeconds);
-                                break;
-                            }
-                        case SmartSafeEvent.SHAKE_ALARM:
-                            {
-                                const eventValue = message.event_value as number;
-                                this.shakeEvent(eventValue, eventDurationSeconds);
-                                break;
-                            }
-                        case SmartSafeEvent.LONG_TIME_NOT_CLOSE:
-                            {
-                                const eventValue = message.event_value as number;
-                                if (eventValue === 1) {
-                                    this.updateProperty(PropertyName.DeviceLongTimeNotCloseAlert, true);
-                                    this.clearEventTimeout(DeviceEvent.LongTimeNotClose);
-                                    this.eventTimeouts.set(DeviceEvent.LongTimeNotClose, setTimeout(async () => {
-                                        this.updateProperty(PropertyName.DeviceLongTimeNotCloseAlert, false);
-                                        this.eventTimeouts.delete(DeviceEvent.LongTimeNotClose);
-                                    }, eventDurationSeconds * 1000));
-                                }
-                                break;
-                            }
-                        case SmartSafeEvent.LOW_POWER:
-                            {
+                            } else if (eventValues.action === 1) {
+                                this.updateRawProperty(CommandType.CMD_SMARTSAFE_LOCK_STATUS, "1", "push");
+                            } else if (eventValues.action === 2) {
+                                this.jammedEvent(eventDurationSeconds);
+                            } else if (eventValues.action === 3) {
                                 this.lowBatteryEvent(eventDurationSeconds);
-                                break;
                             }
+                            break;
+                        }
+                        case SmartSafeEvent.ALARM_911:
+                        {
+                            const eventValue = message.event_value as number;
+                            this.alarm911Event(eventValue, eventDurationSeconds);
+                            break;
+                        }
+                        case SmartSafeEvent.SHAKE_ALARM:
+                        {
+                            const eventValue = message.event_value as number;
+                            this.shakeEvent(eventValue, eventDurationSeconds);
+                            break;
+                        }
+                        case SmartSafeEvent.LONG_TIME_NOT_CLOSE:
+                        {
+                            const eventValue = message.event_value as number;
+                            if (eventValue === 1) {
+                                this.updateProperty(PropertyName.DeviceLongTimeNotCloseAlert, true);
+                                this.clearEventTimeout(DeviceEvent.LongTimeNotClose);
+                                this.eventTimeouts.set(DeviceEvent.LongTimeNotClose, setTimeout(async () => {
+                                    this.updateProperty(PropertyName.DeviceLongTimeNotCloseAlert, false);
+                                    this.eventTimeouts.delete(DeviceEvent.LongTimeNotClose);
+                                }, eventDurationSeconds * 1000));
+                            }
+                            break;
+                        }
+                        case SmartSafeEvent.LOW_POWER:
+                        {
+                            this.lowBatteryEvent(eventDurationSeconds);
+                            break;
+                        }
                         case SmartSafeEvent.INPUT_ERR_MAX:
-                            {
-                                this.wrongTryProtectAlarmEvent(eventDurationSeconds);
-                                break;
-                            }
+                        {
+                            this.wrongTryProtectAlarmEvent(eventDurationSeconds);
+                            break;
+                        }
                         default:
                             rootHTTPLogger.debug("SmartSafe process push notification - Unhandled smart safe notification event", message.event_type, message.event_time, message.device_sn);
                             break;
@@ -4197,21 +4197,21 @@ export class Tracker extends Device {
         try {
             switch (property.key) {
                 case TrackerCommandType.COMMAND_NEW_LOCATION:
-                    {
-                        if (value !== undefined && typeof value === "string") {
-                            const items = value.split(",");
-                            if (items.length === 3) {
-                                switch (property.name) {
-                                    case PropertyName.DeviceLocationCoordinates:
-                                        return `${items[1]},${items[0]}`;
-                                    case PropertyName.DeviceLocationLastUpdate:
-                                        return Number.parseInt(items[2]);
-                                    default: break;
-                                }
+                {
+                    if (value !== undefined && typeof value === "string") {
+                        const items = value.split(",");
+                        if (items.length === 3) {
+                            switch (property.name) {
+                                case PropertyName.DeviceLocationCoordinates:
+                                    return `${items[1]},${items[0]}`;
+                                case PropertyName.DeviceLocationLastUpdate:
+                                    return Number.parseInt(items[2]);
+                                default: break;
                             }
                         }
-                        break;
                     }
+                    break;
+                }
             }
         } catch (err) {
             const error = ensureError(err);
@@ -4335,53 +4335,53 @@ export class DoorbellLock extends DoorbellCamera {
                     case LockPushEvent.MANUAL_LOCK:
                     case LockPushEvent.PW_LOCK:
                     case LockPushEvent.TEMPORARY_PW_LOCK:
-                        {
-                            const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                            this.updateRawProperty(cmdType, "4", "push");
+                    {
+                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        this.updateRawProperty(cmdType, "4", "push");
 
-                            if (!isEmpty(message.person_name)) {
-                                this.updateProperty(PropertyName.DevicePersonName, message.person_name!);
-                                this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(message.event_type));
-                                this.clearEventTimeout(DeviceEvent.Lock);
-                                this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DevicePersonName, "");
-                                    this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
-                                    this.eventTimeouts.delete(DeviceEvent.Lock);
-                                }, eventDurationSeconds * 1000));
-                            }
-                            break;
+                        if (!isEmpty(message.person_name)) {
+                            this.updateProperty(PropertyName.DevicePersonName, message.person_name!);
+                            this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(message.event_type));
+                            this.clearEventTimeout(DeviceEvent.Lock);
+                            this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePersonName, "");
+                                this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
+                                this.eventTimeouts.delete(DeviceEvent.Lock);
+                            }, eventDurationSeconds * 1000));
                         }
+                        break;
+                    }
                     case LockPushEvent.APP_UNLOCK:
                     case LockPushEvent.AUTO_UNLOCK:
                     case LockPushEvent.FINGERPRINT_UNLOCK:
                     case LockPushEvent.MANUAL_UNLOCK:
                     case LockPushEvent.PW_UNLOCK:
                     case LockPushEvent.TEMPORARY_PW_UNLOCK:
-                        {
-                            const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                            this.updateRawProperty(cmdType, "3", "push");
+                    {
+                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        this.updateRawProperty(cmdType, "3", "push");
 
-                            if (!isEmpty(message.person_name)) {
-                                this.updateProperty(PropertyName.DevicePersonName, message.person_name!);
-                                this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(message.event_type));
-                                this.clearEventTimeout(DeviceEvent.Lock);
-                                this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
-                                    this.updateProperty(PropertyName.DevicePersonName, "");
-                                    this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
-                                    this.eventTimeouts.delete(DeviceEvent.Lock);
-                                }, eventDurationSeconds * 1000));
-                            }
-                            break;
+                        if (!isEmpty(message.person_name)) {
+                            this.updateProperty(PropertyName.DevicePersonName, message.person_name!);
+                            this.updateProperty(PropertyName.DeviceLockEventOrigin, getLockEventType(message.event_type));
+                            this.clearEventTimeout(DeviceEvent.Lock);
+                            this.eventTimeouts.set(DeviceEvent.Lock, setTimeout(async () => {
+                                this.updateProperty(PropertyName.DevicePersonName, "");
+                                this.updateProperty(PropertyName.DeviceLockEventOrigin, 0);
+                                this.eventTimeouts.delete(DeviceEvent.Lock);
+                            }, eventDurationSeconds * 1000));
                         }
+                        break;
+                    }
                     case LockPushEvent.LOCK_MECHANICAL_ANOMALY:
                     case LockPushEvent.MECHANICAL_ANOMALY:
                     case LockPushEvent.VIOLENT_DESTRUCTION:
                     case LockPushEvent.MULTIPLE_ERRORS:
-                        {
-                            const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
-                            this.updateRawProperty(cmdType, "5", "push");
-                            break;
-                        }
+                    {
+                        const cmdType = this.isLockBle() || this.isLockBleNoFinger() ? CommandType.CMD_DOORLOCK_GET_STATE : CommandType.CMD_SMARTLOCK_QUERY_STATUS;
+                        this.updateRawProperty(cmdType, "5", "push");
+                        break;
+                    }
                     case LockPushEvent.LOW_POWER:
                     case LockPushEvent.VERY_LOW_POWER:
                         this.updateProperty(PropertyName.DeviceLowBatteryAlert, true);

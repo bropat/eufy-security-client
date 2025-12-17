@@ -186,7 +186,7 @@ export class Station extends TypedEmitter<StationEvents> {
         });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     protected handlePropertyChange(metadata: PropertyMetadataAny, oldValue: PropertyValue, newValue: PropertyValue): void {
         if (metadata.name === PropertyName.StationCurrentMode) {
             //TODO: Finish implementation!
@@ -448,7 +448,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public static isStation(type: number): boolean {
-        return type === DeviceType.STATION || type === DeviceType.HB3 || type === DeviceType.MINIBASE_CHIME;
+        return type === DeviceType.STATION || type === DeviceType.HB3 || type === DeviceType.MINIBASE_CHIME || type === DeviceType.HOMEBASE_MINI;
     }
 
     public isStation(): boolean {
@@ -629,7 +629,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 value: parsedValue,
                 source: "p2p"
             };
-            let deviceSerial = this._getDeviceSerial(channel);
+            const deviceSerial = this._getDeviceSerial(channel);
             if (deviceSerial !== undefined) {
                 this.emit("raw device property changed", deviceSerial, params);
             }
@@ -756,9 +756,9 @@ export class Station extends TypedEmitter<StationEvents> {
 
     public getStorageInfoEx(): void {
         rootHTTPLogger.debug(`Station send get storage info command`, { stationSN: this.getSerial() });
-        if (this.isStation() && this.rawStation.device_type !== DeviceType.HB3 && isGreaterEqualMinVersion("3.2.7.6", this.getSoftwareVersion())) {
+        if (this.isStation() && this.rawStation.device_type !== DeviceType.HB3 && this.rawStation.device_type !== DeviceType.HOMEBASE_MINI && isGreaterEqualMinVersion("3.2.7.6", this.getSoftwareVersion())) {
             this.p2pSession.sendCommandWithoutData(CommandType.CMD_SDINFO_EX, Station.CHANNEL);
-        } else if (this.rawStation.device_type === DeviceType.HB3) {
+        } else if (this.rawStation.device_type === DeviceType.HB3 || this.rawStation.device_type === DeviceType.HOMEBASE_MINI) {
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_SET_PAYLOAD,
                 value: JSON.stringify({
@@ -2124,7 +2124,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     return;
                 }
                 const aiDetectionType = device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number) !== undefined ? device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)! : "0";
-                let newAiDetectionType = getT8170DetectionMode(Number.parseInt(aiDetectionType), type as T8170DetectionTypes, value);
+                const newAiDetectionType = getT8170DetectionMode(Number.parseInt(aiDetectionType), type as T8170DetectionTypes, value);
                 this.p2pSession.sendCommandWithStringPayload({
                     commandType: CommandType.CMD_SET_PAYLOAD,
                     value: JSON.stringify({
@@ -2188,7 +2188,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     return;
                 }
                 const aiDetectionType = device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number) !== undefined ? device.getRawProperty(device.getPropertyMetadata(propertyData.name).key as number)! : "0";
-                let newAiDetectionType = getIndoorS350DetectionMode(Number.parseInt(aiDetectionType), type as IndoorS350DetectionTypes, value);
+                const newAiDetectionType = getIndoorS350DetectionMode(Number.parseInt(aiDetectionType), type as IndoorS350DetectionTypes, value);
                 this.p2pSession.sendCommandWithStringPayload({
                     commandType: CommandType.CMD_SET_PAYLOAD,
                     value: JSON.stringify({
@@ -11119,7 +11119,7 @@ export class Station extends TypedEmitter<StationEvents> {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     private onSequenceError(channel: number, command: number, sequence: number, serialnumber: string): void {
         //TODO: Implement command retry for lock devices in case von sequence mismatch error
         rootHTTPLogger.debug(`Station lock sequence error`, { stationSN: this.getSerial(), channel: channel, command: command, sequence: sequence, serialnumber: serialnumber });
