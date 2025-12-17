@@ -1,0 +1,30 @@
+
+name: Jest
+
+on:
+  push:
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ "master", "develop" ]
+  schedule:
+    - cron: '25 6 * * 6'
+
+jobs:
+  eslint:
+    name: Run jest test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Jest
+        run: |
+          npm ci
+
+      - name: Run Jest
+        run: npm run test
+        continue-on-error: false

@@ -1,3 +1,5 @@
+import { version } from '../package.json';
+
 export * from "./http";
 export * from "./p2p";
 export * from "./push";
@@ -7,4 +9,4 @@ export * from "./error";
 export { LoggingCategories, LogLevel, Logger, dummyLogger } from "./logging";
 
 
-export const libVersion: string = require("../package.json").version;
+export const libVersion: string = version
