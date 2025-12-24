@@ -26,6 +26,7 @@ export enum DeviceType {
     PROFESSIONAL_247 = 24, // T8600
     MINIBASE_CHIME = 25,
     CAMERA3_PRO = 26,
+    HOMEBASE_MINI = 28, //T8025
     INDOOR_CAMERA = 30,
     INDOOR_PT_CAMERA = 31,
     SOLO_CAMERA = 32,
@@ -83,7 +84,8 @@ export enum DeviceType {
     WALL_LIGHT_CAM_81A0 = 10005,
     INDOOR_PT_CAMERA_C220 = 10008, // T8W11C
     INDOOR_PT_CAMERA_C210 = 10009, // T8419 / T8W11P?
-    INDOOR_PT_CAMERA_C220_V2 = 10010 // T8W11C (Type 10010)
+    INDOOR_PT_CAMERA_C220_V2 = 10010, // T8W11C (Type 10010)
+    CAMERA_C35 = 10035 //T8110
 }
 
 export enum ParamType {
@@ -887,6 +889,7 @@ export enum PropertyName {
     StationSdCapacityAvailable = "sdCapacityAvailable",
     StationStorageInfoEmmc = "storageInfoEmmc",
     StationStorageInfoHdd = "storageInfoHdd",
+    StationStorageInfoSdCard = "storageInfoSdCard",
     StationCrossCameraTracking = "crossCameraTracking",
     StationContinuousTrackingTime = "continuousTrackingTime",
     StationTrackingAssistance = "trackingAssistance",
@@ -967,6 +970,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
         24: "eufyCam E330 (Professional)",
         25: "MiniBase Chime",
         26: "eufyCam S3 Pro",
+        28: "HomeBase Mini (T8025)",
         30: "Indoor Camera",
         31: "Indoor Camera PT",
         32: "Solo Camera",
@@ -1023,6 +1027,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
         10008: "Indoor Cam C220 (T8W11C)",
         10009: "Indoor Cam C210 (T8419)",
         10010: "Indoor Cam C220 (T8W11C)",
+        10035: "eufyCam C35 (T8110)",
     },
 }
 
@@ -2401,6 +2406,16 @@ export const DeviceVideoStreamingQualityBatteryDoorbellProperty: PropertyMetadat
         7: "Medium / High Encoding",
         8: "High / High Encoding",
     },
+}
+
+export const DeviceVideoStreamingQualityCameraC35Property: PropertyMetadataNumeric = {
+    ...DeviceVideoStreamingQualityProperty,
+    key: CommandType.CMD_SET_RESOLUTION,
+    states: {
+        0: "Auto",
+        1: "High",
+        2: "Medium"
+    }
 }
 
 export const DeviceVideoStreamingQualityCameraProperty: PropertyMetadataNumeric = {
@@ -8078,6 +8093,68 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceLeftBehindAlarm]: DeviceLeftBehindAlarmProperty,
         [PropertyName.DeviceFindPhone]: DeviceFindPhoneProperty,
     },
+    [DeviceType.CAMERA_C35]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DevicePicture]: DevicePictureProperty,
+        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        [PropertyName.DeviceState]: DeviceStateProperty,
+        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
+        [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
+        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
+        [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
+        [PropertyName.DeviceLightSettingsEnable]: DeviceFloodlightLightSettingsEnableProperty,
+        [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceDetectionStatisticsWorkingDays]: DeviceDetectionStatisticsWorkingDaysProperty,
+        [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
+        [PropertyName.DeviceDetectionStatisticsDetectedEvents]: DeviceDetectionStatisticsDetectedEventsProperty,
+        [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
+        [PropertyName.DeviceChimeHomebaseRingtoneVolume]: DeviceChimeHomebaseRingtoneVolumeBatteryDoorbellProperty,
+        [PropertyName.DeviceImageMirrored]: DeviceImageMirroredProperty,
+        [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredProperty,
+        [PropertyName.DeviceDetectionStatisticsRecordedEvents]: DeviceDetectionStatisticsRecordedEventsProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
+        [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
+        [PropertyName.DeviceNotificationRing]: DeviceNotificationRingProperty,
+        [PropertyName.DeviceContinuousRecordingType]: DeviceContinuousRecordingTypeProperty,
+        [PropertyName.DeviceMotionDetectionTypeHuman]: DeviceMotionHB3DetectionTypeHumanProperty,
+        [PropertyName.DeviceMotionDetectionTypeVehicle]: DeviceMotionHB3DetectionTypeVehicleProperty,
+        [PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionHB3DetectionTypeAllOtherMotionsProperty,
+        [PropertyName.DeviceMotionDetectionTypePet]: DeviceMotionHB3DetectionTypePetProperty,
+        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
+        [PropertyName.DeviceNotificationPerson]: DeviceNotificationPersonS350Property,
+        [PropertyName.DeviceNotificationPet]: DeviceNotificationPetS350Property,
+        [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionS350Property,
+        [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
+        [PropertyName.DeviceContinuousRecording]: DeviceContinuousRecordingProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityCameraC35Property,
+        [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeBatteryDoorbellProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
+        [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoStreamingQualityCameraProperty,
+        [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty,
+        [PropertyName.DeviceDualCamWatchViewMode]: DeviceDualCamWatchViewModeProperty,
+        [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
+        [PropertyName.DeviceVideoWDR]: DeviceWDRProperty,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityCamera2Property,
+        [PropertyName.DeviceChimeHomebaseRingtoneType]: DeviceChimeHomebaseRingtoneTypeBatteryDoorbellProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+        [PropertyName.DeviceLightSettingsBrightnessMotion]: DeviceFloodlightLightSettingsBrightnessMotionProperty,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
+        [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+        [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+    },
 }
 
 DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
@@ -8495,6 +8572,15 @@ export const StationStorageInfoHddProperty: PropertyMetadataObject = {
     type: "object",
 }
 
+export const StationStorageInfoSdCardProperty: PropertyMetadataObject = {
+    key: "storage_info_sdcard",
+    name: PropertyName.StationStorageInfoSdCard,
+    label: "Storage Info Sd Card",
+    readable: true,
+    writeable: false,
+    type: "object",
+}
+
 export const StationContinuousTrackingTimeProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_SET_CONTINUOUS_TRACKING_TIME,
     name: PropertyName.StationContinuousTrackingTime,
@@ -8678,6 +8764,38 @@ export const StationProperties: Properties = {
         [PropertyName.StationSdStatus]: StationSdStatusProperty,
         [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
         [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
+    },
+    [DeviceType.HOMEBASE_MINI]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+        [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationTimeZone]: StationTimeZoneProperty,
+        [PropertyName.StationPromptVolume]: StationPromptVolumeProperty,
+        [PropertyName.StationAlarmVolume]: StationAlarmVolumeProperty,
+        [PropertyName.StationAlarmTone]: StationAlarmToneProperty,
+        [PropertyName.StationNotificationSwitchModeSchedule]: StationNotificationSwitchModeScheduleProperty,
+        [PropertyName.StationNotificationSwitchModeGeofence]: StationNotificationSwitchModeGeofenceProperty,
+        [PropertyName.StationNotificationSwitchModeApp]: StationNotificationSwitchModeAppProperty,
+        [PropertyName.StationNotificationSwitchModeKeypad]: StationNotificationSwitchModeKeypadProperty,
+        [PropertyName.StationNotificationStartAlarmDelay]: StationNotificationStartAlarmDelayProperty,
+        [PropertyName.StationHomeSecuritySettings]: StationHomeSecuritySettings,
+        [PropertyName.StationAwaySecuritySettings]: StationAwaySecuritySettings,
+        [PropertyName.StationCustom1SecuritySettings]: StationCustom1SecuritySettings,
+        [PropertyName.StationCustom2SecuritySettings]: StationCustom2SecuritySettings,
+        [PropertyName.StationCustom3SecuritySettings]: StationCustom3SecuritySettings,
+        [PropertyName.StationOffSecuritySettings]: StationOffSecuritySettings,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+        [PropertyName.StationStorageInfoEmmc]: StationStorageInfoEmmcProperty,
+        [PropertyName.StationStorageInfoSdCard]: StationStorageInfoSdCardProperty,
+        [PropertyName.StationCrossCameraTracking]: StationCrossCameraTrackingProperty,
+        [PropertyName.StationContinuousTrackingTime]: StationContinuousTrackingTimeProperty,
+        [PropertyName.StationTrackingAssistance]: StationTrackingAssistanceProperty,
+        [PropertyName.StationCrossTrackingCameraList]: StationCrossTrackingCameraListProperty,
+        [PropertyName.StationCrossTrackingGroupList]: StationCrossTrackingGroupListProperty,
     },
     [DeviceType.INDOOR_CAMERA]: {
         ...BaseStationProperties,
@@ -9144,6 +9262,21 @@ export const StationProperties: Properties = {
         [PropertyName.StationAlarm]: StationAlarmProperty,
         [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     },
+    [DeviceType.CAMERA_C35]: {
+        ...BaseStationProperties,
+        [PropertyName.StationLANIpAddress]: StationLanIpAddressStandaloneProperty,
+        [PropertyName.StationMacAddress]: StationMacAddressProperty,
+        [PropertyName.StationGuardMode]: StationGuardModeProperty,
+        [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
+        [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationAlarm]: StationAlarmProperty,
+        [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+        [PropertyName.StationNotificationSwitchModeSchedule]: StationNotificationSwitchModeScheduleProperty,
+        [PropertyName.StationNotificationSwitchModeApp]: StationNotificationSwitchModeAppProperty,
+        [PropertyName.StationSdStatus]: StationSdStatusProperty,
+        [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
+        [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
+    },
 }
 
 StationProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = StationProperties[DeviceType.INDOOR_PT_CAMERA_C220];
@@ -9492,6 +9625,9 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
         CommandName.DeviceSnooze,
+        CommandName.DevicePresetPosition,
+        CommandName.DeviceSavePresetPosition,
+        CommandName.DeviceDeletePresetPosition,
     ],
     [DeviceType.OUTDOOR_PT_CAMERA]: [
         CommandName.DeviceStartLivestream,
@@ -9813,6 +9949,15 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStopTalkback,
         CommandName.DeviceOpen,
     ],
+    [DeviceType.CAMERA_C35]: [
+        CommandName.DeviceStartLivestream,
+        CommandName.DeviceStopLivestream,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
+    ],
 }
 
 DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220];
@@ -9829,6 +9974,15 @@ export const StationCommands: Commands = {
         CommandName.StationDatabaseDelete,
     ],
     [DeviceType.HB3]: [
+        CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
+        CommandName.StationDownloadImage,
+        CommandName.StationDatabaseQueryLatestInfo,
+        CommandName.StationDatabaseQueryLocal,
+        CommandName.StationDatabaseCountByDate,
+        CommandName.StationDatabaseDelete,
+    ],
+    [DeviceType.HOMEBASE_MINI]: [
         CommandName.StationReboot,
         CommandName.StationTriggerAlarmSound,
         CommandName.StationDownloadImage,
@@ -10174,6 +10328,15 @@ export const StationCommands: Commands = {
     [DeviceType.SMART_TRACK_CARD]: [],
     [DeviceType.SMART_TRACK_LINK]: [],
     [DeviceType.SMART_DROP]: [
+    ],
+    [DeviceType.CAMERA_C35]: [
+        CommandName.StationReboot,
+        CommandName.StationTriggerAlarmSound,
+        CommandName.StationDownloadImage,
+        CommandName.StationDatabaseQueryLatestInfo,
+        CommandName.StationDatabaseQueryLocal,
+        CommandName.StationDatabaseCountByDate,
+        CommandName.StationDatabaseDelete,
     ],
 }
 

@@ -15,7 +15,7 @@ import { Station } from "./station";
 import { CommandName, PropertyName, SourceType } from "./types";
 import { TalkbackStream } from "../p2p/talkback";
 
-export type PropertyValue = number | boolean | string | object;
+export type PropertyValue = number | boolean | string | object | undefined;
 
 export interface PropertyValues {
     [index: string]: PropertyValue;

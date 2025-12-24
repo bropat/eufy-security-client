@@ -2288,7 +2288,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         this.getStationDevice(station.getSerial(), channel).then((device: Device) => {
             if (device.hasProperty(PropertyName.DeviceLight)) {
                 const metadataLight = device.getPropertyMetadata(PropertyName.DeviceLight);
-                device.updateRawProperty(metadataLight.key as number, enabled === true ? "1" : "0", "p2p");
+                device.updateRawProperty(metadataLight.key as number, enabled ? "1" : "0", "p2p");
             }
         }).catch((err) => {
             const error = ensureError(err);
@@ -2713,6 +2713,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         }
         if(station.hasProperty(PropertyName.StationStorageInfoHdd)) {
             station.updateProperty(PropertyName.StationStorageInfoHdd, storageInfo.hdd_info);
+        }
+        if (storageInfo.sd_card_info !== undefined && station.hasProperty(PropertyName.StationStorageInfoSdCard)) {
+            station.updateProperty(PropertyName.StationStorageInfoSdCard, storageInfo.sd_card_info);
         }
     }
 

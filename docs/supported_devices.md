@@ -5,6 +5,7 @@
 | ![T8001 image](_media/homebase_small.jpg) | HomeBase (T8001) | :heavy_check_mark: |  |
 | ![T8002 image](_media/homebase_small.jpg) | HomeBase E (T8002) | :heavy_check_mark: :heavy_exclamation_mark: |  |
 | ![T8010 image](_media/homebase2_small.jpg) | HomeBase S280 (T8010; Homebase 2) | :heavy_check_mark: |  |
+| ![T8025 image](_media/homebasemini_small.jpg) | HomeBase mini (T8025) | :wrench: | Firmware: 4.0.4.8 (20221202) |
 | ![T8030 image](_media/homebase3_small.jpg) | HomeBase S380 (T8030; HomeBase 3) | :wrench: | Firmware: 3.1.0.8 (20221101) |
 | ![T8021 image](_media/smartlockwifibridge_t8021_small.jpg) | Smart Lock Wi-Fi Bridge (T8021) | :heavy_check_mark: :wrench: |  |
 | ![T8023 image](_media/minibase_chime_T8023_small.jpg) | MiniBase Chime(T8023) | :heavy_check_mark: | Firmware: 3.3.1.5m_1.6 (20240103) |
@@ -24,6 +25,7 @@
 | ![T8123 image](_media/solocaml20_small.jpg) | SoloCam L40 (T8123) | :heavy_check_mark: | Firmware: 1.1.0.6 (20231210) |
 | ![T8B0 image](_media/solocamc210_small.jpg) | SoloCam C210 (T8B0) | :heavy_check_mark: | Firmware: 3.2.3.5 (20231218) |
 | ![T8124 image](_media/solocams40_small.jpg) | SoloCam S230 (T8124; SoloCam S40) | :heavy_check_mark: |  |
+| ![T8B0 image](_media/solocamc35_small.jpg) | SoloCam C35 (T8110) | :heavy_check_mark: | Firmware: 1.1.2.5 (20231218) |
 | ![T8134 image](_media/solocams220_small.jpg) | SoloCam S220 (T8134) | :heavy_check_mark: |  |
 | ![T8170 image](_media/solocams340_small.jpg) | SoloCam S340 (T8170) | :heavy_check_mark: | Firmware: 3.0.9.6 (20231125) |
 | ![T8171 image](_media/solocame30_small.jpg) | SoloCam E30 (T8171) | :wrench: | |

@@ -1,7 +1,7 @@
 {
   "name": "eufy-security-client",
   "version": "3.5.0",
-  "description": "Client to comunicate with Eufy-Security devices",
+  "description": "Client to communicate with Eufy-Security devices",
   "author": {
     "name": "bropat",
     "email": "patrick.broetto@gmail.com"
@@ -11,7 +11,7 @@
   "scripts": {
     "build:ts": "tsc -p tsconfig.build.json && npm run copy-proto-build",
     "copy-proto-build": "npx copyfiles -u 1 \"src/**/*.proto\" \"src/**/*.crt\" build",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --coverage",
     "build": "npm run build:ts",
     "watch:ts": "tsc -p tsconfig.build.json --watch",
     "watch": "npm run watch:ts",
@@ -43,7 +43,7 @@
     "@cospired/i18n-iso-languages": "^4.2.0",
     "crypto-js": "^4.2.0",
     "date-and-time": "^4.1.1",
-    "fs-extra": "^11.2.0",
+    "fs-extra": "^11.3.3",
     "got": "^14.4.2",
     "i18n-iso-countries": "^7.12.0",
     "image-type": "^5.2.0",
@@ -61,14 +61,18 @@
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
+    "@types/jest": "^29.5.12",
     "@types/node": "^20.16.10",
     "@types/node-rsa": "^1.1.4",
     "@types/node-schedule": "^2.1.7",
     "@types/qs": "^6.9.16",
-    "@typescript-eslint/eslint-plugin": "^7.5.0",
-    "@typescript-eslint/parser": "^7.5.0",
-    "eslint": "^8.57.0",
-    "typescript": "^5.5.4"
+    "@typescript-eslint/eslint-plugin": "^8.48.0",
+    "@typescript-eslint/parser": "^8.48.0 ",
+    "eslint": "^9.39.1",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.49.0"
   },
   "bugs": {
     "url": "https://github.com/bropat/eufy-security-client/issues"
