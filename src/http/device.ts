@@ -1188,8 +1188,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.INDOOR_PT_CAMERA_E30 ||
             type == DeviceType.INDOOR_PT_CAMERA_C210 ||
             type == DeviceType.INDOOR_PT_CAMERA_C220 ||
-            type == DeviceType.INDOOR_PT_CAMERA_C220_V2 ||
-            type == DeviceType.INDOOR_PT_CAMERA)
+            type == DeviceType.INDOOR_PT_CAMERA_C220_V2)
             return true;
         return false;
     }
@@ -1410,6 +1409,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     static isIndoorCamMini(type: number): boolean {
         return DeviceType.INDOOR_COST_DOWN_CAMERA == type;
+    }
+
+    static isIndoorCamC24(type: number): boolean {
+        return DeviceType.INDOOR_PT_CAMERA == type;
     }
 
     static isCamera1Product(type: number): boolean {
@@ -1781,6 +1784,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isIndoorCamMini(): boolean {
         return Device.isIndoorCamMini(this.rawDevice.device_type);
+    }
+
+    public isIndoorCamC24(): boolean {
+        return Device.isIndoorCamC24(this.rawDevice.device_type);
     }
 
     public isSoloCameras(): boolean {
