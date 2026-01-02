@@ -9614,6 +9614,9 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceStartTalkback,
         CommandName.DeviceStopTalkback,
         CommandName.DeviceSnooze,
+        CommandName.DevicePresetPosition,
+        CommandName.DeviceSavePresetPosition,
+        CommandName.DeviceDeletePresetPosition,
     ],
     [DeviceType.INDOOR_PT_CAMERA_C220]: [
         CommandName.DeviceStartLivestream,
