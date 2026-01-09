@@ -6,7 +6,7 @@ import { DeviceListResponse, Voice, GarageDoorSensorsProperty, FloodlightDetecti
 import { ParameterHelper } from "./parameter";
 import { DeviceEvents, PropertyValue, PropertyValues, PropertyMetadataAny, IndexedProperty, RawValues, PropertyMetadataNumeric, PropertyMetadataBoolean, PropertyMetadataString, Schedule, Voices, PropertyMetadataObject, DeviceConfig } from "./interfaces";
 import { CommandType, ESLAnkerBleConstant, TrackerCommandType } from "../p2p/types";
-import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImagePath, getLockEventType, hexDate, hexTime, hexWeek, isFloodlightT8425NotitficationEnabled, isHB3DetectionModeEnabled, isIndoorNotitficationEnabled, isIndoorS350DetectionModeEnabled, isPrioritySourceType, isSmartLockNotification, isT8170DetectionModeEnabled, loadEventImage, WritePayload } from "./utils";
+import { calculateCellularSignalLevel, calculateWifiSignalLevel, getAbsoluteFilePath, getDistances, getImagePath, getLockEventType, hexDate, hexTime, hexWeek, isFloodlightT8425NotificationEnabled, isHB3DetectionModeEnabled, isIndoorNotificationEnabled, isIndoorS350DetectionModeEnabled, isPrioritySourceType, isSmartLockNotification, isT8170DetectionModeEnabled, loadEventImage, WritePayload } from "./utils";
 import { DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds, isCharging } from "../p2p/utils";
 import { CusPushEvent, DoorbellPushEvent, LockPushEvent, IndoorPushEvent, SmartSafeEvent, HB3PairedDevicePushEvent, GarageDoorPushEvent, SmartDropOpen, SmartDropOpenedBy, SmartDropPushEvent } from "../push/types";
 import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
@@ -645,7 +645,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             ) && this.isIndoorPanAndTiltCameraS350()) {
                 const booleanProperty = property as PropertyMetadataBoolean;
                 try {
-                    return isIndoorNotitficationEnabled(Number.parseInt(value), property.name === PropertyName.DeviceNotificationAllOtherMotion ? IndoorS350NotificationTypes.ALL_OTHER_MOTION : property.name === PropertyName.DeviceNotificationPerson ? IndoorS350NotificationTypes.HUMAN : property.name === PropertyName.DeviceNotificationPet ? IndoorS350NotificationTypes.PET : property.name === PropertyName.DeviceNotificationCrying ? IndoorS350NotificationTypes.CRYING : IndoorS350NotificationTypes.ALL_SOUND);
+                    return isIndoorNotificationEnabled(Number.parseInt(value), property.name === PropertyName.DeviceNotificationAllOtherMotion ? IndoorS350NotificationTypes.ALL_OTHER_MOTION : property.name === PropertyName.DeviceNotificationPerson ? IndoorS350NotificationTypes.HUMAN : property.name === PropertyName.DeviceNotificationPet ? IndoorS350NotificationTypes.PET : property.name === PropertyName.DeviceNotificationCrying ? IndoorS350NotificationTypes.CRYING : IndoorS350NotificationTypes.ALL_SOUND);
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error("Device convert raw property - IndoorPanAndTiltCameraS350 notification Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -659,7 +659,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             ) && this.isFloodLightT8425()) {
                 const booleanProperty = property as PropertyMetadataBoolean;
                 try {
-                    return isFloodlightT8425NotitficationEnabled(Number.parseInt(value), property.name === PropertyName.DeviceNotificationAllOtherMotion ? FloodlightT8425NotificationTypes.ALL_OTHER_MOTION : property.name === PropertyName.DeviceNotificationPerson ? FloodlightT8425NotificationTypes.HUMAN : property.name === PropertyName.DeviceNotificationPet ? FloodlightT8425NotificationTypes.PET : FloodlightT8425NotificationTypes.VEHICLE);
+                    return isFloodlightT8425NotificationEnabled(Number.parseInt(value), property.name === PropertyName.DeviceNotificationAllOtherMotion ? FloodlightT8425NotificationTypes.ALL_OTHER_MOTION : property.name === PropertyName.DeviceNotificationPerson ? FloodlightT8425NotificationTypes.HUMAN : property.name === PropertyName.DeviceNotificationPet ? FloodlightT8425NotificationTypes.PET : FloodlightT8425NotificationTypes.VEHICLE);
                 } catch (err) {
                     const error = ensureError(err);
                     rootHTTPLogger.error("Device convert raw property - FloodLightT8425 notification Error", { error: getError(error), deviceSN: this.getSerial(), property: property, value: value });
@@ -1074,6 +1074,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.LOCK_85A3 ||
             type == DeviceType.LOCK_8506 ||
             type == DeviceType.LOCK_8502 ||
+            type == DeviceType.LOCK_85L0 ||
             type == DeviceType.SMART_SAFE_7400 ||
             type == DeviceType.SMART_SAFE_7401 ||
             type == DeviceType.SMART_SAFE_7402 ||
@@ -1242,7 +1243,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             Device.isLockWifiR20(type) ||
             Device.isLockWifiVideo(type) ||
             Device.isLockWifiT8506(type) ||
-            Device.isLockWifiT8502(type);
+            Device.isLockWifiT8502(type) ||
+            Device.isLockWifiT85L0(type);
     }
 
     static isLockKeypad(type: number): boolean {
@@ -1303,6 +1305,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (type == DeviceType.LOCK_WIFI && serialnumber.startsWith("T8520") && serialnumber.length > 6 && serialnumber.charAt(6) === "9")
             return true;
         return false;
+    }
+
+    static isLockWifiT85L0(type: number): boolean {
+        return DeviceType.LOCK_85L0 == type;
     }
 
     static isBatteryDoorbell1(type: number): boolean {
@@ -1535,7 +1541,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             sn.startsWith("T8502") ||
             sn.startsWith("T8504") ||
             sn.startsWith("T8506") ||
-            sn.startsWith("T8530");
+            sn.startsWith("T8530") ||
+            sn.startsWith("T85L0");
     }
 
     static isGarageCameraBySn(sn: string): boolean {
@@ -1693,6 +1700,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
     public isLockWifiT8520P(): boolean {
         return Device.isLockWifiT8520P(this.rawDevice.device_type, this.rawDevice.device_sn);
+    }
+
+    public isLockWifiT85L0(): boolean {
+        return Device.isLockWifiT85L0(this.rawDevice.device_type);
     }
 
     public isBatteryDoorbell1(): boolean {
