@@ -5287,6 +5287,30 @@ export const LockT8520PDeviceProperties: IndexedProperty = {
     [PropertyName.DevicePersonName]: DevicePersonNameProperty,
 };
 
+export const LockT85V0DeviceProperties: IndexedProperty = {
+    ...GenericDeviceProperties,
+    [PropertyName.DeviceBattery]: DeviceBatteryLockProperty,
+    [PropertyName.DeviceLocked]: DeviceLockedProperty,
+    [PropertyName.DeviceLockStatus]: DeviceAdvancedLockStatusProperty,
+    [PropertyName.DeviceAutoLock]: DeviceAutoLockProperty,
+    [PropertyName.DeviceAutoLockTimer]: DeviceAutoLockTimerProperty,
+    [PropertyName.DeviceAutoLockSchedule]: DeviceAutoLockScheduleProperty,
+    [PropertyName.DeviceAutoLockScheduleStartTime]: DeviceAutoLockScheduleStartTimeProperty,
+    [PropertyName.DeviceAutoLockScheduleEndTime]: DeviceAutoLockScheduleEndTimeProperty,
+    [PropertyName.DeviceOneTouchLocking]: DeviceOneTouchLockingProperty,
+    [PropertyName.DeviceWrongTryProtection]: DeviceWrongTryProtectionProperty,
+    [PropertyName.DeviceWrongTryAttempts]: DeviceWrongTryAttemptsProperty,
+    [PropertyName.DeviceWrongTryLockdownTime]: DeviceWrongTryLockdownTimeProperty,
+    [PropertyName.DeviceScramblePasscode]: DeviceScramblePasscodeProperty,
+    [PropertyName.DeviceSound]: DeviceSoundProperty,
+    [PropertyName.DeviceNotification]: DeviceNotificationSmartLockProperty,
+    [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedSmartLockProperty,
+    [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedSmartLockProperty,
+    [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+    [PropertyName.DeviceLockEventOrigin]: DeviceLockEventOriginProperty,
+    [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+};
+
 export const DeviceProperties: Properties = {
     [DeviceType.CAMERA2]: {
         ...GenericDeviceProperties,
