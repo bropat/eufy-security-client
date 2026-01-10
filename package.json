@@ -7,7 +7,8 @@
     "email": "patrick.broetto@gmail.com"
   },
   "homepage": "https://github.com/bropat/eufy-security-client",
-  "main": "build/index.js",
+  "main": "index.js",
+  "module": "index.js",
   "scripts": {
     "build:ts": "tsc -p tsconfig.build.json && npm run copy-proto-build",
     "copy-proto-build": "npx copyfiles -u 1 \"src/**/*.proto\" \"src/**/*.crt\" build",
