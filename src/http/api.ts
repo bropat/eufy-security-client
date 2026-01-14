@@ -571,7 +571,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
                     if (result.code == 0) {
                         if (result.data) {
                             const deviceList = this.decryptAPIData(result.data) as Array<DeviceListResponse>;
-                            rootHTTPLogger.debug("Decrypted device list data", deviceList);
+                            rootHTTPLogger.debug("Decrypted device list data: %s", JSON.stringify(deviceList, null, 2));
                             return deviceList;
                         }
                     } else {
