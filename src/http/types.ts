@@ -1024,6 +1024,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
         159: "SmartTrack Card (T87B2)",
         180: "Smart Lock C210 (T8502)",
         184: "Smart Lock C220 (T8506)",
+        203: "FamiLock S3 (T85V0)",
         10005: "Solar Wall Light Cam S120 (T81A0)",
         10008: "Indoor Cam C220 (T8W11C)",
         10009: "Indoor Cam C210 (T8419)",
@@ -5290,9 +5291,77 @@ export const LockT8520PDeviceProperties: IndexedProperty = {
 
 export const LockT85V0DeviceProperties: IndexedProperty = {
     ...GenericDeviceProperties,
-    [PropertyName.DeviceBattery]: DeviceBatteryLockProperty,
+    [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+    [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
+    [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+    [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+    [PropertyName.DeviceEnabled]: DeviceEnabledProperty, //OK
+    [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty, //OK
+    [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty, //OK
+    [PropertyName.DeviceWatermark]: DeviceWatermarkBatteryDoorbellCamera1Property, //OK
+    [PropertyName.DeviceState]: DeviceStateProperty,
+    [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
+    [PropertyName.DeviceLastChargingFalseEvents]: DeviceLastChargingFalseEventsProperty,
+    [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
+    [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
+    [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
+    [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+    [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+    [PropertyName.DeviceRinging]: DeviceRingingProperty,
+    [PropertyName.DevicePicture]: DevicePictureProperty,
+    [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+    [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty, //OK
+    [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeBatteryDoorbellProperty, //OK
+    [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
+    [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty, // OK
+    [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeBatteryDoorbellProperty,
+    [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+    [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
+    [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalBatteryDoorbellProperty,
+    [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+    [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityBatteryDoorbellProperty, //OK
+    [PropertyName.DeviceVideoRecordingQuality]:DeviceVideoRecordingQualityT8530Property, //OK
+    [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
+    [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty, //OK
+    [PropertyName.DeviceChimeHomebaseRingtoneVolume]: DeviceChimeHomebaseRingtoneVolumeBatteryDoorbellProperty, //OK
+    [PropertyName.DeviceChimeHomebaseRingtoneType]: DeviceChimeHomebaseRingtoneTypeBatteryDoorbellProperty, //OK
+    [PropertyName.DeviceNotificationType]: DeviceNotificationTypeBatteryDoorbellProperty, //OK
+    [PropertyName.DeviceNotificationRing]: DeviceNotificationRingProperty, //OK
+    [PropertyName.DeviceNotificationMotion]: DeviceNotificationMotionProperty, //OK
+    [PropertyName.DeviceMotionDetectionSensitivityMode]: DeviceMotionDetectionSensitivityModeProperty,
+    [PropertyName.DeviceMotionDetectionSensitivityStandard]: DeviceMotionDetectionSensitivityStandardProperty,
+    [PropertyName.DeviceMotionDetectionSensitivityAdvancedA]: DeviceMotionDetectionSensitivityAdvancedAProperty,
+    [PropertyName.DeviceMotionDetectionSensitivityAdvancedB]: DeviceMotionDetectionSensitivityAdvancedBProperty,
+    [PropertyName.DeviceMotionDetectionSensitivityAdvancedC]: DeviceMotionDetectionSensitivityAdvancedCProperty,
+    [PropertyName.DeviceMotionDetectionSensitivityAdvancedD]: DeviceMotionDetectionSensitivityAdvancedDProperty,
+    [PropertyName.DeviceMotionDetectionSensitivityAdvancedE]: DeviceMotionDetectionSensitivityAdvancedEProperty,
+    [PropertyName.DeviceMotionDetectionSensitivityAdvancedF]: DeviceMotionDetectionSensitivityAdvancedFProperty,
+    [PropertyName.DeviceMotionDetectionSensitivityAdvancedG]: DeviceMotionDetectionSensitivityAdvancedGProperty,
+    [PropertyName.DeviceMotionDetectionSensitivityAdvancedH]: DeviceMotionDetectionSensitivityAdvancedHProperty,
+    [PropertyName.DeviceLoiteringDetection]: DeviceLoiteringDetectionProperty, //OK
+    [PropertyName.DeviceLoiteringDetectionLength]: DeviceLoiteringDetectionLengthProperty,
+    [PropertyName.DeviceLoiteringDetectionRange]: DeviceLoiteringDetectionRangeProperty,
+    [PropertyName.DeviceLoiteringCustomResponsePhoneNotification]: DeviceLoiteringCustomResponsePhoneNotificationProperty,
+    [PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponse]: DeviceLoiteringCustomResponseAutoVoiceResponseProperty,
+    [PropertyName.DeviceLoiteringCustomResponseAutoVoiceResponseVoice]: DeviceLoiteringCustomResponseAutoVoiceResponseVoiceProperty,
+    [PropertyName.DeviceLoiteringCustomResponseHomeBaseNotification]: DeviceLoiteringCustomResponseHomeBaseNotificationProperty,
+    [PropertyName.DeviceLoiteringCustomResponseTimeFrom]: DeviceLoiteringCustomResponseTimeFromProperty,
+    [PropertyName.DeviceLoiteringCustomResponseTimeTo]: DeviceLoiteringCustomResponseTimeToProperty,
+    [PropertyName.DeviceSomeoneLoitering]: DeviceSomeoneLoiteringProperty,
+    [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+    [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+    [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
+    [PropertyName.DeviceSnoozeHomebase]: DeviceSnoozeHomebaseProperty,
+    [PropertyName.DeviceSnoozeChime]: DeviceSnoozeChimeProperty,
+    [PropertyName.DeviceSnoozeMotion]: DeviceSnoozeMotionProperty,
+    [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     [PropertyName.DeviceLocked]: DeviceLockedProperty,
-    [PropertyName.DeviceLockStatus]: DeviceAdvancedLockStatusProperty,
+    [PropertyName.DeviceLockStatus]: DeviceBasicLockStatusProperty,
+    [PropertyName.DeviceLeavingDetection]: DeviceLeavingDetectionProperty,
+    [PropertyName.DeviceLeavingReactionNotification]: DeviceLeavingReactionNotificationProperty,
+    [PropertyName.DeviceLeavingReactionStartTime]: DeviceLeavingReactionStartTimeProperty,
+    [PropertyName.DeviceLeavingReactionEndTime]: DeviceLeavingReactionEndTimeProperty,
+    [PropertyName.DeviceSomeoneGoing]: DeviceSomeoneGoingProperty,
     [PropertyName.DeviceAutoLock]: DeviceAutoLockProperty,
     [PropertyName.DeviceAutoLockTimer]: DeviceAutoLockTimerProperty,
     [PropertyName.DeviceAutoLockSchedule]: DeviceAutoLockScheduleProperty,
@@ -5303,13 +5372,12 @@ export const LockT85V0DeviceProperties: IndexedProperty = {
     [PropertyName.DeviceWrongTryAttempts]: DeviceWrongTryAttemptsProperty,
     [PropertyName.DeviceWrongTryLockdownTime]: DeviceWrongTryLockdownTimeProperty,
     [PropertyName.DeviceScramblePasscode]: DeviceScramblePasscodeProperty,
-    [PropertyName.DeviceSound]: DeviceSoundProperty,
-    [PropertyName.DeviceNotification]: DeviceNotificationSmartLockProperty,
-    [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedSmartLockProperty,
-    [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedSmartLockProperty,
-    [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+    [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedProperty,
+    [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedProperty,
     [PropertyName.DeviceLockEventOrigin]: DeviceLockEventOriginProperty,
-    [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+    [PropertyName.DeviceBeepVolume]: DeviceBeepVolumeProperty,
+    [PropertyName.DeviceNightvisionOptimization]: DeviceNightvisionOptimizationProperty,
+    [PropertyName.DeviceNightvisionOptimizationSide]: DeviceNightvisionOptimizationSideProperty,
 };
 
 export const DeviceProperties: Properties = {
