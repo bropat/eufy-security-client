@@ -845,29 +845,35 @@ export class Device extends TypedEmitter<DeviceEvents> {
             ...DeviceProperties[this.getDeviceType()]
         };
         if (this.isFloodLightT8420X()) {
+            rootHTTPLogger.debug("getPropertiesMetadata - FloodLightT8420X detected", { deviceSN: this.getSerial(), deviceType: this.getDeviceType() });
             metadata = {
                 ...FloodlightT8420XDeviceProperties
             };
         } else if (this.isWiredDoorbellT8200X()) {
+            rootHTTPLogger.debug("getPropertiesMetadata - WiredDoorbellT8200X detected", { deviceSN: this.getSerial(), deviceType: this.getDeviceType() });
             metadata = {
                 ...WiredDoorbellT8200XDeviceProperties
             };
         } else if (this.isLockWifiT8510P()) {
+            rootHTTPLogger.debug("getPropertiesMetadata - LockWifiT8510P detected", { deviceSN: this.getSerial(), deviceType: this.getDeviceType() });
             metadata = {
                 ...LockT8510PDeviceProperties
             };
             (metadata[PropertyName.Type] as PropertyMetadataNumeric).states![this.getDeviceType()] = "Smart Lock S230 (T8510P)";
         } else if (this.isLockWifiT8520P()) {
+            rootHTTPLogger.debug("getPropertiesMetadata - LockWifiT8520P detected", { deviceSN: this.getSerial(), deviceType: this.getDeviceType() });
             metadata = {
                 ...LockT8520PDeviceProperties
             };
             (metadata[PropertyName.Type] as PropertyMetadataNumeric).states![this.getDeviceType()] = "Smart Lock S231 (T8520P)";
         } else if (this.isLockWifiT85V0()) {
+            rootHTTPLogger.debug("getPropertiesMetadata - LockWifiT85V0 detected", { deviceSN: this.getSerial(), deviceType: this.getDeviceType() });
             metadata = {
                 ...LockT85V0DeviceProperties
             };
             (metadata[PropertyName.Type] as PropertyMetadataNumeric).states![this.getDeviceType()] = "FamiLock S3 (T85V0)";
         } else if (this.isSoloCameras() && Station.isStationHomeBase3BySn(this.getStationSerial())) {
+            rootHTTPLogger.debug("getPropertiesMetadata - SoloCameras with HomeBase3 detected", { deviceSN: this.getSerial(), deviceType: this.getDeviceType(), stationSerial: this.getStationSerial() });
             const newMetadata = {
                 ...metadata
             };
@@ -880,6 +886,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
             metadata = newMetadata;
         } else if (this.isIndoorPanAndTiltCameraS350() && Station.isStationHomeBase3BySn(this.getStationSerial())) {
+            rootHTTPLogger.debug("getPropertiesMetadata - IndoorPanAndTiltCameraS350 with HomeBase3 detected", { deviceSN: this.getSerial(), deviceType: this.getDeviceType(), stationSerial: this.getStationSerial() });
             const newMetadata = {
                 ...metadata
             };
@@ -892,6 +899,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             metadata = newMetadata;
         }
         if (Station.isStationHomeBase3BySn(this.getStationSerial()) && (metadata[PropertyName.DeviceMotionDetectionType] !== undefined || metadata[PropertyName.DeviceMotionDetectionTypeAllOtherMotions] !== undefined) && this.isCamera()) {
+            rootHTTPLogger.debug("getPropertiesMetadata - Camera with HomeBase3 and motion detection detected", { deviceSN: this.getSerial(), deviceType: this.getDeviceType(), stationSerial: this.getStationSerial() });
             const newMetadata = {
                 ...metadata
             };
@@ -928,6 +936,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
             metadata = newMetadata;
         } else if (Object.keys(metadata).length === 0) {
+            rootHTTPLogger.debug("getPropertiesMetadata - Generic device (no specific metadata)", { deviceSN: this.getSerial(), deviceType: this.getDeviceType() });
             metadata = {
                 ...GenericDeviceProperties
             };
@@ -1313,8 +1322,17 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isLockWifiT85V0(type: number, serialnumber: string): boolean {
-        if (type == DeviceType.LOCK_WIFI && serialnumber.startsWith("T85V0") && serialnumber.length > 6 && serialnumber.charAt(6) === "9")
+        const isLockWifi = type == DeviceType.LOCK_WIFI;
+        const startsWithT85V0 = serialnumber.startsWith("T85V0");
+        const hasValidLength = serialnumber.length > 6;
+        const hasValidChar = hasValidLength && serialnumber.charAt(6) === "9";
+        
+        if (isLockWifi && startsWithT85V0 && hasValidLength && hasValidChar) {
+            rootHTTPLogger.debug("isLockWifiT85V0 - All conditions passed", { serialnumber, type, isLockWifi, startsWithT85V0, hasValidLength, hasValidChar });
             return true;
+        }
+        
+        rootHTTPLogger.debug("isLockWifiT85V0 - Condition failed", { serialnumber, type, isLockWifi, startsWithT85V0, hasValidLength, hasValidChar });
         return false;
     }
 
