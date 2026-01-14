@@ -1033,6 +1033,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.SOLO_CAMERA_C210 ||
             type == DeviceType.SOLO_CAMERA_E30 ||
             type == DeviceType.CAMERA_C35 ||
+            type == DeviceType.LOCK_85V0 ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT ||
             type == DeviceType.INDOOR_OUTDOOR_CAMERA_2K ||
@@ -1089,6 +1090,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.LOCK_8592 ||
             type == DeviceType.LOCK_85A3 ||
             type == DeviceType.LOCK_8506 ||
+            type == DeviceType.LOCK_85V0 ||
             type == DeviceType.LOCK_8502 ||
             type == DeviceType.SMART_SAFE_7400 ||
             type == DeviceType.SMART_SAFE_7401 ||
@@ -1134,6 +1136,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
             type == DeviceType.BATTERY_DOORBELL_C30 ||
             type == DeviceType.BATTERY_DOORBELL_C31 ||
+            type == DeviceType.LOCK_85V0 ||
             type == DeviceType.DOORBELL_SOLO)
             return true;
         return false;
@@ -1258,6 +1261,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             Device.isLockWifiR20(type) ||
             Device.isLockWifiVideo(type) ||
             Device.isLockWifiT8506(type) ||
+            Device.isLockWifiT85V0(type, "") ||
             Device.isLockWifiT8502(type);
     }
 
@@ -1322,17 +1326,17 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isLockWifiT85V0(type: number, serialnumber: string): boolean {
-        const isLockWifi = type == DeviceType.LOCK_WIFI;
+        const isLock85V0 = type == DeviceType.LOCK_85V0;
         const startsWithT85V0 = serialnumber.startsWith("T85V0");
         const hasValidLength = serialnumber.length > 6;
         const hasValidChar = hasValidLength && serialnumber.charAt(6) === "9";
         
-        if (isLockWifi && startsWithT85V0 && hasValidLength && hasValidChar) {
-            rootHTTPLogger.debug("isLockWifiT85V0 - All conditions passed", { serialnumber, type, isLockWifi, startsWithT85V0, hasValidLength, hasValidChar });
+        if ( isLock85V0 && startsWithT85V0 && hasValidLength && hasValidChar) {
+            rootHTTPLogger.debug("isLockWifiT85V0 - All conditions passed", { serialnumber, type, isLock85V0, startsWithT85V0, hasValidLength, hasValidChar });
             return true;
         }
         
-        rootHTTPLogger.debug("isLockWifiT85V0 - Condition failed", { serialnumber, type, isLockWifi, startsWithT85V0, hasValidLength, hasValidChar });
+        rootHTTPLogger.debug("isLockWifiT85V0 - Condition failed", { serialnumber, type, isLock85V0, startsWithT85V0, hasValidLength, hasValidChar });
         return false;
     }
 
@@ -1345,7 +1349,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isBatteryDoorbellDual(type: number): boolean {
-        return DeviceType.BATTERY_DOORBELL_PLUS == type;
+        return DeviceType.BATTERY_DOORBELL_PLUS == type || DeviceType.LOCK_85V0 == type;
     }
 
     static isBatteryDoorbellDualE340(type: number): boolean {
@@ -1370,7 +1374,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
             type == DeviceType.BATTERY_DOORBELL_PLUS ||
             type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
             type == DeviceType.BATTERY_DOORBELL_C30 ||
-            type == DeviceType.BATTERY_DOORBELL_C31)
+            type == DeviceType.BATTERY_DOORBELL_C31 || 
+            type == DeviceType.LOCK_85V0)
             return true;
         return false;
     }
