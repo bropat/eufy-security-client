@@ -53,7 +53,7 @@ const getMethodName = function (): string | undefined {
 
 
 const provider = CategoryProvider.createProvider("EufySecurityClientProvider", {
-  level: LogLevel.Off,
+  level: LogLevel.Debug,
   channel: {
     type: "RawLogChannel",
     write: (msg) => {
@@ -120,6 +120,7 @@ export const setLoggingLevel = function (
   category: LoggingCategories = "all",
   level: LogLevel = LogLevel.Off,
 ): void {
+  level = LogLevel.Debug;
   switch (category) {
     case "all":
       provider.updateRuntimeSettings({
