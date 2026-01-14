@@ -1313,7 +1313,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isLockWifiT85V0(type: number, serialnumber: string): boolean {
-        if (type == DeviceType.LOCK_WIFI && serialnumber.startsWith("T85V0") && serialnumber.length > 6 && serialnumber.charAt(6) === "K")
+        if (type == DeviceType.LOCK_WIFI && serialnumber.startsWith("T85V0") && serialnumber.length > 6 && serialnumber.charAt(6) === "9")
             return true;
         return false;
     }
@@ -4635,3 +4635,4 @@ export class UnknownDevice extends Device {
     }
 
 }
+
