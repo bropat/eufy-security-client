@@ -2644,6 +2644,7 @@ export const DeviceVideoRecordingQualityCameraC35HB3Property: PropertyMetadataNu
         2: "Medium",
         3: "High",
     },
+};
 
 
 export const DeviceVideoRecordingQualityT8530Property: PropertyMetadataNumeric = {
