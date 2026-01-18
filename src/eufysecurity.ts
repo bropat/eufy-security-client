@@ -1598,7 +1598,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 break;
             case PropertyName.DeviceMotionDetectionTypePet:
                 if (device.isIndoorPanAndTiltCameraS350()) {
-                    station.setMotionDetectionTypeHB3(device, IndoorS350DetectionTypes.PET_DETECTION, value as boolean););
+                    station.setMotionDetectionTypeHB3(device, IndoorS350DetectionTypes.PET_DETECTION, value as boolean);
                 } else if (device.isCameraC35()) {
                     station.setMotionDetectionTypeHB3(device, EufyCamC35DetectionTypes.PET_DETECTION, value as boolean);
                 } else {
