@@ -385,6 +385,13 @@ export enum IndoorMiniDetectionTypes {
     ALL_MOTION = 4,
 }
 
+export enum EufyCamC35DetectionTypes {
+    HUMAN_DETECTION = 3,
+    VEHICLE_DETECTION = 4,
+    PET_DETECTION = 8,
+    ALL_OTHER_MOTION = 32768,
+}
+
 export enum IndoorS350NotificationTypes {
     ALL_OTHER_MOTION = 801,
     HUMAN = 802,
@@ -1172,6 +1179,15 @@ export const DeviceNightvisionS350Property: PropertyMetadataNumeric = {
         3: "On",
     },
 }
+
+export const DeviceNightvisionCameraC35Property: PropertyMetadataNumeric = {
+    ...DeviceNightvisionProperty,
+    states: {
+        0: "PureColor",
+        1: "Infrared",
+        2: "Spotlight",
+    },
+};
 
 export const DeviceWifiRSSIProperty: PropertyMetadataNumeric = {
     key: CommandType.CMD_GET_WIFI_RSSI,
@@ -2594,6 +2610,16 @@ export const DeviceVideoRecordingQualityCamera3Property: PropertyMetadataNumeric
     },
 }
 
+export const DeviceVideoRecordingQualityCameraC35Property: PropertyMetadataNumeric = {
+    ...DeviceVideoRecordingQualityIndoorProperty,
+    key: IndoorSoloSmartdropCommandType.CMD_VIDEO_RECORD_QUALITY,
+    states: {
+        2: "Medium",
+        3: "High",
+    },
+    commandId: CommandType.CMD_SET_RECORD_QUALITY,
+};
+
 export const DeviceVideoRecordingQualitySoloProperty: PropertyMetadataNumeric = {
     ...DeviceVideoRecordingQualityIndoorProperty,
     key: IndoorSoloSmartdropCommandType.CMD_VIDEO_RECORD_QUALITY,
@@ -2611,6 +2637,14 @@ export const DeviceVideoRecordingQualitySoloCamerasHB3Property: PropertyMetadata
         2: "Full HD (1080P)",
     },
 }
+
+export const DeviceVideoRecordingQualityCameraC35HB3Property: PropertyMetadataNumeric = {
+    ...DeviceVideoRecordingQualityWalllightProperty,
+    states: {
+        2: "Medium",
+        3: "High",
+    },
+
 
 export const DeviceVideoRecordingQualityT8530Property: PropertyMetadataNumeric = {
     ...DeviceVideoRecordingQualityIndoorProperty,
@@ -8095,65 +8129,55 @@ export const DeviceProperties: Properties = {
     },
     [DeviceType.CAMERA_C35]: {
         ...GenericDeviceProperties,
-        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
-        [PropertyName.DevicePicture]: DevicePictureProperty,
-        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
         [PropertyName.DeviceState]: DeviceStateProperty,
-        [PropertyName.DeviceNightvision]: DeviceNightvisionProperty,
-        [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
-        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
-        [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
-        [PropertyName.DeviceLightSettingsEnable]: DeviceFloodlightLightSettingsEnableProperty,
-        [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
-        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeProperty,
-        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
-        [PropertyName.DeviceDetectionStatisticsWorkingDays]: DeviceDetectionStatisticsWorkingDaysProperty,
-        [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
-        [PropertyName.DeviceDetectionStatisticsDetectedEvents]: DeviceDetectionStatisticsDetectedEventsProperty,
-        [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
-        [PropertyName.DeviceChimeHomebaseRingtoneVolume]: DeviceChimeHomebaseRingtoneVolumeBatteryDoorbellProperty,
-        [PropertyName.DeviceImageMirrored]: DeviceImageMirroredProperty,
-        [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredProperty,
-        [PropertyName.DeviceDetectionStatisticsRecordedEvents]: DeviceDetectionStatisticsRecordedEventsProperty,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
+        [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
+        [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
+        [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
         [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
-        [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
-        [PropertyName.DeviceNotificationRing]: DeviceNotificationRingProperty,
-        [PropertyName.DeviceContinuousRecordingType]: DeviceContinuousRecordingTypeProperty,
+        [PropertyName.DeviceLight]: DeviceFloodlightLightProperty,
+        [PropertyName.DeviceLightSettingsEnable]: DeviceFloodlightLightSettingsEnableProperty,
+        [PropertyName.DeviceLightSettingsMotionTriggered]: DeviceFloodlightLightSettingsMotionTriggeredT8425Property,
+        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivitySoloProperty,
         [PropertyName.DeviceMotionDetectionTypeHuman]: DeviceMotionHB3DetectionTypeHumanProperty,
         [PropertyName.DeviceMotionDetectionTypeVehicle]: DeviceMotionHB3DetectionTypeVehicleProperty,
-        [PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionHB3DetectionTypeAllOtherMotionsProperty,
         [PropertyName.DeviceMotionDetectionTypePet]: DeviceMotionHB3DetectionTypePetProperty,
+        [PropertyName.DeviceMotionDetectionTypeAllOtherMotions]: DeviceMotionHB3DetectionTypeAllOtherMotionsProperty,
+        [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
+        [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
+        [PropertyName.DeviceNightvision]: DeviceNightvisionCameraC35Property,
+        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingIndoorSoloFloodlightProperty,
+        [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
         [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
+        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
+        [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityCameraC35Property,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityCameraC35Property,
+        [PropertyName.DevicePicture]: DevicePictureProperty,
+        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        [PropertyName.DeviceNotificationType]: DeviceNotificationTypeIndoorFloodlightProperty,
         [PropertyName.DeviceNotificationPerson]: DeviceNotificationPersonS350Property,
         [PropertyName.DeviceNotificationPet]: DeviceNotificationPetS350Property,
+        [PropertyName.DeviceNotificationVehicle]: DeviceNotificationVehicleProperty,
         [PropertyName.DeviceNotificationAllOtherMotion]: DeviceNotificationAllOtherMotionS350Property,
-        [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
-        [PropertyName.DeviceContinuousRecording]: DeviceContinuousRecordingProperty,
-        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityCameraC35Property,
-        [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeBatteryDoorbellProperty,
-        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
-        [PropertyName.DeviceVideoTypeStoreToNAS]: DeviceVideoTypeStoreToNASProperty,
-        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
-        [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
-        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
-        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
-        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoStreamingQualityCameraProperty,
-        [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty,
-        [PropertyName.DeviceDualCamWatchViewMode]: DeviceDualCamWatchViewModeProperty,
-        [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
-        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
-        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
-        [PropertyName.DeviceVideoWDR]: DeviceWDRProperty,
-        [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
-        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
-        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
-        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityCamera2Property,
-        [PropertyName.DeviceChimeHomebaseRingtoneType]: DeviceChimeHomebaseRingtoneTypeBatteryDoorbellProperty,
-        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
-        [PropertyName.DeviceLightSettingsBrightnessMotion]: DeviceFloodlightLightSettingsBrightnessMotionProperty,
-        [PropertyName.DeviceLightSettingsBrightnessManual]: DeviceFloodlightLightSettingsBrightnessManualProperty,
-        [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
         [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+        [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+        [PropertyName.DevicePetDetected]: DevicePetDetectedProperty,
+        [PropertyName.DeviceVehicleDetected]: DeviceVehicleDetectedProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
 }
 
@@ -9269,9 +9293,11 @@ export const StationProperties: Properties = {
         [PropertyName.StationGuardMode]: StationGuardModeProperty,
         [PropertyName.StationCurrentMode]: StationCurrentModeProperty,
         [PropertyName.StationTimeFormat]: StationTimeFormatProperty,
+        [PropertyName.StationTimeZone]: StationTimeZoneProperty,
         [PropertyName.StationAlarm]: StationAlarmProperty,
         [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
         [PropertyName.StationNotificationSwitchModeSchedule]: StationNotificationSwitchModeScheduleProperty,
+        [PropertyName.StationNotificationSwitchModeGeofence]: StationNotificationSwitchModeGeofenceProperty,
         [PropertyName.StationNotificationSwitchModeApp]: StationNotificationSwitchModeAppProperty,
         [PropertyName.StationSdStatus]: StationSdStatusProperty,
         [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
