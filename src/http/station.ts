@@ -117,7 +117,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
     //TODO: To remove
     public getStateID(state: string, level = 2): string {
-        switch(level) {
+        switch (level) {
             case 0:
                 return `${this.getSerial()}`
             case 1:
@@ -142,7 +142,7 @@ export class Station extends TypedEmitter<StationEvents> {
         this.p2pSession.updateRawStation(station);
 
         const metadata = this.getPropertiesMetadata(true);
-        for(const property of Object.values(metadata)) {
+        for (const property of Object.values(metadata)) {
             if (this.rawStation[property.key] !== undefined && typeof property.key === "string") {
                 this.updateProperty(property.name, this.convertRawPropertyValue(property, this.rawStation[property.key] as string));
             } else if (this.properties[property.name] === undefined && property.default !== undefined && !this.ready) {
@@ -238,7 +238,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
             const metadata = this.getPropertiesMetadata(true);
 
-            for(const property of Object.values(metadata)) {
+            for (const property of Object.values(metadata)) {
                 if (property.key === type) {
                     try {
                         this.updateProperty(property.name, this.convertRawPropertyValue(property, this.rawProperties[type].value));
@@ -259,41 +259,41 @@ export class Station extends TypedEmitter<StationEvents> {
 
     protected convertRawPropertyValue(property: PropertyMetadataAny, value: string): PropertyValue {
         try {
-            switch(property.key) {
+            switch (property.key) {
                 case CommandType.CMD_GET_HUB_LAN_IP:
-                    return value !== undefined ? (isPrivateIp(value) ? value : ""): "";
+                    return value !== undefined ? (isPrivateIp(value) ? value : "") : "";
                 case CommandType.CMD_SET_ARMING:
                     return Number.parseInt(value !== undefined ? value : "-1");
                 case CommandType.CMD_GET_ALARM_MODE:
-                {
-                    const guard_mode = this.getGuardMode();
-                    return Number.parseInt(value !== undefined ? value : guard_mode !== undefined && guard_mode !== GuardMode.SCHEDULE && guard_mode !== GuardMode.GEO ? guard_mode as string : GuardMode.UNKNOWN.toString());
-                }
-                case CommandType.CMD_HUB_NOTIFY_MODE:
-                {
-                    switch(property.name) {
-                        case PropertyName.StationNotificationSwitchModeSchedule:
-                            if (!isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
-                                return value !== undefined ? (value === "1" ? true : false) : false;
-                            }
-                            return value !== undefined ? isNotificationSwitchMode(Number.parseInt(value), NotificationSwitchMode.SCHEDULE) : false;
-                        case PropertyName.StationNotificationSwitchModeGeofence:
-                            if (!isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
-                                throw new PropertyNotSupportedError("Property not supported for station with this software version", { context: { propertName: property.name, station: this.getSerial(), softwareVersion: this.getSoftwareVersion() } });
-                            }
-                            return value !== undefined ? isNotificationSwitchMode(Number.parseInt(value), NotificationSwitchMode.GEOFENCE) : false;
-                        case PropertyName.StationNotificationSwitchModeApp:
-                            if (!isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
-                                throw new PropertyNotSupportedError("Property not supported for station with this software version", { context: { propertName: property.name, station: this.getSerial(), softwareVersion: this.getSoftwareVersion() } });
-                            }
-                            return value !== undefined ? isNotificationSwitchMode(Number.parseInt(value), NotificationSwitchMode.APP) : false;
-                        case PropertyName.StationNotificationSwitchModeKeypad:
-                            if (!isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
-                                throw new PropertyNotSupportedError("Property not supported for station with this software version", { context: { propertName: property.name, station: this.getSerial(), softwareVersion: this.getSoftwareVersion() } });
-                            }
-                            return value !== undefined ? isNotificationSwitchMode(Number.parseInt(value), NotificationSwitchMode.KEYPAD) : false;
+                    {
+                        const guard_mode = this.getGuardMode();
+                        return Number.parseInt(value !== undefined ? value : guard_mode !== undefined && guard_mode !== GuardMode.SCHEDULE && guard_mode !== GuardMode.GEO ? guard_mode as string : GuardMode.UNKNOWN.toString());
                     }
-                }
+                case CommandType.CMD_HUB_NOTIFY_MODE:
+                    {
+                        switch (property.name) {
+                            case PropertyName.StationNotificationSwitchModeSchedule:
+                                if (!isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
+                                    return value !== undefined ? (value === "1" ? true : false) : false;
+                                }
+                                return value !== undefined ? isNotificationSwitchMode(Number.parseInt(value), NotificationSwitchMode.SCHEDULE) : false;
+                            case PropertyName.StationNotificationSwitchModeGeofence:
+                                if (!isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
+                                    throw new PropertyNotSupportedError("Property not supported for station with this software version", { context: { propertName: property.name, station: this.getSerial(), softwareVersion: this.getSoftwareVersion() } });
+                                }
+                                return value !== undefined ? isNotificationSwitchMode(Number.parseInt(value), NotificationSwitchMode.GEOFENCE) : false;
+                            case PropertyName.StationNotificationSwitchModeApp:
+                                if (!isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
+                                    throw new PropertyNotSupportedError("Property not supported for station with this software version", { context: { propertName: property.name, station: this.getSerial(), softwareVersion: this.getSoftwareVersion() } });
+                                }
+                                return value !== undefined ? isNotificationSwitchMode(Number.parseInt(value), NotificationSwitchMode.APP) : false;
+                            case PropertyName.StationNotificationSwitchModeKeypad:
+                                if (!isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
+                                    throw new PropertyNotSupportedError("Property not supported for station with this software version", { context: { propertName: property.name, station: this.getSerial(), softwareVersion: this.getSoftwareVersion() } });
+                                }
+                                return value !== undefined ? isNotificationSwitchMode(Number.parseInt(value), NotificationSwitchMode.KEYPAD) : false;
+                        }
+                    }
                 case CommandType.CMD_HUB_NOTIFY_ALARM:
                     return value !== undefined ? (value === "1" ? true : false) : false;
                 case CommandType.CMD_HUB_ALARM_TONE:
@@ -709,7 +709,7 @@ export class Station extends TypedEmitter<StationEvents> {
             value: mode
         };
         if (!this.hasProperty(propertyData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() } });
         }
         const property = this.getPropertyMetadata(propertyData.name);
         validValue(property, mode);
@@ -767,9 +767,10 @@ export class Station extends TypedEmitter<StationEvents> {
                     "mChannel": 0,
                     "mValue3": 0,
                     "payload": {
-                        "version":0.0,
-                        "cmd":11001.0,
-                    }}),
+                        "version": 0.0,
+                        "cmd": 11001.0,
+                    }
+                }),
             });
         } else {
             this.p2pSession.sendCommandWithIntString({
@@ -906,10 +907,10 @@ export class Station extends TypedEmitter<StationEvents> {
                 if (device) {
                     return this.getSerial();
                 } else {
-                    rootHTTPLogger.error(`Station get device serial - No device with the same serial number as the station found`, {station: this.getSerial(), channel: channel});
+                    rootHTTPLogger.error(`Station get device serial - No device with the same serial number as the station found`, { station: this.getSerial(), channel: channel });
                 }
             } else {
-                rootHTTPLogger.error(`Station get device serial - No devices found`, {station: this.getSerial(), channel: channel});
+                rootHTTPLogger.error(`Station get device serial - No devices found`, { station: this.getSerial(), channel: channel });
             }
         }
         return undefined;
@@ -1044,7 +1045,7 @@ export class Station extends TypedEmitter<StationEvents> {
             name: CommandName.StationReboot
         };
         if (!this.hasCommand(CommandName.StationReboot)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, station: this.getSerial() } });
         }
         rootHTTPLogger.debug(`Station reboot - sending command`, { stationSN: this.getSerial() });
         this.p2pSession.sendCommandWithInt({
@@ -1096,7 +1097,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_INDOOR_LED_SWITCH,
-                    "data":{
+                    "data": {
                         "enable": 0,
                         "index": 0,
                         "status": 0,
@@ -1126,7 +1127,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_INDOOR_LED_SWITCH,
-                    "data":{
+                    "data": {
                         "enable": 0,
                         "quality": 0,
                         "status": 0,
@@ -1142,7 +1143,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_INDOOR_LED_SWITCH,
-                    "data":{
+                    "data": {
                         "value": value === true ? 1 : 0,
                         "transaction": `${new Date().getTime()}`
                     },
@@ -1156,7 +1157,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_INDOOR_LED_SWITCH,
-                    "data":{
+                    "data": {
                         "enable": 0,
                         "index": 0,
                         "status": 0,
@@ -1164,7 +1165,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         "value": value === true ? 1 : 0,
                         "voiceID": 0,
                         "zonecount": 0,
-                        "mediaAccountInfo":{
+                        "mediaAccountInfo": {
                             "deviceChannel": device.getChannel(),
                             "device_sn": device.getSerial(),
                             "device_type": -1,
@@ -1199,7 +1200,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_INDOOR_LED_SWITCH,
-                    "data":{
+                    "data": {
                         "enable": 0,
                         "index": 0,
                         "status": 0,
@@ -1208,7 +1209,7 @@ export class Station extends TypedEmitter<StationEvents> {
                         "value": value === true ? 1 : 0,
                         "voiceID": 0,
                         "zonecount": 0,
-                        "mediaAccountInfo":{
+                        "mediaAccountInfo": {
                             "deviceChannel": device.getChannel(),
                             "device_sn": device.getSerial(),
                             "device_type": -1,
@@ -1263,7 +1264,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": ParamType.COMMAND_LED_NIGHT_OPEN,
-                    "data":{
+                    "data": {
                         "status": value === true ? 1 : 0
                     }
                 }),
@@ -1508,7 +1509,7 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
                 "commandType": CommandType.CMD_INDOOR_DET_SET_SOUND_DETECT_ENABLE,
-                "data":{
+                "data": {
                     "enable": 0,
                     "index": 0,
                     "status": value === true ? 1 : 0,
@@ -1543,7 +1544,7 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
                 "commandType": CommandType.CMD_INDOOR_DET_SET_SOUND_DETECT_TYPE,
-                "data":{
+                "data": {
                     "enable": 0,
                     "index": 0,
                     "status": 0,
@@ -1578,7 +1579,7 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
                 "commandType": CommandType.CMD_INDOOR_DET_SET_SOUND_SENSITIVITY_IDX,
-                "data":{
+                "data": {
                     "enable": 0,
                     "index": value,
                     "status": 0,
@@ -1613,7 +1614,7 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
                 "commandType": CommandType.CMD_INDOOR_DET_SET_PET_ENABLE,
-                "data":{
+                "data": {
                     "enable": 0,
                     "index": 0,
                     "status": value === true ? 1 : 0,
@@ -1668,7 +1669,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                     value: JSON.stringify({
                         "commandType": CommandType.CMD_OUTDOOR_ROTATE,
-                        "data":{
+                        "data": {
                             "curise_type": 10,
                         }
                     }),
@@ -1681,7 +1682,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                     value: JSON.stringify({
                         "commandType": CommandType.CMD_INDOOR_ROTATE,
-                        "data":{
+                        "data": {
                             "cmd_type": command,
                             "rotate_type": direction,
                             "zoom": 1.0,
@@ -1697,7 +1698,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_INDOOR_ROTATE,
-                    "data":{
+                    "data": {
                         "cmd_type": command,
                         "rotate_type": direction,
                     }
@@ -1805,13 +1806,13 @@ export class Station extends TypedEmitter<StationEvents> {
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_INDOOR_DET_SET_MOTION_SENSITIVITY_IDX,
                     "data": {
-                        "enable":0,
+                        "enable": 0,
                         "index": value,
-                        "status":0,
-                        "type":0,
-                        "value":0,
-                        "voiceID":0,
-                        "zonecount":0
+                        "status": 0,
+                        "type": 0,
+                        "value": 0,
+                        "voiceID": 0,
+                        "zonecount": 0
                     }
                 }),
                 channel: device.getChannel()
@@ -1865,7 +1866,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     "account_id": this.rawStation.member.admin_user_id,
                     "cmd": CommandType.CMD_SET_MOTION_SENSITIVITY,
                     "mChannel": device.getChannel(),
-                    "mValue3":0,
+                    "mValue3": 0,
                     "payload": {
                         "channel": device.getChannel(),
                         "sensitivity": value,
@@ -1892,7 +1893,7 @@ export class Station extends TypedEmitter<StationEvents> {
             });
         } else if (device.isCamera2Product()) {
             let convertedValue;
-            switch(value) {
+            switch (value) {
                 case 1:
                     convertedValue = 192;
                     break;
@@ -1941,7 +1942,7 @@ export class Station extends TypedEmitter<StationEvents> {
         } else if (device.isWiredDoorbell()) {
             let intMode: number;
             let intSensitivity: number;
-            switch(value) {
+            switch (value) {
                 case 1:
                     intMode = 3;
                     intSensitivity = 2;
@@ -2036,14 +2037,14 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_INDOOR_DET_SET_MOTION_DETECT_TYPE,
-                    "data":{
-                        "enable":0,
+                    "data": {
+                        "enable": 0,
                         "index": 0,
-                        "status":0,
+                        "status": 0,
                         "type": value,
-                        "value":0,
-                        "voiceID":0,
-                        "zonecount":0
+                        "value": 0,
+                        "voiceID": 0,
+                        "zonecount": 0
                     }
                 }),
                 channel: device.getChannel()
@@ -2055,7 +2056,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_SET_DETECT_TYPE,
-                    "data":{
+                    "data": {
                         "value": value,
                     }
                 }),
@@ -2263,14 +2264,14 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
                 "commandType": CommandType.CMD_INDOOR_PAN_MOTION_TRACK,
-                "data":{
-                    "enable":0,
+                "data": {
+                    "enable": 0,
                     "index": 0,
-                    "status":0,
+                    "status": 0,
                     "type": 0,
                     "value": value === true ? 1 : 0,
-                    "voiceID":0,
-                    "zonecount":0,
+                    "voiceID": 0,
+                    "zonecount": 0,
                     "transaction": `${new Date().getTime()}`,
                 }
             }),
@@ -2299,14 +2300,14 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
                 "commandType": CommandType.CMD_INDOOR_PAN_SPEED,
-                "data":{
-                    "enable":0,
+                "data": {
+                    "enable": 0,
                     "index": 0,
-                    "status":0,
+                    "status": 0,
                     "type": 0,
                     "value": value,
-                    "voiceID":0,
-                    "zonecount":0,
+                    "voiceID": 0,
+                    "zonecount": 0,
                     "transaction": `${new Date().getTime()}`,
                 }
             }),
@@ -2479,7 +2480,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_INDOOR_SET_RECORD_AUDIO_ENABLE,
-                    "data":{
+                    "data": {
                         "enable": value === true ? 1 : 0,
                     }
                 }),
@@ -2492,7 +2493,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": ParamType.COMMAND_AUDIO_RECORDING,
-                    "data":{
+                    "data": {
                         "status": value === true ? 1 : 0,
                     }
                 }),
@@ -2600,7 +2601,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_T8200X_SET_RINGTONE_VOLUME,
-                    "data":{
+                    "data": {
                         "status": value,
                     }
                 }),
@@ -2613,7 +2614,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": ParamType.COMMAND_RINGTONE_VOLUME,
-                    "data":{
+                    "data": {
                         "volume": value,
                     }
                 }),
@@ -2656,7 +2657,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": ParamType.COMMAND_INDOOR_CHIME,
-                    "data":{
+                    "data": {
                         "status": value === true ? 1 : 0,
                     }
                 }),
@@ -2983,7 +2984,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": ParamType.COMMAND_NOTIFICATION_TYPE,
-                    "data":{
+                    "data": {
                         "style": value,
                     }
                 }),
@@ -3273,7 +3274,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": ParamType.COMMAND_NOTIFICATION_RING,
-                    "data":{
+                    "data": {
                         "type": value === true ? ((device.getPropertyValue(PropertyName.DeviceNotificationMotion) as boolean) === true ? 3 : 1) : ((device.getPropertyValue(PropertyName.DeviceNotificationMotion) as boolean) === true ? 2 : 0),
                     }
                 }),
@@ -3341,7 +3342,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": ParamType.COMMAND_NOTIFICATION_RING,
-                    "data":{
+                    "data": {
                         "type": value === true ? ((device.getPropertyValue(PropertyName.DeviceNotificationRing) as boolean) === true ? 3 : 2) : ((device.getPropertyValue(PropertyName.DeviceNotificationRing) as boolean) === true ? 1 : 0),
                     }
                 }),
@@ -3374,7 +3375,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_SET_POWER_CHARGE,
-                    "data":{
+                    "data": {
                         "enable": value,
                     }
                 }),
@@ -3387,7 +3388,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_SET_POWER_CHARGE,
-                    "data":{
+                    "data": {
                         "enable": value,
                         "quality": 0,
                         "status": 0,
@@ -4135,7 +4136,7 @@ export class Station extends TypedEmitter<StationEvents> {
             value: seconds
         };
         if (!this.hasCommand(CommandName.StationTriggerAlarmSound)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, station: this.getSerial() } });
         }
         rootHTTPLogger.debug(`Station trigger station alarm sound - sending command`, { stationSN: this.getSerial(), value: seconds });
         if (!isGreaterEqualMinVersion("2.0.7.9", this.getSoftwareVersion()) || Device.isIntegratedDeviceBySn(this.getSerial())) {
@@ -4204,7 +4205,7 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value
         };
         if (!this.hasProperty(propertyData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() } });
         }
         const property = this.getPropertyMetadata(propertyData.name);
         validValue(property, value);
@@ -4239,7 +4240,7 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value
         };
         if (!this.hasProperty(propertyData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() } });
         }
         const property = this.getPropertyMetadata(propertyData.name);
         validValue(property, value);
@@ -4267,7 +4268,7 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value
         };
         if (!this.hasProperty(propertyData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() } });
         }
         const property = this.getPropertyMetadata(propertyData.name);
         validValue(property, value);
@@ -4295,10 +4296,10 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value
         };
         if ((!this.hasProperty(PropertyName.StationNotificationSwitchModeApp) && mode === NotificationSwitchMode.APP) ||
-        (!this.hasProperty(PropertyName.StationNotificationSwitchModeGeofence) && mode === NotificationSwitchMode.GEOFENCE) ||
-        (!this.hasProperty(PropertyName.StationNotificationSwitchModeKeypad) && mode === NotificationSwitchMode.KEYPAD) ||
-        (!this.hasProperty(PropertyName.StationNotificationSwitchModeSchedule) && mode === NotificationSwitchMode.SCHEDULE)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()} });
+            (!this.hasProperty(PropertyName.StationNotificationSwitchModeGeofence) && mode === NotificationSwitchMode.GEOFENCE) ||
+            (!this.hasProperty(PropertyName.StationNotificationSwitchModeKeypad) && mode === NotificationSwitchMode.KEYPAD) ||
+            (!this.hasProperty(PropertyName.StationNotificationSwitchModeSchedule) && mode === NotificationSwitchMode.SCHEDULE)) {
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() } });
         }
         const property = this.getPropertyMetadata(propertyData.name);
         validValue(property, value);
@@ -4310,7 +4311,7 @@ export class Station extends TypedEmitter<StationEvents> {
             if (rawproperty !== undefined) {
                 try {
                     oldvalue = Number.parseInt(rawproperty);
-                } catch(error) {
+                } catch (error) {
                 }
             }
             const pushMode = switchNotificationMode(oldvalue, mode, value);
@@ -4339,7 +4340,7 @@ export class Station extends TypedEmitter<StationEvents> {
             if (rawproperty !== undefined) {
                 try {
                     oldvalue = Number.parseInt(rawproperty);
-                } catch(error) {
+                } catch (error) {
                 }
             }
             const pushMode = switchNotificationMode(oldvalue, mode, value);
@@ -4392,14 +4393,14 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value
         };
         if (!this.hasProperty(propertyData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() } });
         }
         let pushmode = 0;
         const rawproperty = this.getRawProperty(CommandType.CMD_HUB_NOTIFY_MODE);
         if (rawproperty !== undefined) {
             try {
                 pushmode = Number.parseInt(rawproperty);
-            } catch(error) {
+            } catch (error) {
             }
         }
         const property = this.getPropertyMetadata(propertyData.name);
@@ -4449,7 +4450,7 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value
         };
         if (!this.hasProperty(propertyData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() } });
         }
         const property = this.getPropertyMetadata(propertyData.name);
         validValue(property, value);
@@ -4674,7 +4675,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_INDOOR_ENABLE_PRIVACY_MODE,
-                    "data":{
+                    "data": {
                         "value": param_value,
                     }
                 }),
@@ -4690,7 +4691,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     "cmd": CommandType.CMD_INDOOR_ENABLE_PRIVACY_MODE_S350,
                     "mChannel": device.getChannel(),
                     "mValue3": 0,
-                    "payload":{
+                    "payload": {
                         "switch": param_value,
                     }
                 }),
@@ -4707,7 +4708,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     "cmd": CommandType.CMD_INDOOR_ENABLE_PRIVACY_MODE_S350,
                     "mChannel": device.getChannel(),
                     "mValue3": 0,
-                    "payload":{
+                    "payload": {
                         "switch": param_value,
                     }
                 }),
@@ -4885,7 +4886,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }, {
                 command: commandData
             });
-        } else if (device.isSoloCameras() || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424 || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424 || device.isWiredDoorbellT8200X() || device.isWallLightCam() || device.isGarageCamera()) {
+        } else if (device.isSoloCameras() || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424 || device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424 || device.isWiredDoorbellT8200X() || device.isWallLightCam() || device.isGarageCamera() || device.getDeviceType() === DeviceType.CAMERA_E40) {
             rootHTTPLogger.debug(`Station start livestream - sending command using CMD_DOORBELL_SET_PAYLOAD (2)`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), videoCodec: videoCodec, main_sw_version: this.getSoftwareVersion() });
             this.p2pSession.sendCommandWithStringPayload({
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
@@ -5024,6 +5025,37 @@ export class Station extends TypedEmitter<StationEvents> {
         if (!this.isLiveStreaming(device)) {
             throw new LivestreamNotRunningError("Livestream for device is not running", { context: { device: device.getSerial(), station: this.getSerial(), commandName: commandData.name, commandValue: commandData.value } });
         }
+
+        // For SoloCameras, E40, Floodlight 842x, Wired doorbell T8200X, WallLightCam, and GarageCamera:
+        // Send CMD_DOORBELL_SET_PAYLOAD with COMMAND_END_LIVESTREAM first, then also send standard stop
+        if (
+            device.isSoloCameras() ||
+            device.getDeviceType() === DeviceType.CAMERA_E40 ||
+            device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 ||
+            device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424 ||
+            device.isWiredDoorbellT8200X() ||
+            device.isWallLightCam() ||
+            device.isGarageCamera()
+        ) {
+            rootHTTPLogger.debug("Station stop livestream - sending CMD_DOORBELL_SET_PAYLOAD (END_LIVESTREAM)", {
+                stationSN: this.getSerial(),
+                deviceSN: device.getSerial()
+            });
+
+            this.p2pSession.sendCommandWithStringPayload(
+                {
+                    commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
+                    value: JSON.stringify({
+                        commandType: ParamType.COMMAND_END_LIVESTREAM,
+                        data: {}
+                    }),
+                    channel: device.getChannel()
+                },
+                { command: commandData }
+            );
+        }
+
+        // Always send the standard stop command
         rootHTTPLogger.debug(`Station stop livestream - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial() });
         this.p2pSession.sendCommandWithInt({
             commandType: CommandType.CMD_STOP_REALTIME_MEDIA,
@@ -5174,7 +5206,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": ParamType.COMMAND_HDR,
-                    "data":{
+                    "data": {
                         "status": value === true ? 1 : 0,
                     }
                 }),
@@ -5207,7 +5239,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": ParamType.COMMAND_DISTORTION_CORRECTION,
-                    "data":{
+                    "data": {
                         "status": value === true ? 1 : 0,
                     }
                 }),
@@ -5240,7 +5272,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": ParamType.COMMAND_VIDEO_RING_RECORD,
-                    "data":{
+                    "data": {
                         "status": value
                     }
                 }),
@@ -5378,7 +5410,7 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value
         };
         if (!this.hasProperty(propertyData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() } });
         }
         const property = this.getPropertyMetadata(propertyData.name);
         validValue(property, value);
@@ -5400,7 +5432,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: propertyData
             });
         } else {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() } });
         }
     }
 
@@ -5410,7 +5442,7 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value
         };
         if (!this.hasProperty(propertyData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() } });
         }
         const property = this.getPropertyMetadata(propertyData.name);
         validValue(property, value);
@@ -5432,7 +5464,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: propertyData
             });
         } else {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() } });
         }
     }
 
@@ -5442,7 +5474,7 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value
         };
         if (!this.hasProperty(propertyData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() } });
         }
         const property = this.getPropertyMetadata(propertyData.name);
         validValue(property, value);
@@ -5464,7 +5496,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 property: propertyData
             });
         } else {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() } });
         }
     }
 
@@ -5610,7 +5642,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_STD_SENSITIVITY,
-                    "data":{
+                    "data": {
                         "value": sensitivity,
                     }
                 }),
@@ -5678,7 +5710,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_ADV_LEFT_SENSITIVITY,
-                    "data":{
+                    "data": {
                         "value": sensitivity,
                     }
                 }),
@@ -5746,7 +5778,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_ADV_MIDDLE_SENSITIVITY,
-                    "data":{
+                    "data": {
                         "value": sensitivity,
                     }
                 }),
@@ -5779,7 +5811,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_DETECTION_RANGE_ADV_RIGHT_SENSITIVITY,
-                    "data":{
+                    "data": {
                         "value": sensitivity,
                     }
                 }),
@@ -5912,7 +5944,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_MOTION_TRACKING_SENSITIVITY,
-                    "data":{
+                    "data": {
                         "value": sensitivity,
                     }
                 }),
@@ -5945,7 +5977,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_MOTION_AUTO_CRUISE,
-                    "data":{
+                    "data": {
                         "value": enabled === true ? 1 : 0,
                     }
                 }),
@@ -5978,7 +6010,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_MOTION_OUT_OF_VIEW_DETECTION,
-                    "data":{
+                    "data": {
                         "value": enabled === true ? 1 : 0,
                     }
                 }),
@@ -6028,7 +6060,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_LIGHT_COLOR_TEMP_MANUAL,
-                    "data":{
+                    "data": {
                         "value": value,
                     }
                 }),
@@ -6061,7 +6093,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_LIGHT_COLOR_TEMP_MOTION,
-                    "data":{
+                    "data": {
                         "value": value,
                     }
                 }),
@@ -6094,7 +6126,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_LIGHT_COLOR_TEMP_SCHEDULE,
-                    "data":{
+                    "data": {
                         "value": value,
                     }
                 }),
@@ -6194,7 +6226,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_VIDEO_NIGHTVISION_IMAGE_ADJUSTMENT,
-                    "data":{
+                    "data": {
                         "value": enabled === true ? 1 : 0,
                     }
                 }),
@@ -6227,7 +6259,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_VIDEO_COLOR_NIGHTVISION,
-                    "data":{
+                    "data": {
                         "value": enabled === true ? 1 : 0,
                     }
                 }),
@@ -6260,7 +6292,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_AUTO_CALIBRATION,
-                    "data":{
+                    "data": {
                         "value": enabled === true ? 0 : 1,
                     }
                 }),
@@ -6273,7 +6305,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_AUTO_CALIBRATION,
-                    "data":{
+                    "data": {
                         "onoff": enabled === true ? 1 : 0,
                     }
                 }),
@@ -6457,7 +6489,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     private getAdvancedLockSettingsPayload(command: CommandType, device: Device): AdvancedLockSetParamsType {
-        switch(command) {
+        switch (command) {
             case CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_STARTTIME:
             case CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_ENDTIME:
                 command = CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE;
@@ -6495,7 +6527,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     private getAdvancedLockSettingsPayloadT8530(command: CommandType, device: Device): AdvancedLockSetParamsTypeT8520 {
-        switch(command) {
+        switch (command) {
             case CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_STARTTIME:
             case CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE_ENDTIME:
                 command = CommandType.CMD_SMARTLOCK_AUTO_LOCK_SCHEDULE;
@@ -6544,7 +6576,7 @@ export class Station extends TypedEmitter<StationEvents> {
             tamperAlarmScheduleStart: "1700", // unused constant
             tamperAlarmScheduled: 0, // unused constant
             tamperAlarmWays: 5, // unused constant
-            wrongTryTime:  this.convertAdvancedLockSettingValueT8530(PropertyName.DeviceWrongTryAttempts, device.getPropertyValue(PropertyName.DeviceWrongTryAttempts)) as number,
+            wrongTryTime: this.convertAdvancedLockSettingValueT8530(PropertyName.DeviceWrongTryAttempts, device.getPropertyValue(PropertyName.DeviceWrongTryAttempts)) as number,
         };
     }
 
@@ -7083,7 +7115,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     "mChannel": device.getChannel(),
                     "mValue3": 0,
                     "payload": {
-                        "ai_bottom_switch": value === true ? 1024: 0,
+                        "ai_bottom_switch": value === true ? 1024 : 0,
                         "ai_front_switch": 0
                     }
                 }),
@@ -7120,7 +7152,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     "mChannel": device.getChannel(),
                     "mValue3": 0,
                     "payload": {
-                        "package_guard_switch": value === true ? 1: 0,
+                        "package_guard_switch": value === true ? 1 : 0,
                     }
                 }),
                 channel: device.getChannel()
@@ -7254,7 +7286,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     "mChannel": device.getChannel(),
                     "mValue3": 0,
                     "payload": {
-                        "package_strand_switch": value === true ? 1: 0,
+                        "package_strand_switch": value === true ? 1 : 0,
                     }
                 }),
                 channel: device.getChannel()
@@ -7327,7 +7359,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     "mChannel": device.getChannel(),
                     "mValue3": 0,
                     "payload": {
-                        "package_assitant_switch": value === true ? 1: 0,
+                        "package_assitant_switch": value === true ? 1 : 0,
                     }
                 }),
                 channel: device.getChannel()
@@ -7649,7 +7681,7 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
                 "commandType": CommandType.CMD_INDOOR_SET_CONTINUE_ENABLE,
-                "data":{
+                "data": {
                     "enable": value === true ? 1 : 0,
                     "index": 0,
                     "status": 0,
@@ -7721,7 +7753,7 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
                 "commandType": CommandType.CMD_INDOOR_DEFAULT_ANGLE_ENABLE,
-                "data":{
+                "data": {
                     "value": value === true ? device.getPropertyValue(PropertyName.DeviceDefaultAngleIdleTime) : 0,
                 },
             }),
@@ -7750,7 +7782,7 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
                 "commandType": CommandType.CMD_INDOOR_DEFAULT_ANGLE_IDLE_TIME,
-                "data":{
+                "data": {
                     "value": value,
                 },
             }),
@@ -7775,7 +7807,7 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
                 "commandType": CommandType.CMD_INDOOR_DEFAULT_ANGLE_SET,
-                "data":{
+                "data": {
                     "value": 0,
                 },
             }),
@@ -7800,7 +7832,7 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
                 "commandType": CommandType.CMD_INDOOR_SET_PRIVACY_ANGLE,
-                "data":{
+                "data": {
                     "value": 0,
                 },
             }),
@@ -7858,7 +7890,7 @@ export class Station extends TypedEmitter<StationEvents> {
                     "cmd": CommandType.CMD_INDOOR_SET_SOUND_DETECT_ROUND_LOOK_S350,
                     "mChannel": device.getChannel(),
                     "mValue3": 0,
-                    "payload":{
+                    "payload": {
                         "onoff": value === true ? 1 : 0,
                     },
                 }),
@@ -7871,7 +7903,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_INDOOR_SET_SOUND_DETECT_ROUND_LOOK,
-                    "data":{
+                    "data": {
                         "value": value === true ? 1 : 0,
                     },
                 }),
@@ -8204,25 +8236,25 @@ export class Station extends TypedEmitter<StationEvents> {
                     break;
                 case PropertyName.DeviceRemoteUnlock:
                 case PropertyName.DeviceRemoteUnlockMasterPIN:
-                {
-                    if (!this.pinVerified && value as boolean === true) {
-                        throw new PinNotVerifiedError("You need to call verifyPIN with correct PIN first to enable this property", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
+                    {
+                        if (!this.pinVerified && value as boolean === true) {
+                            throw new PinNotVerifiedError("You need to call verifyPIN with correct PIN first to enable this property", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
+                        }
+                        let newValue = 2;
+                        const remoteUnlock = property === PropertyName.DeviceRemoteUnlock ? value as boolean : device.getPropertyValue(PropertyName.DeviceRemoteUnlock) as boolean;
+                        const remoteUnlockMasterPIN = property === PropertyName.DeviceRemoteUnlockMasterPIN ? value as boolean : device.getPropertyValue(PropertyName.DeviceRemoteUnlockMasterPIN) as boolean;
+                        if (remoteUnlock && remoteUnlockMasterPIN) {
+                            newValue = 0;
+                        } else if (remoteUnlock) {
+                            newValue = 1;
+                        }
+                        payload = SmartSafe.encodeCmdRemoteUnlock(
+                            this.rawStation.member.admin_user_id,
+                            newValue
+                        );
+                        command = SmartSafeCommandCode.SET_UNLOCK_MODE;
+                        break;
                     }
-                    let newValue = 2;
-                    const remoteUnlock = property === PropertyName.DeviceRemoteUnlock ? value as boolean : device.getPropertyValue(PropertyName.DeviceRemoteUnlock) as boolean;
-                    const remoteUnlockMasterPIN = property === PropertyName.DeviceRemoteUnlockMasterPIN ? value as boolean : device.getPropertyValue(PropertyName.DeviceRemoteUnlockMasterPIN) as boolean;
-                    if (remoteUnlock && remoteUnlockMasterPIN) {
-                        newValue = 0;
-                    } else if (remoteUnlock) {
-                        newValue = 1;
-                    }
-                    payload = SmartSafe.encodeCmdRemoteUnlock(
-                        this.rawStation.member.admin_user_id,
-                        newValue
-                    );
-                    command = SmartSafeCommandCode.SET_UNLOCK_MODE;
-                    break;
-                }
                 case PropertyName.DevicePromptVolume:
                     payload = SmartSafe.encodeCmdPromptVolume(
                         this.rawStation.member.admin_user_id,
@@ -8384,7 +8416,7 @@ export class Station extends TypedEmitter<StationEvents> {
             commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
             value: JSON.stringify({
                 "commandType": CommandType.CMD_INDOOR_NAS_STORAGE_TYPE,
-                "data":{
+                "data": {
                     "enable": 0,
                     "index": 0,
                     "status": 0,
@@ -9283,7 +9315,7 @@ export class Station extends TypedEmitter<StationEvents> {
             if (rawproperty !== undefined) {
                 try {
                     oldvalue = Number.parseInt(rawproperty);
-                } catch(error) {
+                } catch (error) {
                 }
             }
             const notification = switchSmartLockNotification(oldvalue, SmartLockNotification.ENABLED, value);
@@ -9330,7 +9362,7 @@ export class Station extends TypedEmitter<StationEvents> {
             if (rawproperty !== undefined) {
                 try {
                     oldvalue = Number.parseInt(rawproperty);
-                } catch(error) {
+                } catch (error) {
                 }
             }
             const notification = switchSmartLockNotification(oldvalue, SmartLockNotification.LOCKED, value);
@@ -9377,7 +9409,7 @@ export class Station extends TypedEmitter<StationEvents> {
             if (rawproperty !== undefined) {
                 try {
                     oldvalue = Number.parseInt(rawproperty);
-                } catch(error) {
+                } catch (error) {
                 }
             }
             const notification = switchSmartLockNotification(oldvalue, SmartLockNotification.UNLOCKED, value);
@@ -9525,12 +9557,12 @@ export class Station extends TypedEmitter<StationEvents> {
             value: value
         };
         if (!this.hasCommand(commandData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, station: this.getSerial() } });
         }
         if (this.rawStation.devices !== undefined) {
             this.rawStation.devices.forEach((device) => {
                 if (Device.isDoorbell(device.device_type)) {
-                    throw new NotSupportedError("This functionality is only supported on stations without registered Doorbells on it", { context: { commandName: commandData.name, station: this.getSerial()} });
+                    throw new NotSupportedError("This functionality is only supported on stations without registered Doorbells on it", { context: { commandName: commandData.name, station: this.getSerial() } });
                 }
             });
         }
@@ -9551,7 +9583,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 command: commandData
             });
         } else {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, commandValue: commandData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, commandValue: commandData.value, station: this.getSerial() } });
         }
     }
 
@@ -9565,7 +9597,7 @@ export class Station extends TypedEmitter<StationEvents> {
             value: cover_path
         };
         if (!this.hasCommand(CommandName.StationDownloadImage)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, commandValue: commandData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, commandValue: commandData.value, station: this.getSerial() } });
         }
         rootHTTPLogger.debug(`Station download image - sending command`, { stationSN: this.getSerial(), value: cover_path });
         this.p2pSession.sendCommandWithStringPayload({
@@ -9593,7 +9625,7 @@ export class Station extends TypedEmitter<StationEvents> {
             name: CommandName.StationDatabaseQueryLatestInfo,
         };
         if (!this.hasCommand(commandData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, station: this.getSerial() } });
         }
 
         rootHTTPLogger.debug(`Station database query latest info - sending command`, { stationSN: this.getSerial() });
@@ -9627,12 +9659,12 @@ export class Station extends TypedEmitter<StationEvents> {
             }
         };
         if (!this.hasCommand(commandData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, commandValue: commandData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, commandValue: commandData.value, station: this.getSerial() } });
         }
 
-        rootHTTPLogger.debug(`Station database query local - sending command`, { stationSN: this.getSerial(), serialNumbers: serialNumbers, startDate: startDate, endDate: endDate, eventType: eventType, detectionType:detectionType, storageType: storageType });
+        rootHTTPLogger.debug(`Station database query local - sending command`, { stationSN: this.getSerial(), serialNumbers: serialNumbers, startDate: startDate, endDate: endDate, eventType: eventType, detectionType: detectionType, storageType: storageType });
         const devices: Array<{ device_sn: string; }> = [];
-        for(const serial of serialNumbers) {
+        for (const serial of serialNumbers) {
             devices.push({ device_sn: serial });
         }
         this.p2pSession.sendCommandWithStringPayload({
@@ -9644,7 +9676,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 "mValue3": 0,
                 "payload": {
                     "cmd": CommandType.CMD_DATABASE_QUERY_LOCAL,
-                    "payload":{
+                    "payload": {
                         "count": 20,
                         "detection_type": detectionType,
                         "device_info": devices,
@@ -9673,7 +9705,7 @@ export class Station extends TypedEmitter<StationEvents> {
             value: ids
         };
         if (!this.hasCommand(commandData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, commandValue: commandData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, commandValue: commandData.value, station: this.getSerial() } });
         }
 
         rootHTTPLogger.debug(`Station database delete - sending command`, { stationSN: this.getSerial(), ids: ids });
@@ -9710,7 +9742,7 @@ export class Station extends TypedEmitter<StationEvents> {
             }
         };
         if (!this.hasCommand(commandData.name)) {
-            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, commandValue: commandData.value, station: this.getSerial()} });
+            throw new NotSupportedError("This functionality is not implemented or supported", { context: { commandName: commandData.name, commandValue: commandData.value, station: this.getSerial() } });
         }
 
         rootHTTPLogger.debug(`Station database count by date - sending command`, { stationSN: this.getSerial(), startDate: startDate, endDate: endDate });
@@ -9835,7 +9867,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
         rootHTTPLogger.debug(`Station set set light settings lighting active mode - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), propertyName: propertyName, value: value, type: type });
         if (device.isWallLightCam()) {
-            switch(value) {
+            switch (value) {
                 case LightingActiveMode.DAILY: {
                     let currentProperty = PropertyName.DeviceLightSettingsManualDailyLighting;
                     if (type === "schedule") {
@@ -9928,7 +9960,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public setLightSettingsManualLightingActiveMode(device: Device, value: LightingActiveMode): void {
-        this._setLightSettingsLightingActiveMode(device, PropertyName.DeviceLightSettingsManualLightingActiveMode, value , "manual");
+        this._setLightSettingsLightingActiveMode(device, PropertyName.DeviceLightSettingsManualLightingActiveMode, value, "manual");
     }
 
     public setLightSettingsManualDailyLighting(device: Device, value: DailyLightingType): void {
@@ -10041,7 +10073,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public setLightSettingsMotionLightingActiveMode(device: Device, value: LightingActiveMode): void {
-        this._setLightSettingsLightingActiveMode(device, PropertyName.DeviceLightSettingsMotionLightingActiveMode, value , "motion");
+        this._setLightSettingsLightingActiveMode(device, PropertyName.DeviceLightSettingsMotionLightingActiveMode, value, "motion");
     }
 
     public setLightSettingsMotionDailyLighting(device: Device, value: DailyLightingType): void {
@@ -10154,7 +10186,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
 
     public setLightSettingsScheduleLightingActiveMode(device: Device, value: LightingActiveMode): void {
-        this._setLightSettingsLightingActiveMode(device, PropertyName.DeviceLightSettingsScheduleLightingActiveMode, value , "schedule");
+        this._setLightSettingsLightingActiveMode(device, PropertyName.DeviceLightSettingsScheduleLightingActiveMode, value, "schedule");
     }
 
     public setLightSettingsScheduleDailyLighting(device: Device, value: DailyLightingType): void {
@@ -10282,7 +10314,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
         rootHTTPLogger.debug(`Station set light settings colored lighting colors - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
         if (device.isWallLightCam()) {
-            const colors: Array<InternalColoredLighting> = [{"color":16760832}, {"color":16744448}, {"color":16728320}, {"color":16720384}, {"color":16711696}, {"color":3927961}, {"color":1568995}, {"color":485368}, {"color":9983}, {"color":4664060}];
+            const colors: Array<InternalColoredLighting> = [{ "color": 16760832 }, { "color": 16744448 }, { "color": 16728320 }, { "color": 16720384 }, { "color": 16711696 }, { "color": 3927961 }, { "color": 1568995 }, { "color": 485368 }, { "color": 9983 }, { "color": 4664060 }];
             if (value.length > 0 && value.length <= 15) {
                 let count = 0;
                 for (let i = 0; i < colors.length; i++) {
@@ -10295,7 +10327,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 if (value.length - count + colors.length > 15) {
                     throw new InvalidPropertyValueError("This property can contain a maximum of 15 items, of which the first 10 are fixed. You can either deliver the first 10 static items with the maximum 5 freely selectable items or only the maximum 5 freely selectable items.", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
                 } else {
-                    for(let i = count; i < value.length - count + 10; i++) {
+                    for (let i = count; i < value.length - count + 10; i++) {
                         colors.push({ color: RGBColorToDecimal(value[i]) });
                     }
                 }
@@ -10333,7 +10365,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
         rootHTTPLogger.debug(`Station set light settings dynamic lighting themes - sending command`, { stationSN: this.getSerial(), deviceSN: device.getSerial(), value: value });
         if (device.isWallLightCam()) {
-            const themes:Array<InternalDynamicLighting> = [{"name":"Aurora","mode":1,"id":0,"speed":4000,"colors":[65321,65468,28671,9215,42239]},{"name":"Warmth","mode":1,"id":1,"speed":4000,"colors":[16758528,16744448,16732160,16719360,16742144]},{"name":"Let's Party","mode":2,"id":2,"speed":500,"colors":[16718080,16756736,65298,40703,4980991]}];
+            const themes: Array<InternalDynamicLighting> = [{ "name": "Aurora", "mode": 1, "id": 0, "speed": 4000, "colors": [65321, 65468, 28671, 9215, 42239] }, { "name": "Warmth", "mode": 1, "id": 1, "speed": 4000, "colors": [16758528, 16744448, 16732160, 16719360, 16742144] }, { "name": "Let's Party", "mode": 2, "id": 2, "speed": 500, "colors": [16718080, 16756736, 65298, 40703, 4980991] }];
             if (value.length > 0 && value.length <= 23) {
                 let count = 0;
                 for (let i = 0; i < themes.length; i++) {
@@ -10346,7 +10378,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 if (value.length - count + themes.length > 23) {
                     throw new InvalidPropertyValueError("This property can contain a maximum of 23 items, of which the first 3 are fixed. You can either deliver the first 3 static items with the maximum 20 freely selectable items or only the maximum 20 freely selectable items.", { context: { device: device.getSerial(), station: this.getSerial(), propertyName: propertyData.name, propertyValue: propertyData.value } });
                 } else {
-                    for(let i = count; i < value.length - count + 3; i++) {
+                    for (let i = count; i < value.length - count + 3; i++) {
                         themes.push({
                             id: i,
                             colors: value[i].colors.map((color) => RGBColorToDecimal(color)),
@@ -10804,7 +10836,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SET_MOTION_PRESET_POSITION,
-                    "data":{
+                    "data": {
                         "value": position,
                     }
                 }),
@@ -10836,7 +10868,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_SAVE_MOTION_PRESET_POSITION,
-                    "data":{
+                    "data": {
                         "value": position,
                     }
                 }),
@@ -10868,7 +10900,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 commandType: CommandType.CMD_DOORBELL_SET_PAYLOAD,
                 value: JSON.stringify({
                     "commandType": CommandType.CMD_FLOODLIGHT_DELETE_MOTION_PRESET_POSITION,
-                    "data":{
+                    "data": {
                         "value": position,
                     }
                 }),
@@ -11113,7 +11145,8 @@ export class Station extends TypedEmitter<StationEvents> {
                     "mValue3": 0,
                     "payload": {
                         "timezone": this.rawStation.time_zone === undefined || this.rawStation.time_zone === "" ? getAdvancedLockTimezone(this.rawStation.station_sn) : this.rawStation.time_zone,
-                    }}),
+                    }
+                }),
                 channel: 0
             } as P2PCommand);
         }

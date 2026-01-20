@@ -19,6 +19,7 @@ export enum DeviceType {
     KEYPAD = 11,
     CAMERA2_PRO = 14,
     CAMERA2C_PRO = 15,
+    CAMERA_E40 = 49, // T8144 - eufyCam E40
     BATTERY_DOORBELL_2 = 16,
     HB3 = 18,
     CAMERA3 = 19,
@@ -133,6 +134,7 @@ export enum ParamType {
     COMMAND_NOTIFICATION_TYPE = 1030,
     COMMAND_QUICK_RESPONSE = 1004,
     COMMAND_START_LIVESTREAM = 1000,
+    COMMAND_END_LIVESTREAM = 1050,
     COMMAND_STREAM_INFO = 1005,
     COMMAND_VOLTAGE_INFO = 1015,
 
@@ -585,7 +587,7 @@ export enum PropertyName {
     DeviceWifiRSSI = "wifiRssi",
     DeviceWifiSignalLevel = "wifiSignalLevel",
     DeviceEnabled = "enabled",
-    DeviceAntitheftDetection= "antitheftDetection",
+    DeviceAntitheftDetection = "antitheftDetection",
     DeviceAutoNightvision = "autoNightvision",
     DeviceNightvision = "nightvision",
     DeviceStatusLed = "statusLed",
@@ -1366,7 +1368,7 @@ export const DeviceStatusLedDoorbellProperty: PropertyMetadataBoolean = {
 
 export const DeviceStatusLedT8200XProperty: PropertyMetadataBoolean = {
     ...DeviceStatusLedProperty,
-    key:ParamType.COMMAND_LED_NIGHT_OPEN,
+    key: ParamType.COMMAND_LED_NIGHT_OPEN,
     commandId: ParamType.COMMAND_LED_NIGHT_OPEN,
 };
 
@@ -5462,6 +5464,49 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
         [PropertyName.DevicePersonName]: DevicePersonNameProperty,
     },
+    [DeviceType.CAMERA_E40]: {
+        ...GenericDeviceProperties,
+        [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+        [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
+        [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
+        [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+        [PropertyName.DeviceEnabled]: DeviceEnabledProperty,
+        [PropertyName.DeviceAntitheftDetection]: DeviceAntitheftDetectionProperty,
+        [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionProperty,
+        [PropertyName.DeviceStatusLed]: DeviceStatusLedProperty,
+        [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
+        [PropertyName.DeviceRTSPStream]: DeviceRTSPStreamProperty,
+        [PropertyName.DeviceRTSPStreamUrl]: DeviceRTSPStreamUrlProperty,
+        [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityCameraProperty,
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityCamera2CProProperty,
+        [PropertyName.DevicePicture]: DevicePictureProperty,
+        [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+        [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
+        [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
+        [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeProperty,
+        [PropertyName.DeviceAudioRecording]: DeviceAudioRecordingProperty,
+        [PropertyName.DeviceMotionDetectionSensitivity]: DeviceMotionDetectionSensitivityCamera2Property,
+        [PropertyName.DeviceMotionDetectionType]: DeviceMotionDetectionTypeProperty,
+        [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+        [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+        [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+        [PropertyName.DevicePowerSource]: DevicePowerSourceProperty,
+        [PropertyName.DevicePowerWorkingMode]: DevicePowerWorkingModeProperty,
+        [PropertyName.DeviceChargingStatus]: DeviceChargingStatusProperty,
+        [PropertyName.DeviceRecordingClipLength]: DeviceRecordingClipLengthProperty,
+        [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalProperty,
+        [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
+        [PropertyName.DeviceNotificationType]: DeviceNotificationTypeProperty,
+        [PropertyName.DeviceState]: DeviceStateProperty,
+        [PropertyName.DeviceLastChargingDays]: DeviceLastChargingDaysProperty,
+        [PropertyName.DeviceLastChargingFalseEvents]: DeviceLastChargingFalseEventsProperty,
+        [PropertyName.DeviceLastChargingRecordedEvents]: DeviceLastChargingRecordedEventsProperty,
+        [PropertyName.DeviceLastChargingTotalEvents]: DeviceLastChargingTotalEventsProperty,
+        [PropertyName.DeviceBatteryUsageLastWeek]: DeviceBatteryUsageLastWeekProperty,
+        [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+        [PropertyName.DeviceSnoozeTime]: DeviceSnoozeTimeProperty,
+        [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
+    },
     [DeviceType.CAMERA3]: {
         ...GenericDeviceProperties,
         [PropertyName.DeviceBattery]: DeviceBatteryProperty,
@@ -6152,7 +6197,7 @@ export const DeviceProperties: Properties = {
         [PropertyName.DeviceRecordingRetriggerInterval]: DeviceRecordingRetriggerIntervalBatteryDoorbellProperty,
         [PropertyName.DeviceRecordingEndClipMotionStops]: DeviceRecordingEndClipMotionStopsProperty,
         [PropertyName.DeviceVideoStreamingQuality]: DeviceVideoStreamingQualityBatteryDoorbellProperty, //OK
-        [PropertyName.DeviceVideoRecordingQuality]:DeviceVideoRecordingQualityT8530Property, //OK
+        [PropertyName.DeviceVideoRecordingQuality]: DeviceVideoRecordingQualityT8530Property, //OK
         [PropertyName.DeviceChimeIndoor]: DeviceChimeIndoorBatteryDoorbellProperty,
         [PropertyName.DeviceChimeHomebase]: DeviceChimeHomebaseBatteryDoorbellProperty, //OK
         [PropertyName.DeviceChimeHomebaseRingtoneVolume]: DeviceChimeHomebaseRingtoneVolumeBatteryDoorbellProperty, //OK
@@ -8650,12 +8695,12 @@ export const StationCrossTrackingGroupListProperty: PropertyMetadataObject = {
             return obj.length > 0 &&
                 obj.every((element) => {
                     return typeof element === "object" &&
-                    "value" in element &&
-                    Array.isArray(element.value) &&
-                    element.value.length > 0 &&
-                    element.value.every((value) => {
-                        return typeof value === "string";
-                    })
+                        "value" in element &&
+                        Array.isArray(element.value) &&
+                        element.value.length > 0 &&
+                        element.value.every((value) => {
+                            return typeof value === "string";
+                        })
                 });
         }
         return false;
@@ -9400,6 +9445,16 @@ export const DeviceCommands: Commands = {
         CommandName.DeviceSnooze,
     ],
     [DeviceType.CAMERA2_PRO]: [
+        CommandName.DeviceStartLivestream,
+        CommandName.DeviceStopLivestream,
+        CommandName.DeviceTriggerAlarmSound,
+        CommandName.DeviceStartDownload,
+        CommandName.DeviceCancelDownload,
+        CommandName.DeviceStartTalkback,
+        CommandName.DeviceStopTalkback,
+        CommandName.DeviceSnooze,
+    ],
+    [DeviceType.CAMERA_E40]: [
         CommandName.DeviceStartLivestream,
         CommandName.DeviceStopLivestream,
         CommandName.DeviceTriggerAlarmSound,
