@@ -1391,8 +1391,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
             Device.isOutdoorPanAndTiltCamera(type) ||
             Device.isSoloCameraSolar(type) ||
             Device.isSoloCameraC210(type) ||
-            Device.isSoloCameraE30(type) ||
-            Device.isCameraE40(type);
+            Device.isSoloCameraE30(type);
     }
 
     static isStarlight4GLTE(type: number): boolean {
@@ -1440,7 +1439,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
 
     static isCameraE40(type: number): boolean {
-        //T8144
         return DeviceType.CAMERA_E40 == type;
     }
 

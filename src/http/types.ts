@@ -987,6 +987,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
         46: "Outdoor Camera 1080P",
         47: "Floodlight Camera E340",
         48: "Solo Camera S340",
+        49: "Camera E40",
         50: "Lock Basic",
         51: "Lock Advanced",
         52: "Lock Basic No Finger",

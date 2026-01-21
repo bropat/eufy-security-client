@@ -15,7 +15,7 @@
 | ![T8113 image](_media/eufycam2c_small.jpg) | eufyCam S210 (T8113; eufyCam 2C) | :heavy_check_mark: |  |
 | ![T8140 image](_media/eufycam2pro_small.jpg) | eufyCam S221 (T8140; eufyCam 2 Pro) | :heavy_check_mark: |  |
 | ![T8141 image](_media/eufycam2cpro_small.jpg) | eufyCam S220 (T8141; eufyCam 2C Pro) | :heavy_check_mark: |  |
-| | eufyCam E40 (T8144) | :heavy_check_mark: | DeviceType 49; Livestream via CMD_DOORBELL_SET_PAYLOAD |
+| ![T8144 image](_media/eufyCamE40_small.jpg) | eufyCam E40 (T8144) | :heavy_check_mark: | DeviceType 49; Livestream via CMD_DOORBELL_SET_PAYLOAD |
 | ![T8160 image](_media/eufycam3_small.jpg) | eufyCam S330 (T8160; eufyCam 3) | :heavy_check_mark: | Firmware: 3.1.8.6 (20221101) |
 | ![T8161 image](_media/eufycam3c_small.jpg) | eufyCam S300 (T8161; eufyCam 3C) | :heavy_check_mark: | Firmware: 3.1.8.6 (20221101) |
 | ![T8160 image](_media/eufycam3pro_small.png) | eufyCam S3 Pro (T8162; eufyCam S3 Pro) | :heavy_check_mark: |  |
