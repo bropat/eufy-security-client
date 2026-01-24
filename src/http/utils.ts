@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv } from "crypto";
-import { timeZoneData } from "./const";
+import {PhoneModelStructure, timeZoneData} from "./const";
 import md5 from "crypto-js/md5";
 import enc_hex from "crypto-js/enc-hex";
 import sha256 from "crypto-js/sha256";
@@ -906,3 +906,33 @@ export const loadEventImage = function (
     }
   }
 };
+
+
+
+export const getRandomPhoneModel = function () {
+    /**
+     *  Generate a random phone model based on a structure
+     */
+    const brandKeys   = Object.keys(PhoneModelStructure);
+    const randomBrandName = brandKeys[Math.floor(Math.random() * brandKeys.length)];
+
+    const pick = (arr: any) => arr[Math.floor(Math.random() * arr.length)];
+
+    let part1  = "";
+    let part2 = "";
+    const dataBrand = PhoneModelStructure[randomBrandName];
+
+    if (dataBrand.first && dataBrand.second) {
+        part1 = pick(dataBrand.first);
+        part2 = pick(dataBrand.second);
+    }
+
+    if (dataBrand.numbers && dataBrand.letters) {
+        const minNum = Math.pow(10, dataBrand.numbers - 1);
+        const maxNum = Math.pow(10, dataBrand.numbers) - 1;
+        part1 = String(Math.floor(Math.random() * (maxNum - minNum + 1)) + minNum);
+        part2 = pick(dataBrand.letters);
+    }
+    return `${randomBrandName}${part1}${part2}`.trim();
+
+}
