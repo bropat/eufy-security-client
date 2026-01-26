@@ -16,7 +16,9 @@
     "watch:ts": "tsc -p tsconfig.build.json --watch",
     "watch": "npm run watch:ts",
     "lint": "eslint --ext .ts src",
-    "prepublishOnly": "tsc -p tsconfig.build.json && npm run copy-proto-build"
+    "prepublishOnly": "tsc -p tsconfig.build.json && npm run copy-proto-build",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\""
   },
   "license": "MIT",
   "keywords": [
@@ -70,6 +72,7 @@
     "@typescript-eslint/parser": "^8.48.0 ",
     "eslint": "^9.39.1",
     "jest": "^29.7.0",
+    "prettier": "^3.8.1",
     "ts-jest": "^29.4.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.49.0"
