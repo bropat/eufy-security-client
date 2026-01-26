@@ -9,7 +9,6 @@ import { MCSProtocolMessageTagError, MCSProtocolProcessingStateError, MCSProtoco
 import { rootPushLogger } from "../logging";
 
 export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
-
     private static proto: Root | null = null;
     private state: ProcessingState = ProcessingState.MCS_VERSION_TAG_AND_SIZE;
     private data: Buffer = Buffer.alloc(0);
@@ -184,7 +183,9 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
             case ProcessingState.MCS_PROTO_BYTES:
                 return this.messageSize;
             default:
-                throw new MCSProtocolProcessingStateError("Unknown protocol processing state", { context: { state: this.state } });
+                throw new MCSProtocolProcessingStateError("Unknown protocol processing state", {
+                    context: { state: this.state },
+                });
         }
     }
 
@@ -207,7 +208,9 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
             case MessageTag.StreamErrorStanza:
                 return PushClientParser.proto!.lookupType("mcs_proto.StreamErrorStanza");
             default:
-                throw new MCSProtocolMessageTagError("Unknown protocol message tag", { context: { messageTag: this.messageTag } });
+                throw new MCSProtocolMessageTagError("Unknown protocol message tag", {
+                    context: { messageTag: this.messageTag },
+                });
         }
     }
 }

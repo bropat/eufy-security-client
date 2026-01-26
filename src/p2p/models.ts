@@ -49,7 +49,17 @@ export interface CommandResult {
 
 export interface CmdNotifyPayload {
     cmd: number;
-    payload: ESLStationP2PThroughData | ESLAdvancedLockStatusNotification | SmartSafeSettingsNotification | SmartSafeStatusNotification | ESLBleV12P2PThroughData | EntrySensorStatus | GarageDoorStatus | StorageInfoHB3 | SmartLockP2PSequenceData | string,
+    payload:
+        | ESLStationP2PThroughData
+        | ESLAdvancedLockStatusNotification
+        | SmartSafeSettingsNotification
+        | SmartSafeStatusNotification
+        | ESLBleV12P2PThroughData
+        | EntrySensorStatus
+        | GarageDoorStatus
+        | StorageInfoHB3
+        | SmartLockP2PSequenceData
+        | string;
     payloadLen?: number;
 }
 
@@ -185,7 +195,7 @@ export interface LockV12P2PCommandPayloadType {
         apiCommand: number;
         lock_payload: string;
         seq_num: number;
-    }
+    };
 }
 
 export interface LockV12P2PCommandType {
@@ -202,7 +212,7 @@ export interface SmartSafeP2PCommandPayloadType {
         data: string;
         prj_id: CommandType;
         seq_num: number;
-    }
+    };
 }
 
 export interface SmartSafeP2PCommandType {
@@ -310,7 +320,7 @@ export interface SmartLockP2PCommandPayloadType {
         lock_payload: string;
         seq_num: number;
         time: number;
-    }
+    };
 }
 
 export interface SmartLockP2PCommandType {
@@ -326,7 +336,7 @@ export interface SmartLockP2PThroughData {
 
 export interface SmartLockP2PSequenceData {
     lock_cmd: number;
-    seq_num: number
+    seq_num: number;
     dev_sn: string;
     bus_type?: number;
 }

@@ -1,4 +1,3 @@
-
 export interface DeviceSmartLockNotifyData {
     stationSn: string;
     deviceSn: string;
@@ -25,4 +24,3 @@ export interface DeviceSmartLockMessage {
     userId: string;
     data: DeviceSmartLockNotify;
 }
-

@@ -3,7 +3,6 @@
  *
  */
 
-
 import { Readable } from "stream";
 
 import { Device } from "./http/device";
@@ -38,14 +37,14 @@ export interface EufySecurityConfig {
     enableEmbeddedPKCS1Support?: boolean;
     deviceConfig?: {
         simultaneousDetections?: boolean;
-    },
+    };
     logging?: {
         level?: LogLevel;
         categories?: Array<{
             category: LoggingCategories;
             level: LogLevel;
         }>;
-    }
+    };
 }
 
 export interface EufySecurityPersistentData {
@@ -100,9 +99,21 @@ export interface EufySecurityEvents {
     "device battery fully charged": (device: Device, state: boolean) => void;
     "station added": (station: Station) => void;
     "station removed": (station: Station) => void;
-    "station livestream start": (station: Station, device: Device, metadata: StreamMetadata, videostream: Readable, audiostream: Readable) => void;
+    "station livestream start": (
+        station: Station,
+        device: Device,
+        metadata: StreamMetadata,
+        videostream: Readable,
+        audiostream: Readable
+    ) => void;
     "station livestream stop": (station: Station, device: Device) => void;
-    "station download start": (station: Station, device: Device, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => void;
+    "station download start": (
+        station: Station,
+        device: Device,
+        metadata: StreamMetadata,
+        videoStream: Readable,
+        audioStream: Readable
+    ) => void;
     "station download finish": (station: Station, device: Device) => void;
     "station command result": (station: Station, result: CommandResult) => void;
     "station rtsp livestream start": (station: Station, device: Device) => void;
@@ -122,15 +133,27 @@ export interface EufySecurityEvents {
     "station talkback start": (station: Station, device: Device, talkbackStream: TalkbackStream) => void;
     "station talkback stop": (station: Station, device: Device) => void;
     "station image download": (station: Station, file: string, image: Picture) => void;
-    "station database query latest": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLatestInfo>) => void;
-    "station database query local": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => void;
-    "station database count by date": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => void;
+    "station database query latest": (
+        station: Station,
+        returnCode: DatabaseReturnCode,
+        data: Array<DatabaseQueryLatestInfo>
+    ) => void;
+    "station database query local": (
+        station: Station,
+        returnCode: DatabaseReturnCode,
+        data: Array<DatabaseQueryLocal>
+    ) => void;
+    "station database count by date": (
+        station: Station,
+        returnCode: DatabaseReturnCode,
+        data: Array<DatabaseCountByDate>
+    ) => void;
     "station database delete": (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => void;
     "push connect": () => void;
     "push close": () => void;
     "push message": (message: PushMessage) => void;
-    "connect": () => void;
-    "close": () => void;
+    connect: () => void;
+    close: () => void;
     "connection error": (error: Error) => void;
     "tfa request": () => void;
     "captcha request": (id: string, captcha: string) => void;

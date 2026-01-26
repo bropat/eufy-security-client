@@ -1,7 +1,7 @@
 import { BaseError, Jsonable } from "../error";
 
 export class UnknownExpiryFormaError extends BaseError {
-    constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
+    constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = UnknownExpiryFormaError.name;
@@ -9,7 +9,7 @@ export class UnknownExpiryFormaError extends BaseError {
 }
 
 export class FidRegistrationFailedError extends BaseError {
-    constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
+    constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = FidRegistrationFailedError.name;
@@ -17,7 +17,7 @@ export class FidRegistrationFailedError extends BaseError {
 }
 
 export class RenewFidTokenFailedError extends BaseError {
-    constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
+    constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = RenewFidTokenFailedError.name;
@@ -25,7 +25,7 @@ export class RenewFidTokenFailedError extends BaseError {
 }
 
 export class ExecuteCheckInError extends BaseError {
-    constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
+    constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = ExecuteCheckInError.name;
@@ -33,7 +33,7 @@ export class ExecuteCheckInError extends BaseError {
 }
 
 export class RegisterGcmError extends BaseError {
-    constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
+    constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = RegisterGcmError.name;
@@ -41,7 +41,7 @@ export class RegisterGcmError extends BaseError {
 }
 
 export class BuildLoginRequestError extends BaseError {
-    constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
+    constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = BuildLoginRequestError.name;
@@ -49,7 +49,7 @@ export class BuildLoginRequestError extends BaseError {
 }
 
 export class BuildHeartbeatPingRequestError extends BaseError {
-    constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
+    constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = BuildHeartbeatPingRequestError.name;
@@ -57,7 +57,7 @@ export class BuildHeartbeatPingRequestError extends BaseError {
 }
 
 export class BuildHeartbeatAckRequestError extends BaseError {
-    constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
+    constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = BuildHeartbeatAckRequestError.name;
@@ -65,7 +65,7 @@ export class BuildHeartbeatAckRequestError extends BaseError {
 }
 
 export class FidGenerationError extends BaseError {
-    constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
+    constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = FidGenerationError.name;
@@ -73,7 +73,7 @@ export class FidGenerationError extends BaseError {
 }
 
 export class MCSProtocolVersionError extends BaseError {
-    constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
+    constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = MCSProtocolVersionError.name;
@@ -81,7 +81,7 @@ export class MCSProtocolVersionError extends BaseError {
 }
 
 export class MCSProtocolProcessingStateError extends BaseError {
-    constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
+    constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = MCSProtocolProcessingStateError.name;
@@ -89,7 +89,7 @@ export class MCSProtocolProcessingStateError extends BaseError {
 }
 
 export class MCSProtocolMessageTagError extends BaseError {
-    constructor(message: string, options: { cause?: Error, context?: Jsonable } = {}) {
+    constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
         super(message, options);
         Object.setPrototypeOf(this, new.target.prototype);
         this.name = MCSProtocolMessageTagError.name;
