@@ -1,0 +1,8 @@
+node_modules
+build
+dist
+coverage
+*.proto
+*.crt
+package-lock.json
+docs
