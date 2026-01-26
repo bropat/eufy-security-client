@@ -35,7 +35,7 @@ export const removeLastChar = function (text: string, char: string): string {
  *  Generate a UDID
  */
 export const generateUDID = function (): string {
-    return crypto.randomBytes(8).readBigUInt64BE().toString(16);
+    return crypto.randomBytes(8).readBigUInt64BE().toString(16).padStart(16, "0");
 };
 
 /**
