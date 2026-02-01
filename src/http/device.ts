@@ -2400,7 +2400,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   static isEntrySensor(type: number): boolean {
     //T8900
-    return DeviceType.SENSOR == type || this.isEntryE20();
+    return DeviceType.SENSOR == type || this.isEntryE20(type);
   }
 
   static isMotionSensor(type: number): boolean {
