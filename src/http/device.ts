@@ -5353,15 +5353,15 @@ export class SmartSafe extends Device {
   public static readonly PUSH_NOTIFICATION_POSITION: {
     [index: string]: number;
   } = {
-      [PropertyName.DeviceNotificationUnlockByKey]: 0,
-      [PropertyName.DeviceNotificationUnlockByPIN]: 1,
-      [PropertyName.DeviceNotificationUnlockByFingerprint]: 2,
-      [PropertyName.DeviceNotificationUnlockByApp]: 3,
-      [PropertyName.DeviceNotificationDualUnlock]: 4,
-      [PropertyName.DeviceNotificationDualLock]: 5,
-      [PropertyName.DeviceNotificationWrongTryProtect]: 6,
-      [PropertyName.DeviceNotificationJammed]: 7,
-    };
+    [PropertyName.DeviceNotificationUnlockByKey]: 0,
+    [PropertyName.DeviceNotificationUnlockByPIN]: 1,
+    [PropertyName.DeviceNotificationUnlockByFingerprint]: 2,
+    [PropertyName.DeviceNotificationUnlockByApp]: 3,
+    [PropertyName.DeviceNotificationDualUnlock]: 4,
+    [PropertyName.DeviceNotificationDualLock]: 5,
+    [PropertyName.DeviceNotificationWrongTryProtect]: 6,
+    [PropertyName.DeviceNotificationJammed]: 7,
+  };
 
   static async getInstance(api: HTTPApi, device: DeviceListResponse, deviceConfig: DeviceConfig): Promise<SmartSafe> {
     return new SmartSafe(api, device, deviceConfig);
