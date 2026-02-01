@@ -1728,10 +1728,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         rootP2PLogger.debug(`Station Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD`, { stationSN: this.rawStation.station_sn, payload: data.toString() });
                         const json: CmdNotifyPayload = parseJSON(getNullTerminatedString(data, "utf8"), rootP2PLogger) as CmdNotifyPayload;
                         if (json !== undefined) {
-                            // --- E40 Livestream State Handler (cmd 6246) ---
+                            // --- E40 Livestream State Handler (CMD_DOORBELL_SET_PAYLOAD_IMAGE) ---
                             // When num === 0, the camera signals the stream has ended
                             if (
-                                json.cmd === 6246 &&
+                                json.cmd === CommandType.CMD_DOORBELL_SET_PAYLOAD_IMAGE &&
                                 typeof json.payload === "object" &&
                                 json.payload !== null &&
                                 "num" in json.payload &&
@@ -1739,7 +1739,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                             ) {
                                 const num = (json.payload as Record<string, unknown>).num;
 
-                                rootP2PLogger.debug("Handle CMD_NOTIFY_PAYLOAD 6246 (E40 livestream state)", {
+                                rootP2PLogger.debug("Handle CMD_NOTIFY_PAYLOAD CMD_DOORBELL_SET_PAYLOAD_IMAGE (E40 livestream state)", {
                                     stationSN: this.rawStation.station_sn,
                                     channel: message.channel,
                                     num
