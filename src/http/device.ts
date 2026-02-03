@@ -1969,7 +1969,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.CAMERA_FG ||
       type == DeviceType.WALL_LIGHT_CAM_81A0 ||
       type == DeviceType.SMART_DROP ||
-      type == DeviceType.OUTDOOR_PT_CAMERA
+      type == DeviceType.OUTDOOR_PT_CAMERA ||
+      type == DeviceType.ENTRY_SENSOR_E20
     );
   }
 
@@ -1993,8 +1994,13 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isSensor(type: number): boolean {
-    if (type == DeviceType.SENSOR || type == DeviceType.MOTION_SENSOR) return true;
+    if (type == DeviceType.SENSOR || type == DeviceType.MOTION_SENSOR || type == DeviceType.ENTRY_SENSOR_E20)
+      return true;
     return false;
+  }
+
+  static isEntryE20(type: number): boolean {
+    return DeviceType.ENTRY_SENSOR_E20 == type;
   }
 
   static isKeyPad(type: number): boolean {
@@ -2407,7 +2413,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   static isEntrySensor(type: number): boolean {
     //T8900
-    return DeviceType.SENSOR == type;
+    return DeviceType.SENSOR == type || this.isEntryE20(type);
   }
 
   static isMotionSensor(type: number): boolean {
