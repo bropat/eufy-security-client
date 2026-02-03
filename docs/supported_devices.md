@@ -82,6 +82,7 @@
 | ![T87B0 image](_media/smarttrack_link_t87B0_small.jpg) | SmartTrack Link (T87B0) | :heavy_check_mark: | Firmware: 1.5.6 (20231012) |
 | ![T87B2 image](_media/smarttrack_card_t87B2_small.jpg) | SmartTrack Card (T87B2) | :heavy_exclamation_mark: |  |
 
+| ![T8?? image](_media/eufycam_s4_small.jpg) | eufyCam S4 (T8??) | :heavy_exclamation_mark: | 
 ## Legend
 
 | Icon | Description |

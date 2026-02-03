@@ -4479,6 +4479,8 @@ export const PhoneModels: Array<string> = [
     "SM-S357BL",
     "SM-S367VL",
     "SM-S426DL",
+    "EUFY-S4-01",
+    "EUFY-S4-02"
     "SM-S506DL",
     "SM-S515DL",
     "SM-S536DL",
