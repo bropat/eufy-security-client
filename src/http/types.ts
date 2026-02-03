@@ -77,6 +77,7 @@ export enum DeviceType {
   INDOOR_PT_CAMERA_S350 = 104,
   INDOOR_PT_CAMERA_E30 = 105,
   CAMERA_FG = 110, //T8150
+  ENTRY_SENSOR_E20 = 126,
   CAMERA_GARAGE_T8453_COMMON = 131,
   CAMERA_GARAGE_T8452 = 132,
   CAMERA_GARAGE_T8453 = 133,
@@ -1025,6 +1026,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
     102: "Camera Snail",
     104: "Indoor Camera S350",
     110: "Starlight 4G LTE", //T8150
+    126: "Entry Sensor E20",
     131: "Camera Garage T8453 Common",
     132: "Garage-Control Cam E110 (T8452)",
     133: "Garage-Control Cam E120 (T8453)",
@@ -8261,6 +8263,19 @@ export const DeviceProperties: Properties = {
     [PropertyName.DeviceSnoozeStartTime]: DeviceSnoozeStartTimeProperty,
     [PropertyName.DevicePersonName]: DevicePersonNameProperty,
   },
+  [DeviceType.ENTRY_SENSOR_E20]: {
+    ...GenericDeviceProperties,
+    [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+    [PropertyName.DeviceSensorChangeTime]: DeviceSensorChangeTimeProperty,
+    [PropertyName.DeviceBatteryLow]: DeviceBatteryLowSensorProperty,
+    [PropertyName.DeviceState]: DeviceStateProperty,
+    [PropertyName.DeviceMotionDetectionTestMode]: DeviceMotionDetectionTestModeProperty,
+    [PropertyName.DeviceChirpVolume]: DeviceChirpVolumeEntrySensorProperty,
+    [PropertyName.DeviceSensorOpen]: DeviceSensorOpenProperty,
+    [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIEntrySensorProperty,
+    [PropertyName.DeviceChirpTone]: DeviceChirpToneEntrySensorProperty,
+    [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+  },
 };
 
 DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
@@ -9390,6 +9405,9 @@ export const StationProperties: Properties = {
     [PropertyName.StationSdStatus]: StationSdStatusProperty,
     [PropertyName.StationSdCapacity]: StationSdCapacityProperty,
     [PropertyName.StationSdCapacityAvailable]: StationSdAvailableCapacityProperty,
+  },
+  [DeviceType.ENTRY_SENSOR_E20]: {
+    ...BaseStationProperties,
   },
 };
 
