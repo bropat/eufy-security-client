@@ -1885,6 +1885,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.DOORBELL_SOLO ||
       type == DeviceType.CAMERA2C_PRO ||
       type == DeviceType.CAMERA2_PRO ||
+      type == DeviceType.CAMERA_E40 ||
       type == DeviceType.CAMERA3 ||
       type == DeviceType.CAMERA3C ||
       type == DeviceType.CAMERA3_PRO ||
@@ -1939,6 +1940,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.BATTERY_DOORBELL_C31 ||
       type == DeviceType.CAMERA2C_PRO ||
       type == DeviceType.CAMERA2_PRO ||
+      type == DeviceType.CAMERA_E40 ||
       type == DeviceType.CAMERA3 ||
       type == DeviceType.CAMERA3C ||
       type == DeviceType.CAMERA3_PRO ||
@@ -2368,8 +2370,19 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return DeviceType.CAMERA2C_PRO == type;
   }
 
+  static isCameraE40(type: number): boolean {
+    //T8144
+    return DeviceType.CAMERA_E40 == type;
+  }
+
   static isCamera2Product(type: number): boolean {
-    return Device.isCamera2(type) || Device.isCamera2C(type) || Device.isCamera2Pro(type) || Device.isCamera2CPro(type);
+    return (
+      Device.isCamera2(type) ||
+      Device.isCamera2C(type) ||
+      Device.isCamera2Pro(type) ||
+      Device.isCamera2CPro(type) ||
+      Device.isCameraE40(type)
+    );
   }
 
   static isCamera3(type: number): boolean {
