@@ -1115,7 +1115,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         this.currentMessageState[P2PDataType.VIDEO].p2pStreaming = true;
         this.currentMessageState[P2PDataType.VIDEO].p2pStreamChannel = messageState.channel;
         this.waitForStreamData(P2PDataType.VIDEO);
-      } else if (messageState.commandType === CommandType.CMD_DOWNLOAD_VIDEO) {
+      } else if (
+        messageState.commandType === CommandType.CMD_DOWNLOAD_VIDEO ||
+        (messageState.nestedCommandType === CommandType.CMD_DOWNLOAD_VIDEO &&
+          messageState.commandType === CommandType.CMD_SET_PAYLOAD)
+      ) {
         if (
           this.currentMessageState[P2PDataType.BINARY].p2pStreaming &&
           messageState.channel !== this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel
@@ -2605,7 +2609,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
           });
           this.downloadTotalBytes = totalBytes;
           this.currentMessageState[P2PDataType.BINARY].p2pStreaming = true;
-          this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel = message.channel;
+          // HB3 sends channel 255 (broadcast) which is not a valid device channel
+          if (message.channel !== 255) {
+            this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel = message.channel;
+          }
           break;
         case CommandType.CMD_WIFI_CONFIG:
           const rssi = data.readInt32LE();

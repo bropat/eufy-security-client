@@ -7441,11 +7441,10 @@ export class Station extends TypedEmitter<StationEvents> {
       cipherID: cipher_id,
     });
     if (this.getDeviceType() === DeviceType.HB3) {
-      //TODO: Implement HB3 Support! Actually doesn't work and returns return_code -104 (ERROR_INVALID_ACCOUNT). It could be that we need the new encrypted p2p protocol to make this work...
       const rsa_key = this.p2pSession.getDownloadRSAPrivateKey();
       this.p2pSession.sendCommandWithStringPayload(
         {
-          commandType: CommandType.CMD_DOWNLOAD_VIDEO,
+          commandType: CommandType.CMD_SET_PAYLOAD,
           value: JSON.stringify({
             account_id: this.rawStation.member.admin_user_id,
             cmd: CommandType.CMD_DOWNLOAD_VIDEO,
