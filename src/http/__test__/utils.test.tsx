@@ -1,13 +1,13 @@
 import { Category } from "typescript-logging-category-style";
 import {ParameterHelper} from "../parameter";
-import {DeviceType, NotificationSwitchMode, ParamType} from "../types";
+import {DeviceType, NotificationSwitchMode, ParamType, SignalLevel} from "../types";
 import {
     normalizeVersionString,
     isGreaterEqualMinVersion,
     pad,
     getTimezoneGMTString,
     getAbsoluteFilePath,
-    getImageFilePath, isNotificationSwitchMode
+    getImageFilePath, isNotificationSwitchMode, calculateWifiSignalLevel, calculateCellularSignalLevel, encryptAPIData
 } from "../utils";
 
 describe('Utils file', () => {
@@ -116,5 +116,90 @@ describe('Utils file', () => {
         expect(result).toStrictEqual(false);
     });
 
+    test("Test calculateWifiSignalLevel values" , () => {
+        let result = calculateWifiSignalLevel(null,-40);
+        expect(result).toStrictEqual(SignalLevel.FULL);
 
-});
+        result = calculateWifiSignalLevel(null,-50);
+        expect(result).toStrictEqual(SignalLevel.FULL);
+
+
+        // Test strong
+        result = calculateWifiSignalLevel(null,-51);
+        expect(result).toStrictEqual(SignalLevel.STRONG);
+        result = calculateWifiSignalLevel(null,-58);
+        expect(result).toStrictEqual(SignalLevel.STRONG);
+        result = calculateWifiSignalLevel(null,-60);
+        expect(result).toStrictEqual(SignalLevel.STRONG);
+
+        // Test normal
+        result = calculateWifiSignalLevel(null,-61);
+        expect(result).toStrictEqual(SignalLevel.NORMAL);
+        result = calculateWifiSignalLevel(null,-66);
+        expect(result).toStrictEqual(SignalLevel.NORMAL);
+        result = calculateWifiSignalLevel(null,-67);
+        expect(result).toStrictEqual(SignalLevel.NORMAL);
+
+        // Test Weak
+        result = calculateWifiSignalLevel(null,-68);
+        expect(result).toStrictEqual(SignalLevel.WEAK);
+        result = calculateWifiSignalLevel(null,-70);
+        expect(result).toStrictEqual(SignalLevel.WEAK);
+        result = calculateWifiSignalLevel(null,-80);
+        expect(result).toStrictEqual(SignalLevel.WEAK);
+
+        // Test no signal
+        result = calculateWifiSignalLevel(null,-90);
+        expect(result).toStrictEqual(SignalLevel.NO_SIGNAL);
+    });
+
+    test("Test calculateCellularSignalLevel values" , () => {
+        let result = calculateCellularSignalLevel( 0);
+        expect(result).toStrictEqual(SignalLevel.NO_SIGNAL);
+        result = calculateCellularSignalLevel( -101);
+        expect(result).toStrictEqual(SignalLevel.NO_SIGNAL);
+
+        // Test weak
+        result = calculateCellularSignalLevel( -100);
+        expect(result).toStrictEqual(SignalLevel.WEAK);
+        result = calculateCellularSignalLevel( -98);
+        expect(result).toStrictEqual(SignalLevel.WEAK);
+        result = calculateCellularSignalLevel( -96);
+        expect(result).toStrictEqual(SignalLevel.WEAK);
+
+        // Test normal
+        result = calculateCellularSignalLevel( -95);
+        expect(result).toStrictEqual(SignalLevel.NORMAL);
+        result = calculateCellularSignalLevel( -90);
+        expect(result).toStrictEqual(SignalLevel.NORMAL);
+        result = calculateCellularSignalLevel( -86);
+        expect(result).toStrictEqual(SignalLevel.NORMAL);
+
+        // Test strong
+        result = calculateCellularSignalLevel( -85);
+        expect(result).toStrictEqual(SignalLevel.STRONG);
+        result = calculateCellularSignalLevel( -80);
+        expect(result).toStrictEqual(SignalLevel.STRONG);
+        result = calculateCellularSignalLevel( -71);
+        expect(result).toStrictEqual(SignalLevel.STRONG);
+
+        // Test full
+        result = calculateCellularSignalLevel( -70);
+        expect(result).toStrictEqual(SignalLevel.FULL);
+        result = calculateCellularSignalLevel( -60);
+        expect(result).toStrictEqual(SignalLevel.FULL);
+        result = calculateCellularSignalLevel( -50);
+        expect(result).toStrictEqual(SignalLevel.FULL);
+    });
+
+    test("Test encryptAPIData values" , () => {
+
+        const sn =  "T8425T2765123462T8425T2765123462";
+
+        let result = encryptAPIData("data test", Buffer.from(sn));
+        expect(result).toStrictEqual("UgaOpgkSYd0/7P6D4DqVFw==");
+
+    });
+
+
+    });

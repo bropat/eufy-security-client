@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv } from "crypto";
+import {createCipheriv, createDecipheriv} from "crypto";
 import {
     PATH_DATA_CAMERA,
     PATH_DATA_VIDEO,
@@ -11,17 +11,31 @@ import md5 from "crypto-js/md5";
 import enc_hex from "crypto-js/enc-hex";
 import sha256 from "crypto-js/sha256";
 
-import { Device } from "./device";
-import { Picture, Schedule } from "./interfaces";
-import { NotificationSwitchMode, DeviceType, SignalLevel, HB3DetectionTypes, SourceType, T8170DetectionTypes, IndoorS350NotificationTypes, FloodlightT8425NotificationTypes, SmartLockNotification, PropertyName, CommandName, NotificationType, IndoorS350DetectionTypes } from "./types";
-import { HTTPApi } from "./api";
-import { ensureError } from "../error";
-import { ImageBaseCodeError } from "./error";
-import { LockPushEvent } from "./../push/types";
-import { Station } from "./station";
-import { rootHTTPLogger } from "../logging";
-import { getError, isEmpty } from "../utils";
-import { PushMessage } from "../push/models";
+import {Device} from "./device";
+import {Picture, Schedule} from "./interfaces";
+import {
+    CommandName,
+    DeviceType,
+    FloodlightT8425NotificationTypes,
+    HB3DetectionTypes,
+    IndoorS350DetectionTypes,
+    IndoorS350NotificationTypes,
+    NotificationSwitchMode,
+    NotificationType,
+    PropertyName,
+    SignalLevel,
+    SmartLockNotification,
+    SourceType,
+    T8170DetectionTypes
+} from "./types";
+import {HTTPApi} from "./api";
+import {ensureError} from "../error";
+import {ImageBaseCodeError} from "./error";
+import {LockPushEvent} from "./../push/types";
+import {Station} from "./station";
+import {rootHTTPLogger} from "../logging";
+import {getError, isEmpty} from "../utils";
+import {PushMessage} from "../push/models";
 
 
 export const normalizeVersionString = function (version: string): number[] | null {
@@ -163,72 +177,45 @@ export const switchNotificationMode = function(currentValue: number, mode: Notif
     return result;
 }
 
+// TODO : remove device , not needed
 export const calculateWifiSignalLevel = function(device: Device, rssi: number): SignalLevel {
-    if (device.isWiredDoorbell()) {
-        if (rssi >= -65) {
-            return SignalLevel.FULL;
-        }
-        if (rssi >= -75) {
-            return SignalLevel.STRONG;
-        }
-        return rssi >= -80 ? SignalLevel.NORMAL : SignalLevel.WEAK;
-    } else if (device.isCamera2Product()) {
-        if (rssi >= 0) {
-            return SignalLevel.NO_SIGNAL;
-        }
-        if (rssi >= -65) {
-            return SignalLevel.FULL;
-        }
-        if (rssi >= -75) {
-            return SignalLevel.STRONG;
-        }
-        return rssi >= -85 ? SignalLevel.NORMAL : SignalLevel.WEAK;
+    /**
+     *  Calculate the signal strength based on the RSSI
+     *
+     *  Using this scale for reference
+     *  Excellent/Very Strong (-30 dBm to -50 dBm)
+     *  Good/Strong (-50 dBm to -60 dBm)
+     *  Fair/Good (-60 dBm to -67 dBm)
+     *  Weak/Fair (-67 dBm to -70 dBm)
+     *  Very Weak/Poor (-70 dBm to -80 dBm)
+     *  Unusable (-80 dBm to -90 dBm or lower)
+     *
+     */
 
-    } else if (device.isFloodLight()) {
-        if (rssi >= 0) {
-            return SignalLevel.NO_SIGNAL;
-        }
-        if (rssi >= -60) {
-            return SignalLevel.FULL;
-        }
-        if (rssi >= -70) {
-            return SignalLevel.STRONG;
-        }
-        return rssi >= -80 ? SignalLevel.NORMAL : SignalLevel.WEAK;
-
-    } else if (device.isBatteryDoorbell()) {
-        if (rssi >= -65) {
-            return SignalLevel.FULL;
-        }
-        if (rssi >= -75) {
-            return SignalLevel.STRONG;
-        }
-        return rssi >= -85 ? SignalLevel.NORMAL : SignalLevel.WEAK;
-    } else {
-        if (rssi >= 0) {
-            return SignalLevel.NO_SIGNAL;
-        }
-        if (rssi >= -65) {
-            return SignalLevel.FULL;
-        }
-        if (rssi >= -75) {
-            return SignalLevel.STRONG;
-        }
-        return rssi >= -85 ? SignalLevel.NORMAL : SignalLevel.WEAK;
-    }
+    if (rssi >= -50) return SignalLevel.FULL;
+    else if (rssi < -50 && rssi >= -60) return SignalLevel.STRONG;
+    else if (rssi < -60 && rssi >= -67) return SignalLevel.NORMAL;
+    else if (rssi < -67 && rssi >= -80) return SignalLevel.WEAK;
+    else return SignalLevel.NO_SIGNAL;
 }
 
 export const calculateCellularSignalLevel = function(rssi: number): SignalLevel {
-    if (rssi >= 0) {
-        return SignalLevel.NO_SIGNAL;
-    }
-    if (rssi >= -90) {
-        return SignalLevel.FULL;
-    }
-    if (rssi >= -95) {
-        return SignalLevel.STRONG;
-    }
-    return rssi >= -105 ? SignalLevel.NORMAL : SignalLevel.WEAK;
+    /**
+     *  Calculate the signal strength from the RSSI ( this has a different scale than wifi )
+     *
+     * Excellent (>-65 to -70 dBm)
+     * Good (-70 to -85 dBm)
+     * Fair (-85 to -95 dBm)
+     * Poor (-95 to -100 dBm)
+     * Unusable/No Signal (<-100 to -110 dBm)
+     *
+     */
+    if (rssi >= 0)return SignalLevel.NO_SIGNAL;
+    if (rssi  >= -70) return SignalLevel.FULL;
+    else if (rssi < -70 && rssi >= -85) return SignalLevel.STRONG;
+    else if (rssi < -85 && rssi >= -95) return SignalLevel.NORMAL;
+    else if (rssi < -95 && rssi >= -100) return SignalLevel.WEAK;
+    else return SignalLevel.NO_SIGNAL;
 }
 
 export const encryptAPIData = (data: string, key: Buffer): string => {
