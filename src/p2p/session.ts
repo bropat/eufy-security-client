@@ -112,6 +112,8 @@ import {
   P2PDatabaseCountByDateResponse,
   P2PDatabaseQueryLocalResponse,
   DatabaseQueryLocal,
+  DatabaseQueryByDate,
+  P2PDatabaseQueryByDateRecord,
   P2PDatabaseQueryLocalHistoryRecordInfo,
   P2PDatabaseQueryLocalRecordCropPictureInfo,
   CustomDataType,
@@ -3873,6 +3875,34 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                   databaseResponse.mIntRet,
                   Array.from(result.values()) as DatabaseQueryLocal[]
                 );
+                break;
+              }
+              case CommandType.CMD_DATABASE_QUERY_BY_DATE: {
+                let data: Array<P2PDatabaseQueryByDateRecord> = [];
+                if (databaseResponse.data !== undefined && (databaseResponse.data as unknown as string) !== "[]")
+                  data = databaseResponse.data as unknown as Array<P2PDatabaseQueryByDateRecord>;
+
+                const result: Array<DatabaseQueryByDate> = [];
+                for (const record of data) {
+                  result.push({
+                    device_sn: record.device_sn,
+                    device_type: record.device_type,
+                    start_time: parse(record.start_time, "YYYY-MM-DD HH:mm:ss"),
+                    end_time: parse(record.end_time, "YYYY-MM-DD HH:mm:ss"),
+                    storage_path: record.storage_path,
+                    thumb_path: record.thumb_path,
+                    cipher_id: record.cipher_id,
+                    folder_size: record.folder_size,
+                    frame_num: record.frame_num,
+                    trigger_type: record.trigger_type,
+                    video_type: record.video_type,
+                    record_id: record.record_id,
+                    station_sn: record.station_sn,
+                    storage_type: record.storage_type,
+                    storage_cloud: record.storage_cloud,
+                  });
+                }
+                this.emit("database query by date", databaseResponse.mIntRet, result);
                 break;
               }
               case CommandType.CMD_DATABASE_DELETE: {

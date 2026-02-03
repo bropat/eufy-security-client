@@ -70,6 +70,7 @@ import {
 } from "./p2p/types";
 import {
   DatabaseCountByDate,
+  DatabaseQueryByDate,
   DatabaseQueryLatestInfo,
   DatabaseQueryLocal,
   StreamMetadata,
@@ -765,6 +766,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 "database query local",
                 (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) =>
                   this.onStationDatabaseQueryLocal(station, returnCode, data)
+              );
+              station.on(
+                "database query by date",
+                (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryByDate>) =>
+                  this.onStationDatabaseQueryByDate(station, returnCode, data)
               );
               station.on(
                 "database count by date",
@@ -3603,6 +3609,14 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     data: Array<DatabaseQueryLocal>
   ): void {
     this.emit("station database query local", station, returnCode, data);
+  }
+
+  private onStationDatabaseQueryByDate(
+    station: Station,
+    returnCode: DatabaseReturnCode,
+    data: Array<DatabaseQueryByDate>
+  ): void {
+    this.emit("station database query by date", station, returnCode, data);
   }
 
   private onStationDatabaseCountByDate(

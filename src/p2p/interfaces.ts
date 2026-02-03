@@ -62,6 +62,7 @@ export interface P2PClientProtocolEvents {
   "tfcard status": (channel: number, status: TFCardStatus) => void;
   "database query latest": (returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLatestInfo>) => void;
   "database query local": (returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => void;
+  "database query by date": (returnCode: DatabaseReturnCode, data: Array<DatabaseQueryByDate>) => void;
   "database count by date": (returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => void;
   "database delete": (returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => void;
   "sensor status": (channel: number, status: number) => void;
@@ -290,6 +291,24 @@ export interface P2PDatabaseDeleteResponse {
   failed_delete: Array<unknown>;
 }
 
+export interface P2PDatabaseQueryByDateRecord {
+  device_sn: string;
+  device_type: DeviceType;
+  start_time: string;
+  end_time: string;
+  storage_path: string;
+  thumb_path: string;
+  cipher_id: number;
+  folder_size: number;
+  frame_num: number;
+  trigger_type: TriggerType;
+  video_type: VideoType;
+  record_id: number;
+  station_sn: string;
+  storage_type: P2PStorageType;
+  storage_cloud: boolean;
+}
+
 export interface P2PDatabaseResponse {
   data:
     | Array<P2PDatabaseQueryLatestInfoResponse>
@@ -385,6 +404,24 @@ export interface DatabaseQueryLocal {
   device_sn?: string;
   history: HistoryRecordInfo;
   picture: Array<CropPictureInfo>;
+}
+
+export interface DatabaseQueryByDate {
+  device_sn: string;
+  device_type: DeviceType;
+  start_time: Date;
+  end_time: Date;
+  storage_path: string;
+  thumb_path: string;
+  cipher_id: number;
+  folder_size: number;
+  frame_num: number;
+  trigger_type: TriggerType;
+  video_type: VideoType;
+  record_id: number;
+  station_sn: string;
+  storage_type: P2PStorageType;
+  storage_cloud: boolean;
 }
 
 export interface RGBColor {

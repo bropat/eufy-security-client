@@ -87,6 +87,7 @@ import {
 import {
   CrossTrackingGroupEntry,
   DatabaseCountByDate,
+  DatabaseQueryByDate,
   DatabaseQueryLatestInfo,
   DatabaseQueryLocal,
   DynamicLighting,
@@ -277,6 +278,7 @@ export class Station extends TypedEmitter<StationEvents> {
     this.p2pSession.on("tfcard status", (channel, status) => this.onTFCardStatus(channel, status));
     this.p2pSession.on("database query latest", (returnCode, data) => this.onDatabaseQueryLatest(returnCode, data));
     this.p2pSession.on("database query local", (returnCode, data) => this.onDatabaseQueryLocal(returnCode, data));
+    this.p2pSession.on("database query by date", (returnCode, data) => this.onDatabaseQueryByDate(returnCode, data));
     this.p2pSession.on("database count by date", (returnCode, data) => this.onDatabaseCountByDate(returnCode, data));
     this.p2pSession.on("database delete", (returnCode, failedIds) => this.onDatabaseDelete(returnCode, failedIds));
     this.p2pSession.on("sensor status", (channel: number, status: number) => this.onSensorStatus(channel, status));
@@ -15303,6 +15305,84 @@ export class Station extends TypedEmitter<StationEvents> {
     );
   }
 
+  public databaseQueryByDate(
+    serialNumbers: Array<string>,
+    startDate: Date,
+    endDate: Date,
+    eventType: FilterEventType = 0,
+    detectionType: FilterDetectType = 0,
+    storageType: FilterStorageType = 0
+  ): void {
+    const commandData: CommandData = {
+      name: CommandName.StationDatabaseQueryByDate,
+      value: {
+        serialNumbers: serialNumbers,
+        eventType: eventType,
+        detectionType: detectionType,
+      },
+    };
+    if (!this.hasCommand(commandData.name)) {
+      throw new NotSupportedError("This functionality is not implemented or supported", {
+        context: { commandName: commandData.name, commandValue: commandData.value, station: this.getSerial() },
+      });
+    }
+
+    rootHTTPLogger.debug(`Station database query by date - sending command`, {
+      stationSN: this.getSerial(),
+      serialNumbers: serialNumbers,
+      startDate: startDate,
+      endDate: endDate,
+      eventType: eventType,
+      detectionType: detectionType,
+      storageType: storageType,
+    });
+    const devices: Array<{ device_sn: string }> = [];
+    for (const serial of serialNumbers) {
+      devices.push({ device_sn: serial });
+    }
+
+    const startDateStr = format(startDate, "YYYYMMDD");
+    const endDateStr = format(endDate, "YYYYMMDD");
+
+    this.p2pSession.sendCommandWithStringPayload(
+      {
+        commandType: CommandType.CMD_SET_PAYLOAD,
+        value: JSON.stringify({
+          account_id: this.rawStation.member.admin_user_id,
+          cmd: CommandType.CMD_DATABASE,
+          mChannel: 0,
+          mValue3: 0,
+          payload: {
+            cmd: CommandType.CMD_DATABASE_QUERY_BY_DATE,
+            payload: {
+              count: 100,
+              detection_type: detectionType,
+              device_info: devices,
+              end_date: endDateStr,
+              event_type: eventType,
+              flag: 0,
+              res_unzip: 1,
+              start_date: startDateStr,
+              start_time: `${startDateStr}000000`,
+              storage_cloud:
+                storageType === FilterStorageType.NONE ||
+                (storageType !== FilterStorageType.LOCAL && storageType !== FilterStorageType.CLOUD)
+                  ? -1
+                  : storageType,
+              ai_type: 0,
+            },
+            table: "history_record_info",
+            transaction: `${new Date().getTime()}`,
+          },
+        }),
+        channel: 0,
+      },
+      {
+        command: commandData,
+      }
+    );
+  }
+
   public databaseDelete(ids: Array<number>): void {
     const commandData: CommandData = {
       name: CommandName.StationDatabaseDelete,
@@ -15393,6 +15473,10 @@ export class Station extends TypedEmitter<StationEvents> {
 
   private onDatabaseQueryLocal(returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>): void {
     this.emit("database query local", this, returnCode, data);
+  }
+
+  private onDatabaseQueryByDate(returnCode: DatabaseReturnCode, data: Array<DatabaseQueryByDate>): void {
+    this.emit("database query by date", this, returnCode, data);
   }
 
   private onDatabaseCountByDate(returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>): void {
