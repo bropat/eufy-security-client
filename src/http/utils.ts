@@ -407,8 +407,13 @@ export class WritePayload {
 }
 
 export class ParsePayload {
+    /**
+     * extract specific pieces of data from a binary buffer
+     *
+     * @private
+     */
 
-    private data;
+    private readonly data;
 
     constructor(data: Buffer) {
         this.data = data;
@@ -505,28 +510,11 @@ export class ParsePayload {
 
 }
 
-/*export const generateHash = function(data: Buffer): number {
-    let result = 0;
-    for (const value of data) {
-        result = result ^ value;
-    }
-    return result;
-}
-
-export const encodeSmartSafeData = function(command: number, payload: Buffer): Buffer {
-    const header = Buffer.from(SmartSafe.DATA_HEADER);
-    const size = Buffer.allocUnsafe(2);
-    size.writeInt16LE(payload.length + 9);
-    const versionCode = Buffer.from([SmartSafe.VERSION_CODE]);
-    const dataType = Buffer.from([-1]);
-    const commandCode = Buffer.from([command]);
-    const packageFlag = Buffer.from([-64]);
-    const data = Buffer.concat([header, size, versionCode, dataType, commandCode, packageFlag, payload]);
-    const hash = generateHash(data);
-    return Buffer.concat([data, Buffer.from([hash])]);
-}*/
-
 export const encodePasscode = function(pass: string): string {
+    /**
+     *  Encode the passcode for smart lock
+     *
+     */
     let result = "";
     for (let i = 0; i < pass.length; i++)
         result += pass.charCodeAt(i).toString(16);
@@ -553,7 +541,7 @@ export const hexWeek = function(schedule: Schedule): string {
     const MONDAY    = 2;
     const TUESDAY   = 4;
     const WEDNESDAY = 8;
-    const THUERSDAY = 16;
+    const THURSDAY = 16;
     const FRIDAY    = 32;
     const SATURDAY  = 64;
 
@@ -573,7 +561,7 @@ export const hexWeek = function(schedule: Schedule): string {
             result |= WEDNESDAY;
         }
         if (schedule.week.thursday) {
-            result |= THUERSDAY;
+            result |= THURSDAY;
         }
         if (schedule.week.friday) {
             result |= FRIDAY;
@@ -591,7 +579,7 @@ export const hexStringScheduleToSchedule = function(startDay: string, startTime:
     const MONDAY    = 2;
     const TUESDAY   = 4;
     const WEDNESDAY = 8;
-    const THUERSDAY = 16;
+    const THURSDAY = 16;
     const FRIDAY    = 32;
     const SATURDAY  = 64;
 
@@ -603,7 +591,7 @@ export const hexStringScheduleToSchedule = function(startDay: string, startTime:
             monday: (weekNumber & MONDAY) == MONDAY,
             tuesday: (weekNumber & TUESDAY) == TUESDAY,
             wednesday: (weekNumber & WEDNESDAY) == WEDNESDAY,
-            thursday: (weekNumber & THUERSDAY) == THUERSDAY,
+            thursday: (weekNumber & THURSDAY) == THURSDAY,
             friday: (weekNumber & FRIDAY) == FRIDAY,
             saturday: (weekNumber & SATURDAY) == SATURDAY,
             sunday: (weekNumber & SUNDAY) == SUNDAY,
@@ -633,34 +621,34 @@ export const getIdSuffix = function(p2pDid: string): number {
     return result;
 };
 
-export const getImageBaseCode = function(serialnumber: string, p2pDid: string): string {
+export const getImageBaseCode = function(serialNumber: string, p2pDid: string): string {
     let nr = 0;
     try {
-        nr = Number.parseInt(`0x${serialnumber[serialnumber.length - 1]}`);
+        nr = Number.parseInt(`0x${serialNumber[serialNumber.length - 1]}`);
     } catch (err) {
         const error = ensureError(err);
-        throw new ImageBaseCodeError("Error generating image base code", { cause: error, context: { serialnumber: serialnumber, p2pDid: p2pDid } });
+        throw new ImageBaseCodeError("Error generating image base code", { cause: error, context: { serialnumber: serialNumber, p2pDid: p2pDid } });
     }
     nr = (nr + 10) % 10;
-    const base = serialnumber.substring(nr);
+    const base = serialNumber.substring(nr);
     return `${base}${getIdSuffix(p2pDid)}`;
 };
 
 export const getImageSeed = function(p2pDid: string, code: string): string {
     try {
-        const ncode = Number.parseInt(code.substring(2));
+        const nCode = Number.parseInt(code.substring(2));
         const prefix = 1000 - getIdSuffix(p2pDid);
-        return md5(`${prefix}${ncode}`).toString(enc_hex).toUpperCase();
+        return md5(`${prefix}${nCode}`).toString(enc_hex).toUpperCase();
     } catch(err) {
         const error = ensureError(err);
         throw new ImageBaseCodeError("Error generating image seed", { cause: error, context: { p2pDid: p2pDid, code: code } });
     }
 };
 
-export const getImageKey = function(serialnumber: string, p2pDid: string, code: string): string {
-    const basecode = getImageBaseCode(serialnumber, p2pDid);
+export const getImageKey = function(serialNumber: string, p2pDid: string, code: string): string {
+    const baseCode = getImageBaseCode(serialNumber, p2pDid);
     const seed = getImageSeed(p2pDid, code);
-    const data = `01${basecode}${seed}`;
+    const data = `01${baseCode}${seed}`;
     const hash = sha256(data);
     const hashBytes = [...Buffer.from(hash.toString(enc_hex), "hex")];
     const startByte = hashBytes[10];
@@ -690,9 +678,9 @@ export const decodeImage = function(p2pDid: string, data: Buffer): Buffer {
     if (data.length >= 12) {
         const header = data.subarray(0, 12).toString();
         if (header === "eufysecurity") {
-            const serialnumber = data.subarray(13, 29).toString();
+            const serialNumber = data.subarray(13, 29).toString();
             const code = data.subarray(30, 40).toString();
-            const imageKey = getImageKey(serialnumber, p2pDid, code);
+            const imageKey = getImageKey(serialNumber, p2pDid, code);
             const otherData = data.subarray(41);
             const encryptedData = otherData.subarray(0, 256);
             const cipher = createDecipheriv("aes-128-ecb", Buffer.from(imageKey, "utf-8").subarray(0, 16), null);
@@ -709,13 +697,15 @@ export const decodeImage = function(p2pDid: string, data: Buffer): Buffer {
 };
 
 export const getImagePath = function(path: string): string {
-    const splittedPath = path.split("~");
-    if (splittedPath.length === 2) {
-        return splittedPath[1];
+    const splitPath = path.split("~");
+    if (splitPath.length === 2) {
+        return splitPath[1];
     }
     return path;
 };
 
+
+// TODO: make up some testing
 export const getImage = async function(api: HTTPApi, serial: string, url: string): Promise<Picture> {
     const { default: imageType } = await import("image-type");
     const image = await api.getImage(serial, url);
@@ -727,11 +717,9 @@ export const getImage = async function(api: HTTPApi, serial: string, url: string
 };
 
 export const isPrioritySourceType = function(current: SourceType | undefined, update: SourceType): boolean {
-    if (((current === "http" || current === "p2p" || current === "push" || current === "mqtt" || current === undefined) && (update === "p2p" || update === "push" || update === "mqtt")) ||
-        ((current === "http" || current === undefined) && update === "http")) {
-        return true;
-    }
-    return false;
+    return ((current === "http" || current === "p2p" || current === "push" || current === "mqtt" || current === undefined) && (update === "p2p" || update === "push" || update === "mqtt")) ||
+        ((current === "http" || current === undefined) && update === "http");
+
 }
 
 export const decryptTrackerData = (data: Buffer, key: Buffer): Buffer => {
@@ -743,10 +731,14 @@ export const decryptTrackerData = (data: Buffer, key: Buffer): Buffer => {
     );
 }
 
+
+// TODO: this seems to be used before above
 export const isT8170DetectionModeEnabled = function(value: number, type: T8170DetectionTypes): boolean {
     return (type & value) == type;
 }
 
+
+// TODO this seems like  getHB3DetectionMode
 export const getT8170DetectionMode = function(value: number, type: T8170DetectionTypes, enable: boolean): number {
     let result = 0;
     if ((Object.values(T8170DetectionTypes).includes(type) && Object.values(T8170DetectionTypes).includes(value)) && !enable)
@@ -758,11 +750,12 @@ export const getT8170DetectionMode = function(value: number, type: T8170Detectio
     }
     return result;
 }
-
+// TODO: this is like isT8170DetectionModeEnabled
 export const isIndoorS350DetectionModeEnabled = function(value: number, type: IndoorS350DetectionTypes): boolean {
     return (type & value) == type;
 }
 
+// TODO: this is like getT8170DetectionMode
 export const getIndoorS350DetectionMode = function(value: number, type: IndoorS350DetectionTypes, enable: boolean): number {
     let result = 0;
     if ((Object.values(IndoorS350DetectionTypes).includes(type) && Object.values(IndoorS350DetectionTypes).includes(value)) && !enable)
@@ -774,10 +767,13 @@ export const getIndoorS350DetectionMode = function(value: number, type: IndoorS3
     }
     return result;
 }
+// TODO: this is like isT8170DetectionModeEnabled
 
 export const isIndoorNotitficationEnabled = function(value: number, type: IndoorS350NotificationTypes): boolean {
     return (type & value) == type;
 }
+
+// TODO: this is like getT8170DetectionMode
 
 export const getIndoorNotification = function(value: number, type: IndoorS350NotificationTypes, enable: boolean): number {
     let result = 0;
@@ -788,10 +784,13 @@ export const getIndoorNotification = function(value: number, type: IndoorS350Not
     }
     return result;
 }
+// TODO: this is like isT8170DetectionModeEnabled
 
 export const isFloodlightT8425NotitficationEnabled = function(value: number, type: FloodlightT8425NotificationTypes): boolean {
     return (type & value) == type;
 }
+
+// TODO: this is like getT8170DetectionMode
 
 export const getFloodLightT8425Notification = function(value: number, type: FloodlightT8425NotificationTypes, enable: boolean): number {
     let result = 0;
@@ -829,6 +828,8 @@ export const getLockEventType = function(event: LockPushEvent): number {
     return 0;
 }
 
+// TODO: this is like getT8170DetectionMode
+
 export const switchSmartLockNotification = function(currentValue: number, mode: SmartLockNotification, enable: boolean): number {
     let result = 0;
     if (enable) {
@@ -838,6 +839,8 @@ export const switchSmartLockNotification = function(currentValue: number, mode: 
     }
     return result;
 }
+
+// TODO: this is like isT8170DetectionModeEnabled
 
 export const isSmartLockNotification = function(value: number, mode: SmartLockNotification): boolean {
     return (value & mode) !== 0;
