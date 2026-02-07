@@ -52,6 +52,10 @@ import {
   DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
   DeviceStatusLedIndoorS350Property,
   IndoorS350DetectionTypes,
+  EufyCamC35DetectionTypes,
+  DeviceRTSPStreamProperty,
+  DeviceRTSPStreamUrlProperty,
+  DeviceVideoRecordingQualityCameraC35HB3Property,
 } from "./types";
 import {
   DeviceListResponse,
@@ -97,6 +101,7 @@ import {
   isT8170DetectionModeEnabled,
   loadEventImage,
   WritePayload,
+  isT8110DetectionModeEnabled,
 } from "./utils";
 import { DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds, isCharging } from "../p2p/utils";
 import {
@@ -1190,6 +1195,38 @@ export class Device extends TypedEmitter<DeviceEvents> {
           });
           return booleanProperty.default !== undefined ? booleanProperty.default : false;
         }
+      }else if (
+          (property.name === PropertyName.DeviceMotionDetectionTypeHuman ||
+              property.name === PropertyName.DeviceMotionDetectionTypeHumanRecognition ||
+              property.name === PropertyName.DeviceMotionDetectionTypePet ||
+              property.name === PropertyName.DeviceMotionDetectionTypeVehicle ||
+              property.name === PropertyName.DeviceMotionDetectionTypeAllOtherMotions) &&
+          this.getStationSerial().startsWith("T8030")
+      ) {
+        const booleanProperty = property as PropertyMetadataBoolean;
+        try {
+          return isHB3DetectionModeEnabled(
+              Number.parseInt(value),
+              property.name === PropertyName.DeviceMotionDetectionTypeHuman
+                  ? HB3DetectionTypes.HUMAN_DETECTION
+                  : property.name === PropertyName.DeviceMotionDetectionTypeHumanRecognition
+                      ? HB3DetectionTypes.HUMAN_RECOGNITION
+                      : property.name === PropertyName.DeviceMotionDetectionTypePet
+                          ? HB3DetectionTypes.PET_DETECTION
+                          : property.name === PropertyName.DeviceMotionDetectionTypeVehicle
+                              ? HB3DetectionTypes.VEHICLE_DETECTION
+                              : HB3DetectionTypes.ALL_OTHER_MOTION
+          );
+        } catch (err) {
+          const error = ensureError(err);
+          rootHTTPLogger.error("Device convert raw property - HB3 motion detection type Error", {
+            error: getError(error),
+            deviceSN: this.getSerial(),
+            property: property,
+            value: value,
+          });
+          return booleanProperty.default !== undefined ? booleanProperty.default : false;
+        }
       } else if (
         (property.name === PropertyName.DeviceMotionDetectionTypeHuman ||
           property.name === PropertyName.DeviceMotionDetectionTypeVehicle ||
@@ -1882,52 +1919,59 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   static hasBattery(type: number): boolean {
     return (
-      type == DeviceType.CAMERA ||
-      type == DeviceType.CAMERA2 ||
-      type == DeviceType.CAMERA_E ||
-      type == DeviceType.CAMERA2C ||
-      type == DeviceType.BATTERY_DOORBELL ||
-      type == DeviceType.BATTERY_DOORBELL_2 ||
-      type == DeviceType.BATTERY_DOORBELL_PLUS ||
-      type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
-      type == DeviceType.BATTERY_DOORBELL_C30 ||
-      type == DeviceType.BATTERY_DOORBELL_C31 ||
-      type == DeviceType.CAMERA2C_PRO ||
-      type == DeviceType.CAMERA2_PRO ||
-      type == DeviceType.CAMERA3 ||
-      type == DeviceType.CAMERA3C ||
-      type == DeviceType.CAMERA3_PRO ||
-      type == DeviceType.SOLO_CAMERA ||
-      type == DeviceType.SOLO_CAMERA_PRO ||
-      type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
-      type == DeviceType.SOLO_CAMERA_SPOTLIGHT_2K ||
-      type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
-      type == DeviceType.SOLO_CAMERA_SOLAR ||
-      type == DeviceType.SOLO_CAMERA_C210 ||
-      type == DeviceType.SOLO_CAMERA_E30 ||
-      type == DeviceType.CAMERA_C35 ||
-      type == DeviceType.LOCK_WIFI ||
-      type == DeviceType.LOCK_WIFI_NO_FINGER ||
-      type == DeviceType.LOCK_8503 ||
-      type == DeviceType.LOCK_8504 ||
-      type == DeviceType.LOCK_8530 ||
-      type == DeviceType.LOCK_8592 ||
-      type == DeviceType.LOCK_85A3 ||
-      type == DeviceType.LOCK_8506 ||
-      type == DeviceType.LOCK_8502 ||
-      type == DeviceType.SMART_SAFE_7400 ||
-      type == DeviceType.SMART_SAFE_7401 ||
-      type == DeviceType.SMART_SAFE_7402 ||
-      type == DeviceType.SMART_SAFE_7403 ||
-      type == DeviceType.CAMERA_FG ||
-      type == DeviceType.WALL_LIGHT_CAM_81A0 ||
-      type == DeviceType.SMART_DROP ||
-      type == DeviceType.OUTDOOR_PT_CAMERA
+        type == DeviceType.CAMERA ||
+        type == DeviceType.CAMERA2 ||
+        type == DeviceType.CAMERA_E ||
+        type == DeviceType.CAMERA2C ||
+        type == DeviceType.BATTERY_DOORBELL ||
+        type == DeviceType.BATTERY_DOORBELL_2 ||
+        type == DeviceType.BATTERY_DOORBELL_PLUS ||
+        type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
+        type == DeviceType.BATTERY_DOORBELL_C30 ||
+        type == DeviceType.BATTERY_DOORBELL_C31 ||
+        type == DeviceType.CAMERA2C_PRO ||
+        type == DeviceType.CAMERA2_PRO ||
+        type == DeviceType.CAMERA_E40 ||
+        type == DeviceType.CAMERA3 ||
+        type == DeviceType.CAMERA3C ||
+        type == DeviceType.CAMERA3_PRO ||
+        type == DeviceType.SOLO_CAMERA ||
+        type == DeviceType.SOLO_CAMERA_PRO ||
+        type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
+        type == DeviceType.SOLO_CAMERA_SPOTLIGHT_2K ||
+        type == DeviceType.SOLO_CAMERA_SPOTLIGHT_SOLAR ||
+        type == DeviceType.SOLO_CAMERA_SOLAR ||
+        type == DeviceType.SOLO_CAMERA_C210 ||
+        type == DeviceType.SOLO_CAMERA_E30 ||
+        type == DeviceType.CAMERA_C35 ||
+        type == DeviceType.LOCK_WIFI ||
+        type == DeviceType.LOCK_WIFI_NO_FINGER ||
+        type == DeviceType.LOCK_8503 ||
+        type == DeviceType.LOCK_8504 ||
+        type == DeviceType.LOCK_8530 ||
+        type == DeviceType.LOCK_8592 ||
+        type == DeviceType.LOCK_85A3 ||
+        type == DeviceType.LOCK_8506 ||
+        type == DeviceType.LOCK_8502 ||
+        type == DeviceType.SMART_SAFE_7400 ||
+        type == DeviceType.SMART_SAFE_7401 ||
+        type == DeviceType.SMART_SAFE_7402 ||
+        type == DeviceType.SMART_SAFE_7403 ||
+        type == DeviceType.CAMERA_FG ||
+        type == DeviceType.WALL_LIGHT_CAM_81A0 ||
+        type == DeviceType.SMART_DROP ||
+        type == DeviceType.OUTDOOR_PT_CAMERA ||
+        type == DeviceType.ENTRY_SENSOR_E20
     );
   }
-
   static isStation(type: number): boolean {
-    if (type == DeviceType.STATION || type === DeviceType.MINIBASE_CHIME) return true;
+    if (
+        type === DeviceType.STATION ||
+        type === DeviceType.HB3 ||
+        type === DeviceType.HOMEBASE_MINI ||
+        type === DeviceType.MINIBASE_CHIME
+    )
+      return true;
     return false;
   }
 
@@ -1940,8 +1984,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isSensor(type: number): boolean {
-    if (type == DeviceType.SENSOR || type == DeviceType.MOTION_SENSOR) return true;
+    if (type == DeviceType.SENSOR || type == DeviceType.MOTION_SENSOR || type == DeviceType.ENTRY_SENSOR_E20)
+      return true;
     return false;
+  }
+
+
+  static isEntryE20(type: number): boolean {
+    return DeviceType.ENTRY_SENSOR_E20 == type;
   }
 
   static isKeyPad(type: number): boolean {
@@ -2250,15 +2300,16 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   static isSoloCameras(type: number): boolean {
     return (
-      Device.isSoloCamera(type) ||
-      Device.isSoloCameraPro(type) ||
-      Device.isSoloCameraSpotlight1080(type) ||
-      Device.isSoloCameraSpotlight2k(type) ||
-      Device.isSoloCameraSpotlightSolar(type) ||
-      Device.isOutdoorPanAndTiltCamera(type) ||
-      Device.isSoloCameraSolar(type) ||
-      Device.isSoloCameraC210(type) ||
-      Device.isSoloCameraE30(type)
+        Device.isSoloCamera(type) ||
+        Device.isSoloCameraPro(type) ||
+        Device.isSoloCameraSpotlight1080(type) ||
+        Device.isSoloCameraSpotlight2k(type) ||
+        Device.isSoloCameraSpotlightSolar(type) ||
+        Device.isOutdoorPanAndTiltCamera(type) ||
+        Device.isSoloCameraSolar(type) ||
+        Device.isSoloCameraC210(type) ||
+        Device.isSoloCameraE30(type) ||
+        Device.isCameraC35(type)
     );
   }
 
@@ -2311,7 +2362,13 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isCamera2Product(type: number): boolean {
-    return Device.isCamera2(type) || Device.isCamera2C(type) || Device.isCamera2Pro(type) || Device.isCamera2CPro(type);
+    return (
+        Device.isCamera2(type) ||
+        Device.isCamera2C(type) ||
+        Device.isCamera2Pro(type) ||
+        Device.isCamera2CPro(type) ||
+        Device.isCameraE40(type)
+    );
   }
 
   static isCamera3(type: number): boolean {
@@ -2342,7 +2399,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   static isEntrySensor(type: number): boolean {
     //T8900
-    return DeviceType.SENSOR == type;
+    return DeviceType.SENSOR == type  || this.isEntryE20(type);
   }
 
   static isMotionSensor(type: number): boolean {
