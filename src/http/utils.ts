@@ -47,7 +47,7 @@ export const normalizeVersionString = function (version: string): number[] | nul
      * @param version
      */
 
-    const match= version.match(/^\d+(?:\.\d+)*/);
+    const match= version.match(/\d+(?:\.\d+)+/);
     if (match==null) return null;
     else {
         return match[0].split(".").map(Number);
@@ -234,55 +234,107 @@ export const decryptAPIData = (data: string, key: Buffer): Buffer => {
     );
 }
 
-export const getBlocklist = function(directions: Array<number>): Array<number> {
-    const result = [];
-    for (let distance = 1; distance <= 5; distance++) {
-        let i = 0;
-        let j = 0;
-        let k = 1;
-        for (const directionDistance of directions) {
-            if (directionDistance >= distance) {
-                j += k;
+export const getBlocklist = function(distanceArray: Array<number>): Array<number> {
+    /**
+     *  It looks like it taken from the decompiled app from Eufy in the file SimpleDetectionGroup.java
+     *
+     *  From asking, AI, this function it creates a bitmask representing which radar points meet that distance requirement.
+     *  Finally, it applies a specific bitwise transformation to that mask.
+     *
+     *  Potential description: Generates radar configuration parameters based on distance thresholds.
+     *
+     *  * @param {number[]} distanceArray - An array of integers representing distances.
+     *  * @returns {number[]} A list of 5 bitmask integers.
+     */
+    const requestParams = [];
+
+    for (let threshold = 1; threshold <= 5; threshold++) {
+        let bitmask = 0;
+        let bitPosition = 1;
+
+        // Iterate through each distance in the array
+        for (const distance of distanceArray) {
+            if (distance >= threshold) {
+                bitmask |= bitPosition;
             }
-            k <<= 1;
+            // Shift bitPosition left by 1 (multiply by 2)
+            bitPosition <<= 1;
         }
-        if (j == 0) {
-            i = 65535;
-        } else if (!(j == 255 || j == 65535)) {
-            i = (j ^ 255) + 65280;
+
+        let finalValue = 0;
+
+        // Logic for specific bit patterns
+        if (bitmask === 0) {
+            finalValue = 0xFFFF; // 65535
+        } else if (bitmask !== 0xFF && bitmask !== 0xFFFF) {
+            // Flip the bits and add the 0xFF00 (65280) high-byte padding
+            finalValue = (bitmask ^ 0xFF) + 0xFF00;
         }
-        result.push(65535 & i);
+
+        requestParams.push(finalValue);
     }
-    return result;
+    return requestParams;
 }
 
 
-export const getDistances = function(blocklist: Array<number>): Array<number> {
-    const result = [3, 3, 3, 3, 3, 3, 3, 3];
-    let calcDistance = 0;
-    for (const blockElement of blocklist) {
-        let valueOf = blockElement ^ 65535;
-        calcDistance++;
-        if (valueOf !== 0) {
-            for (let i = 0; i < result.length; i++) {
-                const intValue = valueOf & 1;
-                if (intValue > 0) {
-                    result[i] = calcDistance;
+export const getDistances = function(rawDistanceData: Array<number>): Array<number> {
+    /**
+     *  It looks like it taken from the decompiled app from Eufy in the file SimpleDetectionGroup.java
+     *
+     *  From asking AI:
+     *  Processes raw radar sensor data to map object detections into spatial sectors.
+     *  This method iterates through a list of distance data, where each element represents
+     *  a depth level and its bits represent angular sectors. It inverts the bitmask,
+     *  identifies active detections via bit-shifting, and updates a collection of
+     *  RadarSelectInfo objects with the corresponding angle and proximity distance.
+     *
+     *   @param rawDistanceData A list of integers where each bit represents a detection
+     *   at a specific angle, and the list index represents depth.
+     */
+    const radarSectors = [3, 3, 3, 3, 3, 3, 3, 3];
+    let distanceStep = 0;
+
+    for (const rawValue of rawDistanceData) {
+        // Bitwise NOT/XOR to invert the signal (common in hardware where 0=detected)
+        let invertedBits = rawValue ^ 65535;
+        distanceStep++;
+
+        if (invertedBits !== 0) {
+            for (let i = 0; i < radarSectors.length; i++) {
+                const isObjectDetected = invertedBits & 1; // Check if the lowest bit is set
+                // If the bit was 1, mark this sector with the current distance
+                if (isObjectDetected > 0) {
+                    radarSectors[i] = distanceStep;
                 }
-                valueOf = valueOf >> 1;
+                // Shift bits to check the next angle in the next iteration
+                invertedBits = invertedBits >> 1;
             }
         }
     }
-    return result;
+    return radarSectors;
+}
+
+
+export const isDeliveryPackageType = function(value: number) : boolean {
+    /**
+     *  Seems to be coming from EventData.java
+     *
+     */
+    return  (value & 65536) == 65536;
 }
 
 export const isHB3DetectionModeEnabled = function(value: number, type: HB3DetectionTypes): boolean {
+    /**
+     * Detection if Mode is enabled
+     *
+     */
+    const prefixCode =  (type & value) == type;
     if (type === HB3DetectionTypes.HUMAN_RECOGNITION) {
-        return (type & value) == type && (value & 65536) == 65536;
+        return prefixCode && isDeliveryPackageType(value);
     } else if (type === HB3DetectionTypes.HUMAN_DETECTION) {
-        return (type & value) == type && (value & 1) == 1;
+        return prefixCode && (value & 1) == 1;
     }
-    return (type & value) == type;
+    return prefixCode;
 }
 
 export const getHB3DetectionMode = function(value: number, type: HB3DetectionTypes, enable: boolean): number {
@@ -290,7 +342,7 @@ export const getHB3DetectionMode = function(value: number, type: HB3DetectionTyp
     if (!enable) {
         if (type === HB3DetectionTypes.HUMAN_RECOGNITION) {
             const tmp = (type & value) == type ? type ^ value : value;
-            result = (value & 65536) == 65536 ? tmp ^ 65536 : tmp;
+            result = isDeliveryPackageType(value)  ? tmp ^ 65536 : tmp;
         } else if (type === HB3DetectionTypes.HUMAN_DETECTION) {
             const tmp = (type & value) == type ? type ^ value : value;
             result = (value & 1) == 1 ? tmp ^ 1 : tmp;
@@ -328,6 +380,7 @@ export const getEufyTimezone = function(): EufyTimezone | undefined {
 export const getAdvancedLockTimezone = function(stationSN: string): string {
     const timezone = getEufyTimezone();
     if (timezone !== undefined) {
+        // TODO: make this a method to check whatever we need to check for the station
         if (stationSN.startsWith("T8520") && isGreaterEqualMinVersion("1.2.8.6", stationSN))
             return `${timezone.timeZoneGMT}|1.${timezone.timeSn}`
         else

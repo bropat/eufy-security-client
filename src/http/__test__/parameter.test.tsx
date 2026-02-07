@@ -3,6 +3,7 @@ import {ParameterHelper} from "../parameter";
 import {ParamType} from "../types";
 import {CommandType, TrackerCommandType} from "../../p2p";
 import { createCipheriv, createDecipheriv , randomBytes} from "crypto";
+import {WritePayload} from "../utils";
 
 
 describe('Parameter file', () => {
@@ -90,3 +91,5 @@ describe('Parameter file', () => {
         expect(result).toMatch(data);
     });
 });
+
+
