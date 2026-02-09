@@ -3969,9 +3969,9 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             data: data.toString("hex"),
             cipherID: cipherID,
           });
-          const encryptedKey = readNullTerminatedBuffer(data.subarray(4));
           // Keep full raw buffer for ECDH — readNullTerminatedBuffer truncates binary ECIES envelopes at 0x00 bytes
           const rawEncryptedKey = data.subarray(4);
+          const encryptedKey = readNullTerminatedBuffer(rawEncryptedKey);
           this.api
             .getCipher(/*this.rawStation.station_sn, */ cipherID, this.rawStation.member.admin_user_id)
             .then((cipher) => {
