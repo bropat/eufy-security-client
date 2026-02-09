@@ -2458,6 +2458,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       sn.startsWith("T8130") ||
       sn.startsWith("T8131") ||
       sn.startsWith("T8171") ||
+      sn.startsWith("T8214") ||
       sn.startsWith("T8422") ||
       sn.startsWith("T8423") ||
       sn.startsWith("T8424") ||
