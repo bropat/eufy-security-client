@@ -679,6 +679,73 @@ export const getLockV12Key = (key: string, publicKey: string): string => {
   ]).toString("hex");
 };
 
+/**
+ * Derive P2P session key using ECDH (for devices like E340 that use ECC instead of RSA).
+ *
+ * The `encryptedKey` buffer from CMD_GATEWAYINFO likely contains:
+ *   - Device's ECDH public key (either compressed 33 bytes or uncompressed 65 bytes)
+ *   - Possibly followed by encrypted session key data
+ *
+ * The `eccPrivateKey` is the 32-byte hex string from the cipher API response.
+ */
+export const decryptP2PKeyECDH = (encryptedKey: Buffer, eccPrivateKey: string): Buffer => {
+  const ecdh: ECDH = createECDH("prime256v1");
+  ecdh.setPrivateKey(Buffer.from(eccPrivateKey, "hex"));
+
+  // Determine pubkey format and extract the device's public key
+  const firstByte = encryptedKey[0];
+  let devicePubKey: Buffer;
+  let pubKeyLen: number;
+
+  if (firstByte === 0x04) {
+    // Uncompressed public key (65 bytes)
+    pubKeyLen = 65;
+  } else if (firstByte === 0x02 || firstByte === 0x03) {
+    // Compressed public key (33 bytes)
+    pubKeyLen = 33;
+  } else {
+    // Unknown format — try treating first 33 bytes as pubkey
+    pubKeyLen = 33;
+  }
+
+  // Scenario A/B: encryptedKey IS just the device's public key (no ECIES envelope)
+  if (encryptedKey.length <= pubKeyLen + 1) {
+    devicePubKey = encryptedKey.subarray(0, pubKeyLen);
+    const sharedSecret = ecdh.computeSecret(devicePubKey);
+    return sharedSecret.subarray(0, 16);
+  }
+
+  // Scenario C: ECIES envelope — pubkey + iv(16) + ciphertext(48) + hmac(32) = 96 bytes after pubkey
+  devicePubKey = encryptedKey.subarray(0, pubKeyLen);
+  const remainder = encryptedKey.subarray(pubKeyLen);
+
+  const sharedSecret = ecdh.computeSecret(devicePubKey);
+  const derivedKey = eufyKDF(sharedSecret);
+  const aesKey = derivedKey.subarray(0, 16);
+
+  // ECIES standard layout: iv(16) + ciphertext(N*16, typically 48) + hmac(32)
+  // Minimum valid: iv(16) + ciphertext(16) + hmac(32) = 64 bytes
+  if (remainder.length >= 64) {
+    const iv = remainder.subarray(0, 16);
+    const hmacLen = 32;
+    const ciphertext = remainder.subarray(16, remainder.length - hmacLen);
+
+    // Ensure ciphertext length is a multiple of 16 (AES block size)
+    const alignedLen = Math.floor(ciphertext.length / 16) * 16;
+    if (alignedLen > 0) {
+      const alignedCiphertext = ciphertext.subarray(0, alignedLen);
+      const decipher = createDecipheriv("aes-128-cbc", aesKey, iv);
+      decipher.setAutoPadding(false);
+      const decrypted = Buffer.concat([decipher.update(alignedCiphertext), decipher.final()]);
+      // Return first 16 bytes as the P2P session key (AES-128-ECB requires 16-byte key)
+      return decrypted.subarray(0, 16);
+    }
+  }
+
+  // Fallback: if remainder is too small for ECIES, try using raw shared secret
+  return sharedSecret.subarray(0, 16);
+};
+
 export const buildTalkbackAudioFrameHeader = (audioData: Buffer, channel = 0): Buffer => {
   const audioDataLength = Buffer.allocUnsafe(4);
   audioDataLength.writeUInt32LE(audioData.length);
