@@ -766,6 +766,11 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                   this.onStationDatabaseQueryLocal(station, returnCode, data)
               );
               station.on(
+                "database query by date",
+                (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryByDate>) =>
+                  this.onStationDatabaseQueryByDate(station, returnCode, data)
+              );
+              station.on(
                 "database count by date",
                 (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) =>
                   this.onStationDatabaseCountByDate(station, returnCode, data)
@@ -2000,6 +2005,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
           station.setMotionDetectionTypeHB3(device, SoloCameraDetectionTypes.ALL_OTHER_MOTION, value as boolean);
         } else if (device.isIndoorPanAndTiltCameraS350()) {
           station.setMotionDetectionTypeHB3(device, IndoorS350DetectionTypes.ALL_OTHER_MOTION, value as boolean);
+        } else if (device.isCameraC35()) {
+          station.setMotionDetectionTypeHB3(device, EufyCamC35DetectionTypes.ALL_OTHER_MOTION, value as boolean);
         } else {
           station.setMotionDetectionTypeHB3(device, HB3DetectionTypes.ALL_OTHER_MOTION, value as boolean);
         }
