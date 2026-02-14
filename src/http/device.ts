@@ -2222,6 +2222,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return DeviceType.LOCK_8502 == type;
   }
 
+  static isLockWifiT85D0(type: number): boolean {
+    return DeviceType.LOCK_85D0 == type;
+  }
+
   static isLockWifiT8510P(type: number, serialnumber: string): boolean {
     if (
       type == DeviceType.LOCK_WIFI &&
@@ -2526,7 +2530,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
       sn.startsWith("T8504") ||
       sn.startsWith("T8506") ||
       sn.startsWith("T85L0") ||
-      sn.startsWith("T8530")
+      sn.startsWith("T8530") ||
+      sn.startsWith("T85D0")
     );
   }
 
@@ -2671,6 +2676,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   public isLockWifiT8502(): boolean {
     return Device.isLockWifiT8502(this.rawDevice.device_type);
+  }
+
+  public isLockWifiT85D0(): boolean {
+    return Device.isLockWifiT85D0(this.rawDevice.device_type);
   }
 
   public isLockWifiT8510P(): boolean {
