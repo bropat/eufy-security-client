@@ -564,7 +564,7 @@ export class Station extends TypedEmitter<StationEvents> {
                 ? isNotificationSwitchMode(Number.parseInt(value), NotificationSwitchMode.APP)
                 : false;
             case PropertyName.StationNotificationSwitchModeKeypad:
-              if (!isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
+              if (this.isStationHomeBase2OrOlder() && !isGreaterEqualMinVersion("2.1.1.6", this.getSoftwareVersion())) {
                 throw new PropertyNotSupportedError("Property not supported for station with this software version", {
                   context: {
                     propertName: property.name,

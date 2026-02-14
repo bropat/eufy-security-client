@@ -1726,7 +1726,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
       } else {
         newMetadata[PropertyName.DeviceVideoRecordingQuality] = DeviceVideoRecordingQualitySoloCamerasHB3Property;
       }
-      newMetadata[PropertyName.DeviceVideoRecordingQuality] = DeviceVideoRecordingQualitySoloCamerasHB3Property;
       newMetadata[PropertyName.DeviceNotificationType] = DeviceNotificationTypeProperty;
       newMetadata[PropertyName.DeviceMotionDetection] = DeviceMotionDetectionProperty;
       if (this.isCameraC35()) {
