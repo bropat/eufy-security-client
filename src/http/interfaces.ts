@@ -260,14 +260,14 @@ export interface StationEvents {
   ) => void;
   "database query local": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => void;
   "database query by date": (
-      station: Station,
-      returnCode: DatabaseReturnCode,
-      data: Array<DatabaseQueryByDate>
+    station: Station,
+    returnCode: DatabaseReturnCode,
+    data: Array<DatabaseQueryByDate>
   ) => void;
   "database count by date": (
-      station: Station,
-      returnCode: DatabaseReturnCode,
-      data: Array<DatabaseCountByDate>
+    station: Station,
+    returnCode: DatabaseReturnCode,
+    data: Array<DatabaseCountByDate>
   ) => void;
   "database delete": (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => void;
   "sensor status": (station: Station, channel: number, status: number) => void;

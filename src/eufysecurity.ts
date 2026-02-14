@@ -3603,9 +3603,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
   }
 
   private onStationDatabaseQueryByDate(
-      station: Station,
-      returnCode: DatabaseReturnCode,
-      data: Array<DatabaseQueryByDate>
+    station: Station,
+    returnCode: DatabaseReturnCode,
+    data: Array<DatabaseQueryByDate>
   ): void {
     this.emit("station database query by date", station, returnCode, data);
   }
