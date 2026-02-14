@@ -627,7 +627,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
       try {
         const response = await this.request({
           method: "post",
-          endpoint: "v1/sms/send/verify_code",
+          endpoint: endPoint,
           data: data,
         });
 
