@@ -105,6 +105,19 @@ Instructions aimed at maintainers for deploying a new version: [Deployment](docs
 
 ## Changelog
 
+### 3.7.0 (2026-02-14)
+
+* Upgrade packages mqtt, qs and date-and-time in https://github.com/bropat/eufy-security-client/pull/781
+* Refactor: Add testing and simplify http package by @max246 in https://github.com/bropat/eufy-security-client/pull/778
+* Feature: Add support for Entry E20 sensor by @max246 in https://github.com/bropat/eufy-security-client/pull/773
+* Refactor: Add prettier to the code base @DevAlien in https://github.com/bropat/eufy-security-client/pull/772
+* Feature: ADd support for EufyCam E40 (T8144) by @Abs3601  in https://github.com/bropat/eufy-security-client/pull/769
+* Feature: Add support to query events by date @temp-droid  in https://github.com/bropat/eufy-security-client/pull/768
+* Fix: HB3 Video download by @PhilippEngler in https://github.com/bropat/eufy-security-client/pull/765
+* Feature: Add support for C210 by @tomc128 in https://github.com/bropat/eufy-security-client/pull/754
+* Fix: Allow to disable/enable T8410 by @PhilippEngler in https://github.com/bropat/eufy-security-client/pull/752
+
+
 ### 3.4.0 (2025-08-01)
 
 * Bugfix/google gcm by @martijnpoppen in https://github.com/bropat/eufy-security-client/pull/660
