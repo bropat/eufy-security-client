@@ -1,6 +1,6 @@
 import { Category } from "typescript-logging-category-style";
 
-import { CommandType, TrackerCommandType } from "../p2p/types";
+import { CommandType, TrackerCommandType } from "../p2p";
 import { decodeBase64, getNullTerminatedString } from "../p2p/utils";
 import { getError, parseJSON } from "../utils";
 import { ParamType } from "./types";
@@ -53,33 +53,25 @@ export class ParameterHelper {
   public static readValue(serialNumber: string, type: number, value: string, log: Category): string | undefined {
     if (value) {
       if (ParameterHelper.JSON_PARSE_BASE64_PARAMS.has(type)) {
-        if (typeof value === "string") {
-          const parsedValue = parseJSON(getNullTerminatedString(decodeBase64(value), "utf-8"), log);
-          if (parsedValue === undefined) {
-            log.debug("Non-parsable parameter value received from eufy cloud. Will be ignored.", {
-              serialNumber: serialNumber,
-              type: type,
-              value: value,
-            });
-          }
-          return parsedValue;
-        } else {
-          return value; //return object
+        const parsedValue = parseJSON(getNullTerminatedString(decodeBase64(value), "utf-8"), log);
+        if (parsedValue === undefined) {
+          log.debug("Non-parsable parameter value received from eufy cloud. Will be ignored.", {
+            serialNumber: serialNumber,
+            type: type,
+            value: value,
+          });
         }
+        return parsedValue;
       } else if (ParameterHelper.JSON_PARSE_PLAIN_PARAMS.has(type)) {
-        if (typeof value === "string") {
-          const parsedValue = parseJSON(value, log);
-          if (parsedValue === undefined) {
-            log.debug("Non-parsable parameter value received from eufy cloud. Will be ignored.", {
-              serialNumber: serialNumber,
-              type: type,
-              value: value,
-            });
-          }
-          return parsedValue;
-        } else {
-          return value; //return object
+        const parsedValue = parseJSON(value, log);
+        if (parsedValue === undefined) {
+          log.debug("Non-parsable parameter value received from eufy cloud. Will be ignored.", {
+            serialNumber: serialNumber,
+            type: type,
+            value: value,
+          });
         }
+        return parsedValue;
       } else if (type === TrackerCommandType.COMMAND_NEW_LOCATION || type === TrackerCommandType.LOCATION_NEW_ADDRESS) {
         try {
           const decrypted = decryptTrackerData(Buffer.from(value, "hex"), Buffer.from(serialNumber));

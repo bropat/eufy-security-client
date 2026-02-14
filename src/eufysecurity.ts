@@ -110,8 +110,7 @@ import { InvalidPropertyError } from "./http/error";
 import { ServerPushEvent } from "./push/types";
 import { MQTTService } from "./mqtt/service";
 import { TalkbackStream } from "./p2p/talkback";
-import { PhoneModels } from "./http/const";
-import { hexStringScheduleToSchedule, randomNumber } from "./http/utils";
+import { getRandomPhoneModel, hexStringScheduleToSchedule, randomNumber } from "./http/utils";
 import {
   Logger,
   dummyLogger,
@@ -285,8 +284,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
       if (this.persistentData.fallbackTrustedDeviceName !== undefined) {
         this.config.trustedDeviceName = this.persistentData.fallbackTrustedDeviceName;
       } else {
-        const rnd = randomNumber(0, PhoneModels.length);
-        this.persistentData.fallbackTrustedDeviceName = PhoneModels[rnd];
+        this.persistentData.fallbackTrustedDeviceName = getRandomPhoneModel();
         this.config.trustedDeviceName = this.persistentData.fallbackTrustedDeviceName;
       }
     }

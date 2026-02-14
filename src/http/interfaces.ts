@@ -310,3 +310,10 @@ export interface DeviceEvents {
   "lid stuck": (device: Device, state: boolean) => void;
   "battery fully charged": (device: Device, state: boolean) => void;
 }
+
+export interface BrandData {
+  first?: string[];
+  second?: string[];
+  numbers?: number;
+  letters?: string[];
+}

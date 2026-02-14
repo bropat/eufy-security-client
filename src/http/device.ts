@@ -98,10 +98,10 @@ import {
   isIndoorS350DetectionModeEnabled,
   isPrioritySourceType,
   isSmartLockNotification,
-  isT8110DetectionModeEnabled,
   isT8170DetectionModeEnabled,
   loadEventImage,
   WritePayload,
+  isT8110DetectionModeEnabled,
 } from "./utils";
 import { DecimalToRGBColor, eslTimestamp, getCurrentTimeInSeconds, isCharging } from "../p2p/utils";
 import {
@@ -1285,11 +1285,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         try {
           return property.name === PropertyName.DeviceMotionDetectionTypeHuman
             ? SoloCameraDetectionTypes.HUMAN_DETECTION === Number.parseInt(value)
-              ? true
-              : false
-            : SoloCameraDetectionTypes.ALL_OTHER_MOTION === Number.parseInt(value)
-              ? true
-              : false;
+            : SoloCameraDetectionTypes.ALL_OTHER_MOTION === Number.parseInt(value);
         } catch (err) {
           const error = ensureError(err);
           rootHTTPLogger.error("Device convert raw property - SoloCamera motion detection type Error", {
@@ -1515,8 +1511,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
             const booleanProperty = property as PropertyMetadataBoolean;
             return currentValue !== undefined && currentValue.test_mode !== undefined
               ? currentValue.test_mode === 1
-                ? true
-                : false
               : booleanProperty.default !== undefined
                 ? booleanProperty.default
                 : false;
@@ -1569,8 +1563,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
             const booleanProperty = property as PropertyMetadataBoolean;
             return currentValue !== undefined && currentValue.enable !== undefined
               ? currentValue.enable === 1
-                ? true
-                : false
               : booleanProperty.default !== undefined
                 ? booleanProperty.default
                 : false;
@@ -1636,8 +1628,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
             ? typeof value === "number"
               ? !!value
               : value === "1" || value.toLowerCase() === "true"
-                ? true
-                : false
             : booleanProperty.default !== undefined
               ? booleanProperty.default
               : false;
@@ -1973,16 +1963,13 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.ENTRY_SENSOR_E20
     );
   }
-
   static isStation(type: number): boolean {
-    if (
+    return (
       type === DeviceType.STATION ||
       type === DeviceType.HB3 ||
       type === DeviceType.HOMEBASE_MINI ||
       type === DeviceType.MINIBASE_CHIME
-    )
-      return true;
-    return false;
+    );
   }
 
   static isCamera1(type: number): boolean {

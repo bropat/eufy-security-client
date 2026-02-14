@@ -73,8 +73,8 @@ import {
   getHB3DetectionMode,
   getIndoorNotification,
   getIndoorS350DetectionMode,
-  getT8110DetectionMode,
   getT8170DetectionMode,
+  getT8110DetectionMode,
   hexDate,
   hexTime,
   hexWeek,
@@ -7441,6 +7441,7 @@ export class Station extends TypedEmitter<StationEvents> {
       cipherID: cipher_id,
     });
     if (this.getDeviceType() === DeviceType.HB3) {
+      //TODO: Implement HB3 Support! Actually doesn't work and returns return_code -104 (ERROR_INVALID_ACCOUNT). It could be that we need the new encrypted p2p protocol to make this work...
       const rsa_key = this.p2pSession.getDownloadRSAPrivateKey();
       this.p2pSession.sendCommandWithStringPayload(
         {
@@ -15381,7 +15382,6 @@ export class Station extends TypedEmitter<StationEvents> {
       }
     );
   }
-
   public databaseDelete(ids: Array<number>): void {
     const commandData: CommandData = {
       name: CommandName.StationDatabaseDelete,
@@ -15477,7 +15477,6 @@ export class Station extends TypedEmitter<StationEvents> {
   private onDatabaseQueryByDate(returnCode: DatabaseReturnCode, data: Array<DatabaseQueryByDate>): void {
     this.emit("database query by date", this, returnCode, data);
   }
-
   private onDatabaseCountByDate(returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>): void {
     this.emit("database count by date", this, returnCode, data);
   }
