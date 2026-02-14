@@ -1197,29 +1197,23 @@ export class Device extends TypedEmitter<DeviceEvents> {
         }
       }else if (
           (property.name === PropertyName.DeviceMotionDetectionTypeHuman ||
-              property.name === PropertyName.DeviceMotionDetectionTypeHumanRecognition ||
-              property.name === PropertyName.DeviceMotionDetectionTypePet ||
               property.name === PropertyName.DeviceMotionDetectionTypeVehicle ||
               property.name === PropertyName.DeviceMotionDetectionTypeAllOtherMotions) &&
-          this.getStationSerial().startsWith("T8030")
+          this.isOutdoorPanAndTiltCamera()
       ) {
         const booleanProperty = property as PropertyMetadataBoolean;
         try {
-          return isHB3DetectionModeEnabled(
+          return isT8170DetectionModeEnabled(
               Number.parseInt(value),
               property.name === PropertyName.DeviceMotionDetectionTypeHuman
-                  ? HB3DetectionTypes.HUMAN_DETECTION
-                  : property.name === PropertyName.DeviceMotionDetectionTypeHumanRecognition
-                      ? HB3DetectionTypes.HUMAN_RECOGNITION
-                      : property.name === PropertyName.DeviceMotionDetectionTypePet
-                          ? HB3DetectionTypes.PET_DETECTION
-                          : property.name === PropertyName.DeviceMotionDetectionTypeVehicle
-                              ? HB3DetectionTypes.VEHICLE_DETECTION
-                              : HB3DetectionTypes.ALL_OTHER_MOTION
+                  ? T8170DetectionTypes.HUMAN_DETECTION
+                  : property.name === PropertyName.DeviceMotionDetectionTypeVehicle
+                      ? T8170DetectionTypes.VEHICLE_DETECTION
+                      : T8170DetectionTypes.ALL_OTHER_MOTION
           );
         } catch (err) {
           const error = ensureError(err);
-          rootHTTPLogger.error("Device convert raw property - HB3 motion detection type Error", {
+          rootHTTPLogger.error("Device convert raw property - T8170 motion detection type Error", {
             error: getError(error),
             deviceSN: this.getSerial(),
             property: property,
@@ -1229,23 +1223,26 @@ export class Device extends TypedEmitter<DeviceEvents> {
         }
       } else if (
         (property.name === PropertyName.DeviceMotionDetectionTypeHuman ||
+            property.name === PropertyName.DeviceMotionDetectionTypePet ||
           property.name === PropertyName.DeviceMotionDetectionTypeVehicle ||
           property.name === PropertyName.DeviceMotionDetectionTypeAllOtherMotions) &&
-        this.isOutdoorPanAndTiltCamera()
+        this.isCameraC35()
       ) {
         const booleanProperty = property as PropertyMetadataBoolean;
         try {
-          return isT8170DetectionModeEnabled(
+          return isT8110DetectionModeEnabled(
             Number.parseInt(value),
             property.name === PropertyName.DeviceMotionDetectionTypeHuman
-              ? T8170DetectionTypes.HUMAN_DETECTION
-              : property.name === PropertyName.DeviceMotionDetectionTypeVehicle
-                ? T8170DetectionTypes.VEHICLE_DETECTION
-                : T8170DetectionTypes.ALL_OTHER_MOTION
+                ? EufyCamC35DetectionTypes.HUMAN_DETECTION
+                : property.name === PropertyName.DeviceMotionDetectionTypePet
+                    ? EufyCamC35DetectionTypes.PET_DETECTION
+                    : property.name === PropertyName.DeviceMotionDetectionTypeVehicle
+                        ? EufyCamC35DetectionTypes.VEHICLE_DETECTION
+                        : EufyCamC35DetectionTypes.ALL_OTHER_MOTION
           );
         } catch (err) {
           const error = ensureError(err);
-          rootHTTPLogger.error("Device convert raw property - T8170 motion detection type Error", {
+          rootHTTPLogger.error("Device convert raw property - T8110 motion detection type Error", {
             error: getError(error),
             deviceSN: this.getSerial(),
             property: property,
@@ -1288,11 +1285,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         try {
           return property.name === PropertyName.DeviceMotionDetectionTypeHuman
             ? SoloCameraDetectionTypes.HUMAN_DETECTION === Number.parseInt(value)
-              ? true
-              : false
-            : SoloCameraDetectionTypes.ALL_OTHER_MOTION === Number.parseInt(value)
-              ? true
-              : false;
+            : SoloCameraDetectionTypes.ALL_OTHER_MOTION === Number.parseInt(value);
         } catch (err) {
           const error = ensureError(err);
           rootHTTPLogger.error("Device convert raw property - SoloCamera motion detection type Error", {
@@ -1340,7 +1333,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
           property.name === PropertyName.DeviceNotificationPerson ||
           property.name === PropertyName.DeviceNotificationPet ||
           property.name === PropertyName.DeviceNotificationVehicle) &&
-        this.isFloodLightT8425()
+          (this.isFloodLightT8425() || this.isCameraC35())
       ) {
         const booleanProperty = property as PropertyMetadataBoolean;
         try {
@@ -1356,7 +1349,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
           );
         } catch (err) {
           const error = ensureError(err);
-          rootHTTPLogger.error("Device convert raw property - FloodLightT8425 notification Error", {
+          rootHTTPLogger.error("Device convert raw property - FloodLightT8425 or EufyCamC35 notification Error", {
             error: getError(error),
             deviceSN: this.getSerial(),
             property: property,
@@ -1518,8 +1511,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
             const booleanProperty = property as PropertyMetadataBoolean;
             return currentValue !== undefined && currentValue.test_mode !== undefined
               ? currentValue.test_mode === 1
-                ? true
-                : false
               : booleanProperty.default !== undefined
                 ? booleanProperty.default
                 : false;
@@ -1572,8 +1563,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
             const booleanProperty = property as PropertyMetadataBoolean;
             return currentValue !== undefined && currentValue.enable !== undefined
               ? currentValue.enable === 1
-                ? true
-                : false
               : booleanProperty.default !== undefined
                 ? booleanProperty.default
                 : false;
@@ -1639,8 +1628,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
             ? typeof value === "number"
               ? !!value
               : value === "1" || value.toLowerCase() === "true"
-                ? true
-                : false
             : booleanProperty.default !== undefined
               ? booleanProperty.default
               : false;
@@ -1727,19 +1714,31 @@ export class Device extends TypedEmitter<DeviceEvents> {
       };
       (metadata[PropertyName.Type] as PropertyMetadataNumeric).states![this.getDeviceType()] =
         "Smart Lock S231 (T8520P)";
-    } else if (this.isSoloCameras() && Station.isStationHomeBase3BySn(this.getStationSerial())) {
+    } else if (this.isSoloCameras() && Station.isDeviceControlledByHomeBaseBySn(this.getStationSerial())) {
       const newMetadata = {
         ...metadata,
       };
 
       newMetadata[PropertyName.DeviceAudioRecording] = DeviceAudioRecordingProperty;
       newMetadata[PropertyName.DeviceMotionDetectionSensitivity] = DeviceMotionDetectionSensitivityCamera2Property;
+      if (this.isCameraC35()) {
+        newMetadata[PropertyName.DeviceVideoRecordingQuality] = DeviceVideoRecordingQualityCameraC35HB3Property;
+      } else {
+        newMetadata[PropertyName.DeviceVideoRecordingQuality] = DeviceVideoRecordingQualitySoloCamerasHB3Property;
+      }
       newMetadata[PropertyName.DeviceVideoRecordingQuality] = DeviceVideoRecordingQualitySoloCamerasHB3Property;
       newMetadata[PropertyName.DeviceNotificationType] = DeviceNotificationTypeProperty;
       newMetadata[PropertyName.DeviceMotionDetection] = DeviceMotionDetectionProperty;
+      if (this.isCameraC35()) {
+        newMetadata[PropertyName.DeviceRTSPStream] = DeviceRTSPStreamProperty;
+        newMetadata[PropertyName.DeviceRTSPStreamUrl] = DeviceRTSPStreamUrlProperty;
+      }
 
       metadata = newMetadata;
-    } else if (this.isIndoorPanAndTiltCameraS350() && Station.isStationHomeBase3BySn(this.getStationSerial())) {
+    } else if (
+        this.isIndoorPanAndTiltCameraS350() &&
+        Station.isDeviceControlledByHomeBaseBySn(this.getStationSerial())
+    ) {
       const newMetadata = {
         ...metadata,
       };
@@ -1753,7 +1752,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       metadata = newMetadata;
     }
     if (
-      Station.isStationHomeBase3BySn(this.getStationSerial()) &&
+        Station.isDeviceControlledByHomeBaseBySn(this.getStationSerial()) &&
       (metadata[PropertyName.DeviceMotionDetectionType] !== undefined ||
         metadata[PropertyName.DeviceMotionDetectionTypeAllOtherMotions] !== undefined) &&
       this.isCamera()
@@ -1877,6 +1876,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.DOORBELL_SOLO ||
       type == DeviceType.CAMERA2C_PRO ||
       type == DeviceType.CAMERA2_PRO ||
+      type == DeviceType.CAMERA_E40 ||
       type == DeviceType.CAMERA3 ||
       type == DeviceType.CAMERA3C ||
       type == DeviceType.CAMERA3_PRO ||
@@ -1965,14 +1965,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
     );
   }
   static isStation(type: number): boolean {
-    if (
-        type === DeviceType.STATION ||
+    return type === DeviceType.STATION ||
         type === DeviceType.HB3 ||
         type === DeviceType.HOMEBASE_MINI ||
-        type === DeviceType.MINIBASE_CHIME
-    )
-      return true;
-    return false;
+        type === DeviceType.MINIBASE_CHIME;
+
   }
 
   static isCamera1(type: number): boolean {
@@ -2361,6 +2358,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return DeviceType.CAMERA2C_PRO == type;
   }
 
+  static isCameraE40(type: number): boolean {
+    //T8144
+    return DeviceType.CAMERA_E40 == type;
+  }
+
   static isCamera2Product(type: number): boolean {
     return (
         Device.isCamera2(type) ||
@@ -2399,7 +2401,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   static isEntrySensor(type: number): boolean {
     //T8900
-    return DeviceType.SENSOR == type  || this.isEntryE20(type);
+    return DeviceType.SENSOR == type || this.isEntryE20(type);
   }
 
   static isMotionSensor(type: number): boolean {

@@ -252,7 +252,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
 
   private async loadLibraries(): Promise<void> {
     /**
-     *
+     * Load library
      *
      */
     const { default: pThrottle } = await import("p-throttle");

@@ -27,6 +27,7 @@ import {
   SmartLockNotification,
   SourceType,
   T8170DetectionTypes,
+  EufyCamC35DetectionTypes
 } from "./types";
 import { HTTPApi } from "./api";
 import { ensureError } from "../error";
@@ -772,6 +773,28 @@ export const getT8170DetectionMode = function (value: number, type: T8170Detecti
   }
   return result;
 };
+
+// TODO: Tidy up!!
+export const isT8110DetectionModeEnabled = function (value: number, type: EufyCamC35DetectionTypes): boolean {
+  return (type & value) == type;
+};
+
+export const getT8110DetectionMode = function (value: number, type: EufyCamC35DetectionTypes, enable: boolean): number {
+  let result = 0;
+  if (
+      Object.values(EufyCamC35DetectionTypes).includes(type) &&
+      Object.values(EufyCamC35DetectionTypes).includes(value) &&
+      !enable
+  )
+    return value;
+  if (!enable) {
+    result = type ^ value;
+  } else {
+    result = type | value;
+  }
+  return result;
+};
+
 // TODO: this is like isT8170DetectionModeEnabled
 export const isIndoorS350DetectionModeEnabled = function (value: number, type: IndoorS350DetectionTypes): boolean {
   return (type & value) == type;
