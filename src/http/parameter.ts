@@ -50,7 +50,7 @@ export class ParameterHelper {
     CommandType.CMD_MOTION_SET_LEAVING_REACTIONS,
   ]);
 
-  public static readValue(serialNumber: string, type: number, value: string | object, log: Category): string | object | undefined {
+  public static readValue(serialNumber: string, type: number, value: string, log: Category): string | undefined {
     if (value) {
       // TODO: investigate why the value can be a object
       //
