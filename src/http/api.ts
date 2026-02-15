@@ -622,8 +622,8 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
   }
 
-  public async makePostRequest(endPoint: string, data: any): Promise<ApiResponse | undefined> {
-    if (this.connected) {
+  public async makePostRequest(endPoint: string, data: any, forceConnect: boolean = false): Promise<ApiResponse | undefined> {
+    if (this.connected || forceConnect) {
       try {
         const response = await this.request({
           method: "post",
@@ -655,7 +655,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
       message_type: type,
       transaction: `${new Date().getTime()}`,
     };
-    const response: ApiResponse | undefined = await this.makePostRequest(this.apiVerifyCode, data);
+    const response: ApiResponse | undefined = await this.makePostRequest(this.apiVerifyCode, data, true);
 
     if (response != undefined) {
       if (response.status == 200) {
