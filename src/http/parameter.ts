@@ -55,7 +55,12 @@ export class ParameterHelper {
       // TODO: investigate why the value can be a object
       //
       //if (typeof value !== "string") return value;
-      if (typeof value !== "string") console.log(value)
+      if (typeof value !== "string") {
+        log.debug("Watch out for this object! .", {
+          value : JSON.stringify(value, null, 2)
+        });
+        return value;
+      }
       if (ParameterHelper.JSON_PARSE_BASE64_PARAMS.has(type)) {
 
         const parsedValue = parseJSON(getNullTerminatedString(decodeBase64(value), "utf-8"), log);
