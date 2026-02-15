@@ -50,12 +50,12 @@ export class ParameterHelper {
     CommandType.CMD_MOTION_SET_LEAVING_REACTIONS,
   ]);
 
-  public static readValue(serialNumber: string, type: number, value: string, log: Category): string | undefined {
+  public static readValue(serialNumber: string, type: number, value: string | object, log: Category): string | object | undefined {
     if (value) {
-      console.log("DEBUG VALUE!")
-      console.log(JSON.stringify(value, null, 2));
+      // TODO: investigate why the value can be a object
+      //
+      //if (typeof value !== "string") return value;
       if (ParameterHelper.JSON_PARSE_BASE64_PARAMS.has(type)) {
-
 
         const parsedValue = parseJSON(getNullTerminatedString(decodeBase64(value), "utf-8"), log);
         if (parsedValue === undefined) {
