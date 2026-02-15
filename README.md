@@ -105,10 +105,15 @@ Instructions aimed at maintainers for deploying a new version: [Deployment](docs
 
 ## Changelog
 
-### 3.7.0 (2026-02-14)
+### 3.7.1 (2026-02-15)
+
+* Fix: ECDH livestream for E340 doorbell and T8425 floodlight by @lenoxys in https://github.com/bropat/eufy-security-client/pull/779
+* Fix: Parameter parsing failure by @max246 in https://github.com/bropat/eufy-security-client/pull/786
+
+[### 3.7.0 (2026-02-14)
 
 * Upgrade packages mqtt, qs and date-and-time in https://github.com/bropat/eufy-security-client/pull/781
-* Refactor: Add testing and simplify http package by @max246 in https://github.com/bropat/eufy-security-client/pull/778
+* Refactor: Add testing and simplify http package by @max246 in https://github.com/bropat/eufy-security-client/pull/778]()
 * Feature: Add support for Entry E20 sensor by @max246 in https://github.com/bropat/eufy-security-client/pull/773
 * Refactor: Add prettier to the code base @DevAlien in https://github.com/bropat/eufy-security-client/pull/772
 * Feature: ADd support for EufyCam E40 (T8144) by @Abs3601  in https://github.com/bropat/eufy-security-client/pull/769
