@@ -52,7 +52,11 @@ export class ParameterHelper {
 
   public static readValue(serialNumber: string, type: number, value: string, log: Category): string | undefined {
     if (value) {
+      console.log("DEBUG VALUE!")
+      console.log(JSON.stringify(value, null, 2));
       if (ParameterHelper.JSON_PARSE_BASE64_PARAMS.has(type)) {
+
+
         const parsedValue = parseJSON(getNullTerminatedString(decodeBase64(value), "utf-8"), log);
         if (parsedValue === undefined) {
           log.debug("Non-parsable parameter value received from eufy cloud. Will be ignored.", {
