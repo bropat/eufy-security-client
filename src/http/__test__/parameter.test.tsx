@@ -7,7 +7,7 @@ import {WritePayload} from "../utils";
 
 
 describe('Parameter file', () => {
-    test("Test base64 decode function" , () => {
+    test("Test snooze base64 decode function" , () => {
         const data = {"test": "data"}
         const encodedJson = btoa(JSON.stringify(data));
 
@@ -23,6 +23,8 @@ describe('Parameter file', () => {
         expect(result).toStrictEqual(data);
     });
 
+
+
     test("Test text decode function" , () => {
         const data = {"test": "data"}
         const encodedJson = JSON.stringify(data);
@@ -35,6 +37,23 @@ describe('Parameter file', () => {
 
         const TYPE_NOTIFICATION = CommandType.CMD_BAT_DOORBELL_SET_NOTIFICATION_MODE;
         let result: string | undefined = ParameterHelper.readValue("testsn",  TYPE_NOTIFICATION, encodedJson,mockLog as Category )
+
+        expect(result).toStrictEqual(data);
+    });
+
+    test("Test object base64 decode function" , () => {
+        // Ensure it returns the object not a string
+        // Needs to be addressed this issue!
+        const data = new Object();
+
+        const mockLog = {
+            debug: jest.fn(),
+            info: jest.fn(),
+            error: jest.fn()
+        };
+
+        const TYPE_SNOOZE = ParamType.SNOOZE_MODE;
+        let result: string | undefined = ParameterHelper.readValue("testsn",  TYPE_SNOOZE, data, mockLog as Category )
 
         expect(result).toStrictEqual(data);
     });
