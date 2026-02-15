@@ -81,7 +81,7 @@ import {
   MotionZone,
   CrossTrackingGroupEntry,
 } from "./p2p/interfaces";
-import { CommandResult, StorageInfoBodyHB3 } from "./p2p/models";
+import { CommandResult, PropertyData, StorageInfoBodyHB3 } from "./p2p/models";
 import {
   generateSerialnumber,
   generateUDID,
@@ -109,6 +109,7 @@ import { libVersion } from ".";
 import { InvalidPropertyError } from "./http/error";
 import { ServerPushEvent } from "./push/types";
 import { MQTTService } from "./mqtt/service";
+import { SecurityMQTTService } from "./mqtt/security-mqtt";
 import { TalkbackStream } from "./p2p/talkback";
 import { getRandomPhoneModel, hexStringScheduleToSchedule, randomNumber } from "./http/utils";
 import {
@@ -139,6 +140,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
   private pushService!: PushNotificationService;
   private mqttService!: MQTTService;
+  private securityMqttService: SecurityMQTTService | null = null;
   private pushCloudRegistered = false;
   private pushCloudChecked = false;
   private persistentFile!: string;
@@ -423,6 +425,58 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     });
   }
 
+  private async initSecurityMqtt(email: string, apiBase: string): Promise<void> {
+    // Check if any T85D0 locks exist before connecting
+    const hasT85D0 = Object.values(this.devices).some((device) => device.isLockWifiT85D0());
+    if (!hasT85D0) {
+      rootMainLogger.debug("No T85D0 locks found, skipping SecurityMQTT initialization");
+      return;
+    }
+
+    try {
+      this.securityMqttService = new SecurityMQTTService(
+        email,
+        this.config.password,
+        this.persistentData.openudid,
+        this.config.country || "US",
+      );
+
+      this.securityMqttService.on("connect", () => {
+        rootMainLogger.info("SecurityMQTT connected");
+        // Subscribe all T85D0 locks
+        for (const device of Object.values(this.devices)) {
+          if (device.isLockWifiT85D0()) {
+            this.securityMqttService!.subscribeLock(device.getSerial());
+          }
+        }
+      });
+
+      this.securityMqttService.on("close", () => {
+        rootMainLogger.info("SecurityMQTT disconnected");
+      });
+
+      this.securityMqttService.on("lock-status", (deviceSN, locked, battery) => {
+        this.getDevice(deviceSN)
+          .then((device) => {
+            device.updateProperty(PropertyName.DeviceLocked, locked);
+            if (battery >= 0) {
+              device.updateProperty(PropertyName.DeviceBattery, battery);
+            }
+          })
+          .catch(() => { /* device not found */ });
+      });
+
+      this.securityMqttService.on("command-response", (deviceSN, success) => {
+        rootMainLogger.debug("SecurityMQTT command response", { deviceSN, success });
+      });
+
+      await this.securityMqttService.connect(apiBase);
+    } catch (err) {
+      const error = ensureError(err);
+      rootMainLogger.error("SecurityMQTT initialization failed", { error: getError(error) });
+    }
+  }
+
   public setLoggingLevel(category: LoggingCategories, level: LogLevel): void {
     if (
       typeof level === "number" &&
@@ -507,6 +561,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
       this.emit("device added", device);
 
       if (device.isLock()) this.mqttService.subscribeLock(device.getSerial());
+      if (device.isLockWifiT85D0() && this.securityMqttService) {
+        this.securityMqttService.subscribeLock(device.getSerial());
+      }
     } else {
       rootMainLogger.debug(`Device with this serial ${device.getSerial()} exists already and couldn't be added again!`);
     }
@@ -788,6 +845,20 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
               );
               station.on("storage info hb3", (station: Station, channel: number, storageInfo: StorageInfoBodyHB3) =>
                 this.onStorageInfoHb3(station, channel, storageInfo)
+              );
+              station.on(
+                "security mqtt command",
+                (
+                  _station: Station,
+                  deviceSN: string,
+                  adminUserId: string,
+                  shortUserId: string,
+                  nickName: string,
+                  channel: number,
+                  sequence: number,
+                  lock: boolean,
+                  _property: PropertyData,
+                ) => this.onSecurityMqttCommand(deviceSN, adminUserId, shortUserId, nickName, channel, sequence, lock)
               );
               this.addStation(station);
               station.initialize();
@@ -1108,6 +1179,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
     this.pushService.close();
     this.mqttService.close();
+    if (this.securityMqttService) {
+      this.securityMqttService.close();
+      this.securityMqttService = null;
+    }
 
     Object.values(this.stations).forEach((station) => {
       station.close();
@@ -1207,6 +1282,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     const loginData = this.api.getPersistentData();
     if (loginData) {
       this.mqttService.connect(loginData.user_id, this.persistentData.openudid, this.api.getAPIBase(), loginData.email);
+
+      // Initialize SecurityMQTTService for T85D0 locks (BLE-over-MQTT protocol)
+      this.initSecurityMqtt(loginData.email, this.api.getAPIBase());
     } else {
       rootMainLogger.warn("No login data recevied to initialize MQTT connection...");
     }
@@ -2771,6 +2849,40 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
   private onDeviceLocked(device: Device, state: boolean): void {
     this.emit("device locked", device, state);
+  }
+
+  private onSecurityMqttCommand(
+    deviceSN: string,
+    adminUserId: string,
+    shortUserId: string,
+    nickName: string,
+    channel: number,
+    sequence: number,
+    lock: boolean,
+  ): void {
+    if (!this.securityMqttService || !this.securityMqttService.isConnected()) {
+      rootMainLogger.error("SecurityMQTT not connected, cannot send lock command", { deviceSN });
+      return;
+    }
+    this.securityMqttService.publishLockCommand(
+      this.api.getPersistentData()?.user_id || adminUserId,
+      deviceSN,
+      adminUserId,
+      shortUserId,
+      nickName,
+      channel,
+      sequence,
+      lock,
+    ).then((success) => {
+      if (success) {
+        // Optimistically update lock state
+        this.getDevice(deviceSN).then((device) => {
+          device.updateProperty(PropertyName.DeviceLocked, lock);
+        }).catch(() => { /* device not found, ignore */ });
+      }
+    }).catch((err) => {
+      rootMainLogger.error("SecurityMQTT lock command error", { error: getError(ensureError(err)) });
+    });
   }
 
   private onDeviceOpen(device: Device, state: boolean): void {
