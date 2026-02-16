@@ -7631,7 +7631,7 @@ export class Station extends TypedEmitter<StationEvents> {
           command: commandData,
         }
       );
-    } else if (device.isOutdoorPanAndTiltCamera() || device.isBatteryDoorbellDualE340() || device.isFloodLightT8425()) {
+    } else if (device.isOutdoorPanAndTiltCamera()) {
       rootHTTPLogger.debug(`Station start livestream - sending command using CMD_DOORBELL_SET_PAYLOAD (1)`, {
         stationSN: this.getSerial(),
         deviceSN: device.getSerial(),
@@ -7690,7 +7690,8 @@ export class Station extends TypedEmitter<StationEvents> {
         }
       );
     } else if (
-      ((device.isIndoorPanAndTiltCameraS350() || device.isIndoorCamC24()) && this.isDeviceControlledByHomeBase())
+      ((device.isIndoorPanAndTiltCameraS350() || device.isIndoorCamC24()) && this.isDeviceControlledByHomeBase()) ||
+      device.isFloodLightT8425()
     ) {
       rootHTTPLogger.debug(`Station start livestream - sending command using CMD_SET_PAYLOAD`, {
         stationSN: this.getSerial(),

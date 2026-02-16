@@ -400,7 +400,6 @@ export interface Cipher {
   cipher_id: number;
   user_id: string;
   private_key: string;
-  ecc_private_key?: string;
 }
 
 export interface Voice {
