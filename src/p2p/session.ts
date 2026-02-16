@@ -1877,23 +1877,34 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
         let return_code = 0;
         let resultData: Buffer | undefined;
         if (message.bytesToRead > 0) {
-          if (message.signCode > 0) {
-            try {
-              message.data = decryptP2PData(message.data, this.p2pKey!);
-            } catch (err) {
-              const error = ensureError(err);
-              rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - Decrypt Error`, {
-                error: getError(error),
+          if (message.signCode > 0 && message.data.length > 0) {
+            if (message.data.length % 16 === 0) {
+              try {
+                message.data = decryptP2PData(message.data, this.p2pKey!);
+              } catch (err) {
+                const error = ensureError(err);
+                rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - Decrypt Error`, {
+                  error: getError(error),
+                  stationSN: this.rawStation.station_sn,
+                  message: {
+                    seqNo: message.seqNo,
+                    channel: message.channel,
+                    commandType: CommandType[message.commandId],
+                    signCode: message.signCode,
+                    type: message.type,
+                    dataType: P2PDataType[message.dataType],
+                    data: message.data.toString("hex"),
+                  },
+                });
+              }
+            } else {
+              rootP2PLogger.debug(`Handle DATA ${P2PDataType[message.dataType]} - Skipping decryption, data not block-aligned`, {
                 stationSN: this.rawStation.station_sn,
-                message: {
-                  seqNo: message.seqNo,
-                  channel: message.channel,
-                  commandType: CommandType[message.commandId],
-                  signCode: message.signCode,
-                  type: message.type,
-                  dataType: P2PDataType[message.dataType],
-                  data: message.data.toString("hex"),
-                },
+                seqNo: message.seqNo,
+                commandType: CommandType[message.commandId],
+                signCode: message.signCode,
+                dataLength: message.data.length,
+                mod16: message.data.length % 16,
               });
             }
           }
