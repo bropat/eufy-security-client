@@ -65,6 +65,7 @@ import {
   getNullTerminatedString,
   generateSmartLockAESKey,
   readNullTerminatedBuffer,
+  decryptP2PKeyECDH,
 } from "./utils";
 import {
   RequestMessageType,
@@ -3959,7 +3960,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             data: data.toString("hex"),
             cipherID: cipherID,
           });
-          const encryptedKey = readNullTerminatedBuffer(data.subarray(4));
+          // Keep full raw buffer for ECDH — readNullTerminatedBuffer truncates binary ECIES envelopes at 0x00 bytes
+          const rawEncryptedKey = data.subarray(4);
+          const encryptedKey = readNullTerminatedBuffer(rawEncryptedKey);
+          const isECDHDevice = this.rawStation.station_sn.startsWith("T8214") || this.rawStation.station_sn.startsWith("T8425");
           this.api
             .getCipher(/*this.rawStation.station_sn, */ cipherID, this.rawStation.member.admin_user_id)
             .then((cipher) => {
@@ -3974,13 +3978,66 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 }
               );
               if (cipher !== undefined) {
-                this.encryption = EncryptionType.LEVEL_2;
-                const rsa = getRSAPrivateKey(cipher.private_key, this.enableEmbeddedPKCS1Support);
-                this.p2pKey = rsa.decrypt(encryptedKey);
-                rootP2PLogger.debug(
-                  `Handle DATA ${P2PDataType[message.dataType]} - CMD_GATEWAYINFO - set encryption level 2`,
-                  { stationSN: this.rawStation.station_sn, key: this.p2pKey.toString("hex") }
-                );
+                // Try RSA first
+                try {
+                  this.encryption = EncryptionType.LEVEL_2;
+                  const rsa = getRSAPrivateKey(cipher.private_key, this.enableEmbeddedPKCS1Support);
+                  this.p2pKey = rsa.decrypt(encryptedKey);
+                  rootP2PLogger.debug(
+                    `Handle DATA ${P2PDataType[message.dataType]} - CMD_GATEWAYINFO - RSA success - set encryption level 2`,
+                    { stationSN: this.rawStation.station_sn, key: this.p2pKey.toString("hex") }
+                  );
+                } catch (rsaErr) {
+                  const rsaError = ensureError(rsaErr);
+                  rootP2PLogger.debug(
+                    `Handle DATA ${P2PDataType[message.dataType]} - CMD_GATEWAYINFO - RSA decrypt failed`,
+                    {
+                      error: getError(rsaError),
+                      stationSN: this.rawStation.station_sn,
+                      isECDHDevice: isECDHDevice,
+                      hasEccKey: !!cipher.ecc_private_key,
+                    }
+                  );
+
+                  // Try ECDH only for known ECDH devices (T8214/T8425)
+                  if (isECDHDevice && cipher.ecc_private_key) {
+                    try {
+                      this.encryption = EncryptionType.LEVEL_2;
+                      this.p2pKey = decryptP2PKeyECDH(rawEncryptedKey, cipher.ecc_private_key);
+                      rootP2PLogger.debug(
+                        `Handle DATA ${P2PDataType[message.dataType]} - CMD_GATEWAYINFO - ECDH success - set encryption level 2`,
+                        {
+                          stationSN: this.rawStation.station_sn,
+                          key: this.p2pKey.toString("hex"),
+                          keyLength: this.p2pKey.length,
+                        }
+                      );
+                    } catch (ecdhErr) {
+                      const ecdhError = ensureError(ecdhErr);
+                      rootP2PLogger.debug(
+                        `Handle DATA ${P2PDataType[message.dataType]} - CMD_GATEWAYINFO - ECDH also failed, falling back to Level 1`,
+                        {
+                          error: getError(ecdhError),
+                          stationSN: this.rawStation.station_sn,
+                        }
+                      );
+                      this.encryption = EncryptionType.LEVEL_1;
+                      this.p2pKey = Buffer.from(
+                        getP2PCommandEncryptionKey(this.rawStation.station_sn, this.rawStation.p2p_did)
+                      );
+                    }
+                  } else {
+                    // Non-ECDH device or no ECC key — fall back to Level 1
+                    this.encryption = EncryptionType.LEVEL_1;
+                    this.p2pKey = Buffer.from(
+                      getP2PCommandEncryptionKey(this.rawStation.station_sn, this.rawStation.p2p_did)
+                    );
+                    rootP2PLogger.debug(
+                      `Handle DATA ${P2PDataType[message.dataType]} - CMD_GATEWAYINFO - RSA failed, set encryption level 1`,
+                      { stationSN: this.rawStation.station_sn, key: this.p2pKey.toString("hex") }
+                    );
+                  }
+                }
               } else {
                 this.encryption = EncryptionType.LEVEL_1;
                 this.p2pKey = Buffer.from(
