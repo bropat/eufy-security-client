@@ -2852,6 +2852,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return Device.isCamera2CPro(this.rawDevice.device_type);
   }
 
+  public isCameraE40(): boolean {
+    return Device.isCameraE40(this.rawDevice.device_type);
+  }
+
   public isCamera2Product(): boolean {
     return Device.isCamera2Product(this.rawDevice.device_type);
   }
