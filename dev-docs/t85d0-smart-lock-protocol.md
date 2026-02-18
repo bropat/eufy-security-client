@@ -292,7 +292,7 @@ The Security broker is an **EMQX5** instance running on AWS (us-east-2):
 | **Client Certificate** | `certificate_pem` from Step 3 |
 | **Client Private Key** | `private_key` from Step 3 |
 | **CA Certificate** | `aws_root_ca1_pem` from Step 3 |
-| **TLS Verify** | `false` (EMQX5 uses a different CA than the one returned) |
+| **TLS Verify** | `true` (broker certificate validates against `aws_root_ca1_pem`) |
 | **Username** | `{thing_name}` from Step 3 (e.g., `{user_center_id}-eufy_home`) |
 | **Password** | Empty |
 | **Client ID** | `android-eufy_security-{user_center_id}-{openudid}{broker_host_no_dots_dashes}` |

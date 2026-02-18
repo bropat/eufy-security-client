@@ -190,7 +190,7 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
       cert: this.mqttInfo.certificate_pem,
       key: this.mqttInfo.private_key,
       ca: this.mqttInfo.aws_root_ca1_pem,
-      rejectUnauthorized: false,
+      rejectUnauthorized: true,
       clean: true,
       keepalive: 60,
       connectTimeout: 30000,
