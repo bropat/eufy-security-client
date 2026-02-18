@@ -453,18 +453,21 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         rootMainLogger.info("SecurityMQTT disconnected");
       });
 
-      this.securityMqttService.on("lock-status", (deviceSN, locked, battery) => {
+      this.securityMqttService.on("lock status", (deviceSN, locked, battery) => {
         this.getDevice(deviceSN)
           .then((device) => {
             device.updateProperty(PropertyName.DeviceLocked, locked);
+            // Battery is -1 when the heartbeat didn't include a battery TLV tag
             if (battery >= 0) {
               device.updateProperty(PropertyName.DeviceBattery, battery);
             }
           })
-          .catch(() => { /* device not found */ });
+          .catch((err) => {
+            rootMainLogger.debug("SecurityMQTT lock status update failed - device not found", { deviceSN, error: getError(ensureError(err)) });
+          });
       });
 
-      this.securityMqttService.on("command-response", (deviceSN, success) => {
+      this.securityMqttService.on("command response", (deviceSN, success) => {
         rootMainLogger.debug("SecurityMQTT command response", { deviceSN, success });
       });
 
@@ -2864,8 +2867,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
     const device = this.devices[deviceSN];
     const deviceModel = device ? device.getModel() : deviceSN;
-    this.securityMqttService.publishLockCommand(
-      this.api.getPersistentData()?.user_id || adminUserId,
+    this.securityMqttService.lockDevice(
       deviceSN,
       deviceModel,
       adminUserId,

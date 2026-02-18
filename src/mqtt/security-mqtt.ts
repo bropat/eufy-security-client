@@ -9,53 +9,137 @@ import { ensureError } from "../error";
 import { getError } from "../utils";
 import { SmartLockP2PCommandPayloadType } from "../p2p/models";
 import { getSmartLockP2PCommand } from "../p2p/utils";
-import { SmartLockCommand, SmartLockFunctionType, CommandType } from "../p2p/types";
+import { SmartLockCommand, SmartLockFunctionType, SmartLockBleCommandFunctionType2, CommandType } from "../p2p/types";
 import { Lock } from "../http/device";
-
-// ─── Constants ───────────────────────────────────────────────────────────────
 
 const EUFYHOME_CLIENT_ID = "eufyhome-app";
 const EUFYHOME_CLIENT_SECRET = "GQCpr9dSp3uQpsOMgJ4xQ";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+const EUFYHOME_LOGIN_URL = "https://home-api.eufylife.com/v1/user/email/login";
+const EUFYHOME_USER_CENTER_URL = "https://home-api.eufylife.com/v1/user/user_center_info";
+const AIOT_MQTT_CERT_URL = "https://aiot-clean-api-pr.eufylife.com/app/devicemanage/get_user_mqtt_info";
 
+/** TLV tag for battery level in heartbeat responses. */
+const HEARTBEAT_TLV_TAG_BATTERY = 0xa1;
+/** TLV tag for lock status in heartbeat responses. */
+const HEARTBEAT_TLV_TAG_LOCK_STATUS = 0xa2;
+
+/** Lock status value indicating the lock is locked. */
+const LOCK_STATUS_LOCKED = 4;
+
+/** BLE frame header magic bytes (FF09 protocol). */
+const BLE_FRAME_HEADER = [0xff, 0x09];
+
+/** Connection state for the SecurityMQTT service. */
+enum ConnectionState {
+  DISCONNECTED = "disconnected",
+  CONNECTING = "connecting",
+  CONNECTED = "connected",
+}
+
+/** mTLS certificate info returned by the AIOT MQTT endpoint. */
 interface MQTTCertInfo {
+  /** PEM-encoded client certificate for mTLS. */
   certificate_pem: string;
+  /** PEM-encoded private key for mTLS. */
   private_key: string;
+  /** PEM-encoded AWS root CA certificate. */
   aws_root_ca1_pem: string;
+  /** MQTT username (device "thing name" from AWS IoT). */
   thing_name: string;
+  /** MQTT broker endpoint address. */
   endpoint_addr: string;
 }
 
-// ─── SecurityMQTTService ─────────────────────────────────────────────────────
+/** Request body for the EufyHome email login endpoint. */
+interface EufyHomeLoginRequest {
+  client_id: string;
+  client_secret: string;
+  email: string;
+  password: string;
+}
 
+/** Request body for the AIOT MQTT certificate endpoint (empty object). */
+interface AiotMqttCertRequest {
+  [key: string]: never;
+}
+
+/** Transport payload forwarded from the P2P command builder to the MQTT envelope. */
+interface TransportPayload {
+  cmd: number;
+  mChannel: number;
+  mValue3: number;
+  payload: unknown;
+}
+
+/** MQTT message envelope header sent to the security broker. */
+interface SecurityMqttMessageHead {
+  version: string;
+  client_id: string;
+  sess_id: string;
+  msg_seq: number;
+  seed: string;
+  timestamp: number;
+  /** 2 = command request. */
+  cmd_status: number;
+  /** 9 = send command to device, 8 = device response. */
+  cmd: number;
+  sign_code: number;
+}
+
+/** Full MQTT message envelope sent to the security broker. */
+interface SecurityMqttMessage {
+  head: SecurityMqttMessageHead;
+  payload: string;
+}
+
+/** Device command payload embedded in the MQTT message envelope. */
+interface DeviceCommandPayload {
+  account_id: string;
+  device_sn: string;
+  trans: string;
+}
+
+/**
+ * Manages BLE-over-MQTT communication with Eufy security locks.
+ *
+ * Devices that use this service (e.g. Smart Lock C30 / T85D0) send the same
+ * BLE command frames as other smart locks (T8506, T8502), but tunneled over
+ * a dedicated security MQTT broker instead of P2P or Cloud API.
+ *
+ * The auth chain is: EufyHome login -> user_center_token -> AIOT mTLS certs -> MQTT connect.
+ */
 export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents> {
   private client: mqtt.MqttClient | null = null;
-  private connected = false;
-  private connecting = false;
+  private connectionState: ConnectionState = ConnectionState.DISCONNECTED;
 
   private mqttInfo: MQTTCertInfo | null = null;
-  private userCenterId = "";
-  private clientId = "";
+  private userCenterId: string = "";
+  private clientId: string = "";
 
-  private email: string;
-  private password: string;
-  private openudid: string;
-  private country: string;
+  private readonly email: string;
+  private readonly password: string;
+  private readonly openudid: string;
+  private readonly country: string;
 
   private subscribedLocks: Set<string> = new Set();
   private pendingLockSubscriptions: Map<string, string> = new Map();
-  private msgSeq = 1;
+  private msgSeq: number = 1;
 
-  constructor(email: string, password: string, openudid: string, country = "US") {
+  /**
+   * Creates a new SecurityMQTTService.
+   * @param email - Eufy account email address.
+   * @param password - Eufy account password.
+   * @param openudid - Unique device identifier for the client.
+   * @param country - Country code for regional API routing (default: "US").
+   */
+  constructor(email: string, password: string, openudid: string, country: string = "US") {
     super();
     this.email = email;
     this.password = password;
     this.openudid = openudid;
     this.country = country;
   }
-
-  // ─── Auth Chain ──────────────────────────────────────────────────────────
 
   private httpRequest(
     url: string,
@@ -86,34 +170,43 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
       });
 
       req.on("error", reject);
-      if (body) req.write(body);
+      if (body) {
+        req.write(body);
+      }
       req.end();
     });
   }
 
+  /**
+   * Authenticates with EufyHome and retrieves mTLS certificates for the MQTT broker.
+   *
+   * Steps:
+   * 1. EufyHome email login to get an access_token.
+   * 2. Exchange access_token for a user_center_token.
+   * 3. Use user_center_token to retrieve mTLS certificates from the AIOT endpoint.
+   */
   private async authenticate(): Promise<void> {
-    // Step 1: EufyHome login
     rootMQTTLogger.debug("SecurityMQTT auth step 1: EufyHome login...");
+    const loginBody: EufyHomeLoginRequest = {
+      client_id: EUFYHOME_CLIENT_ID,
+      client_secret: EUFYHOME_CLIENT_SECRET,
+      email: this.email,
+      password: this.password,
+    };
     const loginRes = await this.httpRequest(
-      "https://home-api.eufylife.com/v1/user/email/login",
+      EUFYHOME_LOGIN_URL,
       "POST",
       { "Content-Type": "application/json", category: "Home" },
-      JSON.stringify({
-        client_id: EUFYHOME_CLIENT_ID,
-        client_secret: EUFYHOME_CLIENT_SECRET,
-        email: this.email,
-        password: this.password,
-      })
+      JSON.stringify(loginBody),
     );
     if (!loginRes.data.access_token) {
       throw new Error(`EufyHome login failed: ${JSON.stringify(loginRes.data)}`);
     }
     rootMQTTLogger.debug("SecurityMQTT auth step 1: OK");
 
-    // Step 2: User center token
     rootMQTTLogger.debug("SecurityMQTT auth step 2: user_center_token...");
-    const ucRes = await this.httpRequest(
-      "https://home-api.eufylife.com/v1/user/user_center_info",
+    const userCenterRes = await this.httpRequest(
+      EUFYHOME_USER_CENTER_URL,
       "GET",
       {
         "Content-Type": "application/json",
@@ -121,21 +214,21 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
         token: loginRes.data.access_token,
       }
     );
-    if (!ucRes.data.user_center_token) {
-      throw new Error(`user_center_info failed: ${JSON.stringify(ucRes.data)}`);
+    if (!userCenterRes.data.user_center_token) {
+      throw new Error(`user_center_info failed: ${JSON.stringify(userCenterRes.data)}`);
     }
-    this.userCenterId = ucRes.data.user_center_id;
+    this.userCenterId = userCenterRes.data.user_center_id;
     rootMQTTLogger.debug("SecurityMQTT auth step 2: OK", { userCenterId: this.userCenterId });
 
-    // Step 3: MQTT certificates
     rootMQTTLogger.debug("SecurityMQTT auth step 3: MQTT certs...");
     const gtoken = createHash("md5").update(this.userCenterId).digest("hex");
-    const mqttRes = await this.httpRequest(
-      "https://aiot-clean-api-pr.eufylife.com/app/devicemanage/get_user_mqtt_info",
+    const certBody: AiotMqttCertRequest = {};
+    const mqttCertRes = await this.httpRequest(
+      AIOT_MQTT_CERT_URL,
       "POST",
       {
         "Content-Type": "application/json",
-        "X-Auth-Token": ucRes.data.user_center_token,
+        "X-Auth-Token": userCenterRes.data.user_center_token,
         GToken: gtoken,
         "User-Agent": "EufySecurity-Android-4.6.0-1630",
         category: "eufy_security",
@@ -147,19 +240,17 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
         "Model-type": "PHONE",
         timezone: "America/New_York",
       },
-      "{}"
+      JSON.stringify(certBody),
     );
-    if (mqttRes.data.code !== 0) {
-      throw new Error(`MQTT certs failed: ${JSON.stringify(mqttRes.data)}`);
+    if (mqttCertRes.data.code !== 0) {
+      throw new Error(`MQTT certs failed: ${JSON.stringify(mqttCertRes.data)}`);
     }
-    this.mqttInfo = mqttRes.data.data as MQTTCertInfo;
+    this.mqttInfo = mqttCertRes.data.data as MQTTCertInfo;
     rootMQTTLogger.debug("SecurityMQTT auth step 3: OK", {
       thingName: this.mqttInfo.thing_name,
       endpointAddr: this.mqttInfo.endpoint_addr,
     });
   }
-
-  // ─── Broker URL ──────────────────────────────────────────────────────────
 
   private getSecurityBrokerHost(apiBase: string): string {
     if (apiBase.includes("-eu.")) {
@@ -168,30 +259,49 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
     return "security-mqtt-us.anker.com";
   }
 
-  // ─── Connect ─────────────────────────────────────────────────────────────
+  /**
+   * Builds the MQTT client ID from the broker host, user center ID, and openudid.
+   *
+   * The format matches the official EufySecurity Android app's client ID pattern:
+   * `android-eufy_security-{userCenterId}-{openudid}{hostWithoutDots}`
+   */
+  private buildClientId(host: string): string {
+    const hostNoPunctuation = host.replace(/[.\-]/g, "");
+    return `android-eufy_security-${this.userCenterId}-${this.openudid}${hostNoPunctuation}`;
+  }
 
+  /**
+   * Connects to the Eufy security MQTT broker.
+   *
+   * Performs the full auth chain (EufyHome login -> user center token -> mTLS certs),
+   * then establishes an MQTTS connection. Any locks queued via `subscribeLock()` before
+   * connection will be subscribed once the connection is established.
+   *
+   * @param apiBase - The Eufy API base URL, used to determine the regional broker.
+   */
   public async connect(apiBase: string): Promise<void> {
-    if (this.connected || this.connecting) return;
+    if (this.connectionState !== ConnectionState.DISCONNECTED) {
+      return;
+    }
 
-    this.connecting = true;
+    this.connectionState = ConnectionState.CONNECTING;
 
     try {
       await this.authenticate();
     } catch (err) {
-      this.connecting = false;
+      this.connectionState = ConnectionState.DISCONNECTED;
       const error = ensureError(err);
       rootMQTTLogger.error("SecurityMQTT authentication failed", { error: getError(error) });
       throw error;
     }
 
     if (!this.mqttInfo) {
-      this.connecting = false;
+      this.connectionState = ConnectionState.DISCONNECTED;
       throw new Error("SecurityMQTT: No MQTT certificates after authentication");
     }
 
     const host = this.getSecurityBrokerHost(apiBase);
-    const endpointNoDashes = host.replace(/[.\-]/g, "");
-    this.clientId = `android-eufy_security-${this.userCenterId}-${this.openudid}${endpointNoDashes}`;
+    this.clientId = this.buildClientId(host);
 
     rootMQTTLogger.info(`SecurityMQTT connecting to ${host}:8883`, {
       clientId: this.clientId,
@@ -214,8 +324,7 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
     });
 
     this.client.on("connect", () => {
-      this.connected = true;
-      this.connecting = false;
+      this.connectionState = ConnectionState.CONNECTED;
       rootMQTTLogger.info("SecurityMQTT connected successfully");
       this.emit("connect");
 
@@ -226,13 +335,13 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
     });
 
     this.client.on("close", () => {
-      this.connected = false;
+      this.connectionState = ConnectionState.DISCONNECTED;
       rootMQTTLogger.info("SecurityMQTT connection closed");
       this.emit("close");
     });
 
     this.client.on("error", (error) => {
-      this.connecting = false;
+      this.connectionState = ConnectionState.DISCONNECTED;
       rootMQTTLogger.error("SecurityMQTT error", { error: getError(error) });
     });
 
@@ -240,8 +349,6 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
       this.handleMessage(topic, message);
     });
   }
-
-  // ─── Lock Subscriptions ──────────────────────────────────────────────────
 
   private getMqttTopic(deviceModel: string, deviceSN: string, direction: "req" | "res"): string {
     return `cmd/eufy_security/${deviceModel}/${deviceSN}/${direction}`;
@@ -271,17 +378,79 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
   }
 
   public subscribeLock(deviceSN: string, deviceModel: string): void {
-    if (this.connected) {
+    if (this.connectionState === ConnectionState.CONNECTED) {
       this._subscribeLock(deviceSN, deviceModel);
     } else {
       this.pendingLockSubscriptions.set(deviceSN, deviceModel);
     }
   }
 
-  // ─── Command Publishing ──────────────────────────────────────────────────
+  /** Generates a random hex seed string for the MQTT message envelope. */
+  private generateSeed(): string {
+    return Array.from({ length: 16 }, () =>
+      Math.floor(Math.random() * 256).toString(16).padStart(2, "0")
+    ).join("");
+  }
 
-  public publishLockCommand(
-    userId: string,
+  /**
+   * Builds the MQTT message envelope for sending a command to a lock device.
+   *
+   * The message format follows the Eufy security MQTT protocol:
+   * - `head`: Contains session metadata, sequence number, and command type (cmd=9 for request).
+   * - `payload`: JSON-encoded string containing the device SN, account ID, and base64-encoded
+   *   transport payload (which wraps the BLE command frame).
+   */
+  private buildCommandMessage(deviceSN: string, transPayload: SmartLockP2PCommandPayloadType): SecurityMqttMessage {
+    const sessionId = Math.random().toString(16).substring(2, 6);
+    const timestamp = Math.trunc(Date.now() / 1000);
+
+    const transportPayload: TransportPayload = {
+      cmd: transPayload.cmd,
+      mChannel: transPayload.mChannel,
+      mValue3: transPayload.mValue3,
+      payload: transPayload.payload,
+    };
+    const transportBase64 = Buffer.from(JSON.stringify(transportPayload)).toString("base64");
+
+    const devicePayload: DeviceCommandPayload = {
+      account_id: transPayload.account_id,
+      device_sn: deviceSN,
+      trans: transportBase64,
+    };
+
+    return {
+      head: {
+        version: "1.0.0.1",
+        client_id: this.clientId,
+        sess_id: sessionId,
+        msg_seq: this.msgSeq++,
+        seed: this.generateSeed(),
+        timestamp: timestamp,
+        cmd_status: 2,
+        cmd: 9,
+        sign_code: 0,
+      },
+      payload: JSON.stringify(devicePayload),
+    };
+  }
+
+  /**
+   * Sends a lock or unlock command to a device via the security MQTT broker.
+   *
+   * Builds a BLE command frame using the shared smart lock command builder, wraps it
+   * in the security MQTT envelope, and publishes to the device's request topic.
+   *
+   * @param deviceSN - Serial number of the target lock device.
+   * @param deviceModel - Model identifier used in the MQTT topic (e.g. "T85D0").
+   * @param adminUserId - Admin user ID for the lock command.
+   * @param shortUserId - Short user ID for the lock command.
+   * @param nickName - User nickname included in the lock command.
+   * @param channel - BLE channel number.
+   * @param sequence - Lock command sequence number.
+   * @param lock - true to lock, false to unlock.
+   * @returns true if the command was published successfully, false otherwise.
+   */
+  public lockDevice(
     deviceSN: string,
     deviceModel: string,
     adminUserId: string,
@@ -292,13 +461,12 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
     lock: boolean,
   ): Promise<boolean> {
     return new Promise((resolve) => {
-      if (!this.client || !this.connected) {
+      if (!this.client || this.connectionState !== ConnectionState.CONNECTED) {
         rootMQTTLogger.error("SecurityMQTT not connected, cannot send lock command");
         resolve(false);
         return;
       }
 
-      // Reuse the existing smart lock command builder
       const command = getSmartLockP2PCommand(
         deviceSN,
         adminUserId,
@@ -309,44 +477,8 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
         SmartLockFunctionType.TYPE_2,
       );
 
-      // Extract the trans payload from the P2P command
       const transPayload: SmartLockP2PCommandPayloadType = JSON.parse(command.payload.value);
-
-      // Build MQTT message envelope
-      const sessId = Math.random().toString(16).substring(2, 6);
-      const seed = Array.from({ length: 16 }, () =>
-        Math.floor(Math.random() * 256).toString(16).padStart(2, "0")
-      ).join("");
-      const now = Math.trunc(Date.now() / 1000);
-
-      const trans = {
-        cmd: transPayload.cmd,
-        mChannel: transPayload.mChannel,
-        mValue3: transPayload.mValue3,
-        payload: transPayload.payload,
-      };
-      const transB64 = Buffer.from(JSON.stringify(trans)).toString("base64");
-
-      const payload = JSON.stringify({
-        account_id: transPayload.account_id,
-        device_sn: deviceSN,
-        trans: transB64,
-      });
-
-      const message = JSON.stringify({
-        head: {
-          version: "1.0.0.1",
-          client_id: this.clientId,
-          sess_id: sessId,
-          msg_seq: this.msgSeq++,
-          seed: seed,
-          timestamp: now,
-          cmd_status: 2,
-          cmd: 9,
-          sign_code: 0,
-        },
-        payload: payload,
-      });
+      const message = this.buildCommandMessage(deviceSN, transPayload);
 
       const topic = this.getMqttTopic(deviceModel, deviceSN, "req");
       rootMQTTLogger.debug("SecurityMQTT publishing lock command", {
@@ -355,7 +487,7 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
         lock: lock,
       });
 
-      this.client.publish(topic, message, { qos: 1 }, (err) => {
+      this.client.publish(topic, JSON.stringify(message), { qos: 1 }, (err) => {
         if (err) {
           rootMQTTLogger.error("SecurityMQTT publish failed", { error: getError(err) });
           resolve(false);
@@ -370,56 +502,88 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
     });
   }
 
-  // ─── Message Handling ────────────────────────────────────────────────────
+  /**
+   * Parses a BLE frame from the FF09 protocol.
+   *
+   * The frame format is: [0xFF, 0x09, ...header, flags(2 bytes), ...data, checksum].
+   * Flags encode: bit 14 = encrypted, bit 11 = response, bits 0-10 = command code.
+   *
+   * @returns Parsed frame fields, or null if the buffer is not a valid FF09 frame.
+   */
+  private parseBleFrame(buffer: Buffer): { isEncrypted: boolean; isResponse: boolean; commandCode: number; data: Buffer } | null {
+    if (buffer.length < 10 || buffer[0] !== BLE_FRAME_HEADER[0] || buffer[1] !== BLE_FRAME_HEADER[1]) {
+      return null;
+    }
 
+    const flags = buffer.readUInt16BE(7);
+    return {
+      isEncrypted: !!(flags & (1 << 14)),
+      isResponse: !!(flags & (1 << 11)),
+      commandCode: flags & 0x7ff,
+      data: buffer.subarray(9, buffer.length - 1),
+    };
+  }
+
+  /**
+   * Handles incoming MQTT messages from the security broker.
+   *
+   * Only processes messages on `/res` topics (device responses). Messages on `/req` topics
+   * are commands sent by this or other clients and are ignored. Responses with cmd=8 in the
+   * head indicate device-originated messages containing BLE frames.
+   */
   private handleMessage(topic: string, message: Buffer): void {
     try {
       const parsed = JSON.parse(message.toString());
 
-      // Only process device responses (cmd=8) on /res topics
-      if (!topic.endsWith("/res")) return;
+      // Only process messages on /res topics (device responses)
+      if (!topic.endsWith("/res")) {
+        return;
+      }
 
-      if (typeof parsed.payload !== "string") return;
+      if (typeof parsed.payload !== "string") {
+        return;
+      }
       const payload = JSON.parse(parsed.payload);
-      if (!payload.trans) return;
+      if (!payload.trans) {
+        return;
+      }
 
-      const trans = JSON.parse(Buffer.from(payload.trans, "base64").toString("utf8"));
-      if (trans.cmd !== CommandType.CMD_TRANSFER_PAYLOAD) return;
+      const transportData = JSON.parse(Buffer.from(payload.trans, "base64").toString("utf8"));
+      // CMD_TRANSFER_PAYLOAD indicates a forwarded BLE command/response
+      if (transportData.cmd !== CommandType.CMD_TRANSFER_PAYLOAD) {
+        return;
+      }
 
-      const lp = trans.payload;
-      if (!lp || !lp.lock_payload) return;
+      const lockPayload = transportData.payload;
+      if (!lockPayload || !lockPayload.lock_payload) {
+        return;
+      }
 
-      const deviceSN = lp.dev_sn || payload.device_sn;
-      const buf = Buffer.from(lp.lock_payload, "hex");
+      const deviceSN = lockPayload.dev_sn || payload.device_sn;
+      const bleBuffer = Buffer.from(lockPayload.lock_payload, "hex");
 
-      // Parse FF09 BLE frame
-      if (buf.length < 10 || buf[0] !== 0xff || buf[1] !== 0x09) return;
-
-      const flags = buf.readUInt16BE(7);
-      const isEncrypted = !!(flags & (1 << 14));
-      const isResponse = !!(flags & (1 << 11));
-      const cmdCode = flags & 0x7ff;
-      const data = buf.subarray(9, buf.length - 1);
+      const frame = this.parseBleFrame(bleBuffer);
+      if (!frame) {
+        return;
+      }
 
       rootMQTTLogger.debug("SecurityMQTT received BLE frame", {
         deviceSN: deviceSN,
-        flags: `0x${flags.toString(16)}`,
-        encrypted: isEncrypted,
-        response: isResponse,
-        cmdCode: cmdCode,
+        encrypted: frame.isEncrypted,
+        response: frame.isResponse,
+        commandCode: frame.commandCode,
       });
 
-      if (!isEncrypted && cmdCode === 74) {
-        // NOTIFY heartbeat — unencrypted TLV with battery and lock status
-        this.parseHeartbeat(deviceSN, data);
-      } else if (isResponse && cmdCode === 35) {
-        // ON_OFF_LOCK response — command acknowledgment
-        // First byte after encrypted data decryption is return code (0 = success)
+      if (!frame.isEncrypted && frame.commandCode === SmartLockBleCommandFunctionType2.NOTIFY) {
+        // Heartbeat notification — unencrypted TLV containing battery level and lock status
+        this.parseHeartbeat(deviceSN, frame.data);
+      } else if (frame.isResponse && frame.commandCode === SmartLockBleCommandFunctionType2.ON_OFF_LOCK) {
+        // Lock/unlock command acknowledgment from the device
         rootMQTTLogger.info("SecurityMQTT received lock command response", {
           deviceSN: deviceSN,
-          cmdCode: cmdCode,
+          commandCode: frame.commandCode,
         });
-        this.emit("command-response", deviceSN, true);
+        this.emit("command response", deviceSN, true);
       }
     } catch (err) {
       const error = ensureError(err);
@@ -427,10 +591,16 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
     }
   }
 
+  /**
+   * Parses a heartbeat TLV payload to extract battery level and lock status.
+   *
+   * The TLV format uses tag 0xA1 for battery percentage and tag 0xA2 for lock status.
+   * A leading byte below 0xA0 is a return code and is skipped.
+   */
   private parseHeartbeat(deviceSN: string, data: Buffer): void {
     let offset = 0;
 
-    // Skip return code byte if present
+    // Skip return code byte if present (return codes are below 0xA0)
     if (data.length > 0 && data[0] < 0xa0) {
       offset = 1;
     }
@@ -440,42 +610,46 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
 
     while (offset + 2 <= data.length) {
       const tag = data[offset];
-      const len = data[offset + 1];
-      if (offset + 2 + len > data.length) break;
+      const length = data[offset + 1];
+      if (offset + 2 + length > data.length) {
+        break;
+      }
 
-      if (tag === 0xa1 && len === 1) {
+      if (tag === HEARTBEAT_TLV_TAG_BATTERY && length === 1) {
         battery = data[offset + 2];
-      } else if (tag === 0xa2 && len === 1) {
+      } else if (tag === HEARTBEAT_TLV_TAG_LOCK_STATUS && length === 1) {
         lockStatus = data[offset + 2];
       }
 
-      offset += 2 + len;
+      offset += 2 + length;
     }
 
     if (lockStatus !== -1) {
-      const locked = lockStatus === 4; // 3=unlocked, 4=locked
+      const locked = lockStatus === LOCK_STATUS_LOCKED;
       rootMQTTLogger.info("SecurityMQTT heartbeat", {
         deviceSN: deviceSN,
         locked: locked,
         battery: battery,
         rawStatus: lockStatus,
       });
-      this.emit("lock-status", deviceSN, locked, battery);
+      this.emit("lock status", deviceSN, locked, battery);
     }
   }
 
-  // ─── Lifecycle ───────────────────────────────────────────────────────────
-
   public isConnected(): boolean {
-    return this.connected;
+    return this.connectionState === ConnectionState.CONNECTED;
   }
 
   public close(): void {
     if (this.client) {
-      this.client.end(true);
+      try {
+        this.client.end(true);
+      } catch (err) {
+        const error = ensureError(err);
+        rootMQTTLogger.error("SecurityMQTT close error", { error: getError(error) });
+      }
       this.client = null;
-      this.connected = false;
-      this.connecting = false;
+      this.connectionState = ConnectionState.DISCONNECTED;
     }
   }
 }
