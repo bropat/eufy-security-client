@@ -43,37 +43,24 @@ authentication chain required to obtain MQTT connection credentials.
 
 ### High-Level Architecture
 
-```
-                          Home Assistant
-                               |
-                     eufy-security-client
-                               |
-                    SecurityMQTTService
-                               |
-              ┌────────────────┼────────────────┐
-              |                |                 |
-         Auth Chain     MQTT Publish       MQTT Subscribe
-              |                |                 |
-    ┌─────────┴─────────┐     |                 |
-    | EufyHome API      |     |                 |
-    | (3-step auth)     |     |                 |
-    └─────────┬─────────┘     |                 |
-              |                |                 |
-         mTLS Certs            |                 |
-              |                |                 |
-              └────────┐      |                 |
-                       v      v                 v
-               ┌──────────────────────────┐
-               | security-mqtt-us.anker.com|
-               |       (EMQX5 Broker)      |
-               └──────────┬───────────────┘
-                          |
-                    Wi-Fi / Cloud
-                          |
-                  ┌───────┴───────┐
-                  | T85D0 Lock    |
-                  | (via Wi-Fi)   |
-                  └───────────────┘
+```mermaid
+flowchart TD
+    HA[Home Assistant] --> Client[eufy-security-client]
+    Client --> SMQTT[SecurityMQTTService]
+
+    SMQTT --> Auth[Auth Chain]
+    SMQTT --> Pub[MQTT Publish]
+    SMQTT --> Sub[MQTT Subscribe]
+
+    Auth --> EufyAPI["EufyHome API\n(3-step auth)"]
+    EufyAPI --> Certs[mTLS Certs]
+
+    Certs --> Broker
+    Pub --> Broker
+    Sub --> Broker
+
+    Broker["security-mqtt-us.anker.com\n(EMQX5 Broker)"] --> WiFi[Wi-Fi / Cloud]
+    WiFi --> Lock["T85D0 Lock\n(via Wi-Fi)"]
 ```
 
 ---
@@ -208,47 +195,23 @@ timezone: America/New_York
 
 ### Authentication Flow Diagram
 
-```
-User Credentials (email + password)
-         |
-         v
-  ┌──────────────────────────────────────────┐
-  | Step 1: POST home-api.eufylife.com       |
-  |         /v1/user/email/login             |
-  |                                          |
-  | client_id: "eufyhome-app"               |
-  | client_secret: "GQCpr9dSp3uQpsOMgJ4xQ" |
-  |                                          |
-  | Returns: access_token                    |
-  └──────────────┬───────────────────────────┘
-                 |
-                 v
-  ┌──────────────────────────────────────────┐
-  | Step 2: GET home-api.eufylife.com        |
-  |         /v1/user/user_center_info        |
-  |                                          |
-  | Header: token: <access_token>           |
-  |                                          |
-  | Returns: user_center_token (AIOT token!) |
-  |          user_center_id                  |
-  └──────────────┬───────────────────────────┘
-                 |
-                 v
-  ┌──────────────────────────────────────────┐
-  | Step 3: POST aiot-clean-api-pr           |
-  |         .eufylife.com/app/devicemanage/  |
-  |         get_user_mqtt_info               |
-  |                                          |
-  | Header: X-Auth-Token: <user_center_token>|
-  | Header: GToken: MD5(user_center_id)     |
-  |                                          |
-  | Returns: certificate_pem, private_key,   |
-  |          aws_root_ca1_pem, thing_name,   |
-  |          endpoint_addr                   |
-  └──────────────┬───────────────────────────┘
-                 |
-                 v
-          mTLS credentials ready
+```mermaid
+flowchart TD
+    Creds["User Credentials\n(email + password)"]
+
+    Creds --> Step1
+
+    Step1["**Step 1:** POST home-api.eufylife.com\n/v1/user/email/login\n\nclient_id: eufyhome-app\nclient_secret: GQCpr9dSp3uQpsOMgJ4xQ\n\nReturns: **access_token**"]
+
+    Step1 --> Step2
+
+    Step2["**Step 2:** GET home-api.eufylife.com\n/v1/user/user_center_info\n\nHeader: token: access_token\n\nReturns: **user_center_token** (AIOT token!)\nuser_center_id"]
+
+    Step2 --> Step3
+
+    Step3["**Step 3:** POST aiot-clean-api-pr\n.eufylife.com/app/devicemanage/\nget_user_mqtt_info\n\nHeader: X-Auth-Token: user_center_token\nHeader: GToken: MD5(user_center_id)\n\nReturns: certificate_pem, private_key,\naws_root_ca1_pem, thing_name,\nendpoint_addr"]
+
+    Step3 --> Ready["mTLS credentials ready"]
 ```
 
 ### What Does NOT Work as an AIOT Token
@@ -834,28 +797,23 @@ export interface SecurityMQTTServiceEvents {
 
 The integration follows an event-based routing pattern through three layers:
 
-```
-Station                          EufySecurity                  SecurityMQTTService
-  |                                  |                              |
-  | (lock command requested)         |                              |
-  |                                  |                              |
-  | emit("security mqtt command",    |                              |
-  |   station, deviceSN,             |                              |
-  |   adminUserId, shortUserId,      |                              |
-  |   nickName, channel, seq, lock)  |                              |
-  | -------------------------------->|                              |
-  |                                  |                              |
-  |                                  | onSecurityMqttCommand()      |
-  |                                  | calls publishLockCommand()   |
-  |                                  | ---------------------------->|
-  |                                  |                              |
-  |                                  |                 (MQTT publish)|
-  |                                  |                              |
-  |                                  |       emit("lock-status")    |
-  |                                  |<-----------------------------|
-  |                                  |                              |
-  |                                  | (updates device properties   |
-  |                                  |  via rawStation property set) |
+```mermaid
+sequenceDiagram
+    participant Station
+    participant EufySecurity
+    participant SecurityMQTTService
+
+    Note over Station: Lock command requested
+
+    Station->>EufySecurity: emit("security mqtt command",<br/>station, deviceSN, adminUserId,<br/>shortUserId, nickName, channel, seq, lock)
+
+    EufySecurity->>SecurityMQTTService: onSecurityMqttCommand()<br/>calls publishLockCommand()
+
+    Note over SecurityMQTTService: MQTT publish
+
+    SecurityMQTTService->>EufySecurity: emit("lock-status")
+
+    Note over EufySecurity: Updates device properties<br/>via rawStation property set
 ```
 
 **Flow details:**
