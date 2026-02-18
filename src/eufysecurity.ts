@@ -425,17 +425,24 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     });
   }
 
-  private async initSecurityMqtt(email: string, apiBase: string): Promise<void> {
+  private async initSecurityMqtt(apiBase: string): Promise<void> {
     const hasSecurityMqttDevices = Object.values(this.devices).some((device) => device.usesSecurityMqtt());
     if (!hasSecurityMqttDevices) {
       rootMainLogger.debug("No security MQTT locks found, skipping SecurityMQTT initialization");
       return;
     }
 
+    const authToken = this.api.getToken();
+    const userId = this.api.getPersistentData()?.user_id;
+    if (!authToken || !userId) {
+      rootMainLogger.error("SecurityMQTT initialization failed: missing auth_token or user_id");
+      return;
+    }
+
     try {
       this.securityMqttService = new SecurityMQTTService(
-        email,
-        this.config.password,
+        authToken,
+        userId,
         this.persistentData.openudid,
         this.config.country || "US",
       );
@@ -1285,7 +1292,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
       this.mqttService.connect(loginData.user_id, this.persistentData.openudid, this.api.getAPIBase(), loginData.email);
 
       // Initialize SecurityMQTTService for T85D0 locks (BLE-over-MQTT protocol)
-      this.initSecurityMqtt(loginData.email, this.api.getAPIBase());
+      this.initSecurityMqtt(this.api.getAPIBase());
     } else {
       rootMainLogger.warn("No login data recevied to initialize MQTT connection...");
     }

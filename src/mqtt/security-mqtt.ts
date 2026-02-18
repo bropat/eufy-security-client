@@ -13,11 +13,6 @@ import { getSmartLockP2PCommand } from "../p2p/utils";
 import { SmartLockCommand, SmartLockFunctionType, CommandType } from "../p2p/types";
 import { Lock } from "../http/device";
 
-const EUFYHOME_CLIENT_ID = "eufyhome-app";
-const EUFYHOME_CLIENT_SECRET = "GQCpr9dSp3uQpsOMgJ4xQ";
-
-const EUFYHOME_LOGIN_URL = "https://home-api.eufylife.com/v1/user/email/login";
-const EUFYHOME_USER_CENTER_URL = "https://home-api.eufylife.com/v1/user/user_center_info";
 const AIOT_MQTT_CERT_URL = "https://aiot-clean-api-pr.eufylife.com/app/devicemanage/get_user_mqtt_info";
 
 /** Connection state for the SecurityMQTT service. */
@@ -53,14 +48,6 @@ interface MQTTCertInfo {
   thing_name: string;
   /** MQTT broker endpoint address. */
   endpoint_addr: string;
-}
-
-/** Request body for the EufyHome email login endpoint. */
-interface EufyHomeLoginRequest {
-  client_id: string;
-  client_secret: string;
-  email: string;
-  password: string;
 }
 
 /** Transport payload forwarded from the P2P command builder to the MQTT envelope. */
@@ -106,18 +93,17 @@ interface DeviceCommandPayload {
  * BLE command frames as other smart locks (T8506, T8502), but tunneled over
  * a dedicated security MQTT broker instead of P2P or Cloud API.
  *
- * The auth chain is: EufyHome login -> user_center_token -> AIOT mTLS certs -> MQTT connect.
+ * The auth chain is: Security API auth_token -> AIOT mTLS certs -> MQTT connect.
  */
 export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents> {
   private client: mqtt.MqttClient | null = null;
   private connectionState: ConnectionState = ConnectionState.DISCONNECTED;
 
   private mqttInfo: MQTTCertInfo | null = null;
-  private userCenterId: string = "";
   private clientId: string = "";
 
-  private readonly email: string;
-  private readonly password: string;
+  private readonly authToken: string;
+  private readonly userId: string;
   private readonly openudid: string;
   private readonly country: string;
 
@@ -128,15 +114,15 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
 
   /**
    * Creates a new SecurityMQTTService.
-   * @param email - Eufy account email address.
-   * @param password - Eufy account password.
+   * @param authToken - Security API auth_token (from login_sec).
+   * @param userId - Security API user_id (hex string, same as user_center_id).
    * @param openudid - Unique device identifier for the client.
    * @param country - Country code for regional API routing (default: "US").
    */
-  constructor(email: string, password: string, openudid: string, country: string = "US") {
+  constructor(authToken: string, userId: string, openudid: string, country: string = "US") {
     super();
-    this.email = email;
-    this.password = password;
+    this.authToken = authToken;
+    this.userId = userId;
     this.openudid = openudid;
     this.country = country;
   }
@@ -146,8 +132,8 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
   /**
    * Connects to the Eufy security MQTT broker.
    *
-   * Performs the full auth chain (EufyHome login -> user center token -> mTLS certs),
-   * then establishes an MQTTS connection. Any locks queued via `subscribeLock()` before
+   * Fetches mTLS certificates using the Security API auth_token, then establishes an
+   * MQTTS connection. Any locks queued via `subscribeLock()` before
    * connection will be subscribed once the connection is established.
    *
    * @param apiBase - The Eufy API base URL, used to determine the regional broker.
@@ -319,72 +305,16 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
 
   // ─── Private: Authentication ─────────────────────────────────────────────
 
-  /**
-   * Authenticates with EufyHome and retrieves mTLS certificates for the MQTT broker.
-   *
-   * Steps:
-   * 1. EufyHome email login to get an access_token.
-   * 2. Exchange access_token for a user_center_token.
-   * 3. Use user_center_token to retrieve mTLS certificates from the AIOT endpoint.
-   */
+  /** Retrieves mTLS certificates from the AIOT endpoint using the Security API auth_token. */
   private async authenticate(): Promise<void> {
-    const accessToken = await this.authenticateEufyHome();
-    const userCenterToken = await this.fetchUserCenterToken(accessToken);
-    await this.fetchMqttCertificates(userCenterToken);
-  }
-
-  /** Step 1: Logs in to the EufyHome API and returns an access token. */
-  private async authenticateEufyHome(): Promise<string> {
-    rootMQTTLogger.debug("SecurityMQTT auth step 1: EufyHome login...");
-    const loginBody: EufyHomeLoginRequest = {
-      client_id: EUFYHOME_CLIENT_ID,
-      client_secret: EUFYHOME_CLIENT_SECRET,
-      email: this.email,
-      password: this.password,
-    };
-    const loginRes = await this.httpRequest(
-      EUFYHOME_LOGIN_URL,
-      "POST",
-      { "Content-Type": "application/json", category: "Home" },
-      JSON.stringify(loginBody),
-    );
-    if (!loginRes.data.access_token) {
-      throw new Error(`EufyHome login failed: ${JSON.stringify(loginRes.data)}`);
-    }
-    rootMQTTLogger.debug("SecurityMQTT auth step 1: OK");
-    return loginRes.data.access_token;
-  }
-
-  /** Step 2: Exchanges the access token for a user center token and user center ID. */
-  private async fetchUserCenterToken(accessToken: string): Promise<string> {
-    rootMQTTLogger.debug("SecurityMQTT auth step 2: user_center_token...");
-    const userCenterRes = await this.httpRequest(
-      EUFYHOME_USER_CENTER_URL,
-      "GET",
-      {
-        "Content-Type": "application/json",
-        category: "Home",
-        token: accessToken,
-      }
-    );
-    if (!userCenterRes.data.user_center_token) {
-      throw new Error(`user_center_info failed: ${JSON.stringify(userCenterRes.data)}`);
-    }
-    this.userCenterId = userCenterRes.data.user_center_id;
-    rootMQTTLogger.debug("SecurityMQTT auth step 2: OK", { userCenterId: this.userCenterId });
-    return userCenterRes.data.user_center_token;
-  }
-
-  /** Step 3: Uses the user center token to retrieve mTLS certificates from the AIOT endpoint. */
-  private async fetchMqttCertificates(userCenterToken: string): Promise<void> {
-    rootMQTTLogger.debug("SecurityMQTT auth step 3: MQTT certs...");
-    const gtoken = createHash("md5").update(this.userCenterId).digest("hex");
+    rootMQTTLogger.debug("SecurityMQTT fetching MQTT certs...");
+    const gtoken = createHash("md5").update(this.userId).digest("hex");
     const mqttCertRes = await this.httpRequest(
       AIOT_MQTT_CERT_URL,
       "POST",
       {
         "Content-Type": "application/json",
-        "X-Auth-Token": userCenterToken,
+        "X-Auth-Token": this.authToken,
         GToken: gtoken,
         "User-Agent": "EufySecurity-Android-4.6.0-1630",
         category: "eufy_security",
@@ -402,7 +332,7 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
       throw new Error(`MQTT certs failed: ${JSON.stringify(mqttCertRes.data)}`);
     }
     this.mqttInfo = mqttCertRes.data.data as MQTTCertInfo;
-    rootMQTTLogger.debug("SecurityMQTT auth step 3: OK", {
+    rootMQTTLogger.debug("SecurityMQTT certs OK", {
       thingName: this.mqttInfo.thing_name,
       endpointAddr: this.mqttInfo.endpoint_addr,
     });
@@ -412,8 +342,7 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
    * Makes an HTTPS request and returns the parsed response.
    *
    * Uses Node's built-in `https` module rather than a third-party library to avoid
-   * adding dependencies. The EufyHome API is a separate service from the main Eufy
-   * security API (which uses the `got` library in src/http/api.ts).
+   * coupling to HTTPApi internals. Only used for the AIOT cert fetch.
    */
   private httpRequest(
     url: string,
@@ -468,7 +397,7 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
    */
   private buildClientId(host: string): string {
     const hostNoPunctuation = host.replace(/[.\-]/g, "");
-    return `android-eufy_security-${this.userCenterId}-${this.openudid}${hostNoPunctuation}`;
+    return `android-eufy_security-${this.userId}-${this.openudid}${hostNoPunctuation}`;
   }
 
   private getMqttTopic(deviceModel: string, deviceSN: string, direction: "req" | "res"): string {

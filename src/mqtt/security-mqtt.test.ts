@@ -4,7 +4,7 @@ import { BleLockProtocol } from "./ble-lock-protocol";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 function createService(): any {
-  return new SecurityMQTTService("test@test.com", "password", "test-udid", "US");
+  return new SecurityMQTTService("test-auth-token", "test-user-id", "test-udid", "US");
 }
 
 describe("BleLockProtocol", () => {
@@ -158,8 +158,8 @@ describe("SecurityMQTTService", () => {
   describe("buildClientId", () => {
     it("builds client ID matching Android app pattern", () => {
       const service = createService();
-      // Set userCenterId via any cast since it's private
-      (service as any).userCenterId = "user123";
+      // Set userId via any cast since it's private
+      (service as any).userId = "user123";
       const result = service.buildClientId("security-mqtt-us.anker.com");
       expect(result).toBe("android-eufy_security-user123-test-udidsecuritymqttusankercom");
     });
