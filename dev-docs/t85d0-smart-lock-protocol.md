@@ -52,15 +52,15 @@ flowchart TD
     SMQTT --> Pub[MQTT Publish]
     SMQTT --> Sub[MQTT Subscribe]
 
-    Auth --> EufyAPI["EufyHome API\n(3-step auth)"]
+    Auth --> EufyAPI["EufyHome API<br/>(3-step auth)"]
     EufyAPI --> Certs[mTLS Certs]
 
     Certs --> Broker
     Pub --> Broker
     Sub --> Broker
 
-    Broker["security-mqtt-us.anker.com\n(EMQX5 Broker)"] --> WiFi[Wi-Fi / Cloud]
-    WiFi --> Lock["T85D0 Lock\n(via Wi-Fi)"]
+    Broker["security-mqtt-us.anker.com<br/>(EMQX5 Broker)"] --> WiFi[Wi-Fi / Cloud]
+    WiFi --> Lock["T85D0 Lock<br/>(via Wi-Fi)"]
 ```
 
 ---
@@ -196,22 +196,23 @@ timezone: America/New_York
 ### Authentication Flow Diagram
 
 ```mermaid
-flowchart TD
-    Creds["User Credentials\n(email + password)"]
+sequenceDiagram
+    participant Client as eufy-security-client
+    participant EufyHome as home-api.eufylife.com
+    participant AIOT as aiot-clean-api-pr.eufylife.com
 
-    Creds --> Step1
+    Note over Client: User credentials (email + password)
 
-    Step1["**Step 1:** POST home-api.eufylife.com\n/v1/user/email/login\n\nclient_id: eufyhome-app\nclient_secret: GQCpr9dSp3uQpsOMgJ4xQ\n\nReturns: **access_token**"]
+    Client->>EufyHome: Step 1: POST /v1/user/email/login<br/>client_id: eufyhome-app<br/>client_secret: GQCpr9dSp3uQpsOMgJ4xQ
+    EufyHome-->>Client: access_token
 
-    Step1 --> Step2
+    Client->>EufyHome: Step 2: GET /v1/user/user_center_info<br/>Header — token: access_token
+    EufyHome-->>Client: user_center_token (AIOT token!)<br/>user_center_id
 
-    Step2["**Step 2:** GET home-api.eufylife.com\n/v1/user/user_center_info\n\nHeader: token: access_token\n\nReturns: **user_center_token** (AIOT token!)\nuser_center_id"]
+    Client->>AIOT: Step 3: POST /app/devicemanage/get_user_mqtt_info<br/>Header — X-Auth-Token: user_center_token<br/>Header — GToken: MD5(user_center_id)
+    AIOT-->>Client: certificate_pem, private_key,<br/>aws_root_ca1_pem, thing_name,<br/>endpoint_addr
 
-    Step2 --> Step3
-
-    Step3["**Step 3:** POST aiot-clean-api-pr\n.eufylife.com/app/devicemanage/\nget_user_mqtt_info\n\nHeader: X-Auth-Token: user_center_token\nHeader: GToken: MD5(user_center_id)\n\nReturns: certificate_pem, private_key,\naws_root_ca1_pem, thing_name,\nendpoint_addr"]
-
-    Step3 --> Ready["mTLS credentials ready"]
+    Note over Client: mTLS credentials ready
 ```
 
 ### What Does NOT Work as an AIOT Token
