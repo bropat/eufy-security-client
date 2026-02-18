@@ -2226,6 +2226,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return DeviceType.LOCK_85D0 == type;
   }
 
+  static usesSecurityMqtt(type: number): boolean {
+    return Device.isLockWifiT85D0(type);
+  }
+
   static isLockWifiT8510P(type: number, serialnumber: string): boolean {
     if (
       type == DeviceType.LOCK_WIFI &&
@@ -2680,6 +2684,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   public isLockWifiT85D0(): boolean {
     return Device.isLockWifiT85D0(this.rawDevice.device_type);
+  }
+
+  public usesSecurityMqtt(): boolean {
+    return Device.usesSecurityMqtt(this.rawDevice.device_type);
   }
 
   public isLockWifiT8510P(): boolean {

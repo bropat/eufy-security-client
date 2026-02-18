@@ -426,10 +426,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
   }
 
   private async initSecurityMqtt(email: string, apiBase: string): Promise<void> {
-    // Check if any T85D0 locks exist before connecting
-    const hasT85D0 = Object.values(this.devices).some((device) => device.isLockWifiT85D0());
-    if (!hasT85D0) {
-      rootMainLogger.debug("No T85D0 locks found, skipping SecurityMQTT initialization");
+    const hasSecurityMqttDevices = Object.values(this.devices).some((device) => device.usesSecurityMqtt());
+    if (!hasSecurityMqttDevices) {
+      rootMainLogger.debug("No security MQTT locks found, skipping SecurityMQTT initialization");
       return;
     }
 
@@ -443,10 +442,9 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
       this.securityMqttService.on("connect", () => {
         rootMainLogger.info("SecurityMQTT connected");
-        // Subscribe all T85D0 locks
         for (const device of Object.values(this.devices)) {
-          if (device.isLockWifiT85D0()) {
-            this.securityMqttService!.subscribeLock(device.getSerial());
+          if (device.usesSecurityMqtt()) {
+            this.securityMqttService!.subscribeLock(device.getSerial(), device.getModel());
           }
         }
       });
@@ -561,8 +559,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
       this.emit("device added", device);
 
       if (device.isLock()) this.mqttService.subscribeLock(device.getSerial());
-      if (device.isLockWifiT85D0() && this.securityMqttService) {
-        this.securityMqttService.subscribeLock(device.getSerial());
+      if (device.usesSecurityMqtt() && this.securityMqttService) {
+        this.securityMqttService.subscribeLock(device.getSerial(), device.getModel());
       }
     } else {
       rootMainLogger.debug(`Device with this serial ${device.getSerial()} exists already and couldn't be added again!`);
@@ -2864,9 +2862,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
       rootMainLogger.error("SecurityMQTT not connected, cannot send lock command", { deviceSN });
       return;
     }
+    const device = this.devices[deviceSN];
+    const deviceModel = device ? device.getModel() : deviceSN;
     this.securityMqttService.publishLockCommand(
       this.api.getPersistentData()?.user_id || adminUserId,
       deviceSN,
+      deviceModel,
       adminUserId,
       shortUserId,
       nickName,

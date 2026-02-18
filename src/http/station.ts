@@ -8468,10 +8468,8 @@ export class Station extends TypedEmitter<StationEvents> {
       this._sendLockV12P2PCommand(command, {
         property: propertyData,
       });
-    } else if (device.isLockWifiT85D0()) {
-      // T85D0 Smart Lock C30: Uses BLE-over-MQTT protocol (same BLE frames as T8506,
-      // but sent via security-mqtt broker instead of P2P)
-      rootHTTPLogger.debug("Station lock device - Using security MQTT for T85D0...", {
+    } else if (device.usesSecurityMqtt()) {
+      rootHTTPLogger.debug("Station lock device - Using security MQTT...", {
         station: this.getSerial(),
         device: device.getSerial(),
         value: value,

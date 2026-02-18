@@ -44,7 +44,7 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
   private country: string;
 
   private subscribedLocks: Set<string> = new Set();
-  private pendingLockSubscriptions: Set<string> = new Set();
+  private pendingLockSubscriptions: Map<string, string> = new Map();
   private msgSeq = 1;
 
   constructor(email: string, password: string, openudid: string, country = "US") {
@@ -219,9 +219,8 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
       rootMQTTLogger.info("SecurityMQTT connected successfully");
       this.emit("connect");
 
-      // Subscribe any pending locks
-      for (const deviceSN of this.pendingLockSubscriptions) {
-        this._subscribeLock(deviceSN);
+      for (const [deviceSN, deviceModel] of this.pendingLockSubscriptions) {
+        this._subscribeLock(deviceSN, deviceModel);
       }
       this.pendingLockSubscriptions.clear();
     });
@@ -244,12 +243,18 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
 
   // ─── Lock Subscriptions ──────────────────────────────────────────────────
 
-  private _subscribeLock(deviceSN: string): void {
-    if (!this.client || this.subscribedLocks.has(deviceSN)) return;
+  private getMqttTopic(deviceModel: string, deviceSN: string, direction: "req" | "res"): string {
+    return `cmd/eufy_security/${deviceModel}/${deviceSN}/${direction}`;
+  }
+
+  private _subscribeLock(deviceSN: string, deviceModel: string): void {
+    if (!this.client || this.subscribedLocks.has(deviceSN)) {
+      return;
+    }
 
     const topics = [
-      `cmd/eufy_security/T85D0/${deviceSN}/res`,
-      `cmd/eufy_security/T85D0/${deviceSN}/req`,
+      this.getMqttTopic(deviceModel, deviceSN, "res"),
+      this.getMqttTopic(deviceModel, deviceSN, "req"),
     ];
 
     for (const topic of topics) {
@@ -265,11 +270,11 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
     this.subscribedLocks.add(deviceSN);
   }
 
-  public subscribeLock(deviceSN: string): void {
+  public subscribeLock(deviceSN: string, deviceModel: string): void {
     if (this.connected) {
-      this._subscribeLock(deviceSN);
+      this._subscribeLock(deviceSN, deviceModel);
     } else {
-      this.pendingLockSubscriptions.add(deviceSN);
+      this.pendingLockSubscriptions.set(deviceSN, deviceModel);
     }
   }
 
@@ -278,6 +283,7 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
   public publishLockCommand(
     userId: string,
     deviceSN: string,
+    deviceModel: string,
     adminUserId: string,
     shortUserId: string,
     nickName: string,
@@ -342,7 +348,7 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
         payload: payload,
       });
 
-      const topic = `cmd/eufy_security/T85D0/${deviceSN}/req`;
+      const topic = this.getMqttTopic(deviceModel, deviceSN, "req");
       rootMQTTLogger.debug("SecurityMQTT publishing lock command", {
         topic: topic,
         deviceSN: deviceSN,
