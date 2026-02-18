@@ -2430,7 +2430,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
               !device.isLockWifiT8502() &&
               !device.isLockWifiT8510P() &&
               !device.isLockWifiT8520P() &&
-              !device.isLockWifiT85L0()) ||
+              !device.isLockWifiT85L0() &&
+              !device.isLockWifiT85D0()) ||
             (result.customData !== undefined &&
               result.customData.property !== undefined &&
               device.isSmartSafe() &&
@@ -2441,7 +2442,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 device.isLockWifiT8502() ||
                 device.isLockWifiT8510P() ||
                 device.isLockWifiT8520P() ||
-                device.isLockWifiT85L0()) &&
+                device.isLockWifiT85L0() ||
+                device.isLockWifiT85D0()) &&
               result.command_type !== CommandType.CMD_DOORLOCK_SET_PUSH_MODE)
           ) {
             if (device.hasProperty(result.customData.property.name)) {
@@ -3368,7 +3370,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 device.isLockWifiT8510P() ||
                 device.isLockWifiT8520P() ||
                 device.isLockWifiT8531() ||
-                device.isLockWifiT85L0()) &&
+                device.isLockWifiT85L0() ||
+                device.isLockWifiT85D0()) &&
               user.password_list.length > 0
             ) {
               for (const entry of user.password_list) {
