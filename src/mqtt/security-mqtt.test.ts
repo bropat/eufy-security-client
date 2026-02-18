@@ -1,32 +1,24 @@
 import { SecurityMQTTService } from "./security-mqtt";
+import { BleLockProtocol } from "./ble-lock-protocol";
 
-// Access private methods for testing via any cast
-type TestableService = SecurityMQTTService & {
-  parseBleFrame(buffer: Buffer): { isEncrypted: boolean; isResponse: boolean; commandCode: number; data: Buffer } | null;
-  parseHeartbeat(deviceSN: string, data: Buffer): void;
-  buildClientId(host: string): string;
-  generateSeed(): string;
-  getMqttTopic(deviceModel: string, deviceSN: string, direction: "req" | "res"): string;
-};
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-function createService(): TestableService {
-  return new SecurityMQTTService("test@test.com", "password", "test-udid", "US") as TestableService;
+function createService(): any {
+  return new SecurityMQTTService("test@test.com", "password", "test-udid", "US");
 }
 
-describe("SecurityMQTTService", () => {
+describe("BleLockProtocol", () => {
   describe("parseBleFrame", () => {
-    const service = createService();
-
     it("returns null for buffer shorter than 10 bytes", () => {
       const buf = Buffer.from([0xff, 0x09, 0x00, 0x00, 0x00]);
-      expect(service.parseBleFrame(buf)).toBeNull();
+      expect(BleLockProtocol.parseBleFrame(buf)).toBeNull();
     });
 
     it("returns null for buffer without FF09 header", () => {
       const buf = Buffer.alloc(12);
       buf[0] = 0xaa;
       buf[1] = 0xbb;
-      expect(service.parseBleFrame(buf)).toBeNull();
+      expect(BleLockProtocol.parseBleFrame(buf)).toBeNull();
     });
 
     it("parses an unencrypted NOTIFY frame (commandCode=74)", () => {
@@ -40,7 +32,7 @@ describe("SecurityMQTTService", () => {
       buf[10] = 0x01;
       buf[11] = 0x00; // checksum byte
 
-      const result = service.parseBleFrame(buf);
+      const result = BleLockProtocol.parseBleFrame(buf);
       expect(result).not.toBeNull();
       expect(result!.isEncrypted).toBe(false);
       expect(result!.isResponse).toBe(false);
@@ -59,7 +51,7 @@ describe("SecurityMQTTService", () => {
       buf[9] = 0x00; // data
       buf[10] = 0x00; // checksum
 
-      const result = service.parseBleFrame(buf);
+      const result = BleLockProtocol.parseBleFrame(buf);
       expect(result).not.toBeNull();
       expect(result!.isEncrypted).toBe(true);
       expect(result!.isResponse).toBe(true);
@@ -67,68 +59,88 @@ describe("SecurityMQTTService", () => {
     });
   });
 
-  describe("parseHeartbeat", () => {
-    it("emits lock-status with battery and locked state", () => {
-      const service = createService();
-      const emitted: { deviceSN: string; locked: boolean; battery: number }[] = [];
-      service.on("lock status", (deviceSN, locked, battery) => {
-        emitted.push({ deviceSN, locked, battery });
-      });
-
-      // TLV: [0xA1, 0x01, 85, 0xA2, 0x01, 0x04] = battery=85, lockStatus=4 (locked)
-      const data = Buffer.from([0xa1, 0x01, 85, 0xa2, 0x01, 0x04]);
-      service.parseHeartbeat("TEST_SN_001", data);
-
-      expect(emitted).toHaveLength(1);
-      expect(emitted[0].deviceSN).toBe("TEST_SN_001");
-      expect(emitted[0].locked).toBe(true);
-      expect(emitted[0].battery).toBe(85);
+  describe("isHeartbeat", () => {
+    it("returns true for unencrypted NOTIFY frame", () => {
+      expect(BleLockProtocol.isHeartbeat({
+        isEncrypted: false,
+        isResponse: false,
+        commandCode: 74, // SmartLockBleCommandFunctionType2.NOTIFY
+        data: Buffer.alloc(0),
+      })).toBe(true);
     });
 
-    it("emits unlocked state when lockStatus is 3", () => {
-      const service = createService();
-      const emitted: { locked: boolean; battery: number }[] = [];
-      service.on("lock status", (_sn, locked, battery) => {
-        emitted.push({ locked, battery });
-      });
-
-      const data = Buffer.from([0xa1, 0x01, 50, 0xa2, 0x01, 0x03]);
-      service.parseHeartbeat("TEST_SN_002", data);
-
-      expect(emitted).toHaveLength(1);
-      expect(emitted[0].locked).toBe(false);
-      expect(emitted[0].battery).toBe(50);
-    });
-
-    it("skips return code byte when present", () => {
-      const service = createService();
-      const emitted: { locked: boolean; battery: number }[] = [];
-      service.on("lock status", (_sn, locked, battery) => {
-        emitted.push({ locked, battery });
-      });
-
-      // Leading 0x00 is a return code (below 0xA0), should be skipped
-      const data = Buffer.from([0x00, 0xa1, 0x01, 100, 0xa2, 0x01, 0x04]);
-      service.parseHeartbeat("TEST_SN_003", data);
-
-      expect(emitted).toHaveLength(1);
-      expect(emitted[0].battery).toBe(100);
-      expect(emitted[0].locked).toBe(true);
-    });
-
-    it("does not emit when no lock status TLV is present", () => {
-      const service = createService();
-      let emitCount = 0;
-      service.on("lock status", () => { emitCount++; });
-
-      // Only battery tag, no lock status
-      const data = Buffer.from([0xa1, 0x01, 80]);
-      service.parseHeartbeat("TEST_SN_004", data);
-
-      expect(emitCount).toBe(0);
+    it("returns false for encrypted NOTIFY frame", () => {
+      expect(BleLockProtocol.isHeartbeat({
+        isEncrypted: true,
+        isResponse: false,
+        commandCode: 74,
+        data: Buffer.alloc(0),
+      })).toBe(false);
     });
   });
 
+  describe("isLockCommandResponse", () => {
+    it("returns true for response ON_OFF_LOCK frame", () => {
+      expect(BleLockProtocol.isLockCommandResponse({
+        isEncrypted: false,
+        isResponse: true,
+        commandCode: 35, // SmartLockBleCommandFunctionType2.ON_OFF_LOCK
+        data: Buffer.alloc(0),
+      })).toBe(true);
+    });
+
+    it("returns false for non-response frame", () => {
+      expect(BleLockProtocol.isLockCommandResponse({
+        isEncrypted: false,
+        isResponse: false,
+        commandCode: 35,
+        data: Buffer.alloc(0),
+      })).toBe(false);
+    });
+  });
+
+  describe("parseHeartbeat", () => {
+    it("parses battery and locked state", () => {
+      // TLV: [0xA1, 0x01, 85, 0xA2, 0x01, 0x04] = battery=85, lockStatus=4 (locked)
+      const data = Buffer.from([0xa1, 0x01, 85, 0xa2, 0x01, 0x04]);
+      const result = BleLockProtocol.parseHeartbeat(data);
+
+      expect(result).not.toBeNull();
+      expect(result!.battery).toBe(85);
+      expect(result!.locked).toBe(true);
+      expect(result!.rawLockStatus).toBe(4);
+    });
+
+    it("parses unlocked state when lockStatus is 3", () => {
+      const data = Buffer.from([0xa1, 0x01, 50, 0xa2, 0x01, 0x03]);
+      const result = BleLockProtocol.parseHeartbeat(data);
+
+      expect(result).not.toBeNull();
+      expect(result!.locked).toBe(false);
+      expect(result!.battery).toBe(50);
+    });
+
+    it("skips return code byte when present", () => {
+      // Leading 0x00 is a return code (below 0xA0), should be skipped
+      const data = Buffer.from([0x00, 0xa1, 0x01, 100, 0xa2, 0x01, 0x04]);
+      const result = BleLockProtocol.parseHeartbeat(data);
+
+      expect(result).not.toBeNull();
+      expect(result!.battery).toBe(100);
+      expect(result!.locked).toBe(true);
+    });
+
+    it("returns null when no lock status TLV is present", () => {
+      // Only battery tag, no lock status
+      const data = Buffer.from([0xa1, 0x01, 80]);
+      const result = BleLockProtocol.parseHeartbeat(data);
+
+      expect(result).toBeNull();
+    });
+  });
+});
+
+describe("SecurityMQTTService", () => {
   describe("getMqttTopic", () => {
     it("builds the correct request topic", () => {
       const service = createService();
@@ -155,8 +167,7 @@ describe("SecurityMQTTService", () => {
 
   describe("generateSeed", () => {
     it("generates a 32-character hex string", () => {
-      const service = createService();
-      const seed = service.generateSeed();
+      const seed = (SecurityMQTTService as any).generateSeed();
       expect(seed).toHaveLength(32);
       expect(seed).toMatch(/^[0-9a-f]{32}$/);
     });
