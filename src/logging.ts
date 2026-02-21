@@ -5,13 +5,7 @@
 import { LogLevel } from "typescript-logging";
 import { CategoryProvider } from "typescript-logging-category-style";
 
-export type LoggingCategories =
-  | "all"
-  | "main"
-  | "http"
-  | "p2p"
-  | "push"
-  | "mqtt";
+export type LoggingCategories = "all" | "main" | "http" | "p2p" | "push" | "mqtt";
 
 export { LogLevel };
 
@@ -37,20 +31,12 @@ export class InternalLogger {
  *
  */
 const getMethodName = function (): string | undefined {
-  const matches = new Error("").stack
-    ?.split("\n")[6]
-    .match(/ at( new){0,1} ([a-zA-Z0-9_.]+) /);
-  if (
-    matches !== null &&
-    matches !== undefined &&
-    matches[2] !== undefined &&
-    matches[2] !== "eval"
-  ) {
+  const matches = new Error("").stack?.split("\n")[6].match(/ at( new){0,1} ([a-zA-Z0-9_.]+) /);
+  if (matches !== null && matches !== undefined && matches[2] !== undefined && matches[2] !== "eval") {
     return matches[2];
   }
   return undefined;
 };
-
 
 const provider = CategoryProvider.createProvider("EufySecurityClientProvider", {
   level: LogLevel.Debug,
@@ -63,41 +49,23 @@ const provider = CategoryProvider.createProvider("EufySecurityClientProvider", {
 
       switch (msg.level) {
         case LogLevel.Trace:
-          InternalLogger.logger?.trace(
-              logMessage,
-            ...msg.args ?? [],
-          );
+          InternalLogger.logger?.trace(logMessage, ...(msg.args ?? []));
           break;
         case LogLevel.Debug:
-          InternalLogger.logger?.debug(
-              logMessage,
-            ...msg.args ?? [],
-          );
+          InternalLogger.logger?.debug(logMessage, ...(msg.args ?? []));
           break;
         case LogLevel.Info:
-          InternalLogger.logger?.info(
-              logMessage,
-            ...msg.args ?? [],
-          );
+          InternalLogger.logger?.info(logMessage, ...(msg.args ?? []));
           break;
         case LogLevel.Warn:
-          InternalLogger.logger?.warn(
-              logMessage,
-            ...msg.args ?? [],
-          );
+          InternalLogger.logger?.warn(logMessage, ...(msg.args ?? []));
           break;
         case LogLevel.Error:
-          InternalLogger.logger?.error(
-              logMessage,
-            ...msg.args ?? [],
-          );
+          InternalLogger.logger?.error(logMessage, ...(msg.args ?? []));
           break;
         case LogLevel.Fatal:
           if (InternalLogger.logger && InternalLogger.logger.fatal)
-            InternalLogger.logger.fatal(
-                logMessage,
-              ...msg.args ?? [],
-            );
+            InternalLogger.logger.fatal(logMessage, ...(msg.args ?? []));
           break;
       }
     },
@@ -116,10 +84,7 @@ export const rootP2PLogger = provider.getCategory("p2p");
  * @param category
  * @param level
  */
-export const setLoggingLevel = function (
-  category: LoggingCategories = "all",
-  level: LogLevel = LogLevel.Off,
-): void {
+export const setLoggingLevel = function (category: LoggingCategories = "all", level: LogLevel = LogLevel.Off): void {
   level = LogLevel.Debug;
   switch (category) {
     case "all":
@@ -160,9 +125,7 @@ export const setLoggingLevel = function (
  *
  * @param category
  */
-export const getLoggingLevel = function (
-  category: LoggingCategories = "all",
-): number {
+export const getLoggingLevel = function (category: LoggingCategories = "all"): number {
   switch (category) {
     case "all":
       return provider.runtimeConfig.level;
