@@ -2922,6 +2922,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                       Device.isLockWifiT8520P(
                         this.rawStation.devices[0]?.device_type,
                         this.rawStation.devices[0]?.device_sn
+                      ) ||
+                      Device.isLockWifiT85V0(
+                        this.rawStation.devices[0]?.device_type,
+                        this.rawStation.devices[0]?.device_sn
                       )
                     ) {
                       this.emit(
