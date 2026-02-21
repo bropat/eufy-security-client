@@ -93,9 +93,9 @@ import {
   hexDate,
   hexTime,
   hexWeek,
-  isFloodlightT8425NotitficationEnabled,
+  isFloodlightT8425NotificationEnabled,
   isHB3DetectionModeEnabled,
-  isIndoorNotitficationEnabled,
+  isIndoorNotificationEnabled,
   isIndoorS350DetectionModeEnabled,
   isPrioritySourceType,
   isSmartLockNotification,
@@ -1307,7 +1307,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       ) {
         const booleanProperty = property as PropertyMetadataBoolean;
         try {
-          return isIndoorNotitficationEnabled(
+          return isIndoorNotificationEnabled(
             Number.parseInt(value),
             property.name === PropertyName.DeviceNotificationAllOtherMotion
               ? IndoorS350NotificationTypes.ALL_OTHER_MOTION
@@ -1338,7 +1338,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       ) {
         const booleanProperty = property as PropertyMetadataBoolean;
         try {
-          return isFloodlightT8425NotitficationEnabled(
+          return isFloodlightT8425NotificationEnabled(
             Number.parseInt(value),
             property.name === PropertyName.DeviceNotificationAllOtherMotion
               ? FloodlightT8425NotificationTypes.ALL_OTHER_MOTION
@@ -1962,6 +1962,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.LOCK_8506 ||
       type == DeviceType.LOCK_85V0 ||
       type == DeviceType.LOCK_8502 ||
+      type == DeviceType.LOCK_85L0 ||
       type == DeviceType.SMART_SAFE_7400 ||
       type == DeviceType.SMART_SAFE_7401 ||
       type == DeviceType.SMART_SAFE_7402 ||
@@ -2151,7 +2152,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
       Device.isLockWifiVideo(type) ||
       Device.isLockWifiT8506(type) ||
       Device.isLockWifiT85V0(type, "") ||
-      Device.isLockWifiT8502(type)
+      Device.isLockWifiT8502(type) ||
+      Device.isLockWifiT85L0(type)
     );
   }
 
@@ -2238,6 +2240,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
     )
       return true;
     return false;
+  }
+
+  static isLockWifiT85L0(type: number): boolean {
+    return DeviceType.LOCK_85L0 == type;
   }
 
   static isBatteryDoorbell1(type: number): boolean {
@@ -2506,6 +2512,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       sn.startsWith("T8502") ||
       sn.startsWith("T8504") ||
       sn.startsWith("T8506") ||
+      sn.startsWith("T85L0") ||
       sn.startsWith("T8530")
     );
   }
@@ -2663,6 +2670,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   public isLockWifiT85V0(): boolean {
     return Device.isLockWifiT85V0(this.rawDevice.device_type, this.rawDevice.device_sn);
+  }
+
+  public isLockWifiT85L0(): boolean {
+    return Device.isLockWifiT85L0(this.rawDevice.device_type);
   }
 
   public isBatteryDoorbell1(): boolean {

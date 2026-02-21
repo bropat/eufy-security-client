@@ -2926,7 +2926,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                       Device.isLockWifiT85V0(
                         this.rawStation.devices[0]?.device_type,
                         this.rawStation.devices[0]?.device_sn
-                      )
+                      ) ||
+                      Device.isLockWifiT85L0(this.rawStation.devices[0]?.device_type)
                     ) {
                       this.emit(
                         "sequence error",
@@ -2941,7 +2942,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                       );
                     } else {
                       rootP2PLogger.debug(
-                        `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Lock sequence number - Unknwon device`,
+                        `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Lock sequence number - Unknown device`,
                         {
                           stationSN: this.rawStation.station_sn,
                           oldSequenceNumber: this.lockSeqNumber,

@@ -822,7 +822,7 @@ export const getIndoorS350DetectionMode = function (
 };
 // TODO: this is like isT8170DetectionModeEnabled
 
-export const isIndoorNotitficationEnabled = function (value: number, type: IndoorS350NotificationTypes): boolean {
+export const isIndoorNotificationEnabled = function (value: number, type: IndoorS350NotificationTypes): boolean {
   return (type & value) == type;
 };
 
@@ -843,7 +843,7 @@ export const getIndoorNotification = function (
 };
 // TODO: this is like isT8170DetectionModeEnabled
 
-export const isFloodlightT8425NotitficationEnabled = function (
+export const isFloodlightT8425NotificationEnabled = function (
   value: number,
   type: FloodlightT8425NotificationTypes
 ): boolean {
