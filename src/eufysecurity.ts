@@ -3252,6 +3252,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                 device.isLockWifiT8502() ||
                 device.isLockWifiT8510P() ||
                 device.isLockWifiT8520P() ||
+                device.isLockWifiT8531() ||
                 device.isLockWifiT85L0()) &&
               user.password_list.length > 0
             ) {

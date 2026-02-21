@@ -74,9 +74,10 @@
 | ![T8503 image](_media/smartlock_t8503_small.jpg)                                    | Retrofit Smart Lock E110 (T8503; Smart Lock R10)         | :heavy_check_mark: | Firmware: 1.0.7.7 (20230622) |
 | ![T8504 image](_media/smartlock_t8504_small.jpg)                                    | Retrofit Smart Lock E130 (T8504; Smart Lock R20)         | :heavy_exclamation_mark: |  |
 | ![T8510P image](_media/smartlock_t8510P_t8520P_small.jpg)                           | Smart Lock S230 (T8510P)                                 | :heavy_check_mark: | Firmware: 1.1.0.0 (20240123) |
-| ![T85L0 image](_media/smartlock_t85l0_small.jpg)                           | Smart Lock C33 (T85L0)                                | :heavy_check_mark: | Firmware: 1.0.7.1 (20240801) |
+| ![T85L0 image](_media/smartlock_t85l0_small.jpg)                                    | Smart Lock C33 (T85L0)                                   | :heavy_check_mark: | Firmware: 1.0.7.1 (20240801) |
+| ![T85D0 image](_media/smartlock_t85d0_small.jpg)                                    | Smart Lock C30 (T85D0)                                   | :heavy_check_mark: | Firmware: 1.0.7.1 (20240801) |
 | ![T8520P image](_media/smartlock_t8510P_t8520P_small.jpg)                           | Smart Lock S231 (T8520P)                                 | :heavy_check_mark: | Firmware: ? (20240818) |
-| ![T85V0 image](media/smartlock_t85V0_small.jpg)                           | FamiLock S3 (T85V0)                                 | :heavy_check_mark: | Firmware: 1.1.5.5 |
+| ![T85V0 image](media/smartlock_t85V0_small.jpg)                                     | FamiLock S3 (T85V0)                                      | :heavy_check_mark: | Firmware: 1.1.5.5 |
 | ![T8960 image](_media/keypad_small.jpg)                                             | Keypad (T8960)                                           | :heavy_check_mark: |  |
 | ![T7400 image](_media/smartsafe_s10_t7400_small.jpg)                                | Smart Safe S10 (T7400)                                   | :heavy_check_mark: | Firmware: 1.0.3.4 (20221029) |
 | ![T7401 image](_media/smartsafe_s12_t7401_small.jpg)                                | Smart Safe S12 (T7401)                                   | :heavy_exclamation_mark: |  |

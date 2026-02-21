@@ -2927,6 +2927,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         this.rawStation.devices[0]?.device_type,
                         this.rawStation.devices[0]?.device_sn
                       ) ||
+                      Device.isLockWifiT8531(this.rawStation.devices[0]?.device_type) ||
                       Device.isLockWifiT85L0(this.rawStation.devices[0]?.device_type)
                     ) {
                       this.emit(
@@ -3357,6 +3358,18 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     customData.customData.command.value?.schedule
                                   );
                                 }
+                                break;
+                              case SmartLockBleCommandFunctionType2.ON_OFF_LOCK:
+                                // Lock/unlock command response received
+                                // The actual lock state will be updated via push notification or next status query
+                                rootP2PLogger.debug(
+                                  `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD Smart Lock - ON_OFF_LOCK response`,
+                                  {
+                                    stationSN: this.rawStation.station_sn,
+                                    returnCode: returnCode,
+                                    channel: message.channel,
+                                  }
+                                );
                                 break;
                               default:
                                 rootP2PLogger.debug(
