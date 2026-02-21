@@ -319,6 +319,7 @@ export class Station extends TypedEmitter<StationEvents> {
       !Device.isLockWifiT8502(stationData.device_type) &&
       !Device.isLockWifiT8510P(stationData.device_type, stationData.station_sn) &&
       !Device.isLockWifiT8520P(stationData.device_type, stationData.station_sn) &&
+      !Device.isLockWifiT85L0(stationData.device_type) &&
       !Device.isLockWifiT85V0(stationData.device_type, stationData.station_sn)
     ) {
       publicKey = await api.getPublicKey(stationData.station_sn, PublicKeyType.LOCK);
@@ -8471,6 +8472,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       const command = getSmartLockP2PCommand(
@@ -10200,6 +10202,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       const command = getSmartLockP2PCommand(
@@ -12742,6 +12745,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceScramblePasscode, value);
@@ -12798,6 +12802,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceWrongTryProtection, value);
@@ -12854,6 +12859,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceWrongTryAttempts, value);
@@ -12910,6 +12916,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceWrongTryLockdownTime, value);
@@ -13545,6 +13552,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       const command = getSmartLockP2PCommand(
@@ -13693,6 +13701,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       const command = getSmartLockP2PCommand(
@@ -13856,6 +13865,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       const command = getSmartLockP2PCommand(
@@ -14011,6 +14021,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       const command = getSmartLockP2PCommand(
@@ -14222,6 +14233,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       let payload: Buffer;
@@ -14387,6 +14399,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceAutoLock, value);
@@ -14441,6 +14454,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceAutoLockSchedule, value);
@@ -14495,6 +14509,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceAutoLockScheduleStartTime, value);
@@ -14549,6 +14564,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceAutoLockScheduleEndTime, value);
@@ -14603,6 +14619,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceAutoLockTimer, value);
@@ -14657,6 +14674,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceOneTouchLocking, value);
@@ -14711,6 +14729,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceSound, value);
@@ -14778,6 +14797,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
       device.isLockWifiR10() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiR20()
     ) {
       let oldvalue = 0;
@@ -14859,6 +14879,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
       device.isLockWifiR10() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiR20()
     ) {
       let oldvalue = 0;
@@ -14940,6 +14961,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
       device.isLockWifiR10() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiR20()
     ) {
       let oldvalue = 0;
@@ -15108,6 +15130,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8502() ||
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
+      device.isLockWifiT85L0() ||
       device.isLockWifiT85V0()
     ) {
       const command = getSmartLockP2PCommand(
@@ -17844,7 +17867,8 @@ export class Station extends TypedEmitter<StationEvents> {
       Device.isLockWifiT8502(this.getDeviceType()) ||
       Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial()) ||
       Device.isLockWifiT8520P(this.getDeviceType(), this.getSerial()) ||
-      Device.isLockWifiT85V0(this.getDeviceType(), this.getSerial())
+      Device.isLockWifiT85V0(this.getDeviceType(), this.getSerial()) ||
+      Device.isLockWifiT85L0(this.getDeviceType())
     ) {
       rootHTTPLogger.debug(`Station smart lock send get lock parameters command`, { stationSN: this.getSerial() });
       const command = getSmartLockP2PCommand(
@@ -17878,7 +17902,8 @@ export class Station extends TypedEmitter<StationEvents> {
       Device.isLockWifiT8502(this.getDeviceType()) ||
       Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial()) ||
       Device.isLockWifiT8520P(this.getDeviceType(), this.getSerial()) ||
-      Device.isLockWifiT85V0(this.getDeviceType(), this.getSerial())
+      Device.isLockWifiT85V0(this.getDeviceType(), this.getSerial()) ||
+      Device.isLockWifiT85L0(this.getDeviceType())
     ) {
       rootHTTPLogger.debug(`Station smart lock send get lock status command`, { stationSN: this.getSerial() });
       const command = getSmartLockP2PCommand(
