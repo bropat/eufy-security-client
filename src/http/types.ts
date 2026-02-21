@@ -10259,9 +10259,7 @@ export const DeviceCommands: Commands = {
     CommandName.DeviceUpdateUserSchedule,
     CommandName.DeviceUpdateUsername,
   ],
-  [DeviceType.LOCK_85D0]: [
-    CommandName.DeviceLockCalibration,
-  ],
+  [DeviceType.LOCK_85D0]: [CommandName.DeviceLockCalibration],
   [DeviceType.LOCK_8502]: [
     CommandName.DeviceLockCalibration,
     CommandName.DeviceAddUser,
