@@ -56,7 +56,7 @@
     "node-schedule": "^2.1.1",
     "p-throttle": "^8.1.0",
     "protobufjs": "^8.0.0",
-    "qs": "^6.14.2",
+    "qs": "^6.15.0",
     "sweet-collections": "^1.1.0",
     "tiny-typed-emitter": "^2.1.0",
     "typescript-logging": "^2.2.0",
