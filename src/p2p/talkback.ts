@@ -7,7 +7,11 @@ export class TalkbackStream extends Transform {
     super();
   }
 
-  _transform(data: Buffer, _encoding: string, callback: (err?: Error | null) => void): void {
+  _transform(
+    data: Buffer,
+    _encoding: string,
+    callback: (err?: Error | null) => void,
+  ): void {
     if (this.isStreaming) this.push(data);
     callback();
   }

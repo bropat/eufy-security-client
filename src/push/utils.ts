@@ -23,7 +23,9 @@ export function generateFid(): string {
     rootPushLogger.info("generateFid", fid);
     return fid;
   }
-  throw new FidGenerationError("Generated invalid FID", { context: { fid: fid } });
+  throw new FidGenerationError("Generated invalid FID", {
+    context: { fid: fid },
+  });
 }
 
 export const buildCheckinRequest = async (): Promise<Uint8Array> => {
@@ -61,7 +63,9 @@ export const buildCheckinRequest = async (): Promise<Uint8Array> => {
   return CheckinRequestModel.encode(message).finish();
 };
 
-export const parseCheckinResponse = async (data: Buffer): Promise<CheckinResponse> => {
+export const parseCheckinResponse = async (
+  data: Buffer,
+): Promise<CheckinResponse> => {
   const root = await load(path.join(__dirname, "./proto/checkin.proto"));
   const CheckinResponseModel = root.lookupType("CheckinResponse");
   const message = CheckinResponseModel.decode(data);

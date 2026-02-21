@@ -637,7 +637,7 @@ export interface FloodlightDetectionRangeT8425Property {
 
 export interface FloodlightLightSettingsBrightnessScheduleT8425Property {
   sunset2rise: number;
-  longitude: string;
+  longtitude: string;
   latitude: string;
   brightness: number;
   schedule: Array<unknown>;

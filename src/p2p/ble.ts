@@ -44,7 +44,10 @@ export class BleCommandFactory {
     if (typeof data === "string") {
       data = Buffer.from(data, "hex");
     }
-    if (data.readInt8(0) !== BleCommandFactory.HEADER[0] && data.readInt8(1) !== BleCommandFactory.HEADER[1]) {
+    if (
+      data.readInt8(0) !== BleCommandFactory.HEADER[0] &&
+      data.readInt8(1) !== BleCommandFactory.HEADER[1]
+    ) {
       throw new BleInvalidDataHeaderError("Invalid BLE data header");
     }
     const fac = new BleCommandFactory();
@@ -52,9 +55,16 @@ export class BleCommandFactory {
     fac.setCommandCode(data.readUint8(6));
     fac.setDataType(data.readUint8());
     fac.setPackageFlag(data.readInt8(7));
-    fac.setResponseCode(fac.getPackageFlag() === -64 ? data.readUint8(8) : data.readUint8(12));
-    fac.setData(data.subarray(fac.getPackageFlag() === -64 ? 8 : 12, data.length - 1)); //TODO: Verify if position 8 is correct for data (i think it should be 9 or 13)...
-    if (BleCommandFactory.generateHash(data.subarray(0, data.length - 1)) !== data.readUint8(data.length - 1)) {
+    fac.setResponseCode(
+      fac.getPackageFlag() === -64 ? data.readUint8(8) : data.readUint8(12),
+    );
+    fac.setData(
+      data.subarray(fac.getPackageFlag() === -64 ? 8 : 12, data.length - 1),
+    ); //TODO: Verify if position 8 is correct for data (i think it should be 9 or 13)...
+    if (
+      BleCommandFactory.generateHash(data.subarray(0, data.length - 1)) !==
+      data.readUint8(data.length - 1)
+    ) {
       throw new BleInvalidChecksumError("Invalid BLE data, checksum mismatch");
     }
     return fac;
@@ -70,11 +80,15 @@ export class BleCommandFactory {
     }
     if (
       data.length < 9 ||
-      (data.readInt8(0) !== BleCommandFactory.HEADER[0] && data.readInt8(1) !== BleCommandFactory.HEADER[1])
+      (data.readInt8(0) !== BleCommandFactory.HEADER[0] &&
+        data.readInt8(1) !== BleCommandFactory.HEADER[1])
     ) {
       throw new BleInvalidDataHeaderError("Invalid BLE data header");
     }
-    if (BleCommandFactory.generateHash(data.subarray(0, data.length - 1)) !== data.readUint8(data.length - 1)) {
+    if (
+      BleCommandFactory.generateHash(data.subarray(0, data.length - 1)) !==
+      data.readUint8(data.length - 1)
+    ) {
       throw new BleInvalidChecksumError("Invalid BLE data, checksum mismatch");
     }
     const fac = new BleCommandFactory();
@@ -195,18 +209,31 @@ export class BleCommandFactory {
   }
 
   public getLockV12Command(): Buffer {
-    if (this.versionCode === undefined) throw new BleVersionCodeError("BleCommandFactory version code value missing");
-    if (this.dataType === undefined) throw new BleDataTypeError("BleCommandFactory data type value missing");
-    if (this.commandCode === undefined) throw new BleCommandCodeError("BleCommandFactory command code value missing");
-    if (this.data === undefined) throw new BleDataError("BleCommandFactory data value missing");
+    if (this.versionCode === undefined)
+      throw new BleVersionCodeError(
+        "BleCommandFactory version code value missing",
+      );
+    if (this.dataType === undefined)
+      throw new BleDataTypeError("BleCommandFactory data type value missing");
+    if (this.commandCode === undefined)
+      throw new BleCommandCodeError(
+        "BleCommandFactory command code value missing",
+      );
+    if (this.data === undefined)
+      throw new BleDataError("BleCommandFactory data value missing");
     if (this.additionalData === undefined)
-      throw new BleAdditionalDataError("BleCommandFactory additional data value missing");
+      throw new BleAdditionalDataError(
+        "BleCommandFactory additional data value missing",
+      );
 
     this.setAdditionalDataSeparator(BleParameterIndex.ZERO);
     const bVersionCode = Buffer.from([this.versionCode]);
     const bDataType = Buffer.from([this.dataType]);
     const bCommandCode = Buffer.from([this.commandCode]);
-    const bPackageFlag = this.packageFlag === undefined ? Buffer.from([-64]) : Buffer.from([this.packageFlag]);
+    const bPackageFlag =
+      this.packageFlag === undefined
+        ? Buffer.from([-64])
+        : Buffer.from([this.packageFlag]);
     const bAdditionalDataLength = Buffer.from([this.additionalData.length]);
     const size = Buffer.allocUnsafe(2);
     size.writeInt16LE(
@@ -220,7 +247,7 @@ export class BleCommandFactory {
         bAdditionalDataLength.length +
         this.additionalData.length +
         this.data.length +
-        1 // Hash
+        1, // Hash
     );
     const data = Buffer.concat([
       BleCommandFactory.HEADER,
@@ -239,15 +266,26 @@ export class BleCommandFactory {
   }
 
   public getSmartSafeCommand(): Buffer {
-    if (this.versionCode === undefined) throw new BleVersionCodeError("BleCommandFactory version code value missing");
-    if (this.dataType === undefined) throw new BleDataTypeError("BleCommandFactory data type value missing");
-    if (this.commandCode === undefined) throw new BleCommandCodeError("BleCommandFactory command code value missing");
-    if (this.data === undefined) throw new BleDataError("BleCommandFactory data value missing");
+    if (this.versionCode === undefined)
+      throw new BleVersionCodeError(
+        "BleCommandFactory version code value missing",
+      );
+    if (this.dataType === undefined)
+      throw new BleDataTypeError("BleCommandFactory data type value missing");
+    if (this.commandCode === undefined)
+      throw new BleCommandCodeError(
+        "BleCommandFactory command code value missing",
+      );
+    if (this.data === undefined)
+      throw new BleDataError("BleCommandFactory data value missing");
 
     const bVersionCode = Buffer.from([this.versionCode]);
     const bDataType = Buffer.from([this.dataType]);
     const bCommandCode = Buffer.from([this.commandCode]);
-    const bPackageFlag = this.packageFlag === undefined ? Buffer.from([-64]) : Buffer.from([this.packageFlag]);
+    const bPackageFlag =
+      this.packageFlag === undefined
+        ? Buffer.from([-64])
+        : Buffer.from([this.packageFlag]);
     const size = Buffer.allocUnsafe(2);
     size.writeInt16LE(
       BleCommandFactory.HEADER.length +
@@ -257,7 +295,7 @@ export class BleCommandFactory {
         bCommandCode.length +
         bPackageFlag.length +
         this.data.length +
-        1 // Hash
+        1, // Hash
     );
     const data = Buffer.concat([
       BleCommandFactory.HEADER,
@@ -273,10 +311,18 @@ export class BleCommandFactory {
   }
 
   public getSmartLockCommand(): Buffer {
-    if (this.versionCode === undefined) throw new BleVersionCodeError("BleCommandFactory version code value missing");
-    if (this.dataType === undefined) throw new BleDataTypeError("BleCommandFactory data type value missing");
-    if (this.commandCode === undefined) throw new BleCommandCodeError("BleCommandFactory command code value missing");
-    if (this.data === undefined) throw new BleDataError("BleCommandFactory data value missing");
+    if (this.versionCode === undefined)
+      throw new BleVersionCodeError(
+        "BleCommandFactory version code value missing",
+      );
+    if (this.dataType === undefined)
+      throw new BleDataTypeError("BleCommandFactory data type value missing");
+    if (this.commandCode === undefined)
+      throw new BleCommandCodeError(
+        "BleCommandFactory command code value missing",
+      );
+    if (this.data === undefined)
+      throw new BleDataError("BleCommandFactory data value missing");
 
     const bVersionCode = Buffer.from([this.versionCode]);
     const bDataType = Buffer.from([this.dataType]);
@@ -284,7 +330,11 @@ export class BleCommandFactory {
     const partial = false;
     const encrypted = true;
     const commandCodeEncoded = Buffer.allocUnsafe(2);
-    commandCodeEncoded.writeInt16BE(((partial ? 1 : 0) << 15) + ((encrypted ? 1 : 0) << 14) + this.commandCode);
+    commandCodeEncoded.writeInt16BE(
+      ((partial ? 1 : 0) << 15) +
+        ((encrypted ? 1 : 0) << 14) +
+        this.commandCode,
+    );
     const size = Buffer.allocUnsafe(2);
     size.writeInt16LE(
       BleCommandFactory.HEADER.length +
@@ -294,7 +344,7 @@ export class BleCommandFactory {
         bDataType.length +
         commandCodeEncoded.length +
         this.data.length +
-        1 // Hash
+        1, // Hash
     );
     const data = Buffer.concat([
       BleCommandFactory.HEADER,

@@ -1,9 +1,3 @@
-/**
- *
- * Error class and utils
- *
- */
-
 export type Jsonable =
   | string
   | number
@@ -18,7 +12,10 @@ export type Jsonable =
 export class BaseError extends Error {
   public readonly context?: Jsonable;
 
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     const { cause, context } = options;
 
     super(message, { cause }); //NodeJs 16.9.0
@@ -28,26 +25,24 @@ export class BaseError extends Error {
   }
 }
 
-/**
- *
- * Ensure the value pass is an error and returns an Error class
- *
- * @param value
- */
-export function ensureError(value: Error | string | unknown): BaseError {
+export function ensureError(value: unknown): BaseError {
   if (value instanceof Error) return value;
   let stringified = "[Unable to stringify the thrown value]";
   try {
     stringified = JSON.stringify(value);
-  } catch (error) {
-    console.log("Error parsing value to ensure error ", error);
-  }
+  } catch {}
 
-  return new Error(`This value was thrown as is, not through an Error: ${stringified}`);
+  const error = new Error(
+    `This value was thrown as is, not through an Error: ${stringified}`,
+  );
+  return error;
 }
 
 export class InvalidCountryCodeError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = InvalidCountryCodeError.name;
@@ -55,7 +50,10 @@ export class InvalidCountryCodeError extends BaseError {
 }
 
 export class InvalidLanguageCodeError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = InvalidLanguageCodeError.name;
@@ -63,7 +61,10 @@ export class InvalidLanguageCodeError extends BaseError {
 }
 
 export class StationNotFoundError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = StationNotFoundError.name;
@@ -71,7 +72,10 @@ export class StationNotFoundError extends BaseError {
 }
 
 export class DeviceNotFoundError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = DeviceNotFoundError.name;
@@ -79,7 +83,10 @@ export class DeviceNotFoundError extends BaseError {
 }
 
 export class NotSupportedError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = NotSupportedError.name;
@@ -87,7 +94,10 @@ export class NotSupportedError extends BaseError {
 }
 
 export class WrongStationError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = WrongStationError.name;
@@ -95,7 +105,10 @@ export class WrongStationError extends BaseError {
 }
 
 export class RTSPPropertyNotEnabledError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = RTSPPropertyNotEnabledError.name;
@@ -103,7 +116,10 @@ export class RTSPPropertyNotEnabledError extends BaseError {
 }
 
 export class InvalidPropertyValueError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = InvalidPropertyValueError.name;
@@ -111,7 +127,10 @@ export class InvalidPropertyValueError extends BaseError {
 }
 
 export class InvalidCommandValueError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = InvalidCommandValueError.name;
@@ -119,7 +138,10 @@ export class InvalidCommandValueError extends BaseError {
 }
 
 export class ReadOnlyPropertyError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = ReadOnlyPropertyError.name;
@@ -127,7 +149,10 @@ export class ReadOnlyPropertyError extends BaseError {
 }
 
 export class LivestreamError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = LivestreamError.name;
@@ -135,7 +160,10 @@ export class LivestreamError extends BaseError {
 }
 
 export class TalkbackError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = TalkbackError.name;
@@ -143,7 +171,10 @@ export class TalkbackError extends BaseError {
 }
 
 export class StationConnectTimeoutError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = StationConnectTimeoutError.name;
@@ -151,7 +182,10 @@ export class StationConnectTimeoutError extends BaseError {
 }
 
 export class AddUserError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = AddUserError.name;
@@ -159,7 +193,10 @@ export class AddUserError extends BaseError {
 }
 
 export class DeleteUserError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = DeleteUserError.name;
@@ -167,7 +204,10 @@ export class DeleteUserError extends BaseError {
 }
 
 export class UpdateUserUsernameError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = UpdateUserUsernameError.name;
@@ -175,7 +215,10 @@ export class UpdateUserUsernameError extends BaseError {
 }
 
 export class UpdateUserScheduleError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = UpdateUserScheduleError.name;
@@ -183,7 +226,10 @@ export class UpdateUserScheduleError extends BaseError {
 }
 
 export class UpdateUserPasscodeError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = UpdateUserPasscodeError.name;
@@ -191,7 +237,10 @@ export class UpdateUserPasscodeError extends BaseError {
 }
 
 export class PinNotVerifiedError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = PinNotVerifiedError.name;

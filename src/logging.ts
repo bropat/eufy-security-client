@@ -1,11 +1,13 @@
-/**
- *  Logging utils
- */
-
 import { LogLevel } from "typescript-logging";
 import { CategoryProvider } from "typescript-logging-category-style";
 
-export type LoggingCategories = "all" | "main" | "http" | "p2p" | "push" | "mqtt";
+export type LoggingCategories =
+  | "all"
+  | "main"
+  | "http"
+  | "p2p"
+  | "push"
+  | "mqtt";
 
 export { LogLevel };
 
@@ -24,15 +26,16 @@ export class InternalLogger {
   public static logger: Logger | undefined;
 }
 
-/**
- *
- * Get method name
- *
- *
- */
 const getMethodName = function (): string | undefined {
-  const matches = new Error("").stack?.split("\n")[6].match(/ at( new){0,1} ([a-zA-Z0-9_.]+) /);
-  if (matches !== null && matches !== undefined && matches[2] !== undefined && matches[2] !== "eval") {
+  const matches = new Error("").stack
+    ?.split("\n")[6]
+    .match(/ at( new){0,1} ([a-zA-Z0-9_\.]+) /);
+  if (
+    matches !== null &&
+    matches !== undefined &&
+    matches[2] !== undefined &&
+    matches[2] !== "eval"
+  ) {
     return matches[2];
   }
   return undefined;
@@ -42,30 +45,76 @@ const provider = CategoryProvider.createProvider("EufySecurityClientProvider", {
   level: LogLevel.Off,
   channel: {
     type: "RawLogChannel",
-    write: (msg) => {
+    write: (msg, _formatArg) => {
       const methodName = getMethodName();
       const method = methodName ? `[${methodName}] ` : "";
-      const logMessage = `[${msg.logNames}] ${method}${msg.message}`;
-
       switch (msg.level) {
         case LogLevel.Trace:
-          InternalLogger.logger?.trace(logMessage, ...(msg.args ?? []));
+          if (msg.args)
+            InternalLogger.logger?.trace(
+              `[${msg.logNames}] ${method}${msg.message}`,
+              ...msg.args,
+            );
+          else
+            InternalLogger.logger?.trace(
+              `[${msg.logNames}] ${method}${msg.message}`,
+            );
           break;
         case LogLevel.Debug:
-          InternalLogger.logger?.debug(logMessage, ...(msg.args ?? []));
+          if (msg.args)
+            InternalLogger.logger?.debug(
+              `[${msg.logNames}] ${method}${msg.message}`,
+              ...msg.args,
+            );
+          else
+            InternalLogger.logger?.debug(
+              `[${msg.logNames}] ${method}${msg.message}`,
+            );
           break;
         case LogLevel.Info:
-          InternalLogger.logger?.info(logMessage, ...(msg.args ?? []));
+          if (msg.args)
+            InternalLogger.logger?.info(
+              `[${msg.logNames}] ${method}${msg.message}`,
+              ...msg.args,
+            );
+          else
+            InternalLogger.logger?.info(
+              `[${msg.logNames}] ${method}${msg.message}`,
+            );
           break;
         case LogLevel.Warn:
-          InternalLogger.logger?.warn(logMessage, ...(msg.args ?? []));
+          if (msg.args)
+            InternalLogger.logger?.warn(
+              `[${msg.logNames}] ${method}${msg.message}`,
+              ...msg.args,
+            );
+          else
+            InternalLogger.logger?.warn(
+              `[${msg.logNames}] ${method}${msg.message}`,
+            );
           break;
         case LogLevel.Error:
-          InternalLogger.logger?.error(logMessage, ...(msg.args ?? []));
+          if (msg.args)
+            InternalLogger.logger?.error(
+              `[${msg.logNames}] ${method}${msg.message}`,
+              ...msg.args,
+            );
+          else
+            InternalLogger.logger?.error(
+              `[${msg.logNames}] ${method}${msg.message}`,
+            );
           break;
         case LogLevel.Fatal:
           if (InternalLogger.logger && InternalLogger.logger.fatal)
-            InternalLogger.logger.fatal(logMessage, ...(msg.args ?? []));
+            if (msg.args)
+              InternalLogger.logger.fatal(
+                `[${msg.logNames}] ${method}${msg.message}`,
+                ...msg.args,
+              );
+            else
+              InternalLogger.logger.fatal(
+                `[${msg.logNames}] ${method}${msg.message}`,
+              );
           break;
       }
     },
@@ -78,13 +127,10 @@ export const rootMQTTLogger = provider.getCategory("mqtt");
 export const rootPushLogger = provider.getCategory("push");
 export const rootP2PLogger = provider.getCategory("p2p");
 
-/**
- *  Set logging level
- *
- * @param category
- * @param level
- */
-export const setLoggingLevel = function (category: LoggingCategories = "all", level: LogLevel = LogLevel.Off): void {
+export const setLoggingLevel = function (
+  category: LoggingCategories = "all",
+  level: LogLevel = LogLevel.Off,
+): void {
   switch (category) {
     case "all":
       provider.updateRuntimeSettings({
@@ -119,12 +165,9 @@ export const setLoggingLevel = function (category: LoggingCategories = "all", le
   }
 };
 
-/**
- *  Get the logging level
- *
- * @param category
- */
-export const getLoggingLevel = function (category: LoggingCategories = "all"): number {
+export const getLoggingLevel = function (
+  category: LoggingCategories = "all",
+): number {
   switch (category) {
     case "all":
       return provider.runtimeConfig.level;

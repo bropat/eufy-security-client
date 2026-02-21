@@ -8,7 +8,6 @@ import type { ImageFileExtension } from "image-type" with {
 
 import {
   DatabaseCountByDate,
-  DatabaseQueryByDate,
   DatabaseQueryLatestInfo,
   DatabaseQueryLocal,
   StreamMetadata,
@@ -22,12 +21,19 @@ import {
   TFCardStatus,
 } from "../p2p/types";
 import { Camera, Device } from "./device";
-import { Cipher, Voice, Invite, DeviceListResponse, StationListResponse, HouseListResponse } from "./models";
+import {
+  Cipher,
+  Voice,
+  Invite,
+  DeviceListResponse,
+  StationListResponse,
+  HouseListResponse,
+} from "./models";
 import { Station } from "./station";
 import { CommandName, PropertyName, SourceType } from "./types";
 import { TalkbackStream } from "../p2p/talkback";
 
-export type PropertyValue = number | boolean | string | object | undefined;
+export type PropertyValue = number | boolean | string | object;
 
 export interface PropertyValues {
   [index: string]: PropertyValue;
@@ -207,15 +213,24 @@ export interface StationEvents {
   close: (station: Station) => void;
   "connection error": (station: Station, error: Error) => void;
   "raw device property changed": (deviceSN: string, params: RawValues) => void;
-  "property changed": (station: Station, name: string, value: PropertyValue, ready: boolean) => void;
-  "raw property changed": (station: Station, type: number, value: string) => void;
+  "property changed": (
+    station: Station,
+    name: string,
+    value: PropertyValue,
+    ready: boolean,
+  ) => void;
+  "raw property changed": (
+    station: Station,
+    type: number,
+    value: string,
+  ) => void;
   "command result": (station: Station, result: CommandResult) => void;
   "download start": (
     station: Station,
     channel: number,
     metadata: StreamMetadata,
     videostream: Readable,
-    audiostream: Readable
+    audiostream: Readable,
   ) => void;
   "download finish": (station: Station, channel: number) => void;
   "livestream start": (
@@ -223,7 +238,7 @@ export interface StationEvents {
     channel: number,
     metadata: StreamMetadata,
     videostream: Readable,
-    audiostream: Readable
+    audiostream: Readable,
   ) => void;
   "livestream stop": (station: Station, channel: number) => void;
   "livestream error": (station: Station, channel: number, error: Error) => void;
@@ -234,49 +249,96 @@ export interface StationEvents {
   "current mode": (station: Station, currentMode: number) => void;
   "alarm event": (station: Station, alarmEvent: AlarmEvent) => void;
   ready: (station: Station) => void;
-  "runtime state": (station: Station, channel: number, batteryLevel: number, temperature: number) => void;
-  "charging state": (station: Station, channel: number, chargeType: number, batteryLevel: number) => void;
+  "runtime state": (
+    station: Station,
+    channel: number,
+    batteryLevel: number,
+    temperature: number,
+  ) => void;
+  "charging state": (
+    station: Station,
+    channel: number,
+    chargeType: number,
+    batteryLevel: number,
+  ) => void;
   "wifi rssi": (station: Station, channel: number, rssi: number) => void;
-  "floodlight manual switch": (station: Station, channel: number, enabled: boolean) => void;
-  "alarm delay event": (station: Station, alarmDelayEvent: AlarmEvent, alarmDelay: number) => void;
+  "floodlight manual switch": (
+    station: Station,
+    channel: number,
+    enabled: boolean,
+  ) => void;
+  "alarm delay event": (
+    station: Station,
+    alarmDelayEvent: AlarmEvent,
+    alarmDelay: number,
+  ) => void;
   "alarm arm delay event": (station: Station, armDelay: number) => void;
   "alarm armed event": (station: Station) => void;
-  "talkback started": (station: Station, channel: number, talkbackStream: TalkbackStream) => void;
+  "talkback started": (
+    station: Station,
+    channel: number,
+    talkbackStream: TalkbackStream,
+  ) => void;
   "talkback stopped": (station: Station, channel: number) => void;
   "talkback error": (station: Station, channel: number, error: Error) => void;
   "secondary command result": (station: Station, result: CommandResult) => void;
-  "device shake alarm": (deviceSN: string, event: SmartSafeShakeAlarmEvent) => void;
+  "device shake alarm": (
+    deviceSN: string,
+    event: SmartSafeShakeAlarmEvent,
+  ) => void;
   "device 911 alarm": (deviceSN: string, event: SmartSafeAlarm911Event) => void;
   "device jammed": (deviceSN: string) => void;
   "device low battery": (deviceSN: string) => void;
   "device wrong try-protect alarm": (deviceSN: string) => void;
   "device pin verified": (deviceSN: string, successfull: boolean) => void;
-  "sd info ex": (station: Station, sdStatus: TFCardStatus, sdCapacity: number, sdCapacityAvailable: number) => void;
+  "sd info ex": (
+    station: Station,
+    sdStatus: TFCardStatus,
+    sdCapacity: number,
+    sdCapacityAvailable: number,
+  ) => void;
   "image download": (station: Station, file: string, image: Buffer) => void;
   "database query latest": (
     station: Station,
     returnCode: DatabaseReturnCode,
-    data: Array<DatabaseQueryLatestInfo>
+    data: Array<DatabaseQueryLatestInfo>,
   ) => void;
-  "database query local": (station: Station, returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => void;
-  "database query by date": (
+  "database query local": (
     station: Station,
     returnCode: DatabaseReturnCode,
-    data: Array<DatabaseQueryByDate>
+    data: Array<DatabaseQueryLocal>,
   ) => void;
   "database count by date": (
     station: Station,
     returnCode: DatabaseReturnCode,
-    data: Array<DatabaseCountByDate>
+    data: Array<DatabaseCountByDate>,
   ) => void;
-  "database delete": (station: Station, returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => void;
+  "database delete": (
+    station: Station,
+    returnCode: DatabaseReturnCode,
+    failedIds: Array<unknown>,
+  ) => void;
   "sensor status": (station: Station, channel: number, status: number) => void;
-  "garage door status": (station: Station, channel: number, doorId: number, status: number) => void;
-  "storage info hb3": (station: Station, channel: number, storageInfo: StorageInfoBodyHB3) => void;
+  "garage door status": (
+    station: Station,
+    channel: number,
+    doorId: number,
+    status: number,
+  ) => void;
+  "storage info hb3": (
+    station: Station,
+    channel: number,
+    storageInfo: StorageInfoBodyHB3,
+  ) => void;
 }
 
 export interface DeviceEvents {
-  "property changed": (device: Device, name: string, value: PropertyValue, ready: boolean) => void;
+  "property changed": (
+    device: Device,
+    name: string,
+    value: PropertyValue,
+    ready: boolean,
+  ) => void;
   "raw property changed": (device: Device, type: number, value: string) => void;
   "motion detected": (device: Device, state: boolean) => void;
   "person detected": (device: Device, state: boolean, person: string) => void;
@@ -297,8 +359,16 @@ export interface DeviceEvents {
   "package taken": (device: Device, state: boolean) => void;
   "someone loitering": (device: Device, state: boolean) => void;
   "radar motion detected": (device: Device, state: boolean) => void;
-  "911 alarm": (device: Device, state: boolean, detail: SmartSafeAlarm911Event) => void;
-  "shake alarm": (device: Device, state: boolean, detail: SmartSafeShakeAlarmEvent) => void;
+  "911 alarm": (
+    device: Device,
+    state: boolean,
+    detail: SmartSafeAlarm911Event,
+  ) => void;
+  "shake alarm": (
+    device: Device,
+    state: boolean,
+    detail: SmartSafeShakeAlarmEvent,
+  ) => void;
   "wrong try-protect alarm": (device: Device, state: boolean) => void;
   "long time not close": (device: Device, state: boolean) => void;
   "low battery": (device: Device, state: boolean) => void;
@@ -309,11 +379,4 @@ export interface DeviceEvents {
   "pin incorrect": (device: Device, state: boolean) => void;
   "lid stuck": (device: Device, state: boolean) => void;
   "battery fully charged": (device: Device, state: boolean) => void;
-}
-
-export interface BrandData {
-  first?: string[];
-  second?: string[];
-  numbers?: number;
-  letters?: string[];
 }

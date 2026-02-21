@@ -2,8 +2,21 @@ import * as NodeRSA from "node-rsa";
 import { Readable } from "stream";
 import { SortedMap } from "sweet-collections";
 
-import { AlarmMode, DeviceType, MicStatus, ParamType, TriggerType, VideoType } from "../http/types";
-import { Address, CmdCameraInfoResponse, CommandResult, CustomData, StorageInfoBodyHB3 } from "./models";
+import {
+  AlarmMode,
+  DeviceType,
+  MicStatus,
+  ParamType,
+  TriggerType,
+  VideoType,
+} from "../http/types";
+import {
+  Address,
+  CmdCameraInfoResponse,
+  CommandResult,
+  CustomData,
+  StorageInfoBodyHB3,
+} from "./models";
 import { TalkbackStream } from "./talkback";
 import {
   AlarmEvent,
@@ -26,13 +39,18 @@ export interface P2PClientProtocolEvents {
   connect: (address: Address) => void;
   close: () => void;
   command: (result: CommandResult) => void;
-  "download started": (channel: number, metadata: StreamMetadata, videoStream: Readable, audioStream: Readable) => void;
+  "download started": (
+    channel: number,
+    metadata: StreamMetadata,
+    videoStream: Readable,
+    audioStream: Readable,
+  ) => void;
   "download finished": (channel: number) => void;
   "livestream started": (
     channel: number,
     metadata: StreamMetadata,
     videoStream: Readable,
-    audioStream: Readable
+    audioStream: Readable,
   ) => void;
   "livestream stopped": (channel: number) => void;
   "livestream error": (channel: number, error: Error) => void;
@@ -40,8 +58,16 @@ export interface P2PClientProtocolEvents {
   "rtsp url": (channel: number, rtspUrl: string) => void;
   parameter: (channel: number, param: number, value: string) => void;
   timeout: () => void;
-  "runtime state": (channel: number, batteryLevel: number, temperature: number) => void;
-  "charging state": (channel: number, chargeType: number, batteryLevel: number) => void;
+  "runtime state": (
+    channel: number,
+    batteryLevel: number,
+    temperature: number,
+  ) => void;
+  "charging state": (
+    channel: number,
+    chargeType: number,
+    batteryLevel: number,
+  ) => void;
   "rtsp livestream started": (channel: number) => void;
   "rtsp livestream stopped": (channel: number) => void;
   "floodlight manual switch": (channel: number, enabled: boolean) => void;
@@ -57,18 +83,45 @@ export interface P2PClientProtocolEvents {
   "shake alarm": (channel: number, detail: SmartSafeShakeAlarmEvent) => void;
   "911 alarm": (channel: number, detail: SmartSafeAlarm911Event) => void;
   "wrong try-protect alarm": (channel: number) => void;
-  "sd info ex": (sdStatus: TFCardStatus, sdCapacity: number, sdCapacityAvailable: number) => void;
+  "sd info ex": (
+    sdStatus: TFCardStatus,
+    sdCapacity: number,
+    sdCapacityAvailable: number,
+  ) => void;
   "image download": (file: string, image: Buffer) => void;
   "tfcard status": (channel: number, status: TFCardStatus) => void;
-  "database query latest": (returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLatestInfo>) => void;
-  "database query local": (returnCode: DatabaseReturnCode, data: Array<DatabaseQueryLocal>) => void;
-  "database query by date": (returnCode: DatabaseReturnCode, data: Array<DatabaseQueryByDate>) => void;
-  "database count by date": (returnCode: DatabaseReturnCode, data: Array<DatabaseCountByDate>) => void;
-  "database delete": (returnCode: DatabaseReturnCode, failedIds: Array<unknown>) => void;
+  "database query latest": (
+    returnCode: DatabaseReturnCode,
+    data: Array<DatabaseQueryLatestInfo>,
+  ) => void;
+  "database query local": (
+    returnCode: DatabaseReturnCode,
+    data: Array<DatabaseQueryLocal>,
+  ) => void;
+  "database count by date": (
+    returnCode: DatabaseReturnCode,
+    data: Array<DatabaseCountByDate>,
+  ) => void;
+  "database delete": (
+    returnCode: DatabaseReturnCode,
+    failedIds: Array<unknown>,
+  ) => void;
   "sensor status": (channel: number, status: number) => void;
-  "garage door status": (channel: number, doorId: number, status: number) => void;
-  "storage info hb3": (channel: number, storageInfo: StorageInfoBodyHB3) => void;
-  "sequence error": (channel: number, command: number, sequence: number, serialnumber: string) => void;
+  "garage door status": (
+    channel: number,
+    doorId: number,
+    status: number,
+  ) => void;
+  "storage info hb3": (
+    channel: number,
+    storageInfo: StorageInfoBodyHB3,
+  ) => void;
+  "sequence error": (
+    channel: number,
+    command: number,
+    sequence: number,
+    serialnumber: string,
+  ) => void;
 }
 
 export interface P2PQueueMessage {
@@ -282,31 +335,15 @@ export interface P2PDatabaseQueryLocalRecordCropPictureInfo {
 }
 
 export interface P2PDatabaseQueryLocalResponse {
-  payload: Array<P2PDatabaseQueryLocalHistoryRecordInfo> | Array<P2PDatabaseQueryLocalRecordCropPictureInfo>;
+  payload:
+    | Array<P2PDatabaseQueryLocalHistoryRecordInfo>
+    | Array<P2PDatabaseQueryLocalRecordCropPictureInfo>;
   table_name: string;
 }
 
 export interface P2PDatabaseDeleteResponse {
   // failed_delete seems never populated... Always "[]"
   failed_delete: Array<unknown>;
-}
-
-export interface P2PDatabaseQueryByDateRecord {
-  device_sn: string;
-  device_type: DeviceType;
-  start_time: string;
-  end_time: string;
-  storage_path: string;
-  thumb_path: string;
-  cipher_id: number;
-  folder_size: number;
-  frame_num: number;
-  trigger_type: TriggerType;
-  video_type: VideoType;
-  record_id: number;
-  station_sn: string;
-  storage_type: P2PStorageType;
-  storage_cloud: boolean;
 }
 
 export interface P2PDatabaseResponse {
@@ -339,7 +376,9 @@ export interface DatabaseQueryLatestInfoLocal extends DatabaseQueryLatestInfoBas
   crop_local_path: string;
 }
 
-export type DatabaseQueryLatestInfo = DatabaseQueryLatestInfoCloud | DatabaseQueryLatestInfoLocal;
+export type DatabaseQueryLatestInfo =
+  | DatabaseQueryLatestInfoCloud
+  | DatabaseQueryLatestInfoLocal;
 
 export interface DatabaseCountByDate {
   day: Date;
@@ -404,24 +443,6 @@ export interface DatabaseQueryLocal {
   device_sn?: string;
   history: HistoryRecordInfo;
   picture: Array<CropPictureInfo>;
-}
-
-export interface DatabaseQueryByDate {
-  device_sn: string;
-  device_type: DeviceType;
-  start_time: Date;
-  end_time: Date;
-  storage_path: string;
-  thumb_path: string;
-  cipher_id: number;
-  folder_size: number;
-  frame_num: number;
-  trigger_type: TriggerType;
-  video_type: VideoType;
-  record_id: number;
-  station_sn: string;
-  storage_type: P2PStorageType;
-  storage_cloud: boolean;
 }
 
 export interface RGBColor {

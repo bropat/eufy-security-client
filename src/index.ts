@@ -6,5 +6,5 @@ export * from "./eufysecurity";
 export * from "./error";
 export { LoggingCategories, LogLevel, Logger, dummyLogger } from "./logging";
 
-const version: string = require("../package.json").version;
-export const libVersion: string = version;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+export const libVersion: string = require("../package.json").version;

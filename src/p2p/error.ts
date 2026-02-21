@@ -1,6 +1,9 @@
 import { BaseError, Jsonable } from "../error";
 export class BleVersionCodeError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = BleVersionCodeError.name;
@@ -8,7 +11,10 @@ export class BleVersionCodeError extends BaseError {
 }
 
 export class BleCommandCodeError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = BleCommandCodeError.name;
@@ -16,7 +22,10 @@ export class BleCommandCodeError extends BaseError {
 }
 
 export class BleDataTypeError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = BleDataTypeError.name;
@@ -24,7 +33,10 @@ export class BleDataTypeError extends BaseError {
 }
 
 export class BleDataError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = BleDataError.name;
@@ -32,7 +44,10 @@ export class BleDataError extends BaseError {
 }
 
 export class BleAdditionalDataError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = BleAdditionalDataError.name;
@@ -40,7 +55,10 @@ export class BleAdditionalDataError extends BaseError {
 }
 
 export class BleAdditionalDataSeparatorError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = BleAdditionalDataSeparatorError.name;
@@ -48,7 +66,10 @@ export class BleAdditionalDataSeparatorError extends BaseError {
 }
 
 export class BleInvalidDataHeaderError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = BleInvalidDataHeaderError.name;
@@ -56,7 +77,10 @@ export class BleInvalidDataHeaderError extends BaseError {
 }
 
 export class BleInvalidChecksumError extends BaseError {
-  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+  constructor(
+    message: string,
+    options: { cause?: Error; context?: Jsonable } = {},
+  ) {
     super(message, options);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = BleInvalidChecksumError.name;

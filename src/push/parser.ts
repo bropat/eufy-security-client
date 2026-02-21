@@ -5,7 +5,11 @@ import { TypedEmitter } from "tiny-typed-emitter";
 import { MessageTag, ProcessingState } from "./models";
 import { PushClientParserEvents } from "./interfaces";
 import { ensureError } from "../error";
-import { MCSProtocolMessageTagError, MCSProtocolProcessingStateError, MCSProtocolVersionError } from "./error";
+import {
+  MCSProtocolMessageTagError,
+  MCSProtocolProcessingStateError,
+  MCSProtocolVersionError,
+} from "./error";
 import { rootPushLogger } from "../logging";
 
 export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
@@ -73,7 +77,9 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
         this.onGotMessageBytes();
         break;
       default:
-        rootPushLogger.warn("Push Parser - Unknown state", { state: this.state });
+        rootPushLogger.warn("Push Parser - Unknown state", {
+          state: this.state,
+        });
         break;
     }
   }
@@ -82,7 +88,9 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
     const version = this.data.readInt8(0);
     this.data = this.data.subarray(1);
     if (version < 41 && version !== 38) {
-      throw new MCSProtocolVersionError("Got wrong protocol version", { context: { version: version } });
+      throw new MCSProtocolVersionError("Got wrong protocol version", {
+        context: { version: version },
+      });
     }
 
     // Process the LoginResponse message tag.
@@ -103,7 +111,10 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
       this.messageSize = reader.int32();
     } catch (err) {
       const error = ensureError(err);
-      if (error instanceof Error && error.message.startsWith("index out of range:")) {
+      if (
+        error instanceof Error &&
+        error.message.startsWith("index out of range:")
+      ) {
         incompleteSizePacket = true;
       } else {
         throw error;
@@ -183,9 +194,10 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
       case ProcessingState.MCS_PROTO_BYTES:
         return this.messageSize;
       default:
-        throw new MCSProtocolProcessingStateError("Unknown protocol processing state", {
-          context: { state: this.state },
-        });
+        throw new MCSProtocolProcessingStateError(
+          "Unknown protocol processing state",
+          { context: { state: this.state } },
+        );
     }
   }
 
@@ -204,9 +216,13 @@ export class PushClientParser extends TypedEmitter<PushClientParserEvents> {
       case MessageTag.IqStanza:
         return PushClientParser.proto!.lookupType("mcs_proto.IqStanza");
       case MessageTag.DataMessageStanza:
-        return PushClientParser.proto!.lookupType("mcs_proto.DataMessageStanza");
+        return PushClientParser.proto!.lookupType(
+          "mcs_proto.DataMessageStanza",
+        );
       case MessageTag.StreamErrorStanza:
-        return PushClientParser.proto!.lookupType("mcs_proto.StreamErrorStanza");
+        return PushClientParser.proto!.lookupType(
+          "mcs_proto.StreamErrorStanza",
+        );
       default:
         throw new MCSProtocolMessageTagError("Unknown protocol message tag", {
           context: { messageTag: this.messageTag },
