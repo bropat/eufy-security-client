@@ -51,6 +51,7 @@ import {
   LockT8520PDeviceProperties,
   DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
   DeviceStatusLedIndoorS350Property,
+  LockT85V0DeviceProperties,
   IndoorS350DetectionTypes,
   EufyCamC35DetectionTypes,
   DeviceRTSPStreamProperty,
