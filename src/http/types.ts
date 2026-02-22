@@ -79,7 +79,9 @@ export enum DeviceType {
   INDOOR_PT_CAMERA_S350 = 104,
   INDOOR_PT_CAMERA_E30 = 105,
   CAMERA_FG = 110, //T8150
+  SIREN_SENSOR_E20 = 123,
   ENTRY_SENSOR_E20 = 126,
+  PIR_SENSOR_E20 = 127,
   CAMERA_GARAGE_T8453_COMMON = 131,
   CAMERA_GARAGE_T8452 = 132,
   CAMERA_GARAGE_T8453 = 133,
@@ -1033,7 +1035,9 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
     102: "Camera Snail",
     104: "Indoor Camera S350",
     110: "Starlight 4G LTE", //T8150
+    123: "Siren Sensor E20",
     126: "Entry Sensor E20",
+    127: "Pir Sensor E20",
     131: "Camera Garage T8453 Common",
     132: "Garage-Control Cam E110 (T8452)",
     133: "Garage-Control Cam E120 (T8453)",
@@ -8549,6 +8553,12 @@ export const DeviceProperties: Properties = {
     [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIEntrySensorProperty,
     [PropertyName.DeviceChirpTone]: DeviceChirpToneEntrySensorProperty,
     [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+  },
+  [DeviceType.PIR_SENSOR_E20]: {
+    ...GenericDeviceProperties,
+  },
+  [DeviceType.SIREN_SENSOR_E20]: {
+    ...GenericDeviceProperties,
   },
 };
 
