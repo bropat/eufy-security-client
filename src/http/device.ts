@@ -1922,6 +1922,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.INDOOR_PT_CAMERA_C210 ||
       type == DeviceType.INDOOR_PT_CAMERA_C220 ||
       type == DeviceType.INDOOR_PT_CAMERA_C220_V2 ||
+      type == DeviceType.SOLOCAM_E42 ||
       type == DeviceType.SMART_DROP
     );
   }
@@ -1975,6 +1976,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.WALL_LIGHT_CAM_81A0 ||
       type == DeviceType.SMART_DROP ||
       type == DeviceType.OUTDOOR_PT_CAMERA ||
+      type == DeviceType.SOLOCAM_E42 ||
       type == DeviceType.ENTRY_SENSOR_E20
     );
   }
@@ -2076,6 +2078,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.INDOOR_COST_DOWN_CAMERA ||
       type == DeviceType.OUTDOOR_PT_CAMERA ||
       type == DeviceType.CAMERA_S4 ||
+      type == DeviceType.SOLOCAM_E42 ||
       type == DeviceType.INDOOR_PT_CAMERA_S350 ||
       type == DeviceType.INDOOR_PT_CAMERA_E30 ||
       type == DeviceType.INDOOR_PT_CAMERA_C210 ||
@@ -2087,7 +2090,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isOutdoorPanAndTiltCamera(type: number): boolean {
-    if (type == DeviceType.OUTDOOR_PT_CAMERA || type == DeviceType.SOLO_CAMERA_E30 || type == DeviceType.CAMERA_S4)
+    if (type == DeviceType.OUTDOOR_PT_CAMERA || type == DeviceType.SOLO_CAMERA_E30 || type == DeviceType.CAMERA_S4 || type == DeviceType.SOLOCAM_E42)
       return true;
     return false;
   }
@@ -2341,6 +2344,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return DeviceType.SOLO_CAMERA_E30 == type;
   }
 
+  static isSoloCamE42(type: number): boolean {
+    //T8173
+    return DeviceType.SOLOCAM_E42 == type;
+  }
+
   static isSoloCameras(type: number): boolean {
     return (
       Device.isSoloCamera(type) ||
@@ -2352,6 +2360,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       Device.isSoloCameraSolar(type) ||
       Device.isSoloCameraC210(type) ||
       Device.isSoloCameraE30(type) ||
+      Device.isSoloCamE42(type) ||
       Device.isCameraC35(type)
     );
   }
@@ -2498,6 +2507,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       sn.startsWith("T8131") ||
       sn.startsWith("T8171") ||
       sn.startsWith("T8172") ||
+      sn.startsWith("T8173") ||
       sn.startsWith("T8422") ||
       sn.startsWith("T8423") ||
       sn.startsWith("T8424") ||
@@ -2516,6 +2526,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       sn.startsWith("T8123") ||
       sn.startsWith("T8124") ||
       sn.startsWith("T8171") ||
+      sn.startsWith("T8173") ||
       sn.startsWith("T8134")
     );
   }
@@ -2769,6 +2780,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   public isSoloCameraE30(): boolean {
     return Device.isSoloCameraE30(this.rawDevice.device_type);
+  }
+
+  public isSoloCamE42(): boolean {
+    return Device.isSoloCamE42(this.rawDevice.device_type);
   }
 
   public isStarlight4GLTE(): boolean {
