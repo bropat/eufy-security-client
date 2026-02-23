@@ -7406,7 +7406,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
   }
 
-  public async startDownload(device: Device, path: string, cipher_id?: number): Promise<void> {
+  public async startDownload(device: Device, path: string, cipher_id?: number, startTime?: number, endTime?: number): Promise<void> {
     const commandData: CommandData = {
       name: CommandName.DeviceStartDownload,
       value: {
@@ -7441,7 +7441,6 @@ export class Station extends TypedEmitter<StationEvents> {
       cipherID: cipher_id,
     });
     if (this.getDeviceType() === DeviceType.HB3) {
-      //TODO: Implement HB3 Support! Actually doesn't work and returns return_code -104 (ERROR_INVALID_ACCOUNT). It could be that we need the new encrypted p2p protocol to make this work...
       const rsa_key = this.p2pSession.getDownloadRSAPrivateKey();
       this.p2pSession.sendCommandWithStringPayload(
         {
@@ -7453,6 +7452,9 @@ export class Station extends TypedEmitter<StationEvents> {
             mValue3: CommandType.CMD_DOWNLOAD_VIDEO,
             payload: {
               filepath: path,
+              channel: device.getChannel(),
+              startTime: startTime ?? 0,
+              endTime: endTime ?? 0,
               key: rsa_key?.exportKey("components-public").n.subarray(1).toString("hex").toUpperCase(),
             },
           }),
@@ -15355,7 +15357,7 @@ export class Station extends TypedEmitter<StationEvents> {
           payload: {
             cmd: CommandType.CMD_DATABASE_QUERY_BY_DATE,
             payload: {
-              count: 100,
+              count: this.getDeviceType() === DeviceType.HB3 ? 1500 : 100, // HB3 firmware supports up to ~1500 reliably (~8s). Beyond 1500, response time increases exponentially (1600: ~13s, 1700: timeout). Default was 100.
               detection_type: detectionType,
               device_info: devices,
               end_date: endDateStr,

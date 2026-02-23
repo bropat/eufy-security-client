@@ -1480,7 +1480,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
   }
 
-  public async startStationDownload(deviceSN: string, path: string, cipherID: number): Promise<void> {
+  public async startStationDownload(deviceSN: string, path: string, cipherID: number, startTime?: number, endTime?: number): Promise<void> {
     const device = await this.getDevice(deviceSN);
     const station = await this.getStation(device.getStationSerial());
 
@@ -1490,7 +1490,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
       });
 
     if (!station.isDownloading(device)) {
-      await station.startDownload(device, path, cipherID);
+      await station.startDownload(device, path, cipherID, startTime, endTime);
     } else {
       rootMainLogger.warn(`The station is already downloading a video for the device ${deviceSN}!`);
     }
