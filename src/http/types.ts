@@ -8562,7 +8562,6 @@ export const DeviceProperties: Properties = {
     [PropertyName.DeviceBatteryLow]: DeviceBatteryLowMotionSensorProperty,
     [PropertyName.DeviceState]: DeviceStateProperty,
     [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
-
   },
   [DeviceType.SIREN_SENSOR_E20]: {
     ...GenericDeviceProperties,
@@ -9742,12 +9741,11 @@ export const StationProperties: Properties = {
   },
   [DeviceType.SIREN_SENSOR_E20]: {
     ...BaseStationProperties,
-  [PropertyName.StationAlarmVolume]: StationAlarmVolumeWalllightProperty,
+    [PropertyName.StationAlarmVolume]: StationAlarmVolumeWalllightProperty,
     [PropertyName.StationAlarm]: StationAlarmProperty,
     [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     [PropertyName.StationAlarmTone]: StationAlarmToneProperty,
-
-  }
+  },
 };
 
 StationProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = StationProperties[DeviceType.INDOOR_PT_CAMERA_C220];
@@ -10464,15 +10462,17 @@ export const DeviceCommands: Commands = {
     CommandName.DeviceSnooze,
     CommandName.StationTriggerAlarmSound,
     CommandName.DeviceTriggerAlarmSound,
-
   ],
   [DeviceType.PIR_SENSOR_E20]: [
     CommandName.DeviceSnooze,
     CommandName.StationTriggerAlarmSound,
     CommandName.DeviceTriggerAlarmSound,
-
-
-  ]
+  ],
+  [DeviceType.ENTRY_SENSOR_E20]: [
+    CommandName.DeviceSnooze,
+    CommandName.StationTriggerAlarmSound,
+    CommandName.DeviceTriggerAlarmSound,
+  ],
 };
 
 DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220];

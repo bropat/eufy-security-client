@@ -6593,12 +6593,15 @@ export class Station extends TypedEmitter<StationEvents> {
       });
     }
     if (!device.hasCommand(CommandName.DeviceTriggerAlarmSound)) {
-      rootHTTPLogger.debug(`This functionality is not implemented or supported by this device - triggerDeviceAlarmSound`, {
-        device: device.getSerial(),
-        station: this.getSerial(),
-        commandName: commandData.name,
-        commandValue: commandData.value,
-      });
+      rootHTTPLogger.debug(
+        `This functionality is not implemented or supported by this device - triggerDeviceAlarmSound`,
+        {
+          device: device.getSerial(),
+          station: this.getSerial(),
+          commandName: commandData.name,
+          commandValue: commandData.value,
+        }
+      );
       throw new NotSupportedError("This functionality is not implemented or supported by this device", {
         context: {
           device: device.getSerial(),
@@ -6684,8 +6687,10 @@ export class Station extends TypedEmitter<StationEvents> {
     };
     if (!this.hasProperty(propertyData.name)) {
       rootHTTPLogger.debug(`This functionality is not implemented or supported - setStationAlarmTone`, {
-        propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()
-      })
+        propertyName: propertyData.name,
+        propertyValue: propertyData.value,
+        station: this.getSerial(),
+      });
       throw new NotSupportedError("This functionality is not implemented or supported", {
         context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() },
       });
@@ -7023,7 +7028,7 @@ export class Station extends TypedEmitter<StationEvents> {
         station: this.getSerial(),
         propertyName: propertyData.name,
         propertyValue: propertyData.value,
-      })
+      });
       throw new NotSupportedError("This functionality is not implemented or supported by this device", {
         context: {
           device: device.getSerial(),
