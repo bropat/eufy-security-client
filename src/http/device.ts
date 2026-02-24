@@ -2222,10 +2222,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return DeviceType.LOCK_8502 == type;
   }
 
-  static isLockWifiT85D0(type: number): boolean {
-    return DeviceType.LOCK_85D0 == type;
-  }
-
   static usesSecurityMqtt(type: number): boolean {
     return Device.isLockWifiT85D0(type);
   }
