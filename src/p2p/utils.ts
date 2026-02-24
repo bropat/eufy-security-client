@@ -912,61 +912,47 @@ export const generateSmartLockAESKey = (adminUserId: string, time: number): Buff
   return Buffer.concat([Buffer.from(adminUserId.substring(adminUserId.length - 12)), buffer]);
 };
 
-export const getSmartLockP2PCommand = function (
-  deviceSN: string,
-  user_id: string,
-  command: CommandType | SmartLockCommand,
-  channel: number,
-  sequence: number,
-  data: Buffer,
-  functionType = SmartLockFunctionType.TYPE_2
-): SmartLockP2PCommand {
-  const time = getSmartLockCurrentTimeInSeconds();
-  const key = generateSmartLockAESKey(user_id, time);
-  const iv = getLockVectorBytes(deviceSN);
-  const encPayload = encryptPayloadData(data, key, Buffer.from(iv, "hex"));
+export const getSmartLockP2PCommand = function(deviceSN: string, user_id: string, command: CommandType | SmartLockCommand, channel: number, sequence: number, data: Buffer, functionType = SmartLockFunctionType.TYPE_2, useEncryption = true): SmartLockP2PCommand {
+    const time = getSmartLockCurrentTimeInSeconds();
+    const key = generateSmartLockAESKey(user_id, time);
+    const iv = getLockVectorBytes(deviceSN);
 
-  rootP2PLogger.debug(`Generate smart lock command`, {
-    deviceSN: deviceSN,
-    userId: user_id,
-    command: command,
-    channel: channel,
-    sequence: sequence,
-    data: data.toString("hex"),
-    functionType: functionType,
-  });
+    // Use encrypted or unencrypted payload based on parameter
+    const payloadData = useEncryption ? encryptPayloadData(data, key, Buffer.from(iv, "hex")) : data;
 
-  let commandCode = 0;
-  if (functionType === SmartLockFunctionType.TYPE_1) {
-    commandCode = Number.parseInt(SmartLockBleCommandFunctionType1[SmartLockCommand[command] as unknown as number]);
-  } else if (functionType === SmartLockFunctionType.TYPE_2) {
-    commandCode = Number.parseInt(SmartLockBleCommandFunctionType2[SmartLockCommand[command] as unknown as number]);
-  }
+    rootP2PLogger.debug(`Generate smart lock command`, { deviceSN: deviceSN, userId: user_id, command: command, channel: channel, sequence: sequence, data: data.toString("hex"), functionType: functionType, useEncryption: useEncryption });
 
-  const bleCommand = new BleCommandFactory()
-    .setVersionCode(Lock.VERSION_CODE_SMART_LOCK)
-    .setCommandCode(commandCode)
-    .setDataType(functionType)
-    .setData(encPayload);
-  return {
-    bleCommand: bleCommand.getCommandCode()!,
-    payload: {
-      commandType: CommandType.CMD_SET_PAYLOAD,
-      value: JSON.stringify({
-        account_id: user_id,
-        cmd: CommandType.CMD_TRANSFER_PAYLOAD,
-        mChannel: channel,
-        mValue3: 0,
+    let commandCode = 0;
+    if (functionType === SmartLockFunctionType.TYPE_1) {
+        commandCode = Number.parseInt(SmartLockBleCommandFunctionType1[SmartLockCommand[command] as unknown as number]);
+    } else if (functionType === SmartLockFunctionType.TYPE_2) {
+        commandCode = Number.parseInt(SmartLockBleCommandFunctionType2[SmartLockCommand[command] as unknown as number]);
+    }
+
+    const bleCommand = new BleCommandFactory()
+        .setVersionCode(Lock.VERSION_CODE_SMART_LOCK)
+        .setCommandCode(commandCode)
+        .setDataType(functionType)
+        .setData(payloadData);
+    return {
+        bleCommand: bleCommand.getCommandCode()!,
         payload: {
-          apiCommand: command,
-          lock_payload: bleCommand.getSmartLockCommand().toString("hex"),
-          seq_num: sequence,
-          time: time,
-        },
-      } as SmartLockP2PCommandPayloadType),
-    },
-  };
-};
+            commandType: CommandType.CMD_SET_PAYLOAD,
+            value: JSON.stringify({
+                account_id: user_id,
+                cmd: CommandType.CMD_TRANSFER_PAYLOAD,
+                mChannel: channel,
+                mValue3: 0,
+                payload: {
+                    apiCommand: command,
+                    lock_payload: bleCommand.getSmartLockCommand(useEncryption).toString("hex"),
+                    seq_num: sequence,
+                    time: time,
+                }
+            } as SmartLockP2PCommandPayloadType)
+        }
+    };
+}
 
 export const readNullTerminatedBuffer = (input: Buffer): Buffer => {
   const index = input.indexOf(new Uint8Array([0]));

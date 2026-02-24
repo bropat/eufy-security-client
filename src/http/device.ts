@@ -2176,7 +2176,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isLockWifiVideo(type: number): boolean {
-    return DeviceType.LOCK_8530 == type;
+    return (DeviceType.LOCK_8530 == type || DeviceType.LOCK_8531 == type);
   }
 
   static isLockWifiR10Keypad(type: number): boolean {
@@ -2481,7 +2481,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
       sn.startsWith("T8502") ||
       sn.startsWith("T8504") ||
       sn.startsWith("T8506") ||
-      sn.startsWith("T8530")
+      sn.startsWith("T8530") ||
+      sn.startsWith("T8531")
     );
   }
 
@@ -4563,9 +4564,9 @@ export class Lock extends Device {
     return this.getPropertyValue(PropertyName.DeviceWifiRSSI);
   }
 
-  public isLocked(): PropertyValue {
-    const param = this.getLockStatus();
-    return param ? (param === 4 ? true : false) : false;
+
+  public isLocked(): boolean {
+      return this.getPropertyValue(PropertyName.DeviceLocked) as boolean;
   }
 
   public getLockStatus(): PropertyValue {

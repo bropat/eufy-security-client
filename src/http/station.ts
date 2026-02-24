@@ -115,6 +115,7 @@ import {
   P2PConnectionType,
   PanTiltDirection,
   SmartLockCommand,
+  SmartLockFunctionType,
   SmartSafeAlarm911Event,
   SmartSafeCommandCode,
   SmartSafeShakeAlarmEvent,
@@ -8410,33 +8411,26 @@ export class Station extends TypedEmitter<StationEvents> {
         property: propertyData,
       });
     } else if (device.isLockWifiVideo()) {
-      this.p2pSession.sendCommandWithStringPayload(
-        {
-          commandType: CommandType.CMD_SET_PAYLOAD,
-          value: JSON.stringify({
-            account_id: this.rawStation.member.admin_user_id,
-            cmd: CommandType.P2P_ON_OFF_LOCK,
-            mChannel: device.getChannel(),
-            mValue3: 0,
-            payload: {
-              shortUserId: this.rawStation.member.short_user_id,
-              slOperation: value === true ? 1 : 0,
-              userId: this.rawStation.member.admin_user_id,
-              userName: this.rawStation.member.nick_name,
-            },
-          }),
-          channel: device.getChannel(),
-        },
-        {
-          property: propertyData,
+            // T8530/T8531 - Use SmartLock P2P command format with UNENCRYPTED payload
+            // T8531 Video Smart Lock returns returnCode: 2 with encrypted commands
+            const command = getSmartLockP2PCommand(
+                this.rawStation.station_sn,
+                this.rawStation.member.admin_user_id,
+                SmartLockCommand.ON_OFF_LOCK,
+                device.getChannel(),
+                this.p2pSession.incLockSequenceNumber(),
+                Lock.encodeCmdSmartLockUnlock(this.rawStation.member.admin_user_id, value, this.rawStation.member.nick_name, this.rawStation.member.short_user_id),
+                SmartLockFunctionType.TYPE_2,
+                false  // T8531 requires unencrypted commands
+            );
+            rootHTTPLogger.debug("Station lock device - LockWifiVideo - Locking/unlocking device...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id, payload: command.payload });
+
+            this.p2pSession.sendCommandWithStringPayload(command.payload, {
+                property: propertyData
+            });
+            rootHTTPLogger.debug("Station lock device - Locking/unlocking device...", { station: this.getSerial(), device: device.getSerial(), admin_user_id: this.rawStation.member.admin_user_id });
         }
-      );
-      rootHTTPLogger.debug("Station lock device - Locking/unlocking device...", {
-        station: this.getSerial(),
-        device: device.getSerial(),
-        admin_user_id: this.rawStation.member.admin_user_id,
-      });
-    } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+    else if (device.isLockWifiR10() || device.isLockWifiR20()) {
       const command = getLockV12P2PCommand(
         this.rawStation.station_sn,
         this.rawStation.member.admin_user_id,
