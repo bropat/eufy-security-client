@@ -10463,10 +10463,14 @@ export const DeviceCommands: Commands = {
   [DeviceType.SIREN_SENSOR_E20]: [
     CommandName.DeviceSnooze,
     CommandName.StationTriggerAlarmSound,
+    CommandName.DeviceTriggerAlarmSound,
+
   ],
   [DeviceType.PIR_SENSOR_E20]: [
     CommandName.DeviceSnooze,
     CommandName.StationTriggerAlarmSound,
+    CommandName.DeviceTriggerAlarmSound,
+
 
   ]
 };
