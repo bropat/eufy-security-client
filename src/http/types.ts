@@ -8556,9 +8556,21 @@ export const DeviceProperties: Properties = {
   },
   [DeviceType.PIR_SENSOR_E20]: {
     ...GenericDeviceProperties,
+    [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+    [PropertyName.DeviceMotionSensorPIREvent]: DeviceMotionSensorPIREventProperty,
+    [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSILockProperty,
+    [PropertyName.DeviceBatteryLow]: DeviceBatteryLowMotionSensorProperty,
+    [PropertyName.DeviceState]: DeviceStateProperty,
+    [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+
   },
   [DeviceType.SIREN_SENSOR_E20]: {
     ...GenericDeviceProperties,
+    [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSILockProperty,
+    [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+    [PropertyName.DeviceState]: DeviceStateProperty,
+    [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+    [PropertyName.DeviceBatteryLow]: DeviceBatteryLowMotionSensorProperty,
   },
 };
 
@@ -9717,6 +9729,13 @@ export const StationProperties: Properties = {
   [DeviceType.ENTRY_SENSOR_E20]: {
     ...BaseStationProperties,
   },
+  [DeviceType.PIR_SENSOR_E20]: {
+    ...BaseStationProperties,
+  },
+  [DeviceType.SIREN_SENSOR_E20]: {
+    ...BaseStationProperties,
+  [PropertyName.StationAlarmVolume]: StationAlarmVolumeWalllightProperty,
+  }
 };
 
 StationProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = StationProperties[DeviceType.INDOOR_PT_CAMERA_C220];
