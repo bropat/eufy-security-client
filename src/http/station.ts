@@ -15333,7 +15333,7 @@ export class Station extends TypedEmitter<StationEvents> {
               flag: 0,
               res_unzip: 1,
               start_date: format(startDate, "YYYYMMDD"),
-              start_time: `${format(endDate, "YYYYMMDD")}000000`,
+              start_time: `${format(startDate, "YYYYMMDD")}000000`,
               storage_cloud:
                 storageType === FilterStorageType.NONE ||
                 (storageType !== FilterStorageType.LOCAL && storageType !== FilterStorageType.CLOUD)
