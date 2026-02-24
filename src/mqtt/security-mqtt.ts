@@ -93,7 +93,8 @@ interface DeviceCommandPayload {
  * BLE command frames as other smart locks (T8506, T8502), but tunneled over
  * a dedicated security MQTT broker instead of P2P or Cloud API.
  *
- * The auth chain is: Security API auth_token -> AIOT mTLS certs -> MQTT connect.
+ * @remarks
+ * Auth chain: Security API auth_token -> AIOT mTLS certs -> MQTT connect.
  */
 export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents> {
   private client: mqtt.MqttClient | null = null;
@@ -126,8 +127,6 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
     this.openudid = openudid;
     this.country = country;
   }
-
-  // ─── Public API ──────────────────────────────────────────────────────────
 
   /**
    * Connects to the Eufy security MQTT broker.
@@ -303,8 +302,6 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
     }
   }
 
-  // ─── Private: Authentication ─────────────────────────────────────────────
-
   /** Retrieves mTLS certificates from the AIOT endpoint using the Security API auth_token. */
   private async authenticate(): Promise<void> {
     rootMQTTLogger.debug("SecurityMQTT fetching MQTT certs...");
@@ -380,8 +377,6 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
     });
   }
 
-  // ─── Private: MQTT Helpers ───────────────────────────────────────────────
-
   private getSecurityBrokerHost(apiBase: string): string {
     if (apiBase.includes("-eu.")) {
       return "security-mqtt-eu.anker.com";
@@ -435,8 +430,6 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
     ).join("");
   }
 
-  // ─── Private: Command Building ───────────────────────────────────────────
-
   /**
    * Builds the MQTT message envelope for sending a command to a lock device.
    *
@@ -478,8 +471,6 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
       payload: JSON.stringify(devicePayload),
     };
   }
-
-  // ─── Private: Message Handling ───────────────────────────────────────────
 
   /**
    * Handles incoming MQTT messages from the security broker.
