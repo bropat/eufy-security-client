@@ -6677,6 +6677,9 @@ export class Station extends TypedEmitter<StationEvents> {
       value: value,
     };
     if (!this.hasProperty(propertyData.name)) {
+      rootHTTPLogger.debug(`This functionality is not implemented or supported - setStationAlarmTone`, {
+        propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial()
+      })
       throw new NotSupportedError("This functionality is not implemented or supported", {
         context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() },
       });
@@ -7009,6 +7012,12 @@ export class Station extends TypedEmitter<StationEvents> {
       });
     }
     if (!device.hasProperty(propertyData.name)) {
+      rootHTTPLogger.debug(`This functionality is not implemented or supported by this device - setRTSPStream`, {
+        device: device.getSerial(),
+        station: this.getSerial(),
+        propertyName: propertyData.name,
+        propertyValue: propertyData.value,
+      })
       throw new NotSupportedError("This functionality is not implemented or supported by this device", {
         context: {
           device: device.getSerial(),

@@ -9728,13 +9728,25 @@ export const StationProperties: Properties = {
   },
   [DeviceType.ENTRY_SENSOR_E20]: {
     ...BaseStationProperties,
+
+    [PropertyName.StationAlarm]: StationAlarmProperty,
+    [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+    [PropertyName.StationAlarmTone]: StationAlarmToneProperty,
   },
   [DeviceType.PIR_SENSOR_E20]: {
     ...BaseStationProperties,
+
+    [PropertyName.StationAlarm]: StationAlarmProperty,
+    [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+    [PropertyName.StationAlarmTone]: StationAlarmToneProperty,
   },
   [DeviceType.SIREN_SENSOR_E20]: {
     ...BaseStationProperties,
   [PropertyName.StationAlarmVolume]: StationAlarmVolumeWalllightProperty,
+    [PropertyName.StationAlarm]: StationAlarmProperty,
+    [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+    [PropertyName.StationAlarmTone]: StationAlarmToneProperty,
+
   }
 };
 
