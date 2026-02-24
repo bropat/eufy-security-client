@@ -6593,6 +6593,12 @@ export class Station extends TypedEmitter<StationEvents> {
       });
     }
     if (!device.hasCommand(CommandName.DeviceTriggerAlarmSound)) {
+      rootHTTPLogger.debug(`This functionality is not implemented or supported by this device - triggerDeviceAlarmSound`, {
+        device: device.getSerial(),
+        station: this.getSerial(),
+        commandName: commandData.name,
+        commandValue: commandData.value,
+      });
       throw new NotSupportedError("This functionality is not implemented or supported by this device", {
         context: {
           device: device.getSerial(),
