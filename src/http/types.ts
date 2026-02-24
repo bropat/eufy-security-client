@@ -10448,6 +10448,15 @@ export const DeviceCommands: Commands = {
     CommandName.DeviceStopTalkback,
     CommandName.DeviceSnooze,
   ],
+  [DeviceType.SIREN_SENSOR_E20]: [
+    CommandName.DeviceSnooze,
+    CommandName.StationTriggerAlarmSound,
+  ],
+  [DeviceType.PIR_SENSOR_E20]: [
+    CommandName.DeviceSnooze,
+    CommandName.StationTriggerAlarmSound,
+
+  ]
 };
 
 DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220];
