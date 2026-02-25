@@ -1917,6 +1917,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.CAMERA_GARAGE_T8453 ||
       type == DeviceType.CAMERA_GARAGE_T8452 ||
       type == DeviceType.CAMERA_FG ||
+      type == DeviceType.CAMERA_4G_S330 ||
       type == DeviceType.INDOOR_PT_CAMERA_S350 ||
       type == DeviceType.INDOOR_PT_CAMERA_E30 ||
       type == DeviceType.INDOOR_PT_CAMERA_C210 ||
@@ -1973,6 +1974,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.SMART_SAFE_7402 ||
       type == DeviceType.SMART_SAFE_7403 ||
       type == DeviceType.CAMERA_FG ||
+      type == DeviceType.CAMERA_4G_S330 ||
       type == DeviceType.WALL_LIGHT_CAM_81A0 ||
       type == DeviceType.SMART_DROP ||
       type == DeviceType.OUTDOOR_PT_CAMERA ||
@@ -2079,6 +2081,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.OUTDOOR_PT_CAMERA ||
       type == DeviceType.CAMERA_S4 ||
       type == DeviceType.SOLOCAM_E42 ||
+      type == DeviceType.CAMERA_4G_S330 ||
       type == DeviceType.INDOOR_PT_CAMERA_S350 ||
       type == DeviceType.INDOOR_PT_CAMERA_E30 ||
       type == DeviceType.INDOOR_PT_CAMERA_C210 ||
@@ -2090,7 +2093,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isOutdoorPanAndTiltCamera(type: number): boolean {
-    if (type == DeviceType.OUTDOOR_PT_CAMERA || type == DeviceType.SOLO_CAMERA_E30 || type == DeviceType.CAMERA_S4 || type == DeviceType.SOLOCAM_E42)
+    if (type == DeviceType.OUTDOOR_PT_CAMERA || type == DeviceType.SOLO_CAMERA_E30 || type == DeviceType.CAMERA_S4 || type == DeviceType.SOLOCAM_E42 || type == DeviceType.CAMERA_4G_S330)
       return true;
     return false;
   }
@@ -2369,6 +2372,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return DeviceType.CAMERA_FG == type;
   }
 
+  static is4GLTECamS330(type: number): boolean {
+    //T86P2
+    return DeviceType.CAMERA_4G_S330 == type;
+  }
+
   static isIndoorOutdoorCamera1080p(type: number): boolean {
     return DeviceType.INDOOR_OUTDOOR_CAMERA_1080P == type;
   }
@@ -2508,6 +2516,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       sn.startsWith("T8171") ||
       sn.startsWith("T8172") ||
       sn.startsWith("T8173") ||
+      sn.startsWith("T86P2") ||
       sn.startsWith("T8422") ||
       sn.startsWith("T8423") ||
       sn.startsWith("T8424") ||
@@ -2527,6 +2536,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       sn.startsWith("T8124") ||
       sn.startsWith("T8171") ||
       sn.startsWith("T8173") ||
+      sn.startsWith("T86P2") ||
       sn.startsWith("T8134")
     );
   }
@@ -2788,6 +2798,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   public isStarlight4GLTE(): boolean {
     return Device.isStarlight4GLTE(this.rawDevice.device_type);
+  }
+
+  public is4GLTECamS330(): boolean {
+    return Device.is4GLTECamS330(this.rawDevice.device_type);
   }
 
   public isIndoorOutdoorCamera1080p(): boolean {

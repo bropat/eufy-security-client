@@ -765,7 +765,7 @@ export class PushNotificationService extends TypedEmitter<PushNotificationServic
           normalizedMessage.news_id = cusPushData.news_id;
           normalizedMessage.msg_type = cusPushData.msg_type;
 
-          if (Device.isStarlight4GLTE(normalizedMessage.type)) {
+          if (Device.isStarlight4GLTE(normalizedMessage.type) || Device.is4GLTECamS330(normalizedMessage.type)) {
             if (cusPushData.channel && cusPushData.channel !== null && cusPushData.channel !== undefined) {
               normalizedMessage.channel = cusPushData.channel;
             }
