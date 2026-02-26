@@ -2093,7 +2093,13 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isOutdoorPanAndTiltCamera(type: number): boolean {
-    if (type == DeviceType.OUTDOOR_PT_CAMERA || type == DeviceType.SOLO_CAMERA_E30 || type == DeviceType.CAMERA_S4 || type == DeviceType.SOLOCAM_E42 || type == DeviceType.CAMERA_4G_S330)
+    if (
+      type == DeviceType.OUTDOOR_PT_CAMERA ||
+      type == DeviceType.SOLO_CAMERA_E30 ||
+      type == DeviceType.CAMERA_S4 ||
+      type == DeviceType.SOLOCAM_E42 ||
+      type == DeviceType.CAMERA_4G_S330
+    )
       return true;
     return false;
   }
