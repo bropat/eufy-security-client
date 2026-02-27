@@ -8,6 +8,10 @@
   },
   "homepage": "https://github.com/bropat/eufy-security-client",
   "main": "build/index.js",
+  "exports": {
+    ".": "./build/index.js",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build:ts": "tsc -p tsconfig.build.json && npm run copy-proto-build",
     "copy-proto-build": "npx copyfiles -u 1 \"src/**/*.proto\" \"src/**/*.crt\" build",
