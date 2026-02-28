@@ -929,6 +929,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         } else if (Device.isLockKeypad(device.device_type)) {
           new_device = LockKeypad.getInstance(this.api, device, deviceConfig);
         } else {
+          rootMainLogger.warn(`New unknown device detected`, {
+            device_type: device.device_type,
+            device_sn: device.device_sn,
+            device_name: device.device_name,
+            device_model: device.device_model,
+            station_sn: device.station_sn,
+            main_sw_version: device.main_sw_version,
+            main_hw_version: device.main_hw_version,
+            params: device.params,
+          });
           new_device = UnknownDevice.getInstance(this.api, device, deviceConfig);
         }
 
