@@ -23,6 +23,12 @@ The development of this shared library was inspired by the work of the following
 
 Credits go to them as well.
 
+## Unknown device?
+
+If you see a `New unknown device detected` warning in your logs, your device is not yet supported. You can help us add support for it by [reporting it](https://github.com/bropat/eufy-security-client/issues/new?template=unknown_device.yml). See the [guide](docs/reporting_unknown_devices.md) for details on how to extract the log.
+
+## Support
+
 If you appreciate my work and progress and want to support me, you can do it here:
 
 [![ko-fi](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/E1E332Q6Z)
