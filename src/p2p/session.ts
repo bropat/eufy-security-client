@@ -2928,7 +2928,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                         this.rawStation.devices[0]?.device_sn
                       ) ||
                       Device.isLockWifiT8531(this.rawStation.devices[0]?.device_type) ||
-                      Device.isLockWifiT85L0(this.rawStation.devices[0]?.device_type)
+                      Device.isLockWifiT85L0(this.rawStation.devices[0]?.device_type) ||
+                      Device.isLockWifiT85D0(this.rawStation.devices[0]?.device_type)
                     ) {
                       this.emit(
                         "sequence error",
