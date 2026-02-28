@@ -7717,7 +7717,8 @@ export class Station extends TypedEmitter<StationEvents> {
         }
       );
     } else if (
-      ((device.isIndoorPanAndTiltCameraS350() || device.isIndoorCamC24()) && this.isDeviceControlledByHomeBase())
+      (device.isIndoorPanAndTiltCameraS350() || device.isIndoorCamC24()) &&
+      this.isDeviceControlledByHomeBase()
     ) {
       rootHTTPLogger.debug(`Station start livestream - sending command using CMD_SET_PAYLOAD`, {
         stationSN: this.getSerial(),
