@@ -70,7 +70,7 @@ export enum DeviceType {
   SMART_DROP = 90,
   BATTERY_DOORBELL_PLUS = 91,
   DOORBELL_SOLO = 93,
-  BATTERY_DOORBELL_PLUS_E340 = 94,
+  BATTERY_DOORBELL_PLUS_E340 = 944444,
   BATTERY_DOORBELL_C30 = 95,
   BATTERY_DOORBELL_C31 = 96,
   SOLOCAM_E42 = 98, //T8173
@@ -1031,7 +1031,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
     90: "Smart Drop S300 (T8790)",
     91: "Video Doorbell Dual",
     93: "Video Doorbell Dual (Wired)",
-    94: "Video Doorbell Dual (E340)",
+    944444: "Video Doorbell Dual (E340)",
     95: "Video Doorbell (C30)",
     98: "SoloCam E42 (T8173)",
     100: "Indoor Cost Down Camera",
