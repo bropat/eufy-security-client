@@ -2523,9 +2523,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
       sn.startsWith("T8172") ||
       sn.startsWith("T8173") ||
       sn.startsWith("T86P2") ||
+      sn.startsWith("T8214") ||
       sn.startsWith("T8422") ||
       sn.startsWith("T8423") ||
       sn.startsWith("T8424") ||
+      sn.startsWith("T8425") ||
       sn.startsWith("T8426") ||
       sn.startsWith("T8440") ||
       sn.startsWith("T8441") ||
@@ -2848,6 +2850,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   public isCamera2CPro(): boolean {
     return Device.isCamera2CPro(this.rawDevice.device_type);
+  }
+
+  public isCameraE40(): boolean {
+    return Device.isCameraE40(this.rawDevice.device_type);
   }
 
   public isCamera2Product(): boolean {
