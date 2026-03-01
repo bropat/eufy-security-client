@@ -51,6 +51,7 @@ import {
   LockT8520PDeviceProperties,
   DeviceMotionDetectionSensitivityBatteryDoorbellProperty,
   DeviceStatusLedIndoorS350Property,
+  LockT85V0DeviceProperties,
   IndoorS350DetectionTypes,
   EufyCamC35DetectionTypes,
   DeviceRTSPStreamProperty,
@@ -92,9 +93,9 @@ import {
   hexDate,
   hexTime,
   hexWeek,
-  isFloodlightT8425NotitficationEnabled,
+  isFloodlightT8425NotificationEnabled,
   isHB3DetectionModeEnabled,
-  isIndoorNotitficationEnabled,
+  isIndoorNotificationEnabled,
   isIndoorS350DetectionModeEnabled,
   isPrioritySourceType,
   isSmartLockNotification,
@@ -1306,7 +1307,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       ) {
         const booleanProperty = property as PropertyMetadataBoolean;
         try {
-          return isIndoorNotitficationEnabled(
+          return isIndoorNotificationEnabled(
             Number.parseInt(value),
             property.name === PropertyName.DeviceNotificationAllOtherMotion
               ? IndoorS350NotificationTypes.ALL_OTHER_MOTION
@@ -1337,7 +1338,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       ) {
         const booleanProperty = property as PropertyMetadataBoolean;
         try {
-          return isFloodlightT8425NotitficationEnabled(
+          return isFloodlightT8425NotificationEnabled(
             Number.parseInt(value),
             property.name === PropertyName.DeviceNotificationAllOtherMotion
               ? FloodlightT8425NotificationTypes.ALL_OTHER_MOTION
@@ -1597,6 +1598,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         }
       } else if (property.name === PropertyName.Model && this.isLockWifiT8510P()) {
         return "T8510P";
+      } else if (property.name === PropertyName.Model && this.isLockWifiT85V0()) {
+        return "T85V0";
       } else if (property.type === "number") {
         const numericProperty = property as PropertyMetadataNumeric;
         try {
@@ -1714,6 +1717,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
       };
       (metadata[PropertyName.Type] as PropertyMetadataNumeric).states![this.getDeviceType()] =
         "Smart Lock S231 (T8520P)";
+    } else if (this.isLockWifiT85V0()) {
+      metadata = {
+        ...LockT85V0DeviceProperties,
+      };
+      (metadata[PropertyName.Type] as PropertyMetadataNumeric).states![this.getDeviceType()] = "FamiLock S3 (T85V0)";
     } else if (this.isSoloCameras() && Station.isDeviceControlledByHomeBaseBySn(this.getStationSerial())) {
       const newMetadata = {
         ...metadata,
@@ -1891,7 +1899,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.SOLO_CAMERA_SOLAR ||
       type == DeviceType.SOLO_CAMERA_C210 ||
       type == DeviceType.SOLO_CAMERA_E30 ||
+      type == DeviceType.CAMERA_S4 ||
       type == DeviceType.CAMERA_C35 ||
+      type == DeviceType.LOCK_85V0 ||
       type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P ||
       type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P_NO_LIGHT ||
       type == DeviceType.INDOOR_OUTDOOR_CAMERA_2K ||
@@ -1907,11 +1917,13 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.CAMERA_GARAGE_T8453 ||
       type == DeviceType.CAMERA_GARAGE_T8452 ||
       type == DeviceType.CAMERA_FG ||
+      type == DeviceType.CAMERA_4G_S330 ||
       type == DeviceType.INDOOR_PT_CAMERA_S350 ||
       type == DeviceType.INDOOR_PT_CAMERA_E30 ||
       type == DeviceType.INDOOR_PT_CAMERA_C210 ||
       type == DeviceType.INDOOR_PT_CAMERA_C220 ||
       type == DeviceType.INDOOR_PT_CAMERA_C220_V2 ||
+      type == DeviceType.SOLOCAM_E42 ||
       type == DeviceType.SMART_DROP
     );
   }
@@ -1942,6 +1954,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.SOLO_CAMERA_SOLAR ||
       type == DeviceType.SOLO_CAMERA_C210 ||
       type == DeviceType.SOLO_CAMERA_E30 ||
+      type == DeviceType.CAMERA_S4 ||
       type == DeviceType.CAMERA_C35 ||
       type == DeviceType.LOCK_WIFI ||
       type == DeviceType.LOCK_WIFI_NO_FINGER ||
@@ -1951,15 +1964,21 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.LOCK_8592 ||
       type == DeviceType.LOCK_85A3 ||
       type == DeviceType.LOCK_8506 ||
+      type == DeviceType.LOCK_85D0 ||
+      type == DeviceType.LOCK_8531 ||
+      type == DeviceType.LOCK_85V0 ||
       type == DeviceType.LOCK_8502 ||
+      type == DeviceType.LOCK_85L0 ||
       type == DeviceType.SMART_SAFE_7400 ||
       type == DeviceType.SMART_SAFE_7401 ||
       type == DeviceType.SMART_SAFE_7402 ||
       type == DeviceType.SMART_SAFE_7403 ||
       type == DeviceType.CAMERA_FG ||
+      type == DeviceType.CAMERA_4G_S330 ||
       type == DeviceType.WALL_LIGHT_CAM_81A0 ||
       type == DeviceType.SMART_DROP ||
       type == DeviceType.OUTDOOR_PT_CAMERA ||
+      type == DeviceType.SOLOCAM_E42 ||
       type == DeviceType.ENTRY_SENSOR_E20
     );
   }
@@ -2003,6 +2022,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
       type == DeviceType.BATTERY_DOORBELL_C30 ||
       type == DeviceType.BATTERY_DOORBELL_C31 ||
+      type == DeviceType.LOCK_85V0 ||
       type == DeviceType.DOORBELL_SOLO
     )
       return true;
@@ -2059,6 +2079,9 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.FLOODLIGHT_CAMERA_8426 ||
       type == DeviceType.INDOOR_COST_DOWN_CAMERA ||
       type == DeviceType.OUTDOOR_PT_CAMERA ||
+      type == DeviceType.CAMERA_S4 ||
+      type == DeviceType.SOLOCAM_E42 ||
+      type == DeviceType.CAMERA_4G_S330 ||
       type == DeviceType.INDOOR_PT_CAMERA_S350 ||
       type == DeviceType.INDOOR_PT_CAMERA_E30 ||
       type == DeviceType.INDOOR_PT_CAMERA_C210 ||
@@ -2070,7 +2093,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isOutdoorPanAndTiltCamera(type: number): boolean {
-    if (type == DeviceType.OUTDOOR_PT_CAMERA || type == DeviceType.SOLO_CAMERA_E30) return true;
+    if (
+      type == DeviceType.OUTDOOR_PT_CAMERA ||
+      type == DeviceType.SOLO_CAMERA_E30 ||
+      type == DeviceType.CAMERA_S4 ||
+      type == DeviceType.SOLOCAM_E42 ||
+      type == DeviceType.CAMERA_4G_S330
+    )
+      return true;
     return false;
   }
 
@@ -2139,7 +2169,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
       Device.isLockWifiR20(type) ||
       Device.isLockWifiVideo(type) ||
       Device.isLockWifiT8506(type) ||
-      Device.isLockWifiT8502(type)
+      Device.isLockWifiT85V0(type, "") ||
+      Device.isLockWifiT8502(type) ||
+      Device.isLockWifiT85L0(type) ||
+      Device.isLockWifiT8531(type) ||
+      Device.isLockWifiT85D0(type)
     );
   }
 
@@ -2159,12 +2193,21 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return (
       DeviceType.LOCK_WIFI == type &&
       !Device.isLockWifiT8510P(type, serialnumber) &&
-      !Device.isLockWifiT8520P(type, serialnumber)
+      !Device.isLockWifiT8520P(type, serialnumber) &&
+      !Device.isLockWifiT8531(type)
     );
   }
 
   static isLockWifiNoFinger(type: number): boolean {
     return DeviceType.LOCK_WIFI_NO_FINGER == type;
+  }
+
+  static isLockWifiT8531(type: number): boolean {
+    return DeviceType.LOCK_8531 == type;
+  }
+
+  static isLockWifiT85D0(type: number): boolean {
+    return DeviceType.LOCK_85D0 == type;
   }
 
   static isLockWifiR10(type: number): boolean {
@@ -2217,6 +2260,21 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return false;
   }
 
+  static isLockWifiT85V0(type: number, serialnumber: string): boolean {
+    if (
+      type == DeviceType.LOCK_85V0 &&
+      serialnumber.startsWith("T85V0") &&
+      serialnumber.length > 6 &&
+      serialnumber.charAt(6) === "9"
+    )
+      return true;
+    return false;
+  }
+
+  static isLockWifiT85L0(type: number): boolean {
+    return DeviceType.LOCK_85L0 == type;
+  }
+
   static isBatteryDoorbell1(type: number): boolean {
     return DeviceType.BATTERY_DOORBELL == type;
   }
@@ -2226,7 +2284,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isBatteryDoorbellDual(type: number): boolean {
-    return DeviceType.BATTERY_DOORBELL_PLUS == type;
+    return DeviceType.BATTERY_DOORBELL_PLUS == type || DeviceType.LOCK_85V0 == type;
   }
 
   static isBatteryDoorbellDualE340(type: number): boolean {
@@ -2252,7 +2310,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.BATTERY_DOORBELL_PLUS ||
       type == DeviceType.BATTERY_DOORBELL_PLUS_E340 ||
       type == DeviceType.BATTERY_DOORBELL_C30 ||
-      type == DeviceType.BATTERY_DOORBELL_C31
+      type == DeviceType.BATTERY_DOORBELL_C31 ||
+      type == DeviceType.LOCK_85V0
     )
       return true;
     return false;
@@ -2294,6 +2353,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return DeviceType.SOLO_CAMERA_E30 == type;
   }
 
+  static isSoloCamE42(type: number): boolean {
+    //T8173
+    return DeviceType.SOLOCAM_E42 == type;
+  }
+
   static isSoloCameras(type: number): boolean {
     return (
       Device.isSoloCamera(type) ||
@@ -2305,12 +2369,18 @@ export class Device extends TypedEmitter<DeviceEvents> {
       Device.isSoloCameraSolar(type) ||
       Device.isSoloCameraC210(type) ||
       Device.isSoloCameraE30(type) ||
+      Device.isSoloCamE42(type) ||
       Device.isCameraC35(type)
     );
   }
 
   static isStarlight4GLTE(type: number): boolean {
     return DeviceType.CAMERA_FG == type;
+  }
+
+  static is4GLTECamS330(type: number): boolean {
+    //T86P2
+    return DeviceType.CAMERA_4G_S330 == type;
   }
 
   static isIndoorOutdoorCamera1080p(type: number): boolean {
@@ -2389,6 +2459,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return DeviceType.PROFESSIONAL_247 == type;
   }
 
+  static isCameraS4(type: number): boolean {
+    //T8172
+    return DeviceType.CAMERA_S4 == type;
+  }
+
   static isCamera3Product(type: number): boolean {
     return (
       Device.isCamera3(type) ||
@@ -2445,9 +2520,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
       sn.startsWith("T8130") ||
       sn.startsWith("T8131") ||
       sn.startsWith("T8171") ||
+      sn.startsWith("T8172") ||
+      sn.startsWith("T8173") ||
+      sn.startsWith("T86P2") ||
+      sn.startsWith("T8214") ||
       sn.startsWith("T8422") ||
       sn.startsWith("T8423") ||
       sn.startsWith("T8424") ||
+      sn.startsWith("T8425") ||
       sn.startsWith("T8426") ||
       sn.startsWith("T8440") ||
       sn.startsWith("T8441") ||
@@ -2463,6 +2543,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
       sn.startsWith("T8123") ||
       sn.startsWith("T8124") ||
       sn.startsWith("T8171") ||
+      sn.startsWith("T8173") ||
+      sn.startsWith("T86P2") ||
       sn.startsWith("T8134")
     );
   }
@@ -2475,12 +2557,14 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return (
       sn.startsWith("T8510") ||
       sn.startsWith("T8520") ||
+      sn.startsWith("T85V0") ||
       sn.startsWith("T8500") ||
       sn.startsWith("T8501") ||
       sn.startsWith("T8503") ||
       sn.startsWith("T8502") ||
       sn.startsWith("T8504") ||
       sn.startsWith("T8506") ||
+      sn.startsWith("T85L0") ||
       sn.startsWith("T8530") ||
       sn.startsWith("T8531")
     );
@@ -2637,6 +2721,18 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return Device.isLockWifiT8520P(this.rawDevice.device_type, this.rawDevice.device_sn);
   }
 
+  public isLockWifiT8531(): boolean {
+    return Device.isLockWifiT8531(this.rawDevice.device_type);
+  }
+
+  public isLockWifiT85V0(): boolean {
+    return Device.isLockWifiT85V0(this.rawDevice.device_type, this.rawDevice.device_sn);
+  }
+
+  public isLockWifiT85L0(): boolean {
+    return Device.isLockWifiT85L0(this.rawDevice.device_type);
+  }
+
   public isBatteryDoorbell1(): boolean {
     return Device.isBatteryDoorbell1(this.rawDevice.device_type);
   }
@@ -2705,8 +2801,16 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return Device.isSoloCameraE30(this.rawDevice.device_type);
   }
 
+  public isSoloCamE42(): boolean {
+    return Device.isSoloCamE42(this.rawDevice.device_type);
+  }
+
   public isStarlight4GLTE(): boolean {
     return Device.isStarlight4GLTE(this.rawDevice.device_type);
+  }
+
+  public is4GLTECamS330(): boolean {
+    return Device.is4GLTECamS330(this.rawDevice.device_type);
   }
 
   public isIndoorOutdoorCamera1080p(): boolean {
@@ -2749,6 +2853,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return Device.isCamera2CPro(this.rawDevice.device_type);
   }
 
+  public isCameraE40(): boolean {
+    return Device.isCameraE40(this.rawDevice.device_type);
+  }
+
   public isCamera2Product(): boolean {
     return Device.isCamera2Product(this.rawDevice.device_type);
   }
@@ -2771,6 +2879,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   public isCamera3Product(): boolean {
     return Device.isCamera3Product(this.rawDevice.device_type);
+  }
+
+  public isCameraS4(): boolean {
+    return Device.isCameraS4(this.rawDevice.device_type);
   }
 
   public isEntrySensor(): boolean {

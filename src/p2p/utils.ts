@@ -34,6 +34,7 @@ import { Device, Lock, SmartSafe } from "../http/device";
 import { BleCommandFactory } from "./ble";
 import { rootP2PLogger } from "../logging";
 
+// TODO what is this?
 export const MAGIC_WORD = "XZYH";
 
 export const isPrivateIp = (ip: string): boolean =>

@@ -1,0 +1,61 @@
+name: Unknown device report
+description: Report a new device that is not yet supported
+title: "[Unknown Device]: "
+labels: ["unknown device"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an unknown device! This information helps us add support for new eufy devices.
+        See the [reporting unknown devices guide](https://max246.github.io/eufy-security-client/#/reporting_unknown_devices) for details on how to extract the log.
+  - type: input
+    id: client_version
+    attributes:
+      label: Client version
+      description: Please specify the version of eufy-security-client
+      placeholder: ex. 1.4.0
+    validations:
+      required: true
+  - type: input
+    id: device_name_model
+    attributes:
+      label: Device name and model
+      description: The device name and model as shown in the eufy Security app
+      placeholder: ex. eufyCam S330 (T8441)
+    validations:
+      required: true
+  - type: textarea
+    id: device_description
+    attributes:
+      label: Device description
+      description: A brief description of the device type
+      placeholder: ex. Indoor camera, Video doorbell, Floodlight camera, etc.
+    validations:
+      required: true
+  - type: textarea
+    id: log_output
+    attributes:
+      label: Log output
+      description: The full log line containing "New unknown device detected" and all associated fields (device_type, device_sn, device_name, device_model, station_sn, main_sw_version, main_hw_version, params).
+      placeholder: |
+        [main] New unknown device detected {
+          device_type: 180,
+          device_sn: "T8010N2300000000",
+          device_name: "My New Camera",
+          device_model: "T8010",
+          station_sn: "T8010P0000000000",
+          main_sw_version: "2.2.2.6",
+          main_hw_version: "2.2",
+          params: { ... }
+        }
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context, screenshots from the eufy app, or additional information about the device.
+      placeholder: Add any other context here.
+    validations:
+      required: false
