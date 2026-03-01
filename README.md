@@ -111,6 +111,27 @@ Instructions aimed at maintainers for deploying a new version: [Deployment](docs
 
 ## Changelog
 
+### 3.8.0 (2026-03-01)
+
+* Feature: Add support for Smart Lock E20 (T85V0) by @worldjoe/@max246 in https://github.com/bropat/eufy-security-client/pull/803
+* Feature: Add support for Smart Lock C33 (T85L0) by @max246 in https://github.com/bropat/eufy-security-client/pull/804
+* Feature: Add support for locks C30 & E330 by @max246 in https://github.com/bropat/eufy-security-client/pull/806
+* Feature: Add support for Camera S40 (T8172) by @lenoxys in https://github.com/bropat/eufy-security-client/pull/807
+* Feature: Add support for Motion Sensor E20 (T90M0) and Sirene E20 (T90R0) by @max246 in https://github.com/bropat/eufy-security-client/pull/808
+* Feature: Add support for SoloCam E42 (T8173) by @lenoxys in https://github.com/bropat/eufy-security-client/pull/809
+* Feature: Add support for 4G LTE Cam S330 (T86P2) by @lenoxys in https://github.com/bropat/eufy-security-client/pull/821
+* Feature: Add support for C220 V3 by @max246 in https://github.com/bropat/eufy-security-client/pull/823
+* Feature: Add debug message for new device and reporting guide by @max246 in https://github.com/bropat/eufy-security-client/pull/825
+* Fix: Fix T8214 and T8425 livestream by @lenoxys in https://github.com/bropat/eufy-security-client/pull/793
+* Fix: C210 preset support by @tomc128 in https://github.com/bropat/eufy-security-client/pull/811
+* Fix: Mock timezone in getTimezoneGMTString test by @nick-pape in https://github.com/bropat/eufy-security-client/pull/814
+* Fix: Restore missing CAMERA_S4 (T8172) StationProperties and StationCommands entries by @lenoxys in https://github.com/bropat/eufy-security-client/pull/819
+* Fix: Fix start date by @max246 in https://github.com/bropat/eufy-security-client/pull/816
+* Chore: Upgrade qs from 6.14.2 to 6.15.0 by @max246 in https://github.com/bropat/eufy-security-client/pull/802
+* Chore: Upgrade date-and-time from 4.2.0 to 4.3.0 by @max246 in https://github.com/bropat/eufy-security-client/pull/815
+* Chore: Add dev publish and enforce target branch workflows by @lenoxys in https://github.com/bropat/eufy-security-client/pull/818
+* Chore: Add more testing and format check task by @max246 in https://github.com/bropat/eufy-security-client/pull/822
+
 ### 3.7.2 (2026-02-16)
 * Fix: Revert due to failure to communicate with HB3 https://github.com/bropat/eufy-security-client/pull/790
 * Fix: 2FA login by @lenoxys in https://github.com/bropat/eufy-security-client/pull/789
