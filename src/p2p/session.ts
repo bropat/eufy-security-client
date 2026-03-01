@@ -2922,7 +2922,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                       Device.isLockWifiT8520P(
                         this.rawStation.devices[0]?.device_type,
                         this.rawStation.devices[0]?.device_sn
-                      )
+                      ) ||
+                      Device.isLockWifiT85V0(
+                        this.rawStation.devices[0]?.device_type,
+                        this.rawStation.devices[0]?.device_sn
+                      ) ||
+                      Device.isLockWifiT8531(this.rawStation.devices[0]?.device_type) ||
+                      Device.isLockWifiT85L0(this.rawStation.devices[0]?.device_type)
                     ) {
                       this.emit(
                         "sequence error",
@@ -2937,7 +2943,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                       );
                     } else {
                       rootP2PLogger.debug(
-                        `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Lock sequence number - Unknwon device`,
+                        `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Lock sequence number - Unknown device`,
                         {
                           stationSN: this.rawStation.station_sn,
                           oldSequenceNumber: this.lockSeqNumber,
@@ -3352,6 +3358,18 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                                     customData.customData.command.value?.schedule
                                   );
                                 }
+                                break;
+                              case SmartLockBleCommandFunctionType2.ON_OFF_LOCK:
+                                // Lock/unlock command response received
+                                // The actual lock state will be updated via push notification or next status query
+                                rootP2PLogger.debug(
+                                  `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD Smart Lock - ON_OFF_LOCK response`,
+                                  {
+                                    stationSN: this.rawStation.station_sn,
+                                    returnCode: returnCode,
+                                    channel: message.channel,
+                                  }
+                                );
                                 break;
                               default:
                                 rootP2PLogger.debug(

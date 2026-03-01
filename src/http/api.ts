@@ -622,7 +622,11 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     }
   }
 
-  public async makePostRequest(endPoint: string, data: any, forceConnect: boolean = false): Promise<ApiResponse | undefined> {
+  public async makePostRequest(
+    endPoint: string,
+    data: any,
+    forceConnect: boolean = false
+  ): Promise<ApiResponse | undefined> {
     if (this.connected || forceConnect) {
       try {
         const response = await this.request({
@@ -818,7 +822,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         if (result.code == 0) {
           if (result.data) {
             const deviceList = this.decryptAPIData(result.data) as Array<DeviceListResponse>;
-            rootHTTPLogger.debug("Decrypted device list data", deviceList);
+            rootHTTPLogger.debug("Decrypted device list data: %s", JSON.stringify(deviceList, null, 2));
             return deviceList;
           }
         } else {

@@ -110,9 +110,21 @@ describe('Utils file', () => {
     });
 
     test("Test getTimezoneGMTString function" , () => {
-        // TODO : mock other timezones
-        let result = getTimezoneGMTString();
-        expect(result).toStrictEqual("GMT+00:00");
+        const dateSpy = jest.spyOn(Date.prototype, "getTimezoneOffset");
+
+        // UTC (offset 0)
+        dateSpy.mockReturnValue(0);
+        expect(getTimezoneGMTString()).toStrictEqual("GMT+00:00");
+
+        // UTC-5 (EST, offset +300)
+        dateSpy.mockReturnValue(300);
+        expect(getTimezoneGMTString()).toStrictEqual("GMT-05:00");
+
+        // UTC+5:30 (IST, offset -330)
+        dateSpy.mockReturnValue(-330);
+        expect(getTimezoneGMTString()).toStrictEqual("GMT+05:30");
+
+        dateSpy.mockRestore();
     });
 
     test("Test getAbsoluteFilePath function" , () => {
