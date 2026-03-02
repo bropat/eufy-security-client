@@ -1999,6 +1999,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return DeviceType.CAMERA_E == type;
   }
 
+  static isIndoorCameraBase(type: number): boolean {
+    return DeviceType.INDOOR_CAMERA == type;
+  }
+
   static isSensor(type: number): boolean {
     if (type == DeviceType.SENSOR || type == DeviceType.MOTION_SENSOR || type == DeviceType.ENTRY_SENSOR_E20)
       return true;
@@ -2142,6 +2146,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   static isFloodLightT8423(type: number): boolean {
     if (type == DeviceType.FLOODLIGHT_CAMERA_8423) return true;
+    return false;
+  }
+
+  static isFloodLightT8424(type: number): boolean {
+    if (type == DeviceType.FLOODLIGHT_CAMERA_8424) return true;
     return false;
   }
 
@@ -2347,6 +2356,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   static isCameraC35(type: number): boolean {
     return DeviceType.CAMERA_C35 == type;
+  }
+
+  static isIndoorPTCameraE30(type: number): boolean {
+    return DeviceType.INDOOR_PT_CAMERA_E30 == type;
   }
 
   static isSoloCameraE30(type: number): boolean {
@@ -2624,6 +2637,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return Device.isCamera(this.rawDevice.device_type);
   }
 
+  public isIndoorCameraBase(): boolean {
+    return Device.isIndoorCameraBase(this.rawDevice.device_type);
+  }
+
   public isFloodLight(): boolean {
     return Device.isFloodLight(this.rawDevice.device_type);
   }
@@ -2634,6 +2651,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   public isFloodLightT8423(): boolean {
     return Device.isFloodLightT8423(this.rawDevice.device_type);
+  }
+
+  public isFloodLightT8424(): boolean {
+    return Device.isFloodLightT8424(this.rawDevice.device_type);
   }
 
   public isFloodLightT8425(): boolean {
@@ -2794,6 +2815,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   public isCameraC35(): boolean {
     return Device.isCameraC35(this.rawDevice.device_type);
+  }
+
+  public isIndoorPTCameraE30(): boolean {
+    return Device.isIndoorPTCameraE30(this.rawDevice.device_type);
   }
 
   public isSoloCameraE30(): boolean {
