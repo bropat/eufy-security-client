@@ -13,7 +13,7 @@ import {
   DatabaseQueryLocal,
   StreamMetadata,
 } from "../p2p/interfaces";
-import { CommandResult, StorageInfoBodyHB3 } from "../p2p/models";
+import { CommandResult, PropertyData, StorageInfoBodyHB3 } from "../p2p/models";
 import {
   AlarmEvent,
   DatabaseReturnCode,
@@ -273,6 +273,17 @@ export interface StationEvents {
   "sensor status": (station: Station, channel: number, status: number) => void;
   "garage door status": (station: Station, channel: number, doorId: number, status: number) => void;
   "storage info hb3": (station: Station, channel: number, storageInfo: StorageInfoBodyHB3) => void;
+  "security mqtt command": (
+    station: Station,
+    deviceSN: string,
+    adminUserId: string,
+    shortUserId: string,
+    nickName: string,
+    channel: number,
+    sequence: number,
+    lock: boolean,
+    property: PropertyData,
+  ) => void;
 }
 
 export interface DeviceEvents {
