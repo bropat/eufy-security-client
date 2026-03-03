@@ -104,6 +104,7 @@ import {
   P2PQueueMessage,
   P2PCommand,
   P2PVideoMessageState,
+  StreamTimeoutOptions,
   P2PDatabaseResponse,
   P2PDatabaseQueryLatestInfoResponse,
   P2PDatabaseDeleteResponse,
@@ -150,6 +151,12 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
   private readonly ESD_DISCONNECT_TIMEOUT = 30 * 1000;
   private readonly MAX_STREAM_DATA_WAIT = 5 * 1000;
   private readonly RESEND_NOT_ACKNOWLEDGED_COMMAND = 100;
+
+  private streamTimeouts = {
+    streamDataWait: this.MAX_STREAM_DATA_WAIT,
+    audioCodecAnalyze: this.AUDIO_CODEC_ANALYZE_TIMEOUT,
+    expectedSeqNoWait: this.MAX_EXPECTED_SEQNO_WAIT,
+  };
 
   private readonly UDP_RECVBUFFERSIZE_BYTES = 1048576;
   private readonly MAX_PAYLOAD_BYTES = 1028;
@@ -1572,7 +1579,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
             this.currentMessageState[dataType].waitForSeqNoTimeout = setTimeout(() => {
               this.endStream(dataType, true);
               this.currentMessageState[dataType].waitForSeqNoTimeout = undefined;
-            }, this.MAX_EXPECTED_SEQNO_WAIT);
+            }, this.streamTimeouts.expectedSeqNoWait);
 
           if (!this.currentMessageState[dataType].queuedData.get(message.seqNo)) {
             this.currentMessageState[dataType].queuedData.set(message.seqNo, message);
@@ -2193,10 +2200,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     }
     this.currentMessageState[dataType].p2pStreamingTimeout = setTimeout(() => {
       rootP2PLogger.info(
-        `Stopping the station stream for the device ${this.deviceSNs[this.currentMessageState[dataType].p2pStreamChannel]?.sn}, because we haven't received any data for ${this.MAX_STREAM_DATA_WAIT / 1000} seconds`
+        `Stopping the station stream for the device ${this.deviceSNs[this.currentMessageState[dataType].p2pStreamChannel]?.sn}, because we haven't received any data for ${this.streamTimeouts.streamDataWait / 1000} seconds`
       );
       this.endStream(dataType, sendStopCommand);
-    }, this.MAX_STREAM_DATA_WAIT);
+    }, this.streamTimeouts.streamDataWait);
   }
 
   private handleDataBinaryAndVideo(message: P2PDataMessage): void {
@@ -2401,7 +2408,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 ) {
                   this.emitStreamStartEvent(message.dataType);
                 }
-              }, this.AUDIO_CODEC_ANALYZE_TIMEOUT);
+              }, this.streamTimeouts.audioCodecAnalyze);
             }
           }
           if (this.currentMessageState[message.dataType].p2pStreamNotStarted) {
@@ -4338,6 +4345,10 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
 
   public isLiveStreaming(channel: number): boolean {
     return this.isStreaming(channel, P2PDataType.VIDEO);
+  }
+
+  public setStreamTimeouts(options: StreamTimeoutOptions): void {
+    this.streamTimeouts = { ...this.streamTimeouts, ...options };
   }
 
   private isCurrentlyStreaming(): boolean {
