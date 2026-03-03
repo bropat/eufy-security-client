@@ -176,6 +176,16 @@ export interface StreamMetadata {
   audioCodec: AudioCodec;
 }
 
+/** Configurable timeout values for P2P streaming. All values in milliseconds. */
+export interface StreamTimeoutOptions {
+  /** Max time to wait for stream data before auto-stopping. Default: 5000ms. */
+  streamDataWait?: number;
+  /** Time to wait for first audio frame before declaring no audio. Default: 650ms. */
+  audioCodecAnalyze?: number;
+  /** Max time to wait for an expected sequence number. Default: 20000ms. */
+  expectedSeqNoWait?: number;
+}
+
 export interface DeviceSerial {
   [index: number]: {
     sn: string;

@@ -97,6 +97,7 @@ import {
   P2PCommand,
   RGBColor,
   StreamMetadata,
+  StreamTimeoutOptions,
 } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
 import {
@@ -7941,6 +7942,10 @@ export class Station extends TypedEmitter<StationEvents> {
   public isLiveStreaming(device: Device): boolean {
     if (device.getStationSerial() !== this.getSerial()) return false;
     return this.p2pSession.isLiveStreaming(device.getChannel());
+  }
+
+  public setStreamTimeouts(options: StreamTimeoutOptions): void {
+    this.p2pSession.setStreamTimeouts(options);
   }
 
   public isDownloading(device: Device): boolean {
