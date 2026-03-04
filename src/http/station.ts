@@ -828,6 +828,14 @@ export class Station extends TypedEmitter<StationEvents> {
     return sn.startsWith("T8025");
   }
 
+  public static isStationMiniBaseChime(type: number): boolean {
+    return type === DeviceType.MINIBASE_CHIME;
+  }
+
+  public static isStationMiniBaseChimeBySn(sn: string): boolean {
+    return sn.startsWith("T8023");
+  }
+
   public isStationHomeBase2OrOlder(): boolean {
     return Station.isStationHomeBase2OrOlder(this.rawStation.device_type);
   }
@@ -838,6 +846,10 @@ export class Station extends TypedEmitter<StationEvents> {
 
   public isStationHomeBaseMini(): boolean {
     return Station.isStationHomeBaseMini(this.rawStation.device_type);
+  }
+
+  public isStationMiniBaseChime(): boolean {
+    return Station.isStationMiniBaseChime(this.rawStation.device_type);
   }
 
   /**
@@ -7658,7 +7670,11 @@ export class Station extends TypedEmitter<StationEvents> {
           command: commandData,
         }
       );
-    } else if (device.isOutdoorPanAndTiltCamera() || device.isBatteryDoorbellDualE340() || device.isFloodLightT8425()) {
+    } else if (
+      device.isOutdoorPanAndTiltCamera() ||
+      device.isFloodLightT8425() ||
+      (device.isBatteryDoorbellDualE340() && !this.isStationMiniBaseChime())
+    ) {
       rootHTTPLogger.debug(`Station start livestream - sending command using CMD_DOORBELL_SET_PAYLOAD (1)`, {
         stationSN: this.getSerial(),
         deviceSN: device.getSerial(),
