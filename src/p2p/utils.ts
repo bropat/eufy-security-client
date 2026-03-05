@@ -680,17 +680,29 @@ export const getLockV12Key = (key: string, publicKey: string): string => {
   ]).toString("hex");
 };
 
+let _talkbackSeq = 0;
+let _talkbackTimestamp = 0;
+
+export const resetTalkbackCounters = (): void => {
+  _talkbackSeq = 0;
+  _talkbackTimestamp = 0;
+};
+
 export const buildTalkbackAudioFrameHeader = (audioData: Buffer, channel = 0): Buffer => {
   const audioDataLength = Buffer.allocUnsafe(4);
   audioDataLength.writeUInt32LE(audioData.length);
   const unknown1 = Buffer.alloc(1);
   const audioType = Buffer.alloc(1);
-  const audioSeq = Buffer.alloc(2);
+  const audioSeq = Buffer.allocUnsafe(2);
+  audioSeq.writeUInt16LE(_talkbackSeq & 0xFFFF);
+  _talkbackSeq++;
   const audioTimestamp = Buffer.alloc(8);
+  audioTimestamp.writeBigUInt64LE(BigInt(_talkbackTimestamp));
+  _talkbackTimestamp += 64;
   const audioDataHeader = Buffer.concat([audioDataLength, unknown1, audioType, audioSeq, audioTimestamp]);
   const bytesToRead = Buffer.allocUnsafe(4);
   bytesToRead.writeUInt32LE(audioData.length + audioDataHeader.length);
-  const magicBuffer = Buffer.from([0x01, 0x00]);
+  const magicBuffer = Buffer.from([0x02, 0x00]);
   const channelBuffer = Buffer.from([channel, 0x00]);
   const emptyBuffer = Buffer.from([0x00, 0x00]);
   return Buffer.concat([bytesToRead, magicBuffer, channelBuffer, emptyBuffer, audioDataHeader]);
