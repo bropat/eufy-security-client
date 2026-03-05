@@ -789,6 +789,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
               station.on("storage info hb3", (station: Station, channel: number, storageInfo: StorageInfoBodyHB3) =>
                 this.onStorageInfoHb3(station, channel, storageInfo)
               );
+              station.on("hub notify update", (station: Station) => this.onHubNotifyUpdate(station));
               this.addStation(station);
               station.initialize();
             } catch (err) {
@@ -856,6 +857,13 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
       },
       this.P2P_REFRESH_INTERVAL_MIN * 60 * 1000
     );
+  }
+
+  private onHubNotifyUpdate(station: Station): void {
+    rootMainLogger.info("Hub notify update received, refreshing cloud data", {
+      stationSN: station.getSerial(),
+    });
+    this.refreshCloudData();
   }
 
   private onStationConnectionError(station: Station, error: Error): void {

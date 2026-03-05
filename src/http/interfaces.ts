@@ -273,6 +273,7 @@ export interface StationEvents {
   "sensor status": (station: Station, channel: number, status: number) => void;
   "garage door status": (station: Station, channel: number, doorId: number, status: number) => void;
   "storage info hb3": (station: Station, channel: number, storageInfo: StorageInfoBodyHB3) => void;
+  "hub notify update": (station: Station) => void;
 }
 
 export interface DeviceEvents {
