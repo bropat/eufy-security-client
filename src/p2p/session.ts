@@ -56,6 +56,7 @@ import {
   buildVoidCommandPayload,
   isP2PQueueMessage,
   buildTalkbackAudioFrameHeader,
+  resetTalkbackCounters,
   getLocalIpAddress,
   decodeP2PCloudIPs,
   decodeSmartSafeData,
@@ -4561,6 +4562,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
   }
 
   public startTalkback(channel = 0): void {
+    resetTalkbackCounters();
     this.currentMessageState[P2PDataType.VIDEO].p2pTalkback = true;
     this.currentMessageState[P2PDataType.VIDEO].p2pTalkbackChannel = channel;
     this.initializeTalkbackStream(channel);
