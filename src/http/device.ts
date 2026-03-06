@@ -313,6 +313,13 @@ export class Device extends TypedEmitter<DeviceEvents> {
         value: parsedValue,
         source: source,
       };
+
+      rootHTTPLogger.debug("Device update raw property - ready to change" , {
+        ready: this.ready,
+        parsedValue: parsedValue,
+      })
+
+
       if (this.ready) this.emit("raw property changed", this, type, this.rawProperties[type].value);
 
       const metadata = this.getPropertiesMetadata(true);
