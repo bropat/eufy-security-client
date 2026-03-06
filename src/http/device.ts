@@ -193,7 +193,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
     if (this.rawDevice.params) {
       this.rawDevice.params.forEach((param) => {
-        this.updateRawProperty(param.param_type, param.param_value, "http");
+           rootHTTPLogger.debug("Update device cloud propertie", param )
+            this.updateRawProperty(param.param_type, param.param_value, "http");
       });
     }
     rootHTTPLogger.debug("Update device cloud properties", { deviceSN: this.getSerial(), properties: this.properties });
