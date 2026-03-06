@@ -12587,6 +12587,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isWallLightCam() ||
       device.isGarageCamera() ||
       device.isOutdoorPanAndTiltCamera() ||
+      device.isBatteryDoorbellDualE340() ||
       (device.isIndoorPanAndTiltCameraS350() && !this.isDeviceControlledByHomeBase())
     ) {
       this.p2pSession.sendCommandWithStringPayload(
@@ -12664,6 +12665,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isWallLightCam() ||
       device.isGarageCamera() ||
       device.isOutdoorPanAndTiltCamera() ||
+      device.isBatteryDoorbellDualE340() ||
       (device.isIndoorPanAndTiltCameraS350() && !this.isDeviceControlledByHomeBase())
     ) {
       this.p2pSession.sendCommandWithStringPayload(
