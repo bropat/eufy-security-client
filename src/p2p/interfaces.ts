@@ -69,6 +69,7 @@ export interface P2PClientProtocolEvents {
   "garage door status": (channel: number, doorId: number, status: number) => void;
   "storage info hb3": (channel: number, storageInfo: StorageInfoBodyHB3) => void;
   "sequence error": (channel: number, command: number, sequence: number, serialnumber: string) => void;
+  "hub notify update": () => void;
 }
 
 export interface P2PQueueMessage {

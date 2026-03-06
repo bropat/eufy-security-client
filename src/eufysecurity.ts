@@ -1,6 +1,7 @@
 import { TypedEmitter } from "tiny-typed-emitter";
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import * as path from "path";
+import * as util from "util";
 import { Readable } from "stream";
 import EventEmitter from "events";
 
@@ -789,6 +790,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
               station.on("storage info hb3", (station: Station, channel: number, storageInfo: StorageInfoBodyHB3) =>
                 this.onStorageInfoHb3(station, channel, storageInfo)
               );
+              station.on("hub notify update", (station: Station) => this.onHubNotifyUpdate(station));
               this.addStation(station);
               station.initialize();
             } catch (err) {
@@ -858,6 +860,13 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     );
   }
 
+  private onHubNotifyUpdate(station: Station): void {
+    rootMainLogger.info("Hub notify update received, refreshing cloud data", {
+      stationSN: station.getSerial(),
+    });
+    this.refreshCloudData();
+  }
+
   private onStationConnectionError(station: Station, error: Error): void {
     this.emit("station connection error", station, error);
   }
@@ -881,6 +890,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
   private handleDevices(devices: FullDevices): void {
     rootMainLogger.debug("Got devices", { devices: devices });
+    rootMainLogger.debug("Got devices - extended logging", { devices: util.inspect(devices, { depth: null }) });
+
     const deviceSNs: string[] = Object.keys(this.devices);
     const newDeviceSNs = Object.keys(devices);
     const promises: Array<Promise<Device>> = [];

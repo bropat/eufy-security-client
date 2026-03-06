@@ -312,6 +312,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
         value: parsedValue,
         source: source,
       };
+
       if (this.ready) this.emit("raw property changed", this, type, this.rawProperties[type].value);
 
       const metadata = this.getPropertiesMetadata(true);

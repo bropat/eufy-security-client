@@ -291,6 +291,7 @@ export class Station extends TypedEmitter<StationEvents> {
     this.p2pSession.on("sequence error", (channel: number, command: number, sequence: number, serialnumber: string) =>
       this.onSequenceError(channel, command, sequence, serialnumber)
     );
+    this.p2pSession.on("hub notify update", () => this.onHubNotifyUpdate());
   }
 
   protected initializeState(): void {
@@ -17979,6 +17980,10 @@ export class Station extends TypedEmitter<StationEvents> {
       sequence: sequence,
       serialnumber: serialnumber,
     });
+  }
+
+  private onHubNotifyUpdate(): void {
+    this.emit("hub notify update", this);
   }
 
   public updateUsername(device: Device, username: string, passwordId: string): void {
