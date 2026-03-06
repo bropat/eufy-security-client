@@ -301,6 +301,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   public updateRawProperty(type: number, value: string, source: SourceType): boolean {
+    rootHTTPLogger.debug("Device update raw property - ENTER!!" , { type: type, value: value})
     const parsedValue = ParameterHelper.readValue(this.getStationSerial(), type, value, rootHTTPLogger);
     if (
       parsedValue !== undefined &&
