@@ -1,6 +1,7 @@
 import { TypedEmitter } from "tiny-typed-emitter";
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import * as path from "path";
+import * as util from "util";
 import { Readable } from "stream";
 import EventEmitter from "events";
 
@@ -888,7 +889,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
   }
 
   private handleDevices(devices: FullDevices): void {
-    rootMainLogger.debug("Got devices", { devices: JSON.stringify(devices, null, 2) });
+    rootMainLogger.debug("Got devices", { devices: util.inspect(devices, { depth: null }) });
     const deviceSNs: string[] = Object.keys(this.devices);
     const newDeviceSNs = Object.keys(devices);
     const promises: Array<Promise<Device>> = [];
