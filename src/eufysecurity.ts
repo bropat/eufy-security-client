@@ -888,7 +888,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
   }
 
   private handleDevices(devices: FullDevices): void {
-    rootMainLogger.debug("Got devices", { devices: devices });
+    rootMainLogger.debug("Got devices", { devices: JSON.stringify(devices) });
     const deviceSNs: string[] = Object.keys(this.devices);
     const newDeviceSNs = Object.keys(devices);
     const promises: Array<Promise<Device>> = [];
