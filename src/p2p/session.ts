@@ -3596,6 +3596,17 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 if (payload) {
                   this.emit("storage info hb3", message.channel, payload.body);
                 }
+              }  else if (json.cmd === CommandType.CMD_HUB_NOTIFY_UPDATE) {
+                rootP2PLogger.debug(
+                    `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Homebase notify update`,
+                    {
+                      stationSN: this.rawStation.station_sn,
+                      commandIdName: CommandType[json.cmd],
+                      commandId: json.cmd,
+                      message: data.toString(),
+                    }
+                );
+                this.emit("hub notify update");
               } else {
                 rootP2PLogger.debug(
                   `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Not implemented`,
