@@ -2843,13 +2843,13 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                   this.emit("parameter", message.channel, CommandType.CMD_SMARTLOCK_QUERY_STATUS, payload.slState);
                 } else if (json.cmd === CommandType.CMD_HUB_NOTIFY_UPDATE) {
                   rootP2PLogger.debug(
-                      `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Homebase notify update`,
-                      {
-                        stationSN: this.rawStation.station_sn,
-                        commandIdName: CommandType[json.cmd],
-                        commandId: json.cmd,
-                        message: data.toString(),
-                      }
+                    `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Homebase notify update`,
+                    {
+                      stationSN: this.rawStation.station_sn,
+                      commandIdName: CommandType[json.cmd],
+                      commandId: json.cmd,
+                      message: data.toString(),
+                    }
                   );
                   this.emit("hub notify update");
                 } else {
@@ -3596,15 +3596,15 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 if (payload) {
                   this.emit("storage info hb3", message.channel, payload.body);
                 }
-              }  else if (json.cmd === CommandType.CMD_HUB_NOTIFY_UPDATE) {
+              } else if (json.cmd === CommandType.CMD_HUB_NOTIFY_UPDATE) {
                 rootP2PLogger.debug(
-                    `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Homebase notify update`,
-                    {
-                      stationSN: this.rawStation.station_sn,
-                      commandIdName: CommandType[json.cmd],
-                      commandId: json.cmd,
-                      message: data.toString(),
-                    }
+                  `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Homebase notify update`,
+                  {
+                    stationSN: this.rawStation.station_sn,
+                    commandIdName: CommandType[json.cmd],
+                    commandId: json.cmd,
+                    message: data.toString(),
+                  }
                 );
                 this.emit("hub notify update");
               } else {

@@ -193,8 +193,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     }
     if (this.rawDevice.params) {
       this.rawDevice.params.forEach((param) => {
-           rootHTTPLogger.debug("Update device cloud propertie", param )
-            this.updateRawProperty(param.param_type, param.param_value, "http");
+        this.updateRawProperty(param.param_type, param.param_value, "http");
       });
     }
     rootHTTPLogger.debug("Update device cloud properties", { deviceSN: this.getSerial(), properties: this.properties });
@@ -301,7 +300,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   public updateRawProperty(type: number, value: string, source: SourceType): boolean {
-    rootHTTPLogger.debug("Device update raw property - ENTER!!" , { type: type, value: value})
     const parsedValue = ParameterHelper.readValue(this.getStationSerial(), type, value, rootHTTPLogger);
     if (
       parsedValue !== undefined &&
@@ -314,12 +312,6 @@ export class Device extends TypedEmitter<DeviceEvents> {
         value: parsedValue,
         source: source,
       };
-
-      rootHTTPLogger.debug("Device update raw property - ready to change" , {
-        ready: this.ready,
-        parsedValue: parsedValue,
-      })
-
 
       if (this.ready) this.emit("raw property changed", this, type, this.rawProperties[type].value);
 
