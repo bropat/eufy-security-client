@@ -7831,7 +7831,7 @@ export const DeviceProperties: Properties = {
     [PropertyName.DeviceBattery]: DeviceBatteryProperty,
     [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,
     [PropertyName.DeviceAutoNightvision]: DeviceAutoNightvisionSoloProperty,
-    [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionProperty,
+    [PropertyName.DeviceMotionDetection]: DeviceMotionDetectionIndoorSoloFloodProperty,
     [PropertyName.DeviceWatermark]: DeviceWatermarkProperty,
     [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
     [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
