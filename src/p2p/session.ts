@@ -2854,7 +2854,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                   this.emit("hub notify update");
                 } else {
                   rootP2PLogger.debug(
-                    `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Not implemented`,
+                    `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Not implemented 1`,
                     {
                       stationSN: this.rawStation.station_sn,
                       commandIdName: CommandType[json.cmd],
@@ -3609,7 +3609,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 this.emit("hub notify update");
               } else {
                 rootP2PLogger.debug(
-                  `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Not implemented`,
+                  `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Not implemented 2`,
                   {
                     stationSN: this.rawStation.station_sn,
                     commandIdName: CommandType[json.cmd],
