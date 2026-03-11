@@ -1872,6 +1872,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.CAMERA2C ||
       type == DeviceType.INDOOR_CAMERA ||
       type == DeviceType.INDOOR_PT_CAMERA ||
+      type == DeviceType.INDOOR_PT_CAMERA_E30 ||
       type == DeviceType.FLOODLIGHT ||
       type == DeviceType.DOORBELL ||
       type == DeviceType.BATTERY_DOORBELL ||
@@ -2400,7 +2401,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isIndoorCamC24(type: number): boolean {
-    return DeviceType.INDOOR_PT_CAMERA == type;
+    return (
+      DeviceType.INDOOR_PT_CAMERA == type ||
+      DeviceType.INDOOR_PT_CAMERA_E30 == type
+    );
   }
 
   static isCamera1Product(type: number): boolean {
@@ -2513,6 +2517,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       sn.startsWith("T8420") ||
       sn.startsWith("T820") ||
       sn.startsWith("T8410") ||
+      sn.startsWith("T8417") ||
       sn.startsWith("T8400") ||
       sn.startsWith("T8401") ||
       sn.startsWith("T8411") ||
@@ -2587,6 +2592,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
   static isIndoorCameraBySn(sn: string): boolean {
     return (
       sn.startsWith("T8410") ||
+      sn.startsWith("T8417") ||
       sn.startsWith("T8400") ||
       sn.startsWith("T8401") ||
       sn.startsWith("T8411") ||

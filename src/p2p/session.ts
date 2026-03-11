@@ -2159,6 +2159,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
   private isIFrame(data: Buffer, isKeyFrame: boolean): boolean {
     if (
       this.rawStation.station_sn.startsWith("T8410") ||
+      this.rawStation.station_sn.startsWith("T8417") ||
       this.rawStation.station_sn.startsWith("T8400") ||
       this.rawStation.station_sn.startsWith("T8401") ||
       this.rawStation.station_sn.startsWith("T8411") ||
@@ -2296,13 +2297,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
           this.currentMessageState[message.dataType].p2pStreamMetadata.videoWidth = videoMetaData.videoWidth;
 
           if (!this.currentMessageState[message.dataType].p2pStreamFirstVideoDataReceived) {
-            if (
-              this.rawStation.station_sn.startsWith("T8410") ||
-              this.rawStation.station_sn.startsWith("T8400") ||
-              this.rawStation.station_sn.startsWith("T8401") ||
-              this.rawStation.station_sn.startsWith("T8411") ||
-              this.rawStation.station_sn.startsWith("T8202") ||
-              this.rawStation.station_sn.startsWith("T8422") ||
+          if (
+            this.rawStation.station_sn.startsWith("T8410") ||
+            this.rawStation.station_sn.startsWith("T8417") ||
+            this.rawStation.station_sn.startsWith("T8400") ||
+            this.rawStation.station_sn.startsWith("T8401") ||
+            this.rawStation.station_sn.startsWith("T8411") ||
+            this.rawStation.station_sn.startsWith("T8202") ||
+            this.rawStation.station_sn.startsWith("T8422") ||
               this.rawStation.station_sn.startsWith("T8424") ||
               this.rawStation.station_sn.startsWith("T8423") ||
               this.rawStation.station_sn.startsWith("T8130") ||
@@ -3584,6 +3586,19 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 );
                 if (payload) {
                   this.emit("storage info hb3", message.channel, payload.body);
+                }
+              } else if (json.cmd === 6246) {
+                const payload = json.payload as { num?: number };
+                rootP2PLogger.debug(
+                  `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD Livestream status`,
+                  { stationSN: this.rawStation.station_sn, payload: payload }
+                );
+                if (payload?.num !== undefined) {
+                  if (payload.num > 0) {
+                    this.emit("rtsp livestream started", message.channel);
+                  } else {
+                    this.emit("rtsp livestream stopped", message.channel);
+                  }
                 }
               } else {
                 rootP2PLogger.debug(
