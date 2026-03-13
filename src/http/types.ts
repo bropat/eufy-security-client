@@ -30,6 +30,7 @@ export enum DeviceType {
   BATTERY_DOORBELL_2 = 16,
   HB3 = 18,
   CAMERA3 = 19,
+  SIREN_SENSOR_8970 = 20, //T8970
   CAMERA3C = 23,
   PROFESSIONAL_247 = 24, // T8600
   MINIBASE_CHIME = 25,
@@ -992,6 +993,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
     16: "Battery Doorbell 2",
     18: "HomeBase S380 (HomeBase 3; T8030)",
     19: "eufyCam S330 (eufyCam 3)",
+    20: "Siren T8970",
     23: "eufyCam S300 (eufyCam 3C)",
     24: "eufyCam E330 (Professional)",
     25: "MiniBase Chime",
@@ -8703,6 +8705,14 @@ export const DeviceProperties: Properties = {
     [PropertyName.DeviceBattery]: DeviceBatteryProperty,
     [PropertyName.DeviceBatteryLow]: DeviceBatteryLowMotionSensorProperty,
   },
+  [DeviceType.SIREN_SENSOR_8970]: {
+    ...GenericDeviceProperties,
+    [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSILockProperty,
+    [PropertyName.DeviceSnooze]: DeviceSnoozeProperty,
+    [PropertyName.DeviceState]: DeviceStateProperty,
+    [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+    [PropertyName.DeviceBatteryLow]: DeviceBatteryLowMotionSensorProperty,
+  },
 };
 
 DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
@@ -9905,6 +9915,13 @@ export const StationProperties: Properties = {
     [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
     [PropertyName.StationAlarmTone]: StationAlarmToneProperty,
   },
+  [DeviceType.SIREN_SENSOR_8970]: {
+    ...BaseStationProperties,
+    [PropertyName.StationAlarmVolume]: StationAlarmVolumeWalllightProperty,
+    [PropertyName.StationAlarm]: StationAlarmProperty,
+    [PropertyName.StationAlarmType]: StationAlarmTypeProperty,
+    [PropertyName.StationAlarmTone]: StationAlarmToneProperty,
+  },
 };
 
 StationProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = StationProperties[DeviceType.INDOOR_PT_CAMERA_C220];
@@ -10652,6 +10669,11 @@ export const DeviceCommands: Commands = {
     CommandName.DeviceSnooze,
   ],
   [DeviceType.SIREN_SENSOR_E20]: [
+    CommandName.DeviceSnooze,
+    CommandName.StationTriggerAlarmSound,
+    CommandName.DeviceTriggerAlarmSound,
+  ],
+  [DeviceType.SIREN_SENSOR_8970]: [
     CommandName.DeviceSnooze,
     CommandName.StationTriggerAlarmSound,
     CommandName.DeviceTriggerAlarmSound,
