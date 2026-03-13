@@ -1,7 +1,7 @@
 # Supported devices
 
 |                                                                                     | Device                                                   | Support status                              | Tested version                                         |
-| ----------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------ |
+|-------------------------------------------------------------------------------------|----------------------------------------------------------| ------------------------------------------- | ------------------------------------------------------ |
 | ![T8001 image](_media/homebase_small.jpg)                                           | HomeBase (T8001)                                         | :heavy_check_mark:                          |                                                        |
 | ![T8002 image](_media/homebase_small.jpg)                                           | HomeBase E (T8002)                                       | :heavy_check_mark: :heavy_exclamation_mark: |                                                        |
 | ![T8010 image](_media/homebase2_small.jpg)                                          | HomeBase S280 (T8010; Homebase 2)                        | :heavy_check_mark:                          |                                                        |
@@ -61,12 +61,12 @@
 | ![T8416 image](_media/indoorcamE30_small.jpeg)                                      | Indoor Cam E30 (T8417)                                   | :heavy_check_mark:                          |                                                        |
 | ![T8416 image](_media/indoorcamC210_small.png)                                      | Indoor Cam C210 (T8419)                                  | :heavy_check_mark:                          |                                                        |
 | ![T8416 image](_media/indoorcamC220_small.png)                                      | Indoor Cam C220 (T8W11C; type 10008/10010)               | :heavy_check_mark:                          |                                                        |
-| ![T8416 image](_media/indoorcamC220_small.png) | Indoor Cam C220 (T8419N; type 10011) | :heavy_check_mark: |  |
+| ![T8416 image](_media/indoorcamC220_small.png)                                      | Indoor Cam C220 (T8419N; type 10011)                     | :heavy_check_mark: |  |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg)                                   | 4G LTE Starlight (T8150)                                 | :heavy_check_mark:                          |                                                        |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg)                                   | 4G Camera S230 (T8151; 4G LTE Starlight)                 | :heavy_check_mark:                          | Firmware: 1.1.3.7 (20230730)                           |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg)                                   | 4G LTE Starlight (T8152)                                 | :heavy_exclamation_mark:                    |                                                        |
 | ![T8150 image](_media/4g_lte_starlight_small.jpg)                                   | 4G LTE Starlight (T8153)                                 | :heavy_exclamation_mark:                    |                                                        |
-| ![T86P2 image](_media/4g_lte_cam_s330_small.png)                                   | 4G LTE Cam S330 (T86P2)                                  | :wrench:                                    | Firmware: 1.2.3.2                                      |
+| ![T86P2 image](_media/4g_lte_cam_s330_small.png)                                    | 4G LTE Cam S330 (T86P2)                                  | :wrench:                                    | Firmware: 1.2.3.2                                      |
 | ![T8500 image](_media/smartlock_t8500_small.jpg)                                    | Smart Lock (T8500)                                       | :x:                                         |                                                        |
 | ![T8500 with Wi-Fi Bridge image](_media/smartlock_t8500_wifibridge_small.jpg)       | Smart Lock (T8500) with Wi-Fi Bridge                     | :heavy_check_mark: :wrench:                 |                                                        |
 | ![T8510 image](_media/smartlock_touch_t8510_small.jpg)                              | Smart Lock Touch (T8510)                                 | :x:                                         |                                                        |
@@ -92,6 +92,7 @@
 | ![T87B2 image](_media/entrysensore20_small.jpeg)                                    | Entry Sensor E20 (T90E0)                                 | :wrench:                                    |                                                        |
 | ![T90M0 image](_media/pir_sensor_e20_small.jpg)                                     | PIR Sensor E20 (T90M0)                                   | :wrench:                                    |                                                        |
 | ![T90R0 image](_media/siren_sensor_e20_small.jpg)                                   | Siren Sensor E20 (T90R0)                                 | :wrench:                                    |                                                        |
+| ![T8970 image](_media/siren_sensor_T8970_small.jpg)                                 | Siren Sensor  (T8970)                                    | :wrench:                                    |                                                        |
 
 ## Legend
 
