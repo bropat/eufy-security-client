@@ -272,7 +272,7 @@ export class BleCommandFactory {
     return Buffer.concat([data, Buffer.from([hash])]);
   }
 
-  public getSmartLockCommand(): Buffer {
+  public getSmartLockCommand(useEncryption = true): Buffer {
     if (this.versionCode === undefined) throw new BleVersionCodeError("BleCommandFactory version code value missing");
     if (this.dataType === undefined) throw new BleDataTypeError("BleCommandFactory data type value missing");
     if (this.commandCode === undefined) throw new BleCommandCodeError("BleCommandFactory command code value missing");
@@ -282,7 +282,7 @@ export class BleCommandFactory {
     const bDataType = Buffer.from([this.dataType]);
     const unknown = Buffer.alloc(1);
     const partial = false;
-    const encrypted = true;
+    const encrypted = useEncryption;
     const commandCodeEncoded = Buffer.allocUnsafe(2);
     commandCodeEncoded.writeInt16BE(((partial ? 1 : 0) << 15) + ((encrypted ? 1 : 0) << 14) + this.commandCode);
     const size = Buffer.allocUnsafe(2);
