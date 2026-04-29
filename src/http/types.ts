@@ -5781,6 +5781,7 @@ export const DeviceProperties: Properties = {
   },
   [DeviceType.CAMERA_S4]: {
     ...GenericDeviceProperties,
+    [PropertyName.DeviceEnabled]: DeviceEnabledIndoorS350Property,
     [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
     [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
     [PropertyName.DeviceBattery]: DeviceBatteryProperty,

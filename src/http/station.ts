@@ -7417,6 +7417,31 @@ export class Station extends TypedEmitter<StationEvents> {
           property: propertyData,
         }
       );
+    } else if (device.isOutdoorPanAndTiltCamera()) {
+      // Outdoor pan/tilt cams (eufyCam S4 / T8172 etc.) behind a HomeBase 3
+      // silently drop raw CMD_DEVS_SWITCH frames. Pcap comparison against
+      // the iOS Eufy app shows they accept the same wrapped envelope as
+      // INDOOR_PT_CAMERA_S350 — outer CMD_SET_PAYLOAD carrying inner
+      // CMD_INDOOR_ENABLE_PRIVACY_MODE_S350.
+      param_value = value === true ? 0 : 1;
+      this.p2pSession.sendCommandWithStringPayload(
+        {
+          commandType: CommandType.CMD_SET_PAYLOAD,
+          value: JSON.stringify({
+            account_id: this.rawStation.member.admin_user_id,
+            cmd: CommandType.CMD_INDOOR_ENABLE_PRIVACY_MODE_S350,
+            mChannel: device.getChannel(),
+            mValue3: 0,
+            payload: {
+              switch: param_value,
+            },
+          }),
+          channel: device.getChannel(),
+        },
+        {
+          property: propertyData,
+        }
+      );
     } else {
       this.p2pSession.sendCommandWithIntString(
         {
