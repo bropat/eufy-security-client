@@ -101,6 +101,7 @@ export enum DeviceType {
   LOCK_85L0 = 201,
   LOCK_85V0 = 203,
   NVR_S4_MAX = 300, //T8N00
+  POE_CAM_S4 = 301, //T8E00 (PoE camera connected to NVR S4 Max)
   WALL_LIGHT_CAM_81A0 = 10005,
   INDOOR_PT_CAMERA_C220 = 10008, // T8W11C
   INDOOR_PT_CAMERA_C210 = 10009, // T8419 / T8W11P?
@@ -1060,6 +1061,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
     202: "Smart Lock C30 (T85D0)",
     203: "FamiLock S3 (T85V0)",
     300: "NVR S4 Max (T8N00)",
+    301: "PoE Cam S4 (T8E00)",
     10005: "Solar Wall Light Cam S120 (T81A0)",
     10008: "Indoor Cam C220 (T8W11C)",
     10009: "Indoor Cam C210 (T8419)",
@@ -8707,6 +8709,17 @@ export const DeviceProperties: Properties = {
   },
   [DeviceType.NVR_S4_MAX]: {
     ...GenericDeviceProperties,
+  },
+  [DeviceType.POE_CAM_S4]: {
+    ...GenericDeviceProperties,
+    [PropertyName.DeviceState]: DeviceStateProperty,
+    [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
+    [PropertyName.DevicePersonDetected]: DevicePersonDetectedProperty,
+    [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+    [PropertyName.DeviceVehicleDetected]: DeviceVehicleDetectedProperty,
+    [PropertyName.DeviceStrangerPersonDetected]: DeviceStrangerPersonDetectedProperty,
+    [PropertyName.DevicePicture]: DevicePictureProperty,
+    [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
   },
 };
 

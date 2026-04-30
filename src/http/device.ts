@@ -1900,6 +1900,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.SOLO_CAMERA_C210 ||
       type == DeviceType.SOLO_CAMERA_E30 ||
       type == DeviceType.CAMERA_S4 ||
+      type == DeviceType.POE_CAM_S4 ||
       type == DeviceType.CAMERA_C35 ||
       type == DeviceType.LOCK_85V0 ||
       type == DeviceType.INDOOR_OUTDOOR_CAMERA_1080P ||
