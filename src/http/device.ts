@@ -2630,8 +2630,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isCameraPoE(type: number): boolean {
-    //T8E00
-    return DeviceType.CAMERA_POE_S4 === type;
+    //T8E00, T8P10
+    return DeviceType.CAMERA_POE_S4 === type || DeviceType.CAMERA_POE_E41 === type;
   }
 
   public isCamera(): boolean {
