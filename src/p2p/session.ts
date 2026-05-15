@@ -125,7 +125,7 @@ import { ParsePayload, decodeImage } from "../http/utils";
 import { TalkbackStream } from "./talkback";
 import { LivestreamError, TalkbackError, ensureError } from "../error";
 import { SmartSafeEvent } from "../push/types";
-import { SmartSafeEventValueDetail } from "../push/models";
+import { PushMessage, SmartSafeEventValueDetail } from "../push/models";
 import { BleCommandFactory, BleParameterIndex } from "./ble";
 import { CommandName, ParamType, Station } from "../http";
 import { getError, parseJSON } from "../utils";
@@ -3584,6 +3584,28 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                 );
                 if (payload) {
                   this.emit("storage info hb3", message.channel, payload.body);
+                }
+              } else if (json.cmd === CommandType.CMD_CAMERA_PUSH_NOTIFY) {
+                // P2P camera push notification from HB3 station (motion, person detection, etc.)
+                // The outer payload is a JSON string that must be parsed separately.
+                const innerPayload = parseJSON(
+                  typeof json.payload === "string" ? json.payload : JSON.stringify(json.payload),
+                  rootP2PLogger
+                ) as PushMessage;
+                if (innerPayload !== undefined) {
+                  rootP2PLogger.debug(
+                    `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Camera push notification`,
+                    {
+                      stationSN: this.rawStation.station_sn,
+                      event_type: innerPayload.event_type,
+                      device_sn: innerPayload.device_sn,
+                    }
+                  );
+                  this.emit("push notification", {
+                    ...innerPayload,
+                    type: innerPayload.msg_type,
+                    station_sn: this.rawStation.station_sn,
+                  } as PushMessage);
                 }
               } else {
                 rootP2PLogger.debug(
