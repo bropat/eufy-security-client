@@ -47,7 +47,11 @@ export class BleLockProtocol {
    * @returns Parsed frame fields, or null if the buffer is not a valid FF09 frame.
    */
   static parseBleFrame(buffer: Buffer): BleFrame | null {
-    if (buffer.length < BLE_FRAME_MIN_LENGTH || buffer[0] !== BLE_FRAME_HEADER_BYTE_0 || buffer[1] !== BLE_FRAME_HEADER_BYTE_1) {
+    if (
+      buffer.length < BLE_FRAME_MIN_LENGTH ||
+      buffer[0] !== BLE_FRAME_HEADER_BYTE_0 ||
+      buffer[1] !== BLE_FRAME_HEADER_BYTE_1
+    ) {
       return null;
     }
 

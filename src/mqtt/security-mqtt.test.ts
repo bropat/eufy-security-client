@@ -61,41 +61,49 @@ describe("BleLockProtocol", () => {
 
   describe("isHeartbeat", () => {
     it("returns true for unencrypted NOTIFY frame", () => {
-      expect(BleLockProtocol.isHeartbeat({
-        isEncrypted: false,
-        isResponse: false,
-        commandCode: 74, // SmartLockBleCommandFunctionType2.NOTIFY
-        data: Buffer.alloc(0),
-      })).toBe(true);
+      expect(
+        BleLockProtocol.isHeartbeat({
+          isEncrypted: false,
+          isResponse: false,
+          commandCode: 74, // SmartLockBleCommandFunctionType2.NOTIFY
+          data: Buffer.alloc(0),
+        })
+      ).toBe(true);
     });
 
     it("returns false for encrypted NOTIFY frame", () => {
-      expect(BleLockProtocol.isHeartbeat({
-        isEncrypted: true,
-        isResponse: false,
-        commandCode: 74,
-        data: Buffer.alloc(0),
-      })).toBe(false);
+      expect(
+        BleLockProtocol.isHeartbeat({
+          isEncrypted: true,
+          isResponse: false,
+          commandCode: 74,
+          data: Buffer.alloc(0),
+        })
+      ).toBe(false);
     });
   });
 
   describe("isLockCommandResponse", () => {
     it("returns true for response ON_OFF_LOCK frame", () => {
-      expect(BleLockProtocol.isLockCommandResponse({
-        isEncrypted: false,
-        isResponse: true,
-        commandCode: 35, // SmartLockBleCommandFunctionType2.ON_OFF_LOCK
-        data: Buffer.alloc(0),
-      })).toBe(true);
+      expect(
+        BleLockProtocol.isLockCommandResponse({
+          isEncrypted: false,
+          isResponse: true,
+          commandCode: 35, // SmartLockBleCommandFunctionType2.ON_OFF_LOCK
+          data: Buffer.alloc(0),
+        })
+      ).toBe(true);
     });
 
     it("returns false for non-response frame", () => {
-      expect(BleLockProtocol.isLockCommandResponse({
-        isEncrypted: false,
-        isResponse: false,
-        commandCode: 35,
-        data: Buffer.alloc(0),
-      })).toBe(false);
+      expect(
+        BleLockProtocol.isLockCommandResponse({
+          isEncrypted: false,
+          isResponse: false,
+          commandCode: 35,
+          data: Buffer.alloc(0),
+        })
+      ).toBe(false);
     });
   });
 
@@ -144,14 +152,12 @@ describe("SecurityMQTTService", () => {
   describe("getMqttTopic", () => {
     it("builds the correct request topic", () => {
       const service = createService();
-      expect(service.getMqttTopic("T85D0", "SN123", "req"))
-        .toBe("cmd/eufy_security/T85D0/SN123/req");
+      expect(service.getMqttTopic("T85D0", "SN123", "req")).toBe("cmd/eufy_security/T85D0/SN123/req");
     });
 
     it("builds the correct response topic", () => {
       const service = createService();
-      expect(service.getMqttTopic("T85D0", "SN123", "res"))
-        .toBe("cmd/eufy_security/T85D0/SN123/res");
+      expect(service.getMqttTopic("T85D0", "SN123", "res")).toBe("cmd/eufy_security/T85D0/SN123/res");
     });
   });
 

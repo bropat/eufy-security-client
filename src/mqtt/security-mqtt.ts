@@ -241,7 +241,7 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
     nickName: string,
     channel: number,
     sequence: number,
-    lock: boolean,
+    lock: boolean
   ): Promise<boolean> {
     return new Promise((resolve) => {
       if (!this.client || this.connectionState !== ConnectionState.CONNECTED) {
@@ -257,7 +257,7 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
         channel,
         sequence,
         Lock.encodeCmdSmartLockUnlock(adminUserId, lock, nickName, shortUserId),
-        SmartLockFunctionType.TYPE_2,
+        SmartLockFunctionType.TYPE_2
       );
 
       const transPayload: SmartLockP2PCommandPayloadType = JSON.parse(command.payload.value);
@@ -323,7 +323,7 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
         "Model-type": "PHONE",
         timezone: "America/New_York",
       },
-      JSON.stringify({}),
+      JSON.stringify({})
     );
     if (mqttCertRes.data.code !== 0) {
       throw new Error(`MQTT certs failed: ${JSON.stringify(mqttCertRes.data)}`);
@@ -405,10 +405,7 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
       return;
     }
 
-    const topics = [
-      this.getMqttTopic(deviceModel, deviceSN, "res"),
-      this.getMqttTopic(deviceModel, deviceSN, "req"),
-    ];
+    const topics = [this.getMqttTopic(deviceModel, deviceSN, "res"), this.getMqttTopic(deviceModel, deviceSN, "req")];
 
     for (const topic of topics) {
       this.client.subscribe(topic, { qos: 1 }, (err) => {
@@ -426,7 +423,9 @@ export class SecurityMQTTService extends TypedEmitter<SecurityMQTTServiceEvents>
   /** Generates a random 32-character hex string for the MQTT message seed. */
   private static generateSeed(): string {
     return Array.from({ length: 16 }, () =>
-      Math.floor(Math.random() * 256).toString(16).padStart(2, "0")
+      Math.floor(Math.random() * 256)
+        .toString(16)
+        .padStart(2, "0")
     ).join("");
   }
 
