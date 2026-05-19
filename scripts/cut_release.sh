@@ -22,9 +22,11 @@ git checkout -b "release/$VERSION" || exit 1
 
 # Update file
 sed -i 's/version": .*/version": "'$VERSION'",/' package.json
+npm i
 
 # Add file to the branch and commit
 git add package.json
+git add package-lock.json
 git commit -m "Add new version"
 
 # Push

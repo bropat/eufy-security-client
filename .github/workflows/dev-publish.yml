@@ -1,0 +1,54 @@
+name: Publish Dev
+
+# Automatically publish dev pre-release builds to npm when code is pushed to the develop branch.
+# Uses npm trusted publishing (OIDC) for authentication — no npm token required.
+# Publishes with the "dev" dist-tag so it doesn't affect the "latest" tag.
+#
+# To publish under a different package name (e.g. a scoped package on a fork),
+# set the repository variable NPM_PACKAGE_NAME in Settings > Variables > Actions.
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  publish-dev:
+    name: Publish dev release to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for npm trusted publishing (OIDC)
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24' # npm >= 11.5.1 / Node >= 22.14.0 required for OIDC trusted publishing
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Set dev version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          DEV_VERSION="${CURRENT_VERSION}-dev.${{ github.run_number }}"
+          # Optionally override package name via repository variable (useful for forks publishing to a scoped package)
+          if [[ -n "${{ vars.NPM_PACKAGE_NAME }}" ]]; then
+            npm pkg set name="${{ vars.NPM_PACKAGE_NAME }}"
+          fi
+          # Ensure repository URL matches the publishing repo for provenance validation
+          npm pkg set "repository.url=https://github.com/${{ github.repository }}"
+          npm version "${DEV_VERSION}" --no-git-tag-version
+
+      - name: Publish to npm with dev tag
+        run: npm publish --tag dev --access public

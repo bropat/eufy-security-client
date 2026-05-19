@@ -97,6 +97,7 @@ import {
   P2PCommand,
   RGBColor,
   StreamMetadata,
+  StreamTimeoutOptions,
 } from "../p2p/interfaces";
 import { P2PClientProtocol } from "../p2p/session";
 import {
@@ -291,6 +292,7 @@ export class Station extends TypedEmitter<StationEvents> {
     this.p2pSession.on("sequence error", (channel: number, command: number, sequence: number, serialnumber: string) =>
       this.onSequenceError(channel, command, sequence, serialnumber)
     );
+    this.p2pSession.on("hub notify update", () => this.onHubNotifyUpdate());
   }
 
   protected initializeState(): void {
@@ -320,7 +322,8 @@ export class Station extends TypedEmitter<StationEvents> {
       !Device.isLockWifiT8510P(stationData.device_type, stationData.station_sn) &&
       !Device.isLockWifiT8520P(stationData.device_type, stationData.station_sn) &&
       !Device.isLockWifiT85L0(stationData.device_type) &&
-      !Device.isLockWifiT85V0(stationData.device_type, stationData.station_sn) &&
+      !Device.isLockWifiT85V0(stationData.device_type) &&
+      !Device.isLockWifiT85P0(stationData.device_type) &&
       !Device.isLockWifiT85D0(stationData.device_type)
     ) {
       publicKey = await api.getPublicKey(stationData.station_sn, PublicKeyType.LOCK);
@@ -642,10 +645,7 @@ export class Station extends TypedEmitter<StationEvents> {
       }
       if (property.name === PropertyName.Model && Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial())) {
         return "T8510P";
-      } else if (
-        property.name === PropertyName.Model &&
-        Device.isLockWifiT85V0(this.getDeviceType(), this.getSerial())
-      ) {
+      } else if (property.name === PropertyName.Model && Device.isLockWifiT85V0(this.getDeviceType())) {
         return "T85V0";
       } else if (property.type === "number") {
         const numericProperty = property as PropertyMetadataNumeric;
@@ -829,6 +829,14 @@ export class Station extends TypedEmitter<StationEvents> {
     return sn.startsWith("T8025");
   }
 
+  public static isStationMiniBaseChime(type: number): boolean {
+    return type === DeviceType.MINIBASE_CHIME;
+  }
+
+  public static isStationMiniBaseChimeBySn(sn: string): boolean {
+    return sn.startsWith("T8023");
+  }
+
   public isStationHomeBase2OrOlder(): boolean {
     return Station.isStationHomeBase2OrOlder(this.rawStation.device_type);
   }
@@ -839,6 +847,10 @@ export class Station extends TypedEmitter<StationEvents> {
 
   public isStationHomeBaseMini(): boolean {
     return Station.isStationHomeBaseMini(this.rawStation.device_type);
+  }
+
+  public isStationMiniBaseChime(): boolean {
+    return Station.isStationMiniBaseChime(this.rawStation.device_type);
   }
 
   /**
@@ -6594,6 +6606,15 @@ export class Station extends TypedEmitter<StationEvents> {
       });
     }
     if (!device.hasCommand(CommandName.DeviceTriggerAlarmSound)) {
+      rootHTTPLogger.debug(
+        `This functionality is not implemented or supported by this device - triggerDeviceAlarmSound`,
+        {
+          device: device.getSerial(),
+          station: this.getSerial(),
+          commandName: commandData.name,
+          commandValue: commandData.value,
+        }
+      );
       throw new NotSupportedError("This functionality is not implemented or supported by this device", {
         context: {
           device: device.getSerial(),
@@ -6678,6 +6699,11 @@ export class Station extends TypedEmitter<StationEvents> {
       value: value,
     };
     if (!this.hasProperty(propertyData.name)) {
+      rootHTTPLogger.debug(`This functionality is not implemented or supported - setStationAlarmTone`, {
+        propertyName: propertyData.name,
+        propertyValue: propertyData.value,
+        station: this.getSerial(),
+      });
       throw new NotSupportedError("This functionality is not implemented or supported", {
         context: { propertyName: propertyData.name, propertyValue: propertyData.value, station: this.getSerial() },
       });
@@ -7010,6 +7036,12 @@ export class Station extends TypedEmitter<StationEvents> {
       });
     }
     if (!device.hasProperty(propertyData.name)) {
+      rootHTTPLogger.debug(`This functionality is not implemented or supported by this device - setRTSPStream`, {
+        device: device.getSerial(),
+        station: this.getSerial(),
+        propertyName: propertyData.name,
+        propertyValue: propertyData.value,
+      });
       throw new NotSupportedError("This functionality is not implemented or supported by this device", {
         context: {
           device: device.getSerial(),
@@ -7398,6 +7430,31 @@ export class Station extends TypedEmitter<StationEvents> {
           property: propertyData,
         }
       );
+    } else if (device.isOutdoorPanAndTiltCamera()) {
+      // Outdoor pan/tilt cams (eufyCam S4 / T8172 etc.) behind a HomeBase 3
+      // silently drop raw CMD_DEVS_SWITCH frames. Pcap comparison against
+      // the iOS Eufy app shows they accept the same wrapped envelope as
+      // INDOOR_PT_CAMERA_S350 — outer CMD_SET_PAYLOAD carrying inner
+      // CMD_INDOOR_ENABLE_PRIVACY_MODE_S350.
+      param_value = value === true ? 0 : 1;
+      this.p2pSession.sendCommandWithStringPayload(
+        {
+          commandType: CommandType.CMD_SET_PAYLOAD,
+          value: JSON.stringify({
+            account_id: this.rawStation.member.admin_user_id,
+            cmd: CommandType.CMD_INDOOR_ENABLE_PRIVACY_MODE_S350,
+            mChannel: device.getChannel(),
+            mValue3: 0,
+            payload: {
+              switch: param_value,
+            },
+          }),
+          channel: device.getChannel(),
+        },
+        {
+          property: propertyData,
+        }
+      );
     } else {
       this.p2pSession.sendCommandWithIntString(
         {
@@ -7639,7 +7696,12 @@ export class Station extends TypedEmitter<StationEvents> {
           command: commandData,
         }
       );
-    } else if (device.isOutdoorPanAndTiltCamera()) {
+    } else if (
+      device.isOutdoorPanAndTiltCamera() ||
+      device.isFloodLightT8425() ||
+      (device.isBatteryDoorbellDualE340() && !this.isStationMiniBaseChime()) ||
+      ((device.isIndoorPTCameraE30() || device.isIndoorCameraBase()) && this.isDeviceControlledByHomeBase())
+    ) {
       rootHTTPLogger.debug(`Station start livestream - sending command using CMD_DOORBELL_SET_PAYLOAD (1)`, {
         stationSN: this.getSerial(),
         deviceSN: device.getSerial(),
@@ -7667,9 +7729,8 @@ export class Station extends TypedEmitter<StationEvents> {
       );
     } else if (
       device.isSoloCameras() ||
-      device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423 ||
-      device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424 ||
-      device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8424 ||
+      device.isFloodLightT8423() ||
+      device.isFloodLightT8424() ||
       device.isWiredDoorbellT8200X() ||
       device.isWallLightCam() ||
       device.isGarageCamera()
@@ -7698,8 +7759,8 @@ export class Station extends TypedEmitter<StationEvents> {
         }
       );
     } else if (
-      ((device.isIndoorPanAndTiltCameraS350() || device.isIndoorCamC24()) && this.isDeviceControlledByHomeBase()) ||
-      device.isFloodLightT8425()
+      (device.isIndoorPanAndTiltCameraS350() || device.isIndoorCamC24()) &&
+      this.isDeviceControlledByHomeBase()
     ) {
       rootHTTPLogger.debug(`Station start livestream - sending command using CMD_SET_PAYLOAD`, {
         stationSN: this.getSerial(),
@@ -7922,6 +7983,10 @@ export class Station extends TypedEmitter<StationEvents> {
   public isLiveStreaming(device: Device): boolean {
     if (device.getStationSerial() !== this.getSerial()) return false;
     return this.p2pSession.isLiveStreaming(device.getChannel());
+  }
+
+  public setStreamTimeouts(options: StreamTimeoutOptions): void {
+    this.p2pSession.setStreamTimeouts(options);
   }
 
   public isDownloading(device: Device): boolean {
@@ -8484,7 +8549,7 @@ export class Station extends TypedEmitter<StationEvents> {
         device.getChannel(),
         this.p2pSession.incLockSequenceNumber(),
         value,
-        propertyData,
+        propertyData
       );
     } else if (
       device.isLockWifiT8506() ||
@@ -8492,7 +8557,8 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8510P() ||
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
-      device.isLockWifiT85V0()
+      device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0()
     ) {
       const command = getSmartLockP2PCommand(
         this.rawStation.station_sn,
@@ -10223,6 +10289,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       const command = getSmartLockP2PCommand(
@@ -12587,6 +12654,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isWallLightCam() ||
       device.isGarageCamera() ||
       device.isOutdoorPanAndTiltCamera() ||
+      device.isBatteryDoorbellDualE340() ||
       (device.isIndoorPanAndTiltCameraS350() && !this.isDeviceControlledByHomeBase())
     ) {
       this.p2pSession.sendCommandWithStringPayload(
@@ -12664,6 +12732,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isWallLightCam() ||
       device.isGarageCamera() ||
       device.isOutdoorPanAndTiltCamera() ||
+      device.isBatteryDoorbellDualE340() ||
       (device.isIndoorPanAndTiltCameraS350() && !this.isDeviceControlledByHomeBase())
     ) {
       this.p2pSession.sendCommandWithStringPayload(
@@ -12767,6 +12836,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceScramblePasscode, value);
@@ -12825,6 +12895,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceWrongTryProtection, value);
@@ -12883,6 +12954,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceWrongTryAttempts, value);
@@ -12941,6 +13013,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceWrongTryLockdownTime, value);
@@ -13578,6 +13651,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       const command = getSmartLockP2PCommand(
@@ -13728,6 +13802,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       const command = getSmartLockP2PCommand(
@@ -13893,6 +13968,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       const command = getSmartLockP2PCommand(
@@ -14050,6 +14126,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       const command = getSmartLockP2PCommand(
@@ -14263,6 +14340,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       let payload: Buffer;
@@ -14430,6 +14508,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceAutoLock, value);
@@ -14486,6 +14565,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceAutoLockSchedule, value);
@@ -14542,6 +14622,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceAutoLockScheduleStartTime, value);
@@ -14598,6 +14679,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceAutoLockScheduleEndTime, value);
@@ -14654,6 +14736,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceAutoLockTimer, value);
@@ -14710,6 +14793,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceOneTouchLocking, value);
@@ -14766,6 +14850,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       this.setSmartLockParams(device, PropertyName.DeviceSound, value);
@@ -14835,6 +14920,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT85D0() ||
       device.isLockWifiR10() ||
       device.isLockWifiT85L0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiR20()
     ) {
       let oldvalue = 0;
@@ -14918,6 +15004,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT85D0() ||
       device.isLockWifiR10() ||
       device.isLockWifiT85L0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiR20()
     ) {
       let oldvalue = 0;
@@ -15001,6 +15088,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT85D0() ||
       device.isLockWifiR10() ||
       device.isLockWifiT85L0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiR20()
     ) {
       let oldvalue = 0;
@@ -15171,6 +15259,7 @@ export class Station extends TypedEmitter<StationEvents> {
       device.isLockWifiT8520P() ||
       device.isLockWifiT85L0() ||
       device.isLockWifiT85V0() ||
+      device.isLockWifiT85P0() ||
       device.isLockWifiT85D0()
     ) {
       const command = getSmartLockP2PCommand(
@@ -15373,7 +15462,7 @@ export class Station extends TypedEmitter<StationEvents> {
               flag: 0,
               res_unzip: 1,
               start_date: format(startDate, "YYYYMMDD"),
-              start_time: `${format(endDate, "YYYYMMDD")}000000`,
+              start_time: `${format(startDate, "YYYYMMDD")}000000`,
               storage_cloud:
                 storageType === FilterStorageType.NONE ||
                 (storageType !== FilterStorageType.LOCAL && storageType !== FilterStorageType.CLOUD)
@@ -17907,8 +17996,9 @@ export class Station extends TypedEmitter<StationEvents> {
       Device.isLockWifiT8502(this.getDeviceType()) ||
       Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial()) ||
       Device.isLockWifiT8520P(this.getDeviceType(), this.getSerial()) ||
-      Device.isLockWifiT85V0(this.getDeviceType(), this.getSerial()) ||
+      Device.isLockWifiT85V0(this.getDeviceType()) ||
       Device.isLockWifiT85L0(this.getDeviceType()) ||
+      Device.isLockWifiT85P0(this.getDeviceType()) ||
       Device.isLockWifiT85D0(this.getDeviceType())
     ) {
       rootHTTPLogger.debug(`Station smart lock send get lock parameters command`, { stationSN: this.getSerial() });
@@ -17943,8 +18033,9 @@ export class Station extends TypedEmitter<StationEvents> {
       Device.isLockWifiT8502(this.getDeviceType()) ||
       Device.isLockWifiT8510P(this.getDeviceType(), this.getSerial()) ||
       Device.isLockWifiT8520P(this.getDeviceType(), this.getSerial()) ||
-      Device.isLockWifiT85V0(this.getDeviceType(), this.getSerial()) ||
+      Device.isLockWifiT85V0(this.getDeviceType()) ||
       Device.isLockWifiT85L0(this.getDeviceType()) ||
+      Device.isLockWifiT85P0(this.getDeviceType()) ||
       Device.isLockWifiT85D0(this.getDeviceType())
     ) {
       rootHTTPLogger.debug(`Station smart lock send get lock status command`, { stationSN: this.getSerial() });
@@ -18001,6 +18092,10 @@ export class Station extends TypedEmitter<StationEvents> {
       sequence: sequence,
       serialnumber: serialnumber,
     });
+  }
+
+  private onHubNotifyUpdate(): void {
+    this.emit("hub notify update", this);
   }
 
   public updateUsername(device: Device, username: string, passwordId: string): void {

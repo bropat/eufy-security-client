@@ -69,6 +69,7 @@ export interface P2PClientProtocolEvents {
   "garage door status": (channel: number, doorId: number, status: number) => void;
   "storage info hb3": (channel: number, storageInfo: StorageInfoBodyHB3) => void;
   "sequence error": (channel: number, command: number, sequence: number, serialnumber: string) => void;
+  "hub notify update": () => void;
 }
 
 export interface P2PQueueMessage {
@@ -174,6 +175,16 @@ export interface StreamMetadata {
   videoWidth: number;
   videoHeight: number;
   audioCodec: AudioCodec;
+}
+
+/** Configurable timeout values for P2P streaming. All values in milliseconds. */
+export interface StreamTimeoutOptions {
+  /** Max time to wait for stream data before auto-stopping. Default: 5000ms. */
+  streamDataWait?: number;
+  /** Time to wait for first audio frame before declaring no audio. Default: 650ms. */
+  audioCodecAnalyze?: number;
+  /** Max time to wait for an expected sequence number. Default: 20000ms. */
+  expectedSeqNoWait?: number;
 }
 
 export interface DeviceSerial {

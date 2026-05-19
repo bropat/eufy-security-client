@@ -282,8 +282,9 @@ export interface StationEvents {
     channel: number,
     sequence: number,
     lock: boolean,
-    property: PropertyData,
+    property: PropertyData
   ) => void;
+  "hub notify update": (station: Station) => void;
 }
 
 export interface DeviceEvents {

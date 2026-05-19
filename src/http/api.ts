@@ -152,6 +152,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
   private apiGetHouseList = "v1/house/list";
   private apiGetHouseInvites = "v1/house/invite_list";
   private apiConfirmHouseInvite = "v1/house/confirm_invite";
+  private apiSendHouseInvite = "v1/house/invite";
 
   private apiAddLocalUser = "v1/app/device/local_user/add";
   private apiDeleteLocalUser = "v1/app/device/user/delete";
@@ -1390,7 +1391,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
       if (response.status == 200) {
         const result: ResultResponse = response.data;
         if (result.code == ResponseErrorCode.CODE_OK) {
-          if (result.data) {
+          if (result.data && typeof result.data === "string") {
             const invites: Invites = {};
             const decrypted = this.decryptAPIData(result.data);
             rootHTTPLogger.debug("Get invites - Decrypted invites data", { invites: decrypted });
@@ -1641,9 +1642,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     return [];
   }
 
-  public async getHouseInviteList(isInviter = 1): Promise<Array<HouseInviteListResponse>> {
-    //TODO: Understand the other values of isInviter and document it
-
+  public async getHouseInviteList(isInviter = 0): Promise<Array<HouseInviteListResponse>> {
     const data = {
       is_inviter: isInviter,
       transaction: `${new Date().getTime().toString()}`,
@@ -1655,8 +1654,6 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
         const result: ResultResponse = response.data;
         if (result.code == ResponseErrorCode.CODE_OK) {
           if (result.data) {
-            //const houseInviteList = this.decryptAPIData(result.data) as Array<HouseInviteListResponse>;   // No more encrypted!?
-            //rootHTTPLogger.debug("Get house invite list - Decrypted house invite list data", houseInviteList);
             const houseInviteList = result.data as Array<HouseInviteListResponse>;
             rootHTTPLogger.debug("Get house invite list - House invite list data", houseInviteList);
             return houseInviteList;
@@ -1685,7 +1682,7 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
     const data = {
       house_id: houseID,
       invite_id: inviteID,
-      is_inviter: 1, // 1 = true, 0 = false
+      is_inviter: 0, // 0 = invitee accepting, 1 = inviter
       //user_id: "",
       transaction: `${new Date().getTime().toString()}`,
     };
@@ -1712,6 +1709,41 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
           data: response.data,
           houseID: houseID,
           inviteID: inviteID,
+        });
+      }
+    }
+    return false;
+  }
+
+  public async sendHouseInvite(houseID: string, email: string): Promise<boolean> {
+    const data = {
+      house_id: houseID,
+      email: email,
+      transaction: `${new Date().getTime().toString()}`,
+    };
+    const response: ApiResponse | undefined = await this.makePostRequest(this.apiSendHouseInvite, data);
+
+    if (response !== undefined) {
+      if (response.status == 200) {
+        const result: ResultResponse = response.data;
+        if (result.code == ResponseErrorCode.CODE_OK) {
+          return true;
+        } else {
+          rootHTTPLogger.error("Send house invite - Response code not ok", {
+            code: result.code,
+            msg: result.msg,
+            data: response.data,
+            houseID: houseID,
+            email: email,
+          });
+        }
+      } else {
+        rootHTTPLogger.error("Send house invite - Status return code not 200", {
+          status: response.status,
+          statusText: response.statusText,
+          data: response.data,
+          houseID: houseID,
+          email: email,
         });
       }
     }

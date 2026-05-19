@@ -1,6 +1,7 @@
 import { TypedEmitter } from "tiny-typed-emitter";
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import * as path from "path";
+import * as util from "util";
 import { Readable } from "stream";
 import EventEmitter from "events";
 
@@ -444,7 +445,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         authToken,
         userId,
         this.persistentData.openudid,
-        this.config.country || "US",
+        this.config.country || "US"
       );
 
       this.securityMqttService.on("connect", () => {
@@ -470,7 +471,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
             }
           })
           .catch((err) => {
-            rootMainLogger.debug("SecurityMQTT lock status update failed - device not found", { deviceSN, error: getError(ensureError(err)) });
+            rootMainLogger.debug("SecurityMQTT lock status update failed - device not found", {
+              deviceSN,
+              error: getError(ensureError(err)),
+            });
           });
       });
 
@@ -865,9 +869,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                   channel: number,
                   sequence: number,
                   lock: boolean,
-                  _property: PropertyData,
+                  _property: PropertyData
                 ) => this.onSecurityMqttCommand(deviceSN, adminUserId, shortUserId, nickName, channel, sequence, lock)
               );
+              station.on("hub notify update", (station: Station) => this.onHubNotifyUpdate(station));
               this.addStation(station);
               station.initialize();
             } catch (err) {
@@ -937,6 +942,13 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     );
   }
 
+  private onHubNotifyUpdate(station: Station): void {
+    rootMainLogger.info("Hub notify update received, refreshing cloud data", {
+      stationSN: station.getSerial(),
+    });
+    this.refreshCloudData();
+  }
+
   private onStationConnectionError(station: Station, error: Error): void {
     this.emit("station connection error", station, error);
   }
@@ -960,6 +972,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
   private handleDevices(devices: FullDevices): void {
     rootMainLogger.debug("Got devices", { devices: devices });
+    rootMainLogger.debug("Got devices - extended logging", { devices: util.inspect(devices, { depth: null }) });
+
     const deviceSNs: string[] = Object.keys(this.devices);
     const newDeviceSNs = Object.keys(devices);
     const promises: Array<Promise<Device>> = [];
@@ -1008,6 +1022,16 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         } else if (Device.isLockKeypad(device.device_type)) {
           new_device = LockKeypad.getInstance(this.api, device, deviceConfig);
         } else {
+          rootMainLogger.warn(`New unknown device detected`, {
+            device_type: device.device_type,
+            device_sn: device.device_sn,
+            device_name: device.device_name,
+            device_model: device.device_model,
+            station_sn: device.station_sn,
+            main_sw_version: device.main_sw_version,
+            main_hw_version: device.main_hw_version,
+            params: device.params,
+          });
           new_device = UnknownDevice.getInstance(this.api, device, deviceConfig);
         }
 
@@ -1476,6 +1500,15 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
       }
     }
     if (refreshCloud) this.refreshCloudData();
+  }
+
+  public async sendHouseInvite(houseID: string, email: string): Promise<boolean> {
+    const result = await this.api.sendHouseInvite(houseID, email).catch((err) => {
+      const error = ensureError(err);
+      rootMainLogger.error("Error sending house invite", { error: getError(error), houseID, email });
+      return false;
+    });
+    return result;
   }
 
   private onPushMessage(message: PushMessage): void {
@@ -2868,7 +2901,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     nickName: string,
     channel: number,
     sequence: number,
-    lock: boolean,
+    lock: boolean
   ): void {
     if (!this.securityMqttService || !this.securityMqttService.isConnected()) {
       rootMainLogger.error("SecurityMQTT not connected, cannot send lock command", { deviceSN });
@@ -2876,25 +2909,23 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
     const device = this.devices[deviceSN];
     const deviceModel = device ? device.getModel() : deviceSN;
-    this.securityMqttService.lockDevice(
-      deviceSN,
-      deviceModel,
-      adminUserId,
-      shortUserId,
-      nickName,
-      channel,
-      sequence,
-      lock,
-    ).then((success) => {
-      if (success) {
-        // Optimistically update lock state
-        this.getDevice(deviceSN).then((device) => {
-          device.updateProperty(PropertyName.DeviceLocked, lock);
-        }).catch(() => { /* device not found, ignore */ });
-      }
-    }).catch((err) => {
-      rootMainLogger.error("SecurityMQTT lock command error", { error: getError(ensureError(err)) });
-    });
+    this.securityMqttService
+      .lockDevice(deviceSN, deviceModel, adminUserId, shortUserId, nickName, channel, sequence, lock)
+      .then((success) => {
+        if (success) {
+          // Optimistically update lock state
+          this.getDevice(deviceSN)
+            .then((device) => {
+              device.updateProperty(PropertyName.DeviceLocked, lock);
+            })
+            .catch(() => {
+              /* device not found, ignore */
+            });
+        }
+      })
+      .catch((err) => {
+        rootMainLogger.error("SecurityMQTT lock command error", { error: getError(ensureError(err)) });
+      });
   }
 
   private onDeviceOpen(device: Device, state: boolean): void {
