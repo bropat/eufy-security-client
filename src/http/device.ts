@@ -2270,7 +2270,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static usesSecurityMqtt(type: number): boolean {
-    return Device.isLockWifiT85D0(type);
+    return Device.isLockWifiT85D0(type) || Device.isLockWifiT85L0(type);
   }
 
   static isLockWifiT8510P(type: number, serialnumber: string): boolean {
