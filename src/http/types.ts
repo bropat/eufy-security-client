@@ -8689,6 +8689,7 @@ export const DeviceProperties: Properties = {
   [DeviceType.PIR_SENSOR_E20]: {
     ...GenericDeviceProperties,
     [PropertyName.DeviceBattery]: DeviceBatteryProperty,
+    [PropertyName.DeviceMotionDetected]: DeviceMotionDetectedProperty,
     [PropertyName.DeviceMotionSensorPIREvent]: DeviceMotionSensorPIREventProperty,
     [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSILockProperty,
     [PropertyName.DeviceBatteryLow]: DeviceBatteryLowMotionSensorProperty,

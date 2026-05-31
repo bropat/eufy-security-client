@@ -2000,7 +2000,12 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isSensor(type: number): boolean {
-    if (type == DeviceType.SENSOR || type == DeviceType.MOTION_SENSOR || type == DeviceType.ENTRY_SENSOR_E20)
+    if (
+      type == DeviceType.SENSOR ||
+      type == DeviceType.MOTION_SENSOR ||
+      type == DeviceType.ENTRY_SENSOR_E20 ||
+      type == DeviceType.PIR_SENSOR_E20
+    )
       return true;
     return false;
   }
@@ -2479,7 +2484,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isMotionSensor(type: number): boolean {
-    return DeviceType.MOTION_SENSOR == type;
+    return DeviceType.MOTION_SENSOR == type || this.isPirSensorE20(type);
+  }
+
+  static isPirSensorE20(type: number): boolean {
+    return DeviceType.PIR_SENSOR_E20 == type;
   }
 
   static isSmartDrop(type: number): boolean {
@@ -4600,6 +4609,40 @@ export class MotionSensor extends Sensor {
     super.handlePropertyChange(metadata, oldValue, newValue);
     if (metadata.name === PropertyName.DeviceMotionDetected) {
       this.emit("motion detected", this, newValue as boolean);
+    } else if (
+      metadata.name === PropertyName.DeviceMotionSensorPIREvent &&
+      metadata.key === CommandType.CMD_MOTION_SENSOR_PIR_EVT &&
+      oldValue !== undefined &&
+      newValue !== undefined &&
+      Number(newValue) > Number(oldValue) &&
+      Date.now() - Number(newValue) < MotionSensor.MOTION_COOLDOWN_MS
+    ) {
+      // PIR_SENSOR_E20 (e.g. paired to a HomeBase 3) does not send a
+      // CusPushEvent.MOTION_SENSOR_PIR push. Instead it reports motion as a
+      // CMD_MOTION_SENSOR_PIR_EVT (param 1605) update carrying the Unix-ms
+      // timestamp of the last PIR detection. A timestamp newer than the
+      // previously known one (and recent enough) indicates a fresh live
+      // detection, so raise the DeviceMotionDetected event and auto-reset it
+      // after the cooldown.
+      try {
+        this.updateProperty(PropertyName.DeviceMotionDetected, true);
+        this.clearEventTimeout(DeviceEvent.MotionDetected);
+        this.eventTimeouts.set(
+          DeviceEvent.MotionDetected,
+          setTimeout(async () => {
+            this.updateProperty(PropertyName.DeviceMotionDetected, false);
+            this.eventTimeouts.delete(DeviceEvent.MotionDetected);
+          }, MotionSensor.MOTION_COOLDOWN_MS)
+        );
+      } catch (err) {
+        const error = ensureError(err);
+        rootHTTPLogger.debug(`MotionSensor handle PIR event property change - Error`, {
+          error: getError(error),
+          deviceSN: this.getSerial(),
+          oldValue: oldValue,
+          newValue: newValue,
+        });
+      }
     }
   }
 
