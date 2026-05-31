@@ -3654,6 +3654,32 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                   }
                 );
                 this.emit("hub notify update");
+              } else if (
+                json.cmd === 1829 &&
+                json.payload !== undefined &&
+                Array.isArray((json.payload as unknown as { params?: unknown }).params)
+              ) {
+                // HomeBase 3 delivers live property updates for Sub-1G sensors
+                // (e.g. PIR_SENSOR_E20 motion via param_type 1605) as a generic
+                // params batch:
+                //   {"cmd":1829,"payload":{"params":[{"dev_type":17,"param_type":1605,"param_value":"..."}]}}
+                // Route each param through the normal "parameter" pipeline so the owning
+                // device receives a live raw-property update instead of the event being
+                // silently dropped as "Not implemented".
+                const params = (json.payload as unknown as { params: Array<{ param_type?: number; param_value?: string }> }).params;
+                rootP2PLogger.debug(
+                  `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD device params update`,
+                  {
+                    stationSN: this.rawStation.station_sn,
+                    channel: message.channel,
+                    params: params,
+                  }
+                );
+                for (const param of params) {
+                  if (param !== undefined && param.param_type !== undefined && param.param_value !== undefined) {
+                    this.emit("parameter", message.channel, param.param_type, param.param_value);
+                  }
+                }
               } else {
                 rootP2PLogger.debug(
                   `Handle DATA ${P2PDataType[message.dataType]} - CMD_NOTIFY_PAYLOAD - Not implemented 2`,
