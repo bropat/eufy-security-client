@@ -98,8 +98,8 @@ export enum DeviceType {
   LOCK_8502 = 180,
   LOCK_8506 = 184,
   LOCK_8531 = 189,
-  LOCK_85D0 = 202,
   LOCK_85L0 = 201,
+  LOCK_85D0 = 202,
   LOCK_85V0 = 203,
   LOCK_85P0 = 209, //T85P0
   NVR_S4_MAX = 300, //T8N00
@@ -10744,7 +10744,14 @@ export const DeviceCommands: Commands = {
     CommandName.DeviceUpdateUserSchedule,
     CommandName.DeviceUpdateUsername,
   ],
-  [DeviceType.LOCK_85D0]: [CommandName.DeviceLockCalibration],
+  [DeviceType.LOCK_85D0]: [
+    CommandName.DeviceLockCalibration,
+    CommandName.DeviceAddUser,
+    CommandName.DeviceDeleteUser,
+    CommandName.DeviceUpdateUserPasscode,
+    CommandName.DeviceUpdateUserSchedule,
+    CommandName.DeviceUpdateUsername,
+  ],
   [DeviceType.LOCK_8502]: [
     CommandName.DeviceLockCalibration,
     CommandName.DeviceAddUser,
