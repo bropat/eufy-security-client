@@ -2229,6 +2229,16 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return DeviceType.LOCK_WIFI_NO_FINGER == type;
   }
 
+  static isLockWifiT8501(type: number, serialnumber: string): boolean {
+    // Eufy Solo Smart Lock D20 (T8501). It reports device_type LOCK_WIFI_NO_FINGER (53) but
+    // does NOT speak the legacy wifi-lock protocol: lock/unlock, get-params and status only
+    // work over the "V12" lock protocol (getLockV12P2PCommand, the same family as the R10/R20
+    // locks, T8503/T8504). Verified against real hardware (legacy and smart-lock P2P commands
+    // get no response; V12 returns ERROR_PPCS_SUCCESSFUL and actuates the bolt). Disambiguated
+    // by model/serial prefix, the same way T8510P/T8520P are split out from plain LOCK_WIFI.
+    return DeviceType.LOCK_WIFI_NO_FINGER == type && serialnumber.startsWith("T8501");
+  }
+
   static isLockWifiT8531(type: number): boolean {
     return DeviceType.LOCK_8531 == type;
   }
@@ -2730,6 +2740,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   public isLockWifiNoFinger(): boolean {
     return Device.isLockWifiNoFinger(this.rawDevice.device_type);
+  }
+
+  public isLockWifiT8501(): boolean {
+    return Device.isLockWifiT8501(this.rawDevice.device_type, this.rawDevice.device_sn);
   }
 
   public isLockWifiR10(): boolean {
