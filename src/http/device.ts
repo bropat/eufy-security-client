@@ -2198,6 +2198,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       Device.isLockWifiT85V0(type) ||
       Device.isLockWifiT8502(type) ||
       Device.isLockWifiT85L0(type) ||
+      Device.isLockWifiT85L1(type) ||
       Device.isLockWifiT8531(type) ||
       Device.isLockWifiT85D0(type) ||
       Device.isLockWifiT85P0(type)
@@ -2298,6 +2299,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   static isLockWifiT85L0(type: number): boolean {
     return DeviceType.LOCK_85L0 == type;
+  }
+
+  static isLockWifiT85L1(type: number): boolean {
+    return DeviceType.LOCK_85L1 == type;
   }
 
   static isBatteryDoorbell1(type: number): boolean {
@@ -2778,6 +2783,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   public isLockWifiT85L0(): boolean {
     return Device.isLockWifiT85L0(this.rawDevice.device_type);
+  }
+
+  public isLockWifiT85L1(): boolean {
+    return Device.isLockWifiT85L1(this.rawDevice.device_type);
   }
 
   public isLockWifiT85P0(): boolean {
@@ -4719,7 +4728,13 @@ export class Lock extends Device {
       this.emit("low battery", this, newValue as boolean);
     } else if (
       (metadata.key === CommandType.CMD_DOORLOCK_GET_STATE ||
-        metadata.key === CommandType.CMD_SMARTLOCK_QUERY_STATUS) &&
+        metadata.key === CommandType.CMD_SMARTLOCK_QUERY_STATUS ||
+        // FamiLock family (T85L0/T85L1) reports live state via the `lockStatus` property
+        // (key 6000) rather than the legacy status command keys; keep `locked` in sync with it
+        // so HA reflects reality — notably the auto-lock that re-locks the latch a few seconds
+        // after a remote unlock (this is a latch lock, not a deadbolt; auto-lock is its normal
+        // "lock" path). lockStatus 4 = Locked.
+        metadata.name === PropertyName.DeviceLockStatus) &&
       ((oldValue !== undefined && ((oldValue === 4 && newValue !== 4) || (oldValue !== 4 && newValue === 4))) ||
         oldValue === undefined)
     ) {
@@ -6036,7 +6051,13 @@ export class DoorbellLock extends DoorbellCamera {
       this.emit("low battery", this, newValue as boolean);
     } else if (
       (metadata.key === CommandType.CMD_DOORLOCK_GET_STATE ||
-        metadata.key === CommandType.CMD_SMARTLOCK_QUERY_STATUS) &&
+        metadata.key === CommandType.CMD_SMARTLOCK_QUERY_STATUS ||
+        // FamiLock family (T85L0/T85L1) reports live state via the `lockStatus` property
+        // (key 6000) rather than the legacy status command keys; keep `locked` in sync with it
+        // so HA reflects reality — notably the auto-lock that re-locks the latch a few seconds
+        // after a remote unlock (this is a latch lock, not a deadbolt; auto-lock is its normal
+        // "lock" path). lockStatus 4 = Locked.
+        metadata.name === PropertyName.DeviceLockStatus) &&
       ((oldValue !== undefined && ((oldValue === 4 && newValue !== 4) || (oldValue !== 4 && newValue === 4))) ||
         oldValue === undefined)
     ) {

@@ -141,6 +141,7 @@ import {
   AdvancedLockSetParamsTypeT8520,
 } from "../p2p/models";
 import { Device, DoorbellCamera, Lock, SmartSafe } from "./device";
+import { EslClient, EslEventListener } from "../mqtt/esl-client";
 import {
   encodeLockPayload,
   encryptLockAESData,
@@ -906,6 +907,12 @@ export class Station extends TypedEmitter<StationEvents> {
   }
 
   public isP2PConnectableDevice(): boolean {
+    // The FamiLock T85L1 is a "supported" device but has no P2P station — it rides the ESL
+    // MQTT channel (see lockDeviceEsl), so attempting a P2P connection only spams getDSKKeys
+    // failures. Skip it here, the same gate stock uses to avoid connecting unsupported devices.
+    if (Device.isLockWifiT85L1(this.getDeviceType())) {
+      return false;
+    }
     if (Device.isSmartTrack(this.getDeviceType()) || (!Device.isSupported(this.getDeviceType()) && !this.isStation())) {
       if (!Device.isSupported(this.getDeviceType()) && !this.isStation()) {
         rootHTTPLogger.debug("Station not supported, no connection over p2p will be initiated", {
@@ -8577,6 +8584,10 @@ export class Station extends TypedEmitter<StationEvents> {
       this.p2pSession.sendCommandWithStringPayload(command.payload, {
         property: propertyData,
       });
+    } else if (device.isLockWifiT85L1()) {
+      // FamiLock C32 (T85L1 / type 211): no P2P station — commands ride the eufy_security
+      // MQTT broker (mutual-TLS). Provision the cert lazily and actuate over the ESL channel.
+      this.lockDeviceEsl(device, value, propertyData);
     } else {
       throw new NotSupportedError("This functionality is not implemented or supported by this device", {
         context: {
@@ -8587,6 +8598,94 @@ export class Station extends TypedEmitter<StationEvents> {
         },
       });
     }
+  }
+
+  /**
+   * Persistent subscriber for the FamiLock's async event frames (state changes incl. auto-lock).
+   * Keyed by device serial; started lazily on the first ESL command so it shares the same cert.
+   */
+  private eslEventListeners: Map<string, EslEventListener> = new Map();
+
+  /**
+   * Ensure a persistent ESL event listener is running for this lock so its live state (a remote
+   * unlock and the auto-lock that re-locks it ~10s later) flows back into `lockStatus`/`locked`.
+   * The FamiLock has no P2P feed and isn't seen by the standard MQTT push service, so this is the
+   * only path that keeps HA in sync with reality.
+   */
+  private ensureEslEventListener(device: Device, cred: { cert: string; key: string; userId: string }): void {
+    const sn = device.getSerial();
+    // ponytail: one persistent listener per lock, kept for the process lifetime (it auto-reconnects).
+    // Wire stop() into Station teardown if device churn ever matters; not needed for a fixed home setup.
+    if (this.eslEventListeners.has(sn)) return;
+    const listener = new EslEventListener({
+      cert: cred.cert,
+      key: cred.key,
+      userId: cred.userId,
+      deviceSn: sn,
+      productCode: device.getModel(),
+      onEvent: (ev) => {
+        if (ev.status !== undefined) {
+          // lockStatus update triggers Lock.handlePropertyChange, which syncs `locked`.
+          device.updateProperty(PropertyName.DeviceLockStatus, ev.status);
+        }
+      },
+      log: (msg) => rootHTTPLogger.debug(`[esl-evt] ${msg}`),
+    });
+    this.eslEventListeners.set(sn, listener);
+    listener.start();
+  }
+
+  /**
+   * Actuate the FamiLock C32 (T85L1) over its ESL MQTT command channel. The lock accepts only
+   * ONE command per MQTT session (a second command on the same connection is rejected and the
+   * session then goes silent), so a fresh client is connected and torn down for each command.
+   */
+  private lockDeviceEsl(device: Device, value: boolean, propertyData: PropertyData): void {
+    (async () => {
+      const cred = await this.api.provisionEslLockCert();
+      this.ensureEslEventListener(device, cred);
+      const client = new EslClient({
+        cert: cred.cert,
+        key: cred.key,
+        userId: cred.userId,
+        ownerId: this.rawStation.member.admin_user_id,
+        deviceSn: device.getSerial(),
+        productCode: device.getModel(),
+        // operator name/slot recorded in the lock's event log (a4/a5). The eufy app sends the
+        // constant "Autohome"/1 for app-initiated (non-keypad) operations; the lock treats
+        // these as an audit label and does not validate the name.
+        shortUserId: Number.parseInt(this.rawStation.member.short_user_id) || 1,
+        log: (msg) => rootHTTPLogger.debug(`[esl] ${msg}`),
+      });
+      try {
+        await client.connect();
+        const res = value ? await client.lock() : await client.unlock();
+        rootHTTPLogger.debug("Station lock device (ESL) - command result", {
+          station: this.getSerial(),
+          device: device.getSerial(),
+          value,
+          ok: res.ok,
+          body: res.body,
+        });
+        if (res.ok) {
+          device.updateProperty(propertyData.name, value, true);
+        }
+        this.emit("command result", this, {
+          channel: device.getChannel(),
+          command_type: CommandType.P2P_ON_OFF_LOCK,
+          return_code: res.ok ? 0 : -1,
+          customData: { property: propertyData },
+        } as CommandResult);
+      } finally {
+        client.disconnect();
+      }
+    })().catch((err) => {
+      rootHTTPLogger.error("Station lock device (ESL) - failed", {
+        station: this.getSerial(),
+        device: device.getSerial(),
+        error: getError(ensureError(err)),
+      });
+    });
   }
 
   public setStationSwitchModeWithAccessCode(value: boolean): void {

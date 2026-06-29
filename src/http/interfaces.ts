@@ -153,6 +153,19 @@ export interface HTTPApiPersistentData {
   };
   clientPrivateKey: string;
   serverPublicKey: string;
+  /**
+   * Cached eufy_security MQTT client certificate for the FamiLock C32 (T85L1) ESL command
+   * channel, provisioned once via the mega cloud (the cert is long-lived). Persisting it
+   * avoids a fresh mega passport login on every restart/command (which is rate-limited).
+   */
+  eslLockCert?: {
+    cert: string;
+    key: string;
+    endpoint: string;
+    thingName: string;
+    userId: string;
+    certificateId: string;
+  };
 }
 
 export interface CaptchaOptions {
