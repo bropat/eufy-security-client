@@ -102,6 +102,7 @@ export enum DeviceType {
   LOCK_85L0 = 201,
   LOCK_85V0 = 203,
   LOCK_85P0 = 209, //T85P0
+  LOCK_85L1 = 211, //T85L1 FamiLock C32 (ESL/MQTT command channel)
   NVR_S4_MAX = 300, //T8N00
   CAMERA_POE_S4 = 301, //T8E00
   WALL_LIGHT_CAM_81A0 = 10005,
@@ -7985,6 +7986,29 @@ export const DeviceProperties: Properties = {
     [PropertyName.DevicePersonName]: DevicePersonNameProperty,
   },
   [DeviceType.LOCK_85L0]: {
+    ...GenericDeviceProperties,
+    [PropertyName.DeviceBattery]: DeviceBatteryLockProperty,
+    [PropertyName.DeviceLocked]: DeviceLockedProperty,
+    [PropertyName.DeviceLockStatus]: DeviceAdvancedLockStatusProperty,
+    [PropertyName.DeviceAutoLock]: DeviceAutoLockProperty,
+    [PropertyName.DeviceAutoLockTimer]: DeviceAutoLockTimerProperty,
+    [PropertyName.DeviceAutoLockSchedule]: DeviceAutoLockScheduleProperty,
+    [PropertyName.DeviceAutoLockScheduleStartTime]: DeviceAutoLockScheduleStartTimeProperty,
+    [PropertyName.DeviceAutoLockScheduleEndTime]: DeviceAutoLockScheduleEndTimeProperty,
+    [PropertyName.DeviceOneTouchLocking]: DeviceOneTouchLockingProperty,
+    [PropertyName.DeviceWrongTryProtection]: DeviceWrongTryProtectionProperty,
+    [PropertyName.DeviceWrongTryAttempts]: DeviceWrongTryAttemptsProperty,
+    [PropertyName.DeviceWrongTryLockdownTime]: DeviceWrongTryLockdownTimeProperty,
+    [PropertyName.DeviceScramblePasscode]: DeviceScramblePasscodeProperty,
+    [PropertyName.DeviceSound]: DeviceSoundProperty,
+    [PropertyName.DeviceNotification]: DeviceNotificationSmartLockProperty,
+    [PropertyName.DeviceNotificationUnlocked]: DeviceNotificationUnlockedSmartLockProperty,
+    [PropertyName.DeviceNotificationLocked]: DeviceNotificationLockedSmartLockProperty,
+    [PropertyName.DeviceLowBatteryAlert]: DeviceLowBatteryAlertProperty,
+    [PropertyName.DeviceLockEventOrigin]: DeviceLockEventOriginProperty,
+    [PropertyName.DevicePersonName]: DevicePersonNameProperty,
+  },
+  [DeviceType.LOCK_85L1]: {
     ...GenericDeviceProperties,
     [PropertyName.DeviceBattery]: DeviceBatteryLockProperty,
     [PropertyName.DeviceLocked]: DeviceLockedProperty,

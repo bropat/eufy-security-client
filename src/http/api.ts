@@ -62,6 +62,7 @@ import {
   VerfyCodeTypes,
 } from "./types";
 import { ParameterHelper } from "./parameter";
+import { MegaApi, LockMqttCredentials } from "./mega";
 import { encryptAPIData, decryptAPIData, getTimezoneGMTString, decodeImage, hexDate, hexTime, hexWeek } from "./utils";
 import { InvalidCountryCodeError, InvalidLanguageCodeError, ensureError } from "./../error";
 import { getError, getShortUrl, md5, mergeDeep, parseJSON } from "./../utils";
@@ -443,6 +444,47 @@ export class HTTPApi extends TypedEmitter<HTTPApiEvents> {
      *
      */
     return this.headers.country!;
+  }
+
+  /**
+   * Provision (and cache) the eufy_security MQTT client certificate used by the FamiLock C32
+   * (T85L1 / device_type 211) command channel. The cert is long-lived, so it is persisted in
+   * {@link HTTPApiPersistentData} and reused across restarts — provisioning performs a full
+   * eufy "mega" passport login (the legacy session token is NOT accepted by the mega gateway),
+   * which the cloud rate-limits, so it must not run on every command. Returns cert+key ready
+   * for `EslClient`.
+   */
+  public async provisionEslLockCert(): Promise<LockMqttCredentials> {
+    const cached = this.persistentData.eslLockCert;
+    if (cached) {
+      return { ...cached, caCert: "" };
+    }
+    const country = (this.getCountry() || "US").toUpperCase();
+    // The mega data domain is resolved per-account; US/CA/MX route to the US region, all others to EU.
+    const region: "us" | "eu" = ["US", "CA", "MX"].includes(country) ? "us" : "eu";
+    const mega = new MegaApi({
+      region,
+      country,
+      log: (msg) => rootHTTPLogger.debug(`[mega/esl] ${msg}`),
+    });
+    await mega.keyExchange();
+    await mega.login(this.username, this.password);
+    const cred = await mega.provisionLockMqttCert();
+    this.persistentData.eslLockCert = {
+      cert: cred.cert,
+      key: cred.key,
+      endpoint: cred.endpoint,
+      thingName: cred.thingName,
+      userId: cred.userId,
+      certificateId: cred.certificateId,
+    };
+    // persistentData is serialized by the consumer on its normal save cycle; caching here
+    // means the long-lived cert is reused on the next restart instead of re-logging in.
+    rootHTTPLogger.info("Provisioned ESL lock MQTT certificate", {
+      thingName: cred.thingName,
+      endpoint: cred.endpoint,
+    });
+    return cred;
   }
 
   public setLanguage(language: string): void {
