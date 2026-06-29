@@ -154,6 +154,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
   private readonly ESD_DISCONNECT_TIMEOUT = 30 * 1000;
   private readonly MAX_STREAM_DATA_WAIT = 5 * 1000;
   private readonly RESEND_NOT_ACKNOWLEDGED_COMMAND = 100;
+  private readonly MAX_CONSECUTIVE_AGED_OUT_COMMANDS = 3;
 
   private streamTimeouts = {
     streamDataWait: this.MAX_STREAM_DATA_WAIT,
@@ -184,6 +185,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
   private binded = false;
   private connected = false;
   private connecting = false;
+  private consecutiveAgedOutCommands = 0;
   private terminating = false;
   private p2pTurnHandshaking: {
     [host: string]: boolean;
@@ -317,6 +319,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
     let rsaKey: NodeRSA | null;
 
     this.connected = false;
+    this.consecutiveAgedOutCommands = 0;
     this.p2pTurnHandshaking = {};
     this.p2pTurnConfirmed = false;
     this.connecting = false;
@@ -1016,6 +1019,14 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
           return_code: ErrorCode.ERROR_CONNECT_TIMEOUT,
           customData: message.customData,
         } as CommandResult);
+        this.consecutiveAgedOutCommands++;
+        if (this.connected && this.consecutiveAgedOutCommands >= this.MAX_CONSECUTIVE_AGED_OUT_COMMANDS) {
+          rootP2PLogger.warn(
+            `${this.consecutiveAgedOutCommands} commands in a row aged out from send queue for station ${this.rawStation.station_sn} despite an apparently healthy heartbeat. Connection seems stale, forcing reconnect...`,
+            { stationSN: this.rawStation.station_sn }
+          );
+          this._disconnected();
+        }
         return;
       }
     } else {
@@ -1433,6 +1444,7 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
               this.sendQueuedMessage();
             } else {
               msg_state.acknowledged = true;
+              this.consecutiveAgedOutCommands = 0;
               msg_state.timeout = setTimeout(
                 () => {
                   //TODO: Retry command in these case?
