@@ -7712,6 +7712,7 @@ export class Station extends TypedEmitter<StationEvents> {
     } else if (
       device.isOutdoorPanAndTiltCamera() ||
       device.isFloodLightT8425() ||
+      device.isFloodLightT8426() ||
       (device.isBatteryDoorbellDualE340() && !this.isStationMiniBaseChime()) ||
       ((device.isIndoorPTCameraE30() || device.isIndoorCameraBase()) && this.isDeviceControlledByHomeBase())
     ) {
