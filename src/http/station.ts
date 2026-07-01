@@ -3203,7 +3203,7 @@ export class Station extends TypedEmitter<StationEvents> {
           deviceSN: device.getSerial(),
         });
       }
-    } else if (device.isOutdoorPanAndTiltCamera()) {
+    } else if (device.isOutdoorPanAndTiltCamera() && !device.isCameraC37()) {
       try {
         if (!Object.values(T8170DetectionTypes).includes(type as T8170DetectionTypes)) {
           rootHTTPLogger.error(
@@ -3255,7 +3255,7 @@ export class Station extends TypedEmitter<StationEvents> {
           deviceSN: device.getSerial(),
         });
       }
-    } else if (device.isCameraC35()) {
+    } else if (device.isCameraC35() || device.isCameraC37()) {
       try {
         if (!Object.values(EufyCamC35DetectionTypes).includes(type as EufyCamC35DetectionTypes)) {
           rootHTTPLogger.error(

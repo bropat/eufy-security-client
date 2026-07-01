@@ -1203,7 +1203,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
         (property.name === PropertyName.DeviceMotionDetectionTypeHuman ||
           property.name === PropertyName.DeviceMotionDetectionTypeVehicle ||
           property.name === PropertyName.DeviceMotionDetectionTypeAllOtherMotions) &&
-        this.isOutdoorPanAndTiltCamera()
+        this.isOutdoorPanAndTiltCamera() &&
+        !this.isCameraC37()
       ) {
         const booleanProperty = property as PropertyMetadataBoolean;
         try {
@@ -1230,7 +1231,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
           property.name === PropertyName.DeviceMotionDetectionTypePet ||
           property.name === PropertyName.DeviceMotionDetectionTypeVehicle ||
           property.name === PropertyName.DeviceMotionDetectionTypeAllOtherMotions) &&
-        this.isCameraC35()
+        (this.isCameraC35() || this.isCameraC37())
       ) {
         const booleanProperty = property as PropertyMetadataBoolean;
         try {
@@ -1904,6 +1905,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.INDOOR_CAMERA_1080 ||
       type == DeviceType.INDOOR_PT_CAMERA_1080 ||
       type == DeviceType.OUTDOOR_PT_CAMERA ||
+      type == DeviceType.CAMERA_C37 ||
       type == DeviceType.SOLO_CAMERA ||
       type == DeviceType.SOLO_CAMERA_PRO ||
       type == DeviceType.SOLO_CAMERA_SPOTLIGHT_1080 ||
@@ -1993,6 +1995,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.WALL_LIGHT_CAM_81A0 ||
       type == DeviceType.SMART_DROP ||
       type == DeviceType.OUTDOOR_PT_CAMERA ||
+      type == DeviceType.CAMERA_C37 ||
       type == DeviceType.SOLOCAM_E42 ||
       type == DeviceType.ENTRY_SENSOR_E20
     );
@@ -2099,6 +2102,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.FLOODLIGHT_CAMERA_8426 ||
       type == DeviceType.INDOOR_COST_DOWN_CAMERA ||
       type == DeviceType.OUTDOOR_PT_CAMERA ||
+      type == DeviceType.CAMERA_C37 ||
       type == DeviceType.CAMERA_S4 ||
       type == DeviceType.SOLOCAM_E42 ||
       type == DeviceType.CAMERA_4G_S330 ||
@@ -2116,6 +2120,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
   static isOutdoorPanAndTiltCamera(type: number): boolean {
     if (
       type == DeviceType.OUTDOOR_PT_CAMERA ||
+      type == DeviceType.CAMERA_C37 ||
       type == DeviceType.SOLO_CAMERA_E30 ||
       type == DeviceType.CAMERA_S4 ||
       type == DeviceType.SOLOCAM_E42 ||
@@ -2372,6 +2377,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   static isCameraC35(type: number): boolean {
     return DeviceType.CAMERA_C35 == type;
+  }
+
+  static isCameraC37(type: number): boolean {
+    return DeviceType.CAMERA_C37 == type;
   }
 
   static isIndoorPTCameraE30(type: number): boolean {
@@ -2846,6 +2855,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
 
   public isCameraC35(): boolean {
     return Device.isCameraC35(this.rawDevice.device_type);
+  }
+
+  public isCameraC37(): boolean {
+    return Device.isCameraC37(this.rawDevice.device_type);
   }
 
   public isIndoorPTCameraE30(): boolean {
