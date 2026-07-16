@@ -47,13 +47,33 @@ const PREFIX_TEMPLATE = Buffer.from(
 const OFF_HEIGHT = 163; // SOF0 height, big-endian uint16
 const OFF_WIDTH = 165; //  SOF0 width,  big-endian uint16
 const OFF_Y_SAMPLING = 169; // luma component sampling factor (0x22=4:2:0, 0x21=4:2:2, 0x11=4:4:4)
+// Byte ranges of the two DQT tables (luma, chroma) within PREFIX_TEMPLATE, in the
+// order jpeg-js reads them. Used to rescale the baked-in quality-85 tables (see
+// buildJpegPrefix's qualityScale param).
+const OFF_DQT_LUMA: [number, number] = [25, 89];
+const OFF_DQT_CHROMA: [number, number] = [94, 158];
 
 export type ChromaSubsampling = "4:2:0" | "4:2:2" | "4:4:4";
 const Y_SAMPLING: Record<ChromaSubsampling, number> = { "4:2:0": 0x22, "4:2:2": 0x21, "4:4:4": 0x11 };
 
-/** Build the standard JPEG header for a given geometry by patching the template. */
-export function buildJpegPrefix(width: number, height: number, subsampling: ChromaSubsampling = "4:2:0"): Buffer {
+/** Build the standard JPEG header for a given geometry by patching the template.
+ *  `qualityScale` rescales the baked-in quality-85 quantization tables — the encrypted
+ *  header we can't recover held the camera's real tables, so this is a substitute; 1
+ *  (default) keeps the original quality-85 tables byte-for-byte, unchanged from before. */
+export function buildJpegPrefix(
+  width: number,
+  height: number,
+  subsampling: ChromaSubsampling = "4:2:0",
+  qualityScale = 1
+): Buffer {
   const p = Buffer.from(PREFIX_TEMPLATE); // copy
+  if (qualityScale !== 1) {
+    for (const [start, end] of [OFF_DQT_LUMA, OFF_DQT_CHROMA]) {
+      for (let i = start; i < end; i++) {
+        p[i] = Math.max(1, Math.min(255, Math.round(PREFIX_TEMPLATE[i] * qualityScale)));
+      }
+    }
+  }
   p.writeUInt16BE(height & 0xffff, OFF_HEIGHT);
   p.writeUInt16BE(width & 0xffff, OFF_WIDTH);
   p[OFF_Y_SAMPLING] = Y_SAMPLING[subsampling];
@@ -123,6 +143,25 @@ const SIZE_LADDER: Array<[number, number]> = [
   [1280, 960],
 ];
 const SUBSAMPLINGS: ChromaSubsampling[] = ["4:2:0", "4:4:4", "4:2:2"];
+/**
+ * Large captures (full-resolution snapshots, and combined dual-lens images that stack
+ * two lens frames vertically into one tall picture) are much bigger than the small
+ * single-lens motion thumbnail this module was originally verified against, so eufy
+ * compresses them harder. Two effects follow, both gated on the detected image
+ * exceeding LARGE_IMAGE_AREA_THRESHOLD so the small, already-verified thumbnail path
+ * (256x144 = 36864px) is completely untouched:
+ *
+ *  - The baked-in quality-85 DQT tables are roughly 3.3x too fine for these larger
+ *    images, collapsing contrast to a narrow grey band around 128 instead of using the
+ *    full 0-255 range. LARGE_IMAGE_QUALITY_SCALE corrects for this (empirically tuned
+ *    against real captures at ~522K and ~960K px).
+ *  - The width search below needs a much wider net (see width refinement) — small
+ *    thumbnails only ever drift a little from the nearest standard ladder size, but
+ *    these larger/non-standard captures can land far from every ladder entry (observed:
+ *    a stacked dual-lens frame at ~2x the true width, and a wide snapshot transposed).
+ */
+const LARGE_IMAGE_AREA_THRESHOLD = 100_000;
+const LARGE_IMAGE_QUALITY_SCALE = 10 / 3;
 
 /**
  * Decode a v2 blob WITHOUT knowing its dimensions, by brute-forcing the size
@@ -212,9 +251,14 @@ export async function decodeV2ImageAuto(data: Buffer): Promise<{
   {
     const ss = best.subsampling;
     const [mcw, mch] = MCU_SIZE[ss];
+    // Large captures (see LARGE_IMAGE_AREA_THRESHOLD) get the corrected quality scale
+    // AND a much wider width search — both gated the same way so the small,
+    // already-verified thumbnail path is completely unaffected.
+    const isLarge = best.width * best.height > LARGE_IMAGE_AREA_THRESHOLD;
+    const qs = isLarge ? LARGE_IMAGE_QUALITY_SCALE : 1;
     const decodeAt = (w: number, h: number) => {
       try {
-        return jpegDecode(Buffer.concat([buildJpegPrefix(w, h, ss), tail]), {
+        return jpegDecode(Buffer.concat([buildJpegPrefix(w, h, ss, qs), tail]), {
           maxResolutionInMP: 400,
           maxMemoryUsageInMB: 1024,
           tolerantDecoding: true,
@@ -228,17 +272,27 @@ export async function decodeV2ImageAuto(data: Buffer): Promise<{
     // eufy uses NON-standard widths (288, 552, 1272…) that aren't on the ladder,
     // so the ladder lands on the nearest standard width (256, 576, 1280) and the
     // error shears the image ("the content runs diagonally down"). The true width
-    // minimises row-to-row difference. The ladder can be off by ~12% (256 vs the
-    // true 288), so search a generous ±25% band around it. The per-image vdiff
-    // MINIMUM is reliable even for small detailed thumbnails (absolute vdiff is
-    // not comparable across images, but the minimum within one image's sweep is).
+    // minimises row-to-row difference. For small thumbnails the ladder is at most
+    // ~12% off (256 vs the true 288), so a ±25% band around it is enough. Larger /
+    // non-standard captures (full snapshots, combined dual-lens images) can land FAR
+    // from every ladder entry — e.g. a stacked dual-lens frame was observed at exactly
+    // 2x the true width, and a wide night snapshot was observed transposed (width and
+    // height swapped) — so those get a wider ±50% net instead of a band anchored on a
+    // guess that may already be badly wrong. The per-image vdiff MINIMUM is reliable
+    // even for small detailed thumbnails (absolute vdiff is not comparable across
+    // images, but the minimum within one image's sweep is).
+    // NOTE: vdiff is systematically biased toward very narrow widths (adjacent decoded
+    // rows become near-duplicate horizontal slices of the same true row, which is
+    // smoother than genuine vertical row-to-row content) — the search must stay
+    // bounded well clear of that degenerate region, not go unbounded.
     const area = best.width * best.height;
     let width = best.width;
     let bestV = Infinity;
-    const lo = Math.max(mcw * 4, Math.round((best.width * 0.75) / mcw) * mcw);
-    const hi = Math.round((best.width * 1.25) / mcw) * mcw;
+    const band = isLarge ? 0.5 : 0.25;
+    const lo = Math.max(mcw * 4, Math.round((best.width * (1 - band)) / mcw) * mcw);
+    const hi = Math.round((best.width * (1 + band)) / mcw) * mcw;
     for (let w = lo; w <= hi; w += mcw) {
-      const h = Math.min(2000, Math.max(mch * 2, Math.round(area / w / mch) * mch));
+      const h = Math.min(2560, Math.max(mch * 2, Math.round(area / w / mch) * mch));
       const img = decodeAt(w, h);
       if (!img) continue;
       const fh = contentBottomRow(img);
@@ -256,7 +310,7 @@ export async function decodeV2ImageAuto(data: Buffer): Promise<{
     // decodes fine. So the true height is the largest non-throwing height —
     // binary-search it. (Some images instead pad the extra rows without throwing;
     // for those the search hits the cap and we trim to the content bottom below.)
-    const HCAP = Math.ceil(2000 / mch);
+    const HCAP = Math.ceil((isLarge ? 2560 : 2000) / mch);
     let loH = 1;
     let hiH = HCAP;
     let maxHm = 1;
@@ -279,9 +333,9 @@ export async function decodeV2ImageAuto(data: Buffer): Promise<{
       }
     }
 
-    if (width !== best.width || height !== best.height) {
+    if (width !== best.width || height !== best.height || qs !== 1) {
       best = {
-        jpeg: Buffer.concat([buildJpegPrefix(width, height, ss), tail]),
+        jpeg: Buffer.concat([buildJpegPrefix(width, height, ss, qs), tail]),
         width,
         height,
         subsampling: ss,
