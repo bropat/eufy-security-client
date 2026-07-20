@@ -110,6 +110,7 @@ export enum DeviceType {
   INDOOR_PT_CAMERA_C220_V2 = 10010, // T8W11C (Type 10010)
   INDOOR_PT_CAMERA_C220_V3 = 10011, // T8419N
   CAMERA_C35 = 10035, //T8110
+  CAMERA_C37 = 10037, //T814X (eufyCam C37, 360° outdoor pan & tilt, HomeBase Mini controlled)
 }
 
 export enum ParamType {
@@ -1082,6 +1083,7 @@ export const GenericTypeProperty: PropertyMetadataNumeric = {
     10010: "Indoor Cam C220 (T8W11C)",
     10011: "Indoor Cam C220 (T8419N)",
     10035: "eufyCam C35 (T8110)",
+    10037: "eufyCam C37 (T814X)",
   },
 };
 
@@ -8831,6 +8833,13 @@ export const DeviceProperties: Properties = {
 
 DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
 DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V3] = DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
+// eufyCam C37 (T814X): 360° outdoor pan & tilt battery/solar cam, modeled on the outdoor pan & tilt
+// camera, plus pet detection (the C37 additionally supports human/pet/vehicle, handled via the C35 path).
+DeviceProperties[DeviceType.CAMERA_C37] = {
+  ...DeviceProperties[DeviceType.OUTDOOR_PT_CAMERA],
+  [PropertyName.DeviceMotionDetectionTypePet]: DeviceMotionHB3DetectionTypePetProperty,
+  [PropertyName.DevicePetDetected]: DevicePetDetectedProperty,
+};
 
 export const StationNameProperty: PropertyMetadataString = {
   key: "station_name",
@@ -10867,6 +10876,7 @@ export const DeviceCommands: Commands = {
 
 DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220];
 DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220_V3] = DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220];
+DeviceCommands[DeviceType.CAMERA_C37] = DeviceCommands[DeviceType.OUTDOOR_PT_CAMERA];
 
 export const StationCommands: Commands = {
   [DeviceType.STATION]: [
