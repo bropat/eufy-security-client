@@ -138,8 +138,26 @@ export class MegaTransition {
         rootMainLogger.debug("v6 push: no valid mega session yet, skipping register (legacy still active)");
         return false;
       }
-      const result = await mega.registerPushToken(token);
+      const persistMegaSession = () => {
+        this.host.persistentData.megaApi = mega.exportSession(
+          megaLoginHash(this.host.config.username, this.host.config.password, this.host.persistentData.openudid)
+        );
+        this.host.writePersistentData();
+      };
+
+      let result = await mega.registerPushToken(token);
+      if (
+        result.code === ResponseErrorCode.CODE_NEED_NEGOTIATE_KEY ||
+        result.code === ResponseErrorCode.CODE_SIGNATURE_ERROR
+      ) {
+        rootMainLogger.info("v6 push: cached identity rejected, retrying register_push_token after re-key", {
+          code: result.code,
+          msg: result.msg,
+        });
+        result = await mega.registerPushToken(token);
+      }
       if (result.code === 0) {
+        persistMegaSession();
         rootMainLogger.info("v6 push: FCM token registered on the eufy_mega backend");
         return true;
       }
