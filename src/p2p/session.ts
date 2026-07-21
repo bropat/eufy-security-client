@@ -2060,7 +2060,11 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
                   msg_state.commandType === CommandType.CMD_DOORBELL_SET_PAYLOAD)
               ) {
                 this.waitForStreamData(P2PDataType.VIDEO, true);
-              } else if (msg_state.commandType === CommandType.CMD_DOWNLOAD_VIDEO) {
+              } else if (
+                msg_state.commandType === CommandType.CMD_DOWNLOAD_VIDEO ||
+                (msg_state.nestedCommandType === CommandType.CMD_DOWNLOAD_VIDEO &&
+                  msg_state.commandType === CommandType.CMD_SET_PAYLOAD)
+              ) {
                 this.waitForStreamData(P2PDataType.BINARY, true);
               } else if (
                 msg_state.commandType === CommandType.CMD_START_TALKBACK ||
@@ -2649,6 +2653,8 @@ export class P2PClientProtocol extends TypedEmitter<P2PClientProtocolEvents> {
           if (message.channel !== 255) {
             this.currentMessageState[P2PDataType.BINARY].p2pStreamChannel = message.channel;
           }
+          // Reset stream data timeout — HB3 needs time to prepare the download
+          this.waitForStreamData(P2PDataType.BINARY, true);
           break;
         case CommandType.CMD_WIFI_CONFIG:
           const rssi = data.readInt32LE();
