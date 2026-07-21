@@ -2688,6 +2688,10 @@ export class Device extends TypedEmitter<DeviceEvents> {
     return Device.isFloodLightT8425(this.rawDevice.device_type);
   }
 
+  public isFloodLightT8426(): boolean {
+    return Device.isFloodLightT8426(this.rawDevice.device_type);
+  }
+
   public isWallLightCam(): boolean {
     return Device.isWallLightCam(this.rawDevice.device_type);
   }
