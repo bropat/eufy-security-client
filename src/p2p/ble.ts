@@ -282,7 +282,8 @@ export class BleCommandFactory {
     const bDataType = Buffer.from([this.dataType]);
     const unknown = Buffer.alloc(1);
     const partial = false;
-    const encrypted = true;
+    // Honor an explicitly-set encrypted flag; defaults to true so existing callers are unaffected.
+    const encrypted = this.encrypted ?? true;
     const commandCodeEncoded = Buffer.allocUnsafe(2);
     commandCodeEncoded.writeInt16BE(((partial ? 1 : 0) << 15) + ((encrypted ? 1 : 0) << 14) + this.commandCode);
     const size = Buffer.allocUnsafe(2);
