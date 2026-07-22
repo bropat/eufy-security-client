@@ -999,12 +999,15 @@ export const getSmartLockP2PCommand = function (
   channel: number,
   sequence: number,
   data: Buffer,
-  functionType = SmartLockFunctionType.TYPE_2
+  functionType = SmartLockFunctionType.TYPE_2,
+  encrypted = true
 ): SmartLockP2PCommand {
   const time = getSmartLockCurrentTimeInSeconds();
   const key = generateSmartLockAESKey(user_id, time);
   const iv = getLockVectorBytes(deviceSN);
-  const encPayload = encryptPayloadData(data, key, Buffer.from(iv, "hex"));
+  // Some Video Smart Locks (e.g. the T8531/E330) reject AES-encrypted BLE payloads
+  // (returnCode 2); allow sending the raw payload instead.
+  const encPayload = encrypted ? encryptPayloadData(data, key, Buffer.from(iv, "hex")) : data;
 
   rootP2PLogger.debug(`Generate smart lock command`, {
     deviceSN: deviceSN,
@@ -1014,6 +1017,7 @@ export const getSmartLockP2PCommand = function (
     sequence: sequence,
     data: data.toString("hex"),
     functionType: functionType,
+    encrypted: encrypted,
   });
 
   let commandCode = 0;
@@ -1027,6 +1031,7 @@ export const getSmartLockP2PCommand = function (
     .setVersionCode(Lock.VERSION_CODE_SMART_LOCK)
     .setCommandCode(commandCode)
     .setDataType(functionType)
+    .setEncrypted(encrypted)
     .setData(encPayload);
   return {
     bleCommand: bleCommand.getCommandCode()!,

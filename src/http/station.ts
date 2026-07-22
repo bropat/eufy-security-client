@@ -116,6 +116,7 @@ import {
   P2PConnectionType,
   PanTiltDirection,
   SmartLockCommand,
+  SmartLockFunctionType,
   SmartSafeAlarm911Event,
   SmartSafeCommandCode,
   SmartSafeShakeAlarmEvent,
@@ -8578,6 +8579,39 @@ export class Station extends TypedEmitter<StationEvents> {
       this.p2pSession.sendCommandWithStringPayload(command.payload, {
         property: propertyData,
       });
+    } else if (device.isLockWifiT8531()) {
+      const command = getSmartLockP2PCommand(
+        this.rawStation.station_sn,
+        this.rawStation.member.admin_user_id,
+        SmartLockCommand.ON_OFF_LOCK,
+        device.getChannel(),
+        this.p2pSession.incLockSequenceNumber(),
+        Lock.encodeCmdSmartLockUnlock(
+          this.rawStation.member.admin_user_id,
+          value,
+          this.rawStation.member.nick_name,
+          this.rawStation.member.short_user_id
+        ),
+        SmartLockFunctionType.TYPE_2,
+        false // T8531 (E330 Video Smart Lock) rejects AES-encrypted BLE payloads (returnCode 2); send the raw payload.
+      );
+      rootHTTPLogger.debug("Station lock device - Locking/unlocking device...", {
+        station: this.getSerial(),
+        device: device.getSerial(),
+        admin_user_id: this.rawStation.member.admin_user_id,
+        payload: command.payload,
+      });
+
+      // The T8531 is paired to a HomeBase (station !== device), so the outer P2P command
+      // must target the device's channel. getSmartLockP2PCommand leaves the outer channel
+      // at 0 (correct for the standalone T85xx locks); without this override the HomeBase
+      // returns ERROR_NOT_FIND_DEV (-106).
+      this.p2pSession.sendCommandWithStringPayload(
+        { ...command.payload, channel: device.getChannel() },
+        {
+          property: propertyData,
+        }
+      );
     } else {
       throw new NotSupportedError("This functionality is not implemented or supported by this device", {
         context: {
