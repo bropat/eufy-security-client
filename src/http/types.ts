@@ -6310,6 +6310,7 @@ export const DeviceProperties: Properties = {
     [PropertyName.DeviceRinging]: DeviceRingingProperty,
     [PropertyName.DevicePicture]: DevicePictureProperty,
     [PropertyName.DevicePictureUrl]: DevicePictureUrlProperty,
+    [PropertyName.DeviceSpeaker]: DeviceSpeakerProperty,
     [PropertyName.DeviceSpeakerVolume]: DeviceSpeakerVolumeIndoorFloodDoorbellProperty,
     [PropertyName.DeviceRingtoneVolume]: DeviceRingtoneVolumeBatteryDoorbellProperty,
     [PropertyName.DeviceMicrophone]: DeviceMicrophoneProperty,
