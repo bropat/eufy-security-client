@@ -7137,6 +7137,9 @@ export const DeviceProperties: Properties = {
     ...GenericDeviceProperties,
     [PropertyName.DeviceWifiRSSI]: DeviceWifiRSSIProperty,
     [PropertyName.DeviceWifiSignalLevel]: DeviceWifiSignalLevelProperty,
+    // S340 exposes its on/off state via the legacy CMD_DEVS_SWITCH (1035) param,
+    // which is what the Eufy mobile app reads and writes. (The S4/T8172 uses the
+    // wrapped 6250 privacy param instead.)
     [PropertyName.DeviceEnabled]: DeviceEnabledSoloProperty,
     [PropertyName.DeviceBattery]: DeviceBatteryProperty,
     [PropertyName.DeviceBatteryTemp]: DeviceBatteryTempProperty,

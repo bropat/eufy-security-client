@@ -7444,12 +7444,28 @@ export class Station extends TypedEmitter<StationEvents> {
         }
       );
     } else if (device.isOutdoorPanAndTiltCamera()) {
-      // Outdoor pan/tilt cams (eufyCam S4 / T8172 etc.) behind a HomeBase 3
-      // silently drop raw CMD_DEVS_SWITCH frames. Pcap comparison against
-      // the iOS Eufy app shows they accept the same wrapped envelope as
-      // INDOOR_PT_CAMERA_S350 — outer CMD_SET_PAYLOAD carrying inner
-      // CMD_INDOOR_ENABLE_PRIVACY_MODE_S350.
+      // Outdoor pan/tilt cams (type 48) cover both the S340 (T8170) and the
+      // S4 (T8172). They behave differently:
+      //  - S340: uses the legacy CMD_DEVS_SWITCH (1035) on/off path. The HB3
+      //    processes this raw command, updates param 1035 in the cloud, and
+      //    pushes the change to the Eufy app (so the app reflects it live).
+      //  - S4:   only reacts to the wrapped CMD_INDOOR_ENABLE_PRIVACY_MODE_S350
+      //    (6250) envelope (see #710 / #873); it ignores raw 1035 frames.
+      // Sending both keeps both models working: each cam acts on the command
+      // it understands and ignores the other.
       param_value = value === true ? 0 : 1;
+      this.p2pSession.sendCommandWithIntString(
+        {
+          commandType: CommandType.CMD_DEVS_SWITCH,
+          value: param_value,
+          valueSub: device.getChannel(),
+          strValue: this.rawStation.member.admin_user_id,
+          channel: device.getChannel(),
+        },
+        {
+          property: propertyData,
+        }
+      );
       this.p2pSession.sendCommandWithStringPayload(
         {
           commandType: CommandType.CMD_SET_PAYLOAD,
