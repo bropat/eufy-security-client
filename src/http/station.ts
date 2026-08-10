@@ -8467,7 +8467,7 @@ export class Station extends TypedEmitter<StationEvents> {
           property: propertyData,
         }
       );
-    } else if (device.isLockWifi() || device.isLockWifiNoFinger()) {
+    } else if ((device.isLockWifi() || device.isLockWifiNoFinger()) && !device.isLockWifiT8501()) {
       const nestedPayload: LockAdvancedOnOffRequestPayload = {
         shortUserId: this.rawStation.member.short_user_id,
         slOperation: value === true ? 1 : 0,
@@ -8522,7 +8522,7 @@ export class Station extends TypedEmitter<StationEvents> {
         device: device.getSerial(),
         admin_user_id: this.rawStation.member.admin_user_id,
       });
-    } else if (device.isLockWifiR10() || device.isLockWifiR20()) {
+    } else if (device.isLockWifiR10() || device.isLockWifiR20() || device.isLockWifiT8501()) {
       const command = getLockV12P2PCommand(
         this.rawStation.station_sn,
         this.rawStation.member.admin_user_id,
@@ -17984,7 +17984,11 @@ export class Station extends TypedEmitter<StationEvents> {
         Lock.encodeCmdSmartLockGetParams(this.rawStation.member.admin_user_id)
       );
       this.p2pSession.sendCommandWithStringPayload(command.payload);
-    } else if (Device.isLockWifiR10(this.getDeviceType()) || Device.isLockWifiR20(this.getDeviceType())) {
+    } else if (
+      Device.isLockWifiR10(this.getDeviceType()) ||
+      Device.isLockWifiR20(this.getDeviceType()) ||
+      Device.isLockWifiT8501(this.getDeviceType(), this.getSerial())
+    ) {
       rootHTTPLogger.debug(`Station lock v12 send get lock parameters command`, { stationSN: this.getSerial() });
       const command = getLockV12P2PCommand(
         this.rawStation.station_sn,
@@ -18020,7 +18024,11 @@ export class Station extends TypedEmitter<StationEvents> {
         Lock.encodeCmdSmartLockStatus(this.rawStation.member.admin_user_id)
       );
       this.p2pSession.sendCommandWithStringPayload(command.payload);
-    } else if (Device.isLockWifiR10(this.getDeviceType()) || Device.isLockWifiR20(this.getDeviceType())) {
+    } else if (
+      Device.isLockWifiR10(this.getDeviceType()) ||
+      Device.isLockWifiR20(this.getDeviceType()) ||
+      Device.isLockWifiT8501(this.getDeviceType(), this.getSerial())
+    ) {
       rootHTTPLogger.debug(`Station lock v12 send get lock status command`, { stationSN: this.getSerial() });
       const command = getLockV12P2PCommand(
         this.rawStation.station_sn,
