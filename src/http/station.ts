@@ -173,12 +173,23 @@ import {
 } from "./error";
 import { getError, validValue } from "../utils";
 import { TalkbackStream } from "../p2p/talkback";
+import {
+  getRTCTransportConfig,
+  isRTCDeviceType,
+  RTCMediaSession,
+  RTCSignalClient,
+  RTCTransportConfig,
+  RTCTransportConfigError,
+} from "../rtc";
 import { start } from "repl";
 import { rootHTTPLogger } from "../logging";
 
 export class Station extends TypedEmitter<StationEvents> {
   private api: HTTPApi;
   private rawStation: StationListResponse;
+  private rtcConfig?: RTCTransportConfig;
+  private rtcSignalClientFactory?: (deviceSerial: string, channel: number) => Promise<RTCSignalClient>;
+  private readonly rtcMediaSessions = new Map<string, RTCMediaSession>();
 
   private p2pSession: P2PClientProtocol;
   private properties: PropertyValues = {};
@@ -208,6 +219,7 @@ export class Station extends TypedEmitter<StationEvents> {
     super();
     this.api = api;
     this.rawStation = station;
+    this.updateRTCTransportConfig();
     this.lockPublicKey = publicKey;
     this.p2pSession = new P2PClientProtocol(
       this.rawStation,
@@ -354,6 +366,7 @@ export class Station extends TypedEmitter<StationEvents> {
 
   public update(station: StationListResponse): void {
     this.rawStation = station;
+    this.updateRTCTransportConfig();
     this.p2pSession.updateRawStation(station);
 
     const metadata = this.getPropertiesMetadata(true);
@@ -802,7 +815,8 @@ export class Station extends TypedEmitter<StationEvents> {
       type === DeviceType.HB3 ||
       type === DeviceType.MINIBASE_CHIME ||
       type === DeviceType.HOMEBASE_MINI ||
-      type === DeviceType.NVR_S4_MAX
+      type === DeviceType.NVR_S4_MAX ||
+      type === DeviceType.NVR_T7000
     );
   }
 
@@ -823,7 +837,7 @@ export class Station extends TypedEmitter<StationEvents> {
   }
 
   public static isStationNVR(type: number): boolean {
-    return type === DeviceType.NVR_S4_MAX;
+    return type === DeviceType.NVR_S4_MAX || type === DeviceType.NVR_T7000;
   }
 
   public static isStationHomeBase3BySn(sn: string): boolean {
@@ -843,7 +857,7 @@ export class Station extends TypedEmitter<StationEvents> {
   }
 
   public static isStationNVRBySn(sn: string): boolean {
-    return sn.startsWith("T8N00");
+    return sn.startsWith("T8N00") || sn.startsWith("T7000");
   }
 
   public isStationHomeBase2OrOlder(): boolean {
@@ -907,6 +921,13 @@ export class Station extends TypedEmitter<StationEvents> {
   }
 
   public isP2PConnectableDevice(): boolean {
+    if (isRTCDeviceType(this.getDeviceType())) {
+      rootHTTPLogger.debug("Station uses the RTC transport; legacy p2p connection is disabled", {
+        stationSN: this.getSerial(),
+        type: this.getDeviceType(),
+      });
+      return false;
+    }
     if (Device.isSmartTrack(this.getDeviceType()) || (!Device.isSupported(this.getDeviceType()) && !this.isStation())) {
       if (!Device.isSupported(this.getDeviceType()) && !this.isStation()) {
         rootHTTPLogger.debug("Station not supported, no connection over p2p will be initiated", {
@@ -917,6 +938,27 @@ export class Station extends TypedEmitter<StationEvents> {
       return false;
     }
     return true;
+  }
+
+  public isRTCConnectableDevice(): boolean {
+    return this.rtcConfig !== undefined;
+  }
+
+  public getRTCTransportConfig(): RTCTransportConfig | undefined {
+    return this.rtcConfig;
+  }
+
+  private updateRTCTransportConfig(): void {
+    try {
+      this.rtcConfig = getRTCTransportConfig(this.rawStation);
+    } catch (err) {
+      this.rtcConfig = undefined;
+      if (err instanceof RTCTransportConfigError) {
+        rootHTTPLogger.warn(err.message, { stationSN: err.stationSerial });
+      } else {
+        throw err;
+      }
+    }
   }
 
   public getDeviceType(): number {
@@ -1025,6 +1067,12 @@ export class Station extends TypedEmitter<StationEvents> {
       rootHTTPLogger.info(`Disconnect from station ${this.getSerial()}`);
       this.p2pSession.close();
     }
+    for (const session of this.rtcMediaSessions.values()) session.stop();
+    this.rtcMediaSessions.clear();
+  }
+
+  public setRTCSignalClientFactory(factory: (deviceSerial: string, channel: number) => Promise<RTCSignalClient>): void {
+    this.rtcSignalClientFactory = factory;
   }
 
   public isEnergySavingDevice(): boolean {
@@ -1055,21 +1103,22 @@ export class Station extends TypedEmitter<StationEvents> {
     this.emit("download start", this, channel, metadata, videoStream, audioStream);
   }
 
-  private onStopLivestream(channel: number): void {
-    this.emit("livestream stop", this, channel);
+  private onStopLivestream(channel: number, sensor = 0): void {
+    this.emit("livestream stop", this, channel, sensor);
   }
 
-  private onErrorLivestream(channel: number, error: Error): void {
-    this.emit("livestream error", this, channel, error);
+  private onErrorLivestream(channel: number, error: Error, sensor = 0): void {
+    this.emit("livestream error", this, channel, error, sensor);
   }
 
   private onStartLivestream(
     channel: number,
     metadata: StreamMetadata,
     videoStream: Readable,
-    audioStream: Readable
+    audioStream: Readable,
+    sensor = 0
   ): void {
-    this.emit("livestream start", this, channel, metadata, videoStream, audioStream);
+    this.emit("livestream start", this, channel, metadata, videoStream, audioStream, sensor);
   }
 
   private onStopRTSPLivestream(channel: number): void {
@@ -2443,7 +2492,7 @@ export class Station extends TypedEmitter<StationEvents> {
     );
   }
 
-  public panAndTilt(device: Device, direction: PanTiltDirection, command = 1): void {
+  public panAndTilt(device: Device, direction: PanTiltDirection, command = 1, sensor = 0): void {
     const commandData: CommandData = {
       name: CommandName.DevicePanAndTilt,
       value: direction,
@@ -2484,7 +2533,24 @@ export class Station extends TypedEmitter<StationEvents> {
       deviceSN: device.getSerial(),
       direction: PanTiltDirection[direction],
       command,
+      sensor,
     });
+    if (this.isRTCConnectableDevice()) {
+      const session = this.rtcMediaSessions.get(this.getRTCMediaSessionKey(device, sensor));
+      if (!session) {
+        throw new LivestreamNotRunningError("RTC camera control requires an active livestream", {
+          context: {
+            device: device.getSerial(),
+            station: this.getSerial(),
+            commandName: commandData.name,
+            commandValue: commandData.value,
+            sensor,
+          },
+        });
+      }
+      session.panAndTilt(direction, command);
+      return;
+    }
     if (device.getDeviceType() === DeviceType.FLOODLIGHT_CAMERA_8423) {
       this.p2pSession.sendCommandWithStringPayload(
         {
@@ -7638,7 +7704,7 @@ export class Station extends TypedEmitter<StationEvents> {
     );
   }
 
-  public startLivestream(device: Device, videoCodec: VideoCodec = VideoCodec.H264): void {
+  public startLivestream(device: Device, videoCodec: VideoCodec = VideoCodec.H264, sensor = 0): void {
     const commandData: CommandData = {
       name: CommandName.DeviceStartLivestream,
       value: videoCodec,
@@ -7663,7 +7729,7 @@ export class Station extends TypedEmitter<StationEvents> {
         },
       });
     }
-    if (this.isLiveStreaming(device)) {
+    if (this.isLiveStreaming(device, sensor)) {
       throw new LivestreamAlreadyRunningError("Livestream for device is already running", {
         context: {
           device: device.getSerial(),
@@ -7678,6 +7744,42 @@ export class Station extends TypedEmitter<StationEvents> {
       deviceSN: device.getSerial(),
       videoCodec: videoCodec,
     });
+
+    if (this.isRTCConnectableDevice()) {
+      const config = this.getRTCTransportConfig();
+      if (!config || !this.rtcSignalClientFactory) {
+        throw new NotSupportedError("RTC media transport is not initialized", {
+          context: {
+            device: device.getSerial(),
+            station: this.getSerial(),
+            commandName: commandData.name,
+          },
+        });
+      }
+      const session = new RTCMediaSession({
+        accountId: config.accountId,
+        channel: device.getChannel(),
+        sensor,
+        videoCodec,
+        getSignalClient: () => this.rtcSignalClientFactory!(device.getSerial(), device.getChannel()),
+      });
+      const sessionKey = this.getRTCMediaSessionKey(device, sensor);
+      this.rtcMediaSessions.set(sessionKey, session);
+      session.once("start", (metadata, videoStream, audioStream) =>
+        this.onStartLivestream(device.getChannel(), metadata, videoStream, audioStream, sensor)
+      );
+      session.once("stop", () => {
+        this.rtcMediaSessions.delete(sessionKey);
+        this.onStopLivestream(device.getChannel(), sensor);
+      });
+      session.once("error", (error) => {
+        this.rtcMediaSessions.delete(sessionKey);
+        this.onErrorLivestream(device.getChannel(), error, sensor);
+      });
+      session.start();
+      return;
+    }
+
     const rsa_key = this.p2pSession.getRSAPrivateKey();
 
     if (device.isSmartDrop()) {
@@ -7943,7 +8045,7 @@ export class Station extends TypedEmitter<StationEvents> {
     }
   }
 
-  public stopLivestream(device: Device): void {
+  public stopLivestream(device: Device, sensor = 0): void {
     const commandData: CommandData = {
       name: CommandName.DeviceStopLivestream,
     };
@@ -7967,7 +8069,7 @@ export class Station extends TypedEmitter<StationEvents> {
         },
       });
     }
-    if (!this.isLiveStreaming(device)) {
+    if (!this.isLiveStreaming(device, sensor)) {
       throw new LivestreamNotRunningError("Livestream for device is not running", {
         context: {
           device: device.getSerial(),
@@ -7981,6 +8083,13 @@ export class Station extends TypedEmitter<StationEvents> {
       stationSN: this.getSerial(),
       deviceSN: device.getSerial(),
     });
+    if (this.isRTCConnectableDevice()) {
+      const sessionKey = this.getRTCMediaSessionKey(device, sensor);
+      const session = this.rtcMediaSessions.get(sessionKey);
+      session?.stop();
+      this.rtcMediaSessions.delete(sessionKey);
+      return;
+    }
     this.p2pSession.sendCommandWithInt(
       {
         commandType: CommandType.CMD_STOP_REALTIME_MEDIA,
@@ -7993,9 +8102,15 @@ export class Station extends TypedEmitter<StationEvents> {
     );
   }
 
-  public isLiveStreaming(device: Device): boolean {
+  public isLiveStreaming(device: Device, sensor = 0): boolean {
     if (device.getStationSerial() !== this.getSerial()) return false;
+    if (this.isRTCConnectableDevice())
+      return this.rtcMediaSessions.get(this.getRTCMediaSessionKey(device, sensor))?.isActive() ?? false;
     return this.p2pSession.isLiveStreaming(device.getChannel());
+  }
+
+  private getRTCMediaSessionKey(device: Device, sensor: number): string {
+    return `${device.getChannel()}:${sensor}`;
   }
 
   public setStreamTimeouts(options: StreamTimeoutOptions): void {

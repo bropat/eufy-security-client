@@ -159,6 +159,8 @@ export interface StationListResponse {
   wakeup_flag: number;
   p2p_conn: string;
   app_conn: string;
+  signaling_servers?: Array<string>;
+  webrtc_sdk_version?: string;
   wipn_enc_dec_key: string;
   wipn_ndt_aes128key: string;
   query_server_did: string;
@@ -355,6 +357,9 @@ export interface EventRecordResponse {
   wakeup_flag: number;
   p2p_conn: string;
   app_conn: string;
+  signaling_servers?: Array<string>;
+  webrtc_sdk_version?: string;
+  parent_sn?: string;
   wipn_enc_dec_key: string;
   wipn_ndt_aes128key: string;
   query_server_did: string;

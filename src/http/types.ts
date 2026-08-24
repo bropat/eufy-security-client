@@ -104,6 +104,8 @@ export enum DeviceType {
   LOCK_85P0 = 209, //T85P0
   NVR_S4_MAX = 300, //T8N00
   CAMERA_POE_S4 = 301, //T8E00
+  NVR_T7000 = 310,
+  CAMERA_POE_T7100 = 311,
   WALL_LIGHT_CAM_81A0 = 10005,
   INDOOR_PT_CAMERA_C220 = 10008, // T8W11C
   INDOOR_PT_CAMERA_C210 = 10009, // T8419 / T8W11P?
@@ -8831,6 +8833,8 @@ export const DeviceProperties: Properties = {
 
 DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
 DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220_V3] = DeviceProperties[DeviceType.INDOOR_PT_CAMERA_C220];
+DeviceProperties[DeviceType.NVR_T7000] = DeviceProperties[DeviceType.NVR_S4_MAX];
+DeviceProperties[DeviceType.CAMERA_POE_T7100] = DeviceProperties[DeviceType.CAMERA_POE_S4];
 
 export const StationNameProperty: PropertyMetadataString = {
   key: "station_name",
@@ -10062,6 +10066,7 @@ export const StationProperties: Properties = {
 
 StationProperties[DeviceType.INDOOR_PT_CAMERA_C220_V2] = StationProperties[DeviceType.INDOOR_PT_CAMERA_C220];
 StationProperties[DeviceType.INDOOR_PT_CAMERA_C220_V3] = StationProperties[DeviceType.INDOOR_PT_CAMERA_C220];
+StationProperties[DeviceType.NVR_T7000] = StationProperties[DeviceType.NVR_S4_MAX];
 
 export enum CommandName {
   DeviceStartLivestream = "deviceStartLivestream",
@@ -10867,6 +10872,7 @@ export const DeviceCommands: Commands = {
 
 DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220];
 DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220_V3] = DeviceCommands[DeviceType.INDOOR_PT_CAMERA_C220];
+DeviceCommands[DeviceType.CAMERA_POE_T7100] = DeviceCommands[DeviceType.CAMERA_POE_S4];
 
 export const StationCommands: Commands = {
   [DeviceType.STATION]: [
@@ -11322,3 +11328,4 @@ export const StationCommands: Commands = {
 
 StationCommands[DeviceType.INDOOR_PT_CAMERA_C220_V2] = StationCommands[DeviceType.INDOOR_PT_CAMERA_C220];
 StationCommands[DeviceType.INDOOR_PT_CAMERA_C220_V3] = StationCommands[DeviceType.INDOOR_PT_CAMERA_C220];
+StationCommands[DeviceType.NVR_T7000] = [];
