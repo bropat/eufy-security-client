@@ -1938,7 +1938,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type == DeviceType.INDOOR_PT_CAMERA_C220_V2 ||
       type == DeviceType.SOLOCAM_E42 ||
       type == DeviceType.SMART_DROP ||
-      type == DeviceType.CAMERA_POE_S4
+      type == DeviceType.CAMERA_POE_S4 ||
+      type == DeviceType.CAMERA_POE_T7100
     );
   }
 
@@ -2003,7 +2004,8 @@ export class Device extends TypedEmitter<DeviceEvents> {
       type === DeviceType.HB3 ||
       type === DeviceType.HOMEBASE_MINI ||
       type === DeviceType.MINIBASE_CHIME ||
-      type === DeviceType.NVR_S4_MAX
+      type === DeviceType.NVR_S4_MAX ||
+      type === DeviceType.NVR_T7000
     );
   }
 
@@ -2651,13 +2653,11 @@ export class Device extends TypedEmitter<DeviceEvents> {
   }
 
   static isCameraPoE(type: number): boolean {
-    //T8E00
-    return DeviceType.CAMERA_POE_S4 === type;
+    return DeviceType.CAMERA_POE_S4 === type || DeviceType.CAMERA_POE_T7100 === type;
   }
 
   static isNVR(type: number): boolean {
-    //T8N00
-    return DeviceType.NVR_S4_MAX === type;
+    return DeviceType.NVR_S4_MAX === type || DeviceType.NVR_T7000 === type;
   }
 
   public isCamera(): boolean {

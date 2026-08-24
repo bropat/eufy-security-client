@@ -6,6 +6,7 @@ import type { EufySecurityConfig, EufySecurityPersistentData } from "../interfac
 import { ResponseErrorCode } from "./types";
 import { ensureError } from "../error";
 import { getError } from "../utils";
+import type { MegaDeviceInventory } from "./megaInterfaces";
 
 /**
  * Everything specific to the transitional v6 "eufy_mega" backend lives in this single file so it can
@@ -151,6 +152,20 @@ export class MegaTransition {
     } catch (err) {
       rootMainLogger.warn("v6 push: register failed (legacy push unaffected)", { error: getError(ensureError(err)) });
       return false;
+    }
+  }
+
+  /** Fetch the v6 inventory used to discover RTC stations and their signaling inputs. */
+  public async getMegaDeviceInventory(): Promise<MegaDeviceInventory | undefined> {
+    try {
+      const mega = await this.getMegaApi();
+      if (!mega.hasValidSession()) return undefined;
+      return await mega.getDevsListDecrypted();
+    } catch (err) {
+      rootMainLogger.warn("v6 device inventory refresh failed (legacy inventory remains active)", {
+        error: getError(ensureError(err)),
+      });
+      return undefined;
     }
   }
 

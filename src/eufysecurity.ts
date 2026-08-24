@@ -8,6 +8,7 @@ import EventEmitter from "events";
 import { EufySecurityEvents, EufySecurityConfig, EufySecurityPersistentData } from "./interfaces";
 import { HTTPApi } from "./http/api";
 import { MegaTransition, MegaTransitionHost } from "./http/megaTransition";
+import { mergeMegaInventory } from "./http/megaInventory";
 import {
   Devices,
   FullDevices,
@@ -125,6 +126,13 @@ import {
 } from "./logging";
 import { LogLevel } from "typescript-logging";
 import { isCharging } from "./p2p/utils";
+import { createRTCSignalClient, RTCSignalClient } from "./rtc";
+
+interface CameraLivestreamTimeout {
+  deviceSN: string;
+  sensor: number;
+  timeout: NodeJS.Timeout;
+}
 
 export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
   private config: EufySecurityConfig;
@@ -140,7 +148,7 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
   private readonly P2P_REFRESH_INTERVAL_MIN = 720;
 
   private cameraMaxLivestreamSeconds = 30;
-  private cameraStationLivestreamTimeout: Map<string, NodeJS.Timeout> = new Map<string, NodeJS.Timeout>();
+  private cameraStationLivestreamTimeout = new Map<string, CameraLivestreamTimeout>();
 
   private pushService!: PushNotificationService;
   private mqttService!: MQTTService;
@@ -620,6 +628,23 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     return this.api;
   }
 
+  /**
+   * Create the authenticated signaling client for an RTC-managed device.
+   */
+  public async getRTCSignalClient(deviceSN: string): Promise<RTCSignalClient> {
+    const device = await this.getDevice(deviceSN);
+    const station = await this.getStation(device.getStationSerial());
+    const config = station.getRTCTransportConfig();
+    if (!config) {
+      throw new NotSupportedError("This device does not use the RTC transport", {
+        context: { device: deviceSN },
+      });
+    }
+
+    const megaApi = await this.megaTransition.getMegaApi();
+    return createRTCSignalClient(megaApi, config, device.getSerial(), device.getChannel());
+  }
+
   public async connectToStation(
     stationSN: string,
     p2pConnectionType: P2PConnectionType = P2PConnectionType.QUICKEST
@@ -667,6 +692,14 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         promises.push(
           station.then((station: Station) => {
             try {
+              if (station.isRTCConnectableDevice()) {
+                station.setRTCSignalClientFactory(async (deviceSerial, channel) => {
+                  const config = station.getRTCTransportConfig();
+                  if (!config) throw new Error("RTC transport configuration is unavailable");
+                  const megaApi = await this.megaTransition.getMegaApi();
+                  return createRTCSignalClient(megaApi, config, deviceSerial, channel);
+                });
+              }
               station.on("connect", (station: Station) => this.onStationConnect(station));
               station.on("connection error", (station: Station, error: Error) =>
                 this.onStationConnectionError(station, error)
@@ -682,14 +715,15 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
                   channel: number,
                   metadata: StreamMetadata,
                   videostream: Readable,
-                  audiostream: Readable
-                ) => this.onStartStationLivestream(station, channel, metadata, videostream, audiostream)
+                  audiostream: Readable,
+                  sensor?: number
+                ) => this.onStartStationLivestream(station, channel, metadata, videostream, audiostream, sensor)
               );
-              station.on("livestream stop", (station: Station, channel: number) =>
-                this.onStopStationLivestream(station, channel)
+              station.on("livestream stop", (station: Station, channel: number, sensor?: number) =>
+                this.onStopStationLivestream(station, channel, sensor)
               );
-              station.on("livestream error", (station: Station, channel: number, error: Error) =>
-                this.onErrorStationLivestream(station, channel, error)
+              station.on("livestream error", (station: Station, channel: number, error: Error, sensor?: number) =>
+                this.onErrorStationLivestream(station, channel, error, sensor)
               );
               station.on(
                 "download start",
@@ -906,12 +940,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
 
   private onStationClose(station: Station): void {
     this.emit("station close", station);
-    for (const device_sn of this.cameraStationLivestreamTimeout.keys()) {
-      this.getDevice(device_sn)
+    for (const [key, entry] of this.cameraStationLivestreamTimeout) {
+      this.getDevice(entry.deviceSN)
         .then((device: Device) => {
           if (device !== null && device.getStationSerial() === station.getSerial()) {
-            clearTimeout(this.cameraStationLivestreamTimeout.get(device_sn)!);
-            this.cameraStationLivestreamTimeout.delete(device_sn);
+            clearTimeout(entry.timeout);
+            this.cameraStationLivestreamTimeout.delete(key);
           }
         })
         .catch((err) => {
@@ -1127,6 +1161,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
       const error = ensureError(err);
       rootMainLogger.error("Error during API data refreshing", { error: getError(error) });
     });
+    const megaInventory = await this.megaTransition.getMegaDeviceInventory();
+    if (megaInventory) {
+      const merged = mergeMegaInventory(this.api.getHubs(), this.api.getDevices(), megaInventory);
+      this.handleHubs(merged.hubs);
+      this.handleDevices(merged.devices);
+    }
     if (this.refreshEufySecurityCloudTimeout !== undefined) clearTimeout(this.refreshEufySecurityCloudTimeout);
     if (this.config.pollingIntervalMinutes > 0)
       this.refreshEufySecurityCloudTimeout = setTimeout(
@@ -1142,8 +1182,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
   }
 
   public close(): void {
-    for (const device_sn of this.cameraStationLivestreamTimeout.keys()) {
-      this.stopStationLivestream(device_sn);
+    for (const entry of this.cameraStationLivestreamTimeout.values()) {
+      this.stopStationLivestream(entry.deviceSN, entry.sensor);
     }
 
     if (this.refreshEufySecurityCloudTimeout !== undefined) clearTimeout(this.refreshEufySecurityCloudTimeout);
@@ -1304,7 +1344,13 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     this.emit("connection error", error);
   }
 
-  public async startStationLivestream(deviceSN: string): Promise<void> {
+  /**
+   * Start a station livestream.
+   *
+   * `sensor` is zero for existing single-sensor devices. RTC-managed multi-sensor cameras can
+   * select another physical sensor without inventing a second device serial.
+   */
+  public async startStationLivestream(deviceSN: string, sensor = 0): Promise<void> {
     const device = await this.getDevice(deviceSN);
     const station = await this.getStation(device.getStationSerial());
 
@@ -1314,19 +1360,21 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
       });
 
     const camera = device as Camera;
-    if (!station.isLiveStreaming(camera)) {
-      station.startLivestream(camera);
+    if (!station.isLiveStreaming(camera, sensor)) {
+      station.startLivestream(camera, undefined, sensor);
 
       if (this.cameraMaxLivestreamSeconds > 0) {
-        this.cameraStationLivestreamTimeout.set(
+        const timeoutKey = this.getCameraLivestreamTimeoutKey(deviceSN, sensor);
+        this.cameraStationLivestreamTimeout.set(timeoutKey, {
           deviceSN,
-          setTimeout(() => {
+          sensor,
+          timeout: setTimeout(() => {
             rootMainLogger.info(
-              `Stopping the station stream for the device ${deviceSN}, because we have reached the configured maximum stream timeout (${this.cameraMaxLivestreamSeconds} seconds)`
+              `Stopping station stream for device ${deviceSN}, sensor ${sensor}, after the configured maximum (${this.cameraMaxLivestreamSeconds} seconds)`
             );
-            this.stopStationLivestream(deviceSN);
-          }, this.cameraMaxLivestreamSeconds * 1000)
-        );
+            this.stopStationLivestream(deviceSN, sensor);
+          }, this.cameraMaxLivestreamSeconds * 1000),
+        });
       }
     } else {
       rootMainLogger.warn(
@@ -1335,7 +1383,8 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     }
   }
 
-  public async stopStationLivestream(deviceSN: string): Promise<void> {
+  /** Stop the matching device/sensor livestream. */
+  public async stopStationLivestream(deviceSN: string, sensor = 0): Promise<void> {
     const device = await this.getDevice(deviceSN);
     const station = await this.getStation(device.getStationSerial());
 
@@ -1344,19 +1393,24 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
         context: { device: deviceSN, commandName: CommandName.DeviceStopLivestream },
       });
 
-    if (station.isConnected() && station.isLiveStreaming(device)) {
-      station.stopLivestream(device);
+    if ((station.isRTCConnectableDevice() || station.isConnected()) && station.isLiveStreaming(device, sensor)) {
+      station.stopLivestream(device, sensor);
     } else {
       rootMainLogger.warn(
         `The station stream for the device ${deviceSN} cannot be stopped, because it isn't streaming!`
       );
     }
 
-    const timeout = this.cameraStationLivestreamTimeout.get(deviceSN);
-    if (timeout) {
-      clearTimeout(timeout);
-      this.cameraStationLivestreamTimeout.delete(deviceSN);
+    const timeoutKey = this.getCameraLivestreamTimeoutKey(deviceSN, sensor);
+    const entry = this.cameraStationLivestreamTimeout.get(timeoutKey);
+    if (entry) {
+      clearTimeout(entry.timeout);
+      this.cameraStationLivestreamTimeout.delete(timeoutKey);
     }
+  }
+
+  private getCameraLivestreamTimeoutKey(deviceSN: string, sensor: number): string {
+    return `${deviceSN}:${sensor}`;
   }
 
   private writePersistentData(): void {
@@ -2306,11 +2360,12 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
     channel: number,
     metadata: StreamMetadata,
     videostream: Readable,
-    audiostream: Readable
+    audiostream: Readable,
+    sensor = 0
   ): void {
     this.getStationDevice(station.getSerial(), channel)
       .then((device: Device) => {
-        this.emit("station livestream start", station, device, metadata, videostream, audiostream);
+        this.emit("station livestream start", station, device, metadata, videostream, audiostream, sensor);
       })
       .catch((err) => {
         const error = ensureError(err);
@@ -2323,10 +2378,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
       });
   }
 
-  private onStopStationLivestream(station: Station, channel: number): void {
+  private onStopStationLivestream(station: Station, channel: number, sensor = 0): void {
     this.getStationDevice(station.getSerial(), channel)
       .then((device: Device) => {
-        this.emit("station livestream stop", station, device);
+        this.emit("station livestream stop", station, device, sensor);
       })
       .catch((err) => {
         const error = ensureError(err);
@@ -2338,10 +2393,10 @@ export class EufySecurity extends TypedEmitter<EufySecurityEvents> {
       });
   }
 
-  private onErrorStationLivestream(station: Station, channel: number, origError: Error): void {
+  private onErrorStationLivestream(station: Station, channel: number, origError: Error, sensor = 0): void {
     this.getStationDevice(station.getSerial(), channel)
       .then((device: Device) => {
-        station.stopLivestream(device);
+        if (station.isLiveStreaming(device, sensor)) station.stopLivestream(device, sensor);
       })
       .catch((err) => {
         const error = ensureError(err);

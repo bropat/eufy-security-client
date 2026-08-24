@@ -7,6 +7,27 @@ export interface MegaResult {
   trace_id?: string;
 }
 
+export interface MegaDeviceRecord {
+  device_sn: string;
+  device_name: string;
+  device_model: string;
+  device_type: number;
+  device_channel: number;
+  parent_sn?: string;
+  app_conn?: string;
+  p2p_conn?: string;
+  p2p_did?: string;
+  p2p_license?: string;
+  signaling_servers?: Array<string>;
+  webrtc_sdk_version?: string;
+  [key: string]: unknown;
+}
+
+export interface MegaDeviceInventory {
+  devices: Array<MegaDeviceRecord>;
+  groups?: unknown;
+}
+
 /** Picture-captcha challenge returned by `passport/generate/captcha`. `item` is a base64 image. */
 export interface MegaCaptcha {
   captcha_id: string;
@@ -46,6 +67,13 @@ export interface MegaMqttConnectConfig {
   privateKey: string;
   awsRootCaPem: string;
   topics: { subCmd: string; stateInfo: string; pubCmd: string };
+}
+
+/** Short-lived inputs used to authenticate the RTC signaling WebSocket. */
+export interface MegaRTCAuth {
+  authToken: string;
+  globalToken: string;
+  country: string;
 }
 
 export interface MegaApiOptions {

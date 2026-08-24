@@ -56,6 +56,7 @@
     "image-type": "^6.1.0",
     "long": "^5.2.3",
     "mqtt": "^5.15.0",
+    "node-datachannel": "^0.32.3",
     "node-rsa": "^1.1.1",
     "node-schedule": "^2.1.1",
     "p-throttle": "^8.1.0",
