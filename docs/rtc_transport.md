@@ -28,9 +28,14 @@ The implementation is split into reusable layers:
 | `Station` | Selects RTC or legacy P2P while preserving the existing event surface. |
 
 Device-family differences live in `RTC_TRANSPORT_PROFILES`. A profile declares
-whether a record is a station or child camera and supplies the signaling
-device/request types. Inventory and signaling consume the profile instead of
-adding their own model checks.
+whether a record is a station or child camera, supplies the signaling
+device/request types, and selects station- or device-scoped signaling. Inventory
+and signaling consume the profile instead of adding their own model checks.
+
+Station-scoped signaling authenticates and calls the NVR without a child
+`subSn` or channel; the later media command selects the physical camera and
+sensor. Device-scoped signaling is available for families whose signaling
+service requires those fields.
 
 ## Consumer API
 

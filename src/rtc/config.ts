@@ -2,6 +2,7 @@ import type { StationListResponse } from "../http/models";
 import { DeviceType } from "../http/types";
 
 export type RTCInventoryRole = "station" | "camera";
+export type RTCSignalingScope = "station" | "device";
 
 /**
  * Device-family differences that are required before a media session starts.
@@ -13,11 +14,28 @@ export interface RTCTransportProfile {
   inventoryRole: RTCInventoryRole;
   signalingDeviceType: string;
   signalingRequestType: string;
+  signalingScope: RTCSignalingScope;
 }
 
 export const RTC_TRANSPORT_PROFILES: ReadonlyMap<number, Readonly<RTCTransportProfile>> = new Map([
-  [DeviceType.NVR_T7000, { inventoryRole: "station", signalingDeviceType: "NVR", signalingRequestType: "nvr" }],
-  [DeviceType.CAMERA_POE_T7100, { inventoryRole: "camera", signalingDeviceType: "NVR", signalingRequestType: "nvr" }],
+  [
+    DeviceType.NVR_T7000,
+    {
+      inventoryRole: "station",
+      signalingDeviceType: "NVR",
+      signalingRequestType: "nvr",
+      signalingScope: "station",
+    },
+  ],
+  [
+    DeviceType.CAMERA_POE_T7100,
+    {
+      inventoryRole: "camera",
+      signalingDeviceType: "NVR",
+      signalingRequestType: "nvr",
+      signalingScope: "station",
+    },
+  ],
 ]);
 
 export interface RTCTransportConfig {
@@ -31,6 +49,7 @@ export interface RTCTransportConfig {
   signalingServers: ReadonlyArray<URL>;
   signalingDeviceType: string;
   signalingRequestType: string;
+  signalingScope: RTCSignalingScope;
 }
 
 export class RTCTransportConfigError extends Error {
@@ -107,5 +126,6 @@ export const getRTCTransportConfig = (station: StationListResponse): RTCTranspor
     signalingServers,
     signalingDeviceType: profile.signalingDeviceType,
     signalingRequestType: profile.signalingRequestType,
+    signalingScope: profile.signalingScope,
   };
 };

@@ -32,6 +32,7 @@ describe("RTC transport discovery", () => {
       inventoryRole: "station",
       signalingDeviceType: "NVR",
       signalingRequestType: "nvr",
+      signalingScope: "station",
     });
   });
 
@@ -49,6 +50,7 @@ describe("RTC transport discovery", () => {
     expect(result?.stationSerial).toBe("T7000000000000000");
     expect(result?.sdkVersion).toBe("7.1.4");
     expect(result?.signalingRequestType).toBe("nvr");
+    expect(result?.signalingScope).toBe("station");
     expect(result?.signalingServers.map((server) => server.href)).toEqual(["https://webrtc-signal-us.eufylife.com/"]);
   });
 
