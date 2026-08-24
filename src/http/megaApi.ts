@@ -22,8 +22,10 @@ import {
   MegaCaptchaAnswer,
   MegaUserMqttInfo,
   MegaMqttConnectConfig,
+  MegaRTCAuth,
   MegaApiOptions,
   MegaSession,
+  MegaDeviceInventory,
 } from "./megaInterfaces";
 
 export type {
@@ -34,6 +36,7 @@ export type {
   MegaMqttConnectConfig,
   MegaApiOptions,
   MegaSession,
+  MegaDeviceInventory,
 } from "./megaInterfaces";
 
 /**
@@ -313,6 +316,61 @@ export class MegaHTTPApi {
     this.userId = userId;
   }
 
+  public getRTCAuth(): MegaRTCAuth {
+    if (!this.authToken || !this.gtoken) throw new Error("RTC signaling requires an authenticated v6 session");
+    return {
+      authToken: this.authToken,
+      globalToken: this.gtoken,
+      country: this.ab,
+    };
+  }
+
+  public getRTCSmartOrigin(): URL {
+    const securityDomain = this.domains.eufy_security;
+    if (!securityDomain) throw new Error("RTC signaling requires the regional eufy_security domain");
+
+    const url = new URL(securityDomain.includes("://") ? securityDomain : `https://${securityDomain}`);
+    url.hostname = url.hostname.replace(/^security-app(?=\.)/, "security-smart");
+    url.pathname = "";
+    url.search = "";
+    url.hash = "";
+    return url;
+  }
+
+  /**
+   * Obtain the short-lived signature used by the RTC WebSocket handshake.
+   *
+   * Unlike normal v6 app calls this web-compatible endpoint is an authenticated cleartext GET:
+   * the signature is returned in `data` and is then carried in the WebSocket subprotocol and auth
+   * frame. Tokens are intentionally never included in logs.
+   */
+  public async getRTCSign(signalingOrigin: URL): Promise<string> {
+    const auth = this.getRTCAuth();
+    if (signalingOrigin.protocol !== "https:") throw new Error("RTC signaling requires an HTTPS origin");
+
+    const endpoint = new URL("/v1/smart/nvr/ws/sign", signalingOrigin);
+    const response = await this.got(endpoint.href, {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        "app-name": "eufy_mega",
+        "model-type": "WEB",
+        "web-country": auth.country,
+        gtoken: auth.globalToken,
+        "x-auth-token": auth.authToken,
+      },
+      responseType: "json",
+      throwHttpErrors: false,
+      timeout: { request: 10_000 },
+      retry: { limit: 0 },
+    });
+    const result = response.body as MegaResult;
+    if (response.statusCode !== 200 || result.code !== 0 || typeof result.data !== "string" || !result.data) {
+      throw new Error(`RTC signing failed: HTTP ${response.statusCode}, code ${result.code}`);
+    }
+    return result.data;
+  }
+
   /**
    * Export the full session so a later run can resume WITHOUT a fresh login/2FA.
    *
@@ -580,7 +638,7 @@ export class MegaHTTPApi {
   }
 
   /** Eufy-side device list (`house/get_devs_list`), decrypted. The non-Tuya inventory. */
-  public async getDevsListDecrypted(): Promise<unknown> {
+  public async getDevsListDecrypted(): Promise<MegaDeviceInventory> {
     const host = this.clusterHost("house");
     const openapiHost = this.clusterHost("openapi");
     const identity = await this.keyExchange(openapiHost);
@@ -591,6 +649,10 @@ export class MegaHTTPApi {
       identity
     );
     if (result.code !== 0) throw new Error(`get_devs_list failed: ${result.code} ${result.msg}`);
-    return JSON.parse(this.decryptForCluster(identity, result.data as string));
+    const inventory = JSON.parse(this.decryptForCluster(identity, result.data as string)) as MegaDeviceInventory;
+    if (!inventory || !Array.isArray(inventory.devices)) {
+      throw new Error("get_devs_list returned an invalid device inventory");
+    }
+    return inventory;
   }
 }

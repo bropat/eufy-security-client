@@ -59,6 +59,12 @@ describe("MegaHTTPApi", () => {
       expect(api.clusterHost("passport")).toBe("app-passport-in-pr.eufy.com");
       expect(api.clusterHost("openapi")).toBe("app-openapi-in-pr.eufy.com");
     });
+
+    it("derives the browser RTC gateway from the regional security domain", async () => {
+      const { api } = await makeApi([]);
+      (api as any).domains = { eufy_security: "security-app.eufylife.com" };
+      expect(api.getRTCSmartOrigin().href).toBe("https://security-smart.eufylife.com/");
+    });
   });
 
   describe("megaLoginHash", () => {
@@ -130,6 +136,26 @@ describe("MegaHTTPApi", () => {
       expect((api as any).gtoken).toBeUndefined();
       api.setAuth("t", "user456");
       expect((api as any).gtoken).toMatch(/^[0-9a-f]{32}$/);
+    });
+
+    it("signs RTC WebSocket sessions without logging or returning auth headers", async () => {
+      const { api, requests } = await makeApi([
+        { statusCode: 200, body: JSON.stringify({ code: 0, msg: "ok", data: "rtc-signature" }) },
+      ]);
+      api.setAuth("token-local", "user-local");
+
+      await expect(api.getRTCSign(new URL("https://signal.example.test"))).resolves.toBe("rtc-signature");
+      expect(requests[0].url).toBe("https://signal.example.test/v1/smart/nvr/ws/sign");
+      expect(requests[0].headers).toMatchObject({
+        "app-name": "eufy_mega",
+        "model-type": "WEB",
+        "web-country": "fr",
+        "x-auth-token": "token-local",
+      });
+      expect(api.getRTCAuth()).toMatchObject({
+        authToken: "token-local",
+        country: "fr",
+      });
     });
   });
 

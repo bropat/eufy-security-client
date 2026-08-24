@@ -112,9 +112,10 @@ export interface EufySecurityEvents {
     device: Device,
     metadata: StreamMetadata,
     videostream: Readable,
-    audiostream: Readable
+    audiostream: Readable,
+    sensor?: number
   ) => void;
-  "station livestream stop": (station: Station, device: Device) => void;
+  "station livestream stop": (station: Station, device: Device, sensor?: number) => void;
   "station download start": (
     station: Station,
     device: Device,
